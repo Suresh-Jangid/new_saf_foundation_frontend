@@ -1,0 +1,23 @@
+{
+  "name": "getSurakshaBima",
+  "method": "GET",
+  "url": "http://localhost:5000/api?apicall=getSurakshaBima&id=00000000-0000-0000-0000-000000000001",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": null
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "status": true,
+    "error": false,
+    "data": null
+  },
+  "responseRawLength": 41,
+  "elapsed": 852,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:09:51.468Z"
+}

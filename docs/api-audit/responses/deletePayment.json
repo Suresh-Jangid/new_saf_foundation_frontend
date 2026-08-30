@@ -1,0 +1,24 @@
+{
+  "name": "deletePayment",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=deletePayment",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Payment not found",
+  "response": {
+    "error": true,
+    "message": "Payment not found"
+  },
+  "responseRawLength": 44,
+  "elapsed": 822,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:10:00.897Z"
+}

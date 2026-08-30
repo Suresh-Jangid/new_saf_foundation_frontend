@@ -1,0 +1,22 @@
+{
+  "name": "createApplication",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=createApplication",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {}
+  },
+  "httpStatus": 200,
+  "working": false,
+  "message": "totalAmount is required",
+  "response": {
+    "error": true,
+    "message": "totalAmount is required"
+  },
+  "responseRawLength": 50,
+  "elapsed": 30,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:08:41.357Z"
+}

@@ -1,0 +1,53 @@
+{
+  "name": "addAgent",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=addAgent",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "name": "Audit Agent",
+      "fatherName": "Test Father",
+      "gender": "Male",
+      "mobile": "9000904056",
+      "password": "[REDACTED]",
+      "gotra": "Prajapat",
+      "village": "Jasal",
+      "address": "Test",
+      "tehsil": "Balotra",
+      "district": "Barmer",
+      "workArea": "Balotra",
+      "bankName": "SBI",
+      "accountNumber": "123",
+      "ifsc": "SBIN0001234",
+      "nomineeName": "Nominee",
+      "nomineeMobile": "9999999998",
+      "nomineeRelation": "Wife",
+      "age": "30"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Agent created successfully",
+  "response": {
+    "status": true,
+    "error": false,
+    "message": "Agent created successfully",
+    "data": {
+      "id": "da77ea81-8e39-42d9-875b-34cb0d4a2673",
+      "mobile": "9000904056",
+      "name": "Audit Agent",
+      "email": null,
+      "role": "AGENT",
+      "isActive": true,
+      "createdAt": "2026-06-28T16:08:26.059Z",
+      "updatedAt": "2026-06-28T16:08:26.059Z",
+      "deletedAt": null
+    }
+  },
+  "responseRawLength": 303,
+  "elapsed": 8482,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:08:32.538Z"
+}

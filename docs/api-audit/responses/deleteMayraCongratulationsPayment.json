@@ -1,0 +1,24 @@
+{
+  "name": "deleteMayraCongratulationsPayment",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=deleteMayraCongratulationsPayment",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Payment record not found",
+  "response": {
+    "error": true,
+    "message": "Payment record not found"
+  },
+  "responseRawLength": 51,
+  "elapsed": 753,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:38.399Z"
+}

@@ -1,0 +1,56 @@
+{
+  "name": "deleteApplication",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=deleteApplication",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Application deleted successfully",
+  "response": {
+    "status": true,
+    "error": false,
+    "message": "Application deleted successfully",
+    "data": {
+      "id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+      "srNo": 10,
+      "formNumber": "GEN-1010",
+      "applicationDate": "2007-02-01T00:00:00.000Z",
+      "applicantName": "hello",
+      "fatherName": "hell011",
+      "motherName": "helly",
+      "dateOfBirth": "1999-06-02T00:00:00.000Z",
+      "aadharNumber": "252550503030",
+      "gotra": "aaa",
+      "mobile": "9995999999",
+      "address": "blt",
+      "pinCode": "344022",
+      "tehsil": "jasol",
+      "district": "balotara",
+      "state": "rajasthan",
+      "nomineeName": "suresh",
+      "nomineeRelation": "test",
+      "affidavitUrl": null,
+      "passportPhotoUrl": "/uploads/passportPhoto-1782646855838-298589469.png",
+      "gender": "Female",
+      "category": "C",
+      "totalAmount": "9000",
+      "pendingAmount": "4000",
+      "isActive": false,
+      "addedById": "b682f732-acd3-40cb-8281-c8195780fc51",
+      "createdAt": "2026-06-28T11:40:57.003Z",
+      "updatedAt": "2026-06-28T16:08:45.200Z",
+      "deletedAt": "2026-06-28T16:08:45.197Z"
+    }
+  },
+  "responseRawLength": 877,
+  "elapsed": 1192,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:08:45.986Z"
+}

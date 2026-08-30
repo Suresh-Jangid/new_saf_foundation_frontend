@@ -1,0 +1,24 @@
+{
+  "name": "deleteSurakshaBima",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=deleteSurakshaBima",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Suraksha Bima not found",
+  "response": {
+    "error": true,
+    "message": "Suraksha Bima not found"
+  },
+  "responseRawLength": 50,
+  "elapsed": 392,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:53.424Z"
+}

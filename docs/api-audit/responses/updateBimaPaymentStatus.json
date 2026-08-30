@@ -1,0 +1,28 @@
+{
+  "name": "updateBimaPaymentStatus",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=updateBimaPaymentStatus",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "data": []
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "No payment updates requested",
+  "response": {
+    "status": true,
+    "error": false,
+    "updated": 0,
+    "failed": 0,
+    "details": [],
+    "message": "No payment updates requested"
+  },
+  "responseRawLength": 106,
+  "elapsed": 5,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:58.335Z"
+}

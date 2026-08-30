@@ -1,0 +1,25 @@
+{
+  "name": "updateMayraApplicationActiveStatus",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=updateMayraApplicationActiveStatus",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "is_active": "1"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Record not found",
+  "response": {
+    "error": true,
+    "message": "Record not found"
+  },
+  "responseRawLength": 43,
+  "elapsed": 816,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:27.203Z"
+}

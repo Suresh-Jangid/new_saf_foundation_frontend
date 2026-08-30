@@ -1,0 +1,49 @@
+{
+  "name": "getMarriageCongratulations",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getMarriageCongratulations",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "application_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "status": true,
+    "error": false,
+    "data": {
+      "id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+      "applicantName": "hello",
+      "fatherName": "hell011",
+      "gotra": "aaa",
+      "address": "blt",
+      "applicationDate": "2007-02-01T00:00:00.000Z",
+      "gender": "Female",
+      "totalAmount": "9000"
+    },
+    "counts": [
+      {
+        "category": "A",
+        "total": 0
+      },
+      {
+        "category": "B",
+        "total": 0
+      },
+      {
+        "category": "C",
+        "total": 4
+      }
+    ],
+    "totalEMI": 5000
+  },
+  "responseRawLength": 351,
+  "elapsed": 2256,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:09:14.199Z"
+}

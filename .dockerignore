@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+docs
+scripts
+*.md
+.env
+.env.local
+.env*.local
+scratch
+terminals
+.cursor
+coverage
+npm-debug.log*

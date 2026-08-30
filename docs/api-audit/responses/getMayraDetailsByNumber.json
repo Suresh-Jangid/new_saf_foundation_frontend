@@ -1,0 +1,25 @@
+{
+  "name": "getMayraDetailsByNumber",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getMayraDetailsByNumber",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "mayraNumber": "1"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "status": true,
+    "error": false,
+    "data": null
+  },
+  "responseRawLength": 41,
+  "elapsed": 756,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:09:39.932Z"
+}

@@ -1,0 +1,53 @@
+{
+  "name": "deleteMarriageCongrats",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=deleteMarriageCongrats",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "7a7864f9-3def-4daf-b63d-4a377388ab4e"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Marriage congratulations deleted successfully",
+  "response": {
+    "status": true,
+    "error": false,
+    "message": "Marriage congratulations deleted successfully",
+    "data": {
+      "id": "7a7864f9-3def-4daf-b63d-4a377388ab4e",
+      "date": "2026-06-26T00:00:00.000Z",
+      "codeNumber": "GEN-1009",
+      "marriageNumber": "PM-35135",
+      "applicantName": "suresh",
+      "fatherName": "parasmal",
+      "wifeOf": null,
+      "gotra": "suthar",
+      "address": "balotra",
+      "membershipJoinDate": "2026-06-26T00:00:00.000Z",
+      "associatedUntil": "0 दिन",
+      "permanentFee": "0",
+      "installmentAmount": "0",
+      "totalGrantAmount": "0",
+      "totalMembersServing": 0,
+      "rate100": "0",
+      "rate200": "0",
+      "rate300": "0",
+      "deductionPercent": "0",
+      "deductedAmount": "0",
+      "totalPaidAmount": "0",
+      "gender": "Male",
+      "addedById": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+      "createdAt": "2026-06-26T20:41:40.587Z",
+      "updatedAt": "2026-06-28T16:09:15.840Z",
+      "deletedAt": "2026-06-28T16:09:15.838Z"
+    }
+  },
+  "responseRawLength": 782,
+  "elapsed": 1576,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:16.591Z"
+}

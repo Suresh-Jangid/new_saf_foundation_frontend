@@ -1,0 +1,24 @@
+{
+  "name": "editLoanApplication",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=editLoanApplication",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Record not found",
+  "response": {
+    "error": true,
+    "message": "Record not found"
+  },
+  "responseRawLength": 43,
+  "elapsed": 782,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:08:59.697Z"
+}

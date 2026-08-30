@@ -1,0 +1,27 @@
+{
+  "name": "addPayment",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=addPayment",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "date": "2024-01-01",
+      "type": "Income",
+      "amount": "1",
+      "remark": "test"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Record not found or invalid request data",
+  "response": {
+    "error": true,
+    "message": "Record not found or invalid request data"
+  },
+  "responseRawLength": 67,
+  "elapsed": 15,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:58.358Z"
+}

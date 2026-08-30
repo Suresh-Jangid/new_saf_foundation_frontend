@@ -1,0 +1,25 @@
+{
+  "name": "getInsuranceBulkData",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getInsuranceBulkData",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "userId": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "No member found",
+  "response": {
+    "success": false,
+    "status": false,
+    "message": "No member found"
+  },
+  "responseRawLength": 60,
+  "elapsed": 815,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:09:58.330Z"
+}

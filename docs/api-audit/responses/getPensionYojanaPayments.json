@@ -1,0 +1,24 @@
+{
+  "name": "getPensionYojanaPayments",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getPensionYojanaPayments",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "pension_yojana_id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Pension beneficiary not found",
+  "response": {
+    "error": true,
+    "message": "Pension beneficiary not found"
+  },
+  "responseRawLength": 56,
+  "elapsed": 382,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:09:45.983Z"
+}

@@ -1,0 +1,24 @@
+{
+  "name": "getMarriageCongratulationsPayment",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getMarriageCongratulationsPayment",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "marriage_congratulations_id": "7a7864f9-3def-4daf-b63d-4a377388ab4e"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "status": true,
+    "data": []
+  },
+  "responseRawLength": 25,
+  "elapsed": 1510,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:09:18.101Z"
+}

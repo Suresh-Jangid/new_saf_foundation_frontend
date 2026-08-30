@@ -1,0 +1,25 @@
+{
+  "name": "updateMayraStatus",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=updateMayraStatus",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "mayra_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+      "data": []
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Payer application not found",
+  "response": {
+    "error": true,
+    "message": "Payer application not found"
+  },
+  "responseRawLength": 54,
+  "elapsed": 1181,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:41.503Z"
+}

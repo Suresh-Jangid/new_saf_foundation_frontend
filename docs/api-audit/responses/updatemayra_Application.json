@@ -1,0 +1,24 @@
+{
+  "name": "updatemayra_Application",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=updatemayra_Application",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Mayra Registration not found",
+  "response": {
+    "error": true,
+    "message": "Mayra Registration not found"
+  },
+  "responseRawLength": 55,
+  "elapsed": 1137,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:26.013Z"
+}

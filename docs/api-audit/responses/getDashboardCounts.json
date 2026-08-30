@@ -1,0 +1,40 @@
+{
+  "name": "getDashboardCounts",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getDashboardCounts",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {}
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "success": true,
+    "status": true,
+    "error": false,
+    "dashboard": {
+      "total_counts": {
+        "agent_registration": 3,
+        "applications": 5,
+        "application_insurance": 0,
+        "disability_cycle": 0,
+        "financial_help": 0,
+        "loan_applications": 0,
+        "marriage_congratulations": 2,
+        "marriage_sewing_machine": 0,
+        "pension_yojana": 0,
+        "sewing_machine_camp": 0,
+        "suraksha_bima_yojana": 0,
+        "mayra_registration": 0
+      },
+      "last_7_days_count": 5
+    }
+  },
+  "responseRawLength": 373,
+  "elapsed": 3540,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:08:22.454Z"
+}

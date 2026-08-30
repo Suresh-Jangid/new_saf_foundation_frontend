@@ -1,0 +1,22 @@
+{
+  "name": "addMarriageCongrats",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=addMarriageCongrats",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {}
+  },
+  "httpStatus": 200,
+  "working": false,
+  "message": "date is required",
+  "response": {
+    "error": true,
+    "message": "date is required"
+  },
+  "responseRawLength": 43,
+  "elapsed": 2356,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:10.203Z"
+}

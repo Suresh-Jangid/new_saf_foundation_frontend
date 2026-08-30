@@ -1,0 +1,22 @@
+{
+  "name": "createmayra_Application",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=createmayra_Application",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {}
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Record not found or invalid request data",
+  "response": {
+    "error": true,
+    "message": "Record not found or invalid request data"
+  },
+  "responseRawLength": 67,
+  "elapsed": 1626,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:24.129Z"
+}

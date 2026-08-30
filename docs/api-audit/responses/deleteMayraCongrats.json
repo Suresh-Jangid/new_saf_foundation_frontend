@@ -1,0 +1,24 @@
+{
+  "name": "deleteMayraCongrats",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=deleteMayraCongrats",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Mayra congratulations not found",
+  "response": {
+    "error": true,
+    "message": "Mayra congratulations not found"
+  },
+  "responseRawLength": 58,
+  "elapsed": 851,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:30.843Z"
+}

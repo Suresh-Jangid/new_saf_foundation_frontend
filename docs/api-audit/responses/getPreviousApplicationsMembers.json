@@ -1,0 +1,63 @@
+{
+  "name": "getPreviousApplicationsMembers",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getPreviousApplicationsMembers",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "7a7864f9-3def-4daf-b63d-4a377388ab4e"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "status": true,
+    "categories": {
+      "A": {
+        "members": []
+      },
+      "B": {
+        "members": []
+      },
+      "C": {
+        "members": [
+          {
+            "id": "638cfb80-44ca-42fd-a776-bc9c2cdeccfb",
+            "applicantName": "Test Applicant",
+            "formNumber": "GEN-1006",
+            "category": "C",
+            "payment_status": 0
+          },
+          {
+            "id": "c301bb59-7b4a-43b6-a76b-d2f6c1100149",
+            "applicantName": "API Test 003759",
+            "formNumber": "GEN-1008",
+            "category": "C",
+            "payment_status": 0
+          },
+          {
+            "id": "842c5bec-3c87-4654-8dbe-44a438bd55a8",
+            "applicantName": "suresh",
+            "formNumber": "GEN-1009",
+            "category": "C",
+            "payment_status": 0
+          },
+          {
+            "id": "0c8e5767-44d1-43ef-8663-433892b597c9",
+            "applicantName": "Dinesh",
+            "formNumber": "GEN-1007",
+            "category": "C",
+            "payment_status": 0
+          }
+        ]
+      }
+    }
+  },
+  "responseRawLength": 619,
+  "elapsed": 3555,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:08:51.740Z"
+}

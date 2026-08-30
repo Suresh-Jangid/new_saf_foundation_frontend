@@ -1,0 +1,25 @@
+{
+  "name": "updateMayraPdfStatus",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=updateMayraPdfStatus",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "ids": []
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "PDF status updated",
+  "response": {
+    "status": true,
+    "error": false,
+    "message": "PDF status updated"
+  },
+  "responseRawLength": 60,
+  "elapsed": 4,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:42.775Z"
+}

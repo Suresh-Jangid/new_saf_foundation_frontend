@@ -1,0 +1,26 @@
+{
+  "name": "register",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=register",
+  "request": {
+    "headers": {},
+    "body": {
+      "name": "Test",
+      "email": "t@test.com",
+      "mobile": "9999999999",
+      "password": "[REDACTED]"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Mobile number is already registered",
+  "response": {
+    "status": false,
+    "error": true,
+    "message": "Mobile number is already registered"
+  },
+  "responseRawLength": 77,
+  "elapsed": 820,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:08:18.914Z"
+}

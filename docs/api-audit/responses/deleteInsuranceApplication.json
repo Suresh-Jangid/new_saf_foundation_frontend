@@ -1,0 +1,24 @@
+{
+  "name": "deleteInsuranceApplication",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=deleteInsuranceApplication",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Insurance Application not found",
+  "response": {
+    "error": true,
+    "message": "Insurance Application not found"
+  },
+  "responseRawLength": 58,
+  "elapsed": 394,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:08:56.130Z"
+}

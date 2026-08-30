@@ -1,0 +1,24 @@
+{
+  "name": "editDisabilityCycle",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=editDisabilityCycle",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Disability cycle not found",
+  "response": {
+    "error": true,
+    "message": "Disability cycle not found"
+  },
+  "responseRawLength": 53,
+  "elapsed": 777,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:06.984Z"
+}

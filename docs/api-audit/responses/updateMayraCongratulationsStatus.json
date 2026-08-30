@@ -1,0 +1,25 @@
+{
+  "name": "updateMayraCongratulationsStatus",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=updateMayraCongratulationsStatus",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "payment_status": "1"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Record not found",
+  "response": {
+    "error": true,
+    "message": "Record not found"
+  },
+  "responseRawLength": 43,
+  "elapsed": 770,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:31.613Z"
+}

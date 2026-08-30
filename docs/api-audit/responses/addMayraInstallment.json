@@ -1,0 +1,26 @@
+{
+  "name": "addMayraInstallment",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=addMayraInstallment",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "mayra_id": "00000000-0000-0000-0000-000000000001",
+      "amount": "1",
+      "date": "2024-01-01"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Mayra Registration not found",
+  "response": {
+    "error": true,
+    "message": "Mayra Registration not found"
+  },
+  "responseRawLength": 55,
+  "elapsed": 408,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:33.583Z"
+}

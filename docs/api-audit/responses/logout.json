@@ -1,0 +1,25 @@
+{
+  "name": "logout",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=logout",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "token": "test"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Logged out successfully",
+  "response": {
+    "status": true,
+    "error": false,
+    "message": "Logged out successfully"
+  },
+  "responseRawLength": 65,
+  "elapsed": 6,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:08:18.094Z"
+}

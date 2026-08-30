@@ -1,0 +1,31 @@
+{
+  "name": "login",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=login",
+  "request": {
+    "headers": {},
+    "body": {
+      "mobile": "9999999999",
+      "password": "[REDACTED]"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Login successful",
+  "response": {
+    "status": true,
+    "error": false,
+    "message": "Login successful",
+    "user": {
+      "id": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+      "name": "Super Admin",
+      "email": "admin@purabiya.org",
+      "mobile": "9999999999",
+      "token": "eyJhbG…[REDACTED]"
+    }
+  },
+  "responseRawLength": 406,
+  "elapsed": 460,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:08:16.026Z"
+}

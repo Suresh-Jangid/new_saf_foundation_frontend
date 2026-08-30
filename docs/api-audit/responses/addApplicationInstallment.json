@@ -1,0 +1,26 @@
+{
+  "name": "addApplicationInstallment",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=addApplicationInstallment",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "application_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+      "amount": "1",
+      "date": "2024-01-01"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "General Application not found",
+  "response": {
+    "error": true,
+    "message": "General Application not found"
+  },
+  "responseRawLength": 56,
+  "elapsed": 408,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:08:48.185Z"
+}

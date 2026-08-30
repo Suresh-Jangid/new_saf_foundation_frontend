@@ -1,0 +1,26 @@
+{
+  "name": "addFinancialHelpInstallment",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=addFinancialHelpInstallment",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "financial_help_id": "00000000-0000-0000-0000-000000000001",
+      "amount": "1",
+      "date": "2024-01-01"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Record not found",
+  "response": {
+    "error": true,
+    "message": "Record not found"
+  },
+  "responseRawLength": 43,
+  "elapsed": 447,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:05.390Z"
+}

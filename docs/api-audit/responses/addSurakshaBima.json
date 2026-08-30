@@ -1,0 +1,22 @@
+{
+  "name": "addSurakshaBima",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=addSurakshaBima",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {}
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Insurance Application not found",
+  "response": {
+    "error": true,
+    "message": "Insurance Application not found"
+  },
+  "responseRawLength": 58,
+  "elapsed": 907,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:49.762Z"
+}

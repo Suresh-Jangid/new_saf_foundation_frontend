@@ -1,0 +1,23 @@
+{
+  "name": "getMarriageSewing",
+  "method": "GET",
+  "url": "http://localhost:5000/api?apicall=getMarriageSewing",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": null
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "status": true,
+    "error": false,
+    "data": []
+  },
+  "responseRawLength": 39,
+  "elapsed": 769,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:09:20.761Z"
+}

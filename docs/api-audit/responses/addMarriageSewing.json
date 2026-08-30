@@ -1,0 +1,22 @@
+{
+  "name": "addMarriageSewing",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=addMarriageSewing",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {}
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Record not found",
+  "response": {
+    "error": true,
+    "message": "Record not found"
+  },
+  "responseRawLength": 43,
+  "elapsed": 371,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:19.992Z"
+}

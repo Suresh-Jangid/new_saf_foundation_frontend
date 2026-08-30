@@ -1,0 +1,27 @@
+{
+  "name": "addLoanApplicationInstallment",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=addLoanApplicationInstallment",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "loan_application_id": "00000000-0000-0000-0000-000000000001",
+      "amount": "1",
+      "date": "2024-01-01",
+      "type": "User Repayment"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Loan application not found",
+  "response": {
+    "error": true,
+    "message": "Loan application not found"
+  },
+  "responseRawLength": 53,
+  "elapsed": 411,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:01.703Z"
+}

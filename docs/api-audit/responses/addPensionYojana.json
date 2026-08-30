@@ -1,0 +1,22 @@
+{
+  "name": "addPensionYojana",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=addPensionYojana",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {}
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Record not found or invalid request data",
+  "response": {
+    "error": true,
+    "message": "Record not found or invalid request data"
+  },
+  "responseRawLength": 67,
+  "elapsed": 11,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:43.251Z"
+}

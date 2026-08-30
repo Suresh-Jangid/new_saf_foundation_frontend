@@ -1,0 +1,25 @@
+{
+  "name": "setAgentPermissions",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=setAgentPermissions",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "agent_id": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+      "permissions": []
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Agent not found",
+  "response": {
+    "error": true,
+    "message": "Agent not found"
+  },
+  "responseRawLength": 42,
+  "elapsed": 1136,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:08:40.102Z"
+}

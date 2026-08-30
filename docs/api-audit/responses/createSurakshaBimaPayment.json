@@ -1,0 +1,25 @@
+{
+  "name": "createSurakshaBimaPayment",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=createSurakshaBimaPayment",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "amount": "1"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Record not found or invalid request data",
+  "response": {
+    "error": true,
+    "message": "Record not found or invalid request data"
+  },
+  "responseRawLength": 67,
+  "elapsed": 1739,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:57.514Z"
+}

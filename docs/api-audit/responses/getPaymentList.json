@@ -1,0 +1,26 @@
+{
+  "name": "getPaymentList",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getPaymentList",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {}
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "status": true,
+    "error": false,
+    "data": [],
+    "totalIncome": 0,
+    "totalExpenses": 0,
+    "netBalance": 0
+  },
+  "responseRawLength": 88,
+  "elapsed": 747,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:09:59.105Z"
+}

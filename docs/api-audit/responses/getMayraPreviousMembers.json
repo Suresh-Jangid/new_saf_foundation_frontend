@@ -1,0 +1,24 @@
+{
+  "name": "getMayraPreviousMembers",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getMayraPreviousMembers",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Mayra Congratulations record not found",
+  "response": {
+    "error": true,
+    "message": "Mayra Congratulations record not found"
+  },
+  "responseRawLength": 65,
+  "elapsed": 457,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:09:41.960Z"
+}

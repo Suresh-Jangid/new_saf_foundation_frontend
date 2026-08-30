@@ -1,0 +1,24 @@
+{
+  "name": "getAgentPaymentsForDetails",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getAgentPaymentsForDetails",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "agentId": "895b88d7-589f-420d-bbe1-ab235707e4aa"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Agent not found",
+  "response": {
+    "error": true,
+    "message": "Agent not found"
+  },
+  "responseRawLength": 42,
+  "elapsed": 425,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:08:41.326Z"
+}

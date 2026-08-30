@@ -1,0 +1,28 @@
+{
+  "name": "updatePaymentStatus",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=updatePaymentStatus",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "data": []
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "No payment updates requested",
+  "response": {
+    "status": true,
+    "error": false,
+    "marriages_updated": 0,
+    "marriages_failed": 0,
+    "details": [],
+    "message": "No payment updates requested"
+  },
+  "responseRawLength": 126,
+  "elapsed": 5,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:43.233Z"
+}

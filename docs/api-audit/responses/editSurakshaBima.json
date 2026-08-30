@@ -1,0 +1,24 @@
+{
+  "name": "editSurakshaBima",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=editSurakshaBima",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Record not found",
+  "response": {
+    "error": true,
+    "message": "Record not found"
+  },
+  "responseRawLength": 43,
+  "elapsed": 807,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:53.032Z"
+}

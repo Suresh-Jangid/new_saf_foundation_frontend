@@ -1,0 +1,30 @@
+{
+  "name": "deleteAgent",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=deleteAgent",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "id": "895b88d7-589f-420d-bbe1-ab235707e4aa"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Agent deleted successfully",
+  "response": {
+    "status": true,
+    "error": false,
+    "message": "Agent deleted successfully",
+    "data": {
+      "id": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+      "name": "Audit Agent",
+      "deletedAt": "2026-06-28T16:08:36.815Z"
+    }
+  },
+  "responseRawLength": 181,
+  "elapsed": 3213,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:08:38.048Z"
+}

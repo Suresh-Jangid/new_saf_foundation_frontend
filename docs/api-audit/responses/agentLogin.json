@@ -1,0 +1,88 @@
+{
+  "name": "agentLogin",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=agentLogin",
+  "request": {
+    "headers": {},
+    "body": {
+      "mobile": "8888888888",
+      "password": "[REDACTED]"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Agent login successful",
+  "response": {
+    "status": true,
+    "error": false,
+    "message": "Agent login successful",
+    "agent": {
+      "id": "b682f732-acd3-40cb-8281-c8195780fc51",
+      "name": "Default Agent",
+      "mobile": "8888888888",
+      "email": "agent@purabiya.org",
+      "employeeId": "EMP001",
+      "permissions": {
+        "dashboard": [
+          "view"
+        ],
+        "applicant_registration": [
+          "view",
+          "create",
+          "update"
+        ],
+        "mayra_registration": [
+          "view",
+          "create",
+          "update"
+        ],
+        "payment_management": [
+          "view"
+        ],
+        "marriage_congratulations_payment": [
+          "view"
+        ],
+        "suraksha_bima_yojana_payment": [
+          "view"
+        ],
+        "bulk_marriage_emi": [
+          "view"
+        ],
+        "bulk_suraksha_bima_emi": [
+          "view"
+        ],
+        "bulk_mayra_emi": [
+          "view"
+        ]
+      },
+      "profile": {
+        "id": "bf2983e4-5833-4b5b-af6c-9f19967e4aee",
+        "userId": "b682f732-acd3-40cb-8281-c8195780fc51",
+        "employeeId": "EMP001",
+        "fatherName": "Mr. Agent Father",
+        "gotra": "Prajapat",
+        "age": 30,
+        "gender": "Male",
+        "village": "Jasal",
+        "address": "Near Temple, Village Jasal",
+        "tehsil": "Balotra",
+        "district": "Balotra",
+        "workArea": "Balotra Block",
+        "bankName": "State Bank of India",
+        "accountNumber": "12345678901",
+        "ifscCode": "SBIN0001234",
+        "nomineeName": "Nominee Agent",
+        "nomineeMobile": "9876543210",
+        "nomineeRelation": "Wife",
+        "createdAt": "2026-06-17T18:22:13.002Z",
+        "updatedAt": "2026-06-17T18:22:13.002Z",
+        "deletedAt": null
+      },
+      "token": "eyJhbG…[REDACTED]"
+    }
+  },
+  "responseRawLength": 1370,
+  "elapsed": 2061,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:08:18.088Z"
+}

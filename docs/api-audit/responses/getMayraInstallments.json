@@ -1,0 +1,25 @@
+{
+  "name": "getMayraInstallments",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getMayraInstallments",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "mayra_id": "00000000-0000-0000-0000-000000000001"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "status": true,
+    "error": false,
+    "data": []
+  },
+  "responseRawLength": 39,
+  "elapsed": 809,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:09:34.392Z"
+}

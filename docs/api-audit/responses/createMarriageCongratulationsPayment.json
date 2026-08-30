@@ -1,0 +1,27 @@
+{
+  "name": "createMarriageCongratulationsPayment",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=createMarriageCongratulationsPayment",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "marriage_congratulations_id": "7a7864f9-3def-4daf-b63d-4a377388ab4e",
+      "application_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+      "amount": "1",
+      "category": "A"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Record not found",
+  "response": {
+    "error": true,
+    "message": "Record not found"
+  },
+  "responseRawLength": 43,
+  "elapsed": 772,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:18.874Z"
+}

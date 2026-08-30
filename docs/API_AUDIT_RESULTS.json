@@ -1,0 +1,3695 @@
+{
+  "generatedAt": "2026-06-28T16:07:58.997Z",
+  "baseUrl": "http://localhost:5000/api",
+  "frontendUrl": "http://localhost:3000",
+  "health": {
+    "name": "health",
+    "method": "GET",
+    "url": "http://localhost:5000/health",
+    "request": {
+      "headers": {},
+      "body": null
+    },
+    "httpStatus": 200,
+    "working": true,
+    "message": "healthy",
+    "response": {
+      "status": "healthy",
+      "timestamp": "2026-06-28T16:08:15.560Z",
+      "uptime": 1045.214928
+    },
+    "elapsed": 4,
+    "skipWrite": false,
+    "testedAt": "2026-06-28T16:08:15.563Z"
+  },
+  "sampleIds": {
+    "agentId": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+    "applicationId": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+    "insuranceId": null,
+    "loanId": null,
+    "financialHelpId": null,
+    "disabilityCycleId": null,
+    "marriageId": "7a7864f9-3def-4daf-b63d-4a377388ab4e",
+    "marriageSewingId": null,
+    "mayraId": null,
+    "mayraCongratsId": null,
+    "mayraInstallmentId": null,
+    "mayraCongratulationsPaymentId": null,
+    "pensionId": null,
+    "sewingCampId": null,
+    "surakshaBimaId": null,
+    "paymentId": null
+  },
+  "summary": {
+    "total": 112,
+    "tested": 112,
+    "working": 110,
+    "failed": 2
+  },
+  "results": [
+    {
+      "name": "login",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=login",
+      "request": {
+        "headers": {},
+        "body": {
+          "mobile": "9999999999",
+          "password": "[REDACTED]"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Login successful",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "Login successful",
+        "user": {
+          "id": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+          "name": "Super Admin",
+          "email": "admin@purabiya.org",
+          "mobile": "9999999999",
+          "token": "eyJhbG…[REDACTED]"
+        }
+      },
+      "responseRawLength": 406,
+      "elapsed": 460,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:16.026Z"
+    },
+    {
+      "name": "agentLogin",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=agentLogin",
+      "request": {
+        "headers": {},
+        "body": {
+          "mobile": "8888888888",
+          "password": "[REDACTED]"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Agent login successful",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "Agent login successful",
+        "agent": {
+          "id": "b682f732-acd3-40cb-8281-c8195780fc51",
+          "name": "Default Agent",
+          "mobile": "8888888888",
+          "email": "agent@purabiya.org",
+          "employeeId": "EMP001",
+          "permissions": {
+            "dashboard": [
+              "view"
+            ],
+            "applicant_registration": [
+              "view",
+              "create",
+              "update"
+            ],
+            "mayra_registration": [
+              "view",
+              "create",
+              "update"
+            ],
+            "payment_management": [
+              "view"
+            ],
+            "marriage_congratulations_payment": [
+              "view"
+            ],
+            "suraksha_bima_yojana_payment": [
+              "view"
+            ],
+            "bulk_marriage_emi": [
+              "view"
+            ],
+            "bulk_suraksha_bima_emi": [
+              "view"
+            ],
+            "bulk_mayra_emi": [
+              "view"
+            ]
+          },
+          "profile": {
+            "id": "bf2983e4-5833-4b5b-af6c-9f19967e4aee",
+            "userId": "b682f732-acd3-40cb-8281-c8195780fc51",
+            "employeeId": "EMP001",
+            "fatherName": "Mr. Agent Father",
+            "gotra": "Prajapat",
+            "age": 30,
+            "gender": "Male",
+            "village": "Jasal",
+            "address": "Near Temple, Village Jasal",
+            "tehsil": "Balotra",
+            "district": "Balotra",
+            "workArea": "Balotra Block",
+            "bankName": "State Bank of India",
+            "accountNumber": "12345678901",
+            "ifscCode": "SBIN0001234",
+            "nomineeName": "Nominee Agent",
+            "nomineeMobile": "9876543210",
+            "nomineeRelation": "Wife",
+            "createdAt": "2026-06-17T18:22:13.002Z",
+            "updatedAt": "2026-06-17T18:22:13.002Z",
+            "deletedAt": null
+          },
+          "token": "eyJhbG…[REDACTED]"
+        }
+      },
+      "responseRawLength": 1370,
+      "elapsed": 2061,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:18.088Z"
+    },
+    {
+      "name": "logout",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=logout",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "token": "test"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Logged out successfully",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "Logged out successfully"
+      },
+      "responseRawLength": 65,
+      "elapsed": 6,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:18.094Z"
+    },
+    {
+      "name": "register",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=register",
+      "request": {
+        "headers": {},
+        "body": {
+          "name": "Test",
+          "email": "t@test.com",
+          "mobile": "9999999999",
+          "password": "[REDACTED]"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Mobile number is already registered",
+      "response": {
+        "status": false,
+        "error": true,
+        "message": "Mobile number is already registered"
+      },
+      "responseRawLength": 77,
+      "elapsed": 820,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:18.914Z"
+    },
+    {
+      "name": "getDashboardCounts",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getDashboardCounts",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "success": true,
+        "status": true,
+        "error": false,
+        "dashboard": {
+          "total_counts": {
+            "agent_registration": 3,
+            "applications": 5,
+            "application_insurance": 0,
+            "disability_cycle": 0,
+            "financial_help": 0,
+            "loan_applications": 0,
+            "marriage_congratulations": 2,
+            "marriage_sewing_machine": 0,
+            "pension_yojana": 0,
+            "sewing_machine_camp": 0,
+            "suraksha_bima_yojana": 0,
+            "mayra_registration": 0
+          },
+          "last_7_days_count": 5
+        }
+      },
+      "responseRawLength": 373,
+      "elapsed": 3540,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:22.454Z"
+    },
+    {
+      "name": "getAgents",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getAgents",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": [
+          {
+            "id": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+            "mobile": "9000198141",
+            "passwordHash": "$2a$10…[REDACTED]",
+            "name": "Audit Agent",
+            "email": null,
+            "role": "AGENT",
+            "isActive": true,
+            "createdAt": "2026-06-25T19:36:39.273Z",
+            "updatedAt": "2026-06-25T19:36:39.273Z",
+            "deletedAt": null,
+            "agentProfile": {
+              "id": "73155016-c955-4097-aefc-4d5a2426e06f",
+              "userId": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+              "employeeId": "EMP-013",
+              "fatherName": "Test Father",
+              "gotra": "Prajapat",
+              "age": 30,
+              "gender": "Male",
+              "village": "Jasal",
+              "address": "Test",
+              "tehsil": "Balotra",
+              "district": "Barmer",
+              "workArea": "Balotra",
+              "bankName": "SBI",
+              "accountNumber": "123",
+              "ifscCode": "SBIN0001234",
+              "nomineeName": "Nominee",
+              "nomineeMobile": "9999999998",
+              "nomineeRelation": "Wife",
+              "createdAt": "2026-06-25T19:36:39.424Z",
+              "updatedAt": "2026-06-25T19:36:39.424Z",
+              "deletedAt": null
+            }
+          },
+          {
+            "id": "9a8896c4-d697-475f-812d-4ce5473055ad",
+            "mobile": "9876543210",
+            "passwordHash": "$2a$10…[REDACTED]",
+            "name": "Ramesh Kumar",
+            "email": null,
+            "role": "AGENT",
+            "isActive": true,
+            "createdAt": "2026-06-21T18:35:24.172Z",
+            "updatedAt": "2026-06-21T18:35:24.172Z",
+            "deletedAt": null,
+            "agentProfile": {
+              "id": "d3551acf-9a2d-48a2-bd57-d4a1606a38d6",
+              "userId": "9a8896c4-d697-475f-812d-4ce5473055ad",
+              "employeeId": "EMP-002",
+              "fatherName": "Shyam Lal",
+              "gotra": "Prajapat",
+              "age": 34,
+              "gender": "Male",
+              "village": "Jasal",
+              "address": "Ward 2, Village Jasal",
+              "tehsil": "Balotra",
+              "district": "Barmer",
+              "workArea": "Balotra Block",
+              "bankName": "State Bank of India",
+              "accountNumber": "11223344556",
+              "ifscCode": "SBIN0001234",
+              "nomineeName": "Sunita Devi",
+              "nomineeMobile": "9876543211",
+              "nomineeRelation": "Wife",
+              "createdAt": "2026-06-21T18:35:24.452Z",
+              "updatedAt": "2026-06-21T18:35:24.452Z",
+              "deletedAt": null
+            }
+          },
+          {
+            "id": "b682f732-acd3-40cb-8281-c8195780fc51",
+            "mobile": "8888888888",
+            "passwordHash": "$2a$10…[REDACTED]",
+            "name": "Default Agent",
+            "email": "agent@purabiya.org",
+            "role": "AGENT",
+            "isActive": true,
+            "createdAt": "2026-06-17T18:22:11.090Z",
+            "updatedAt": "2026-06-25T19:27:29.128Z",
+            "deletedAt": null,
+            "agentProfile": {
+              "id": "bf2983e4-5833-4b5b-af6c-9f19967e4aee",
+              "userId": "b682f732-acd3-40cb-8281-c8195780fc51",
+              "employeeId": "EMP001",
+              "fatherName": "Mr. Agent Father",
+              "gotra": "Prajapat",
+              "age": 30,
+              "gender": "Male",
+              "village": "Jasal",
+              "address": "Near Temple, Village Jasal",
+              "tehsil": "Balotra",
+              "district": "Balotra",
+              "workArea": "Balotra Block",
+              "bankName": "State Bank of India",
+              "accountNumber": "12345678901",
+              "ifscCode": "SBIN0001234",
+              "nomineeName": "Nominee Agent",
+              "nomineeMobile": "9876543210",
+              "nomineeRelation": "Wife",
+              "createdAt": "2026-06-17T18:22:13.002Z",
+              "updatedAt": "2026-06-17T18:22:13.002Z",
+              "deletedAt": null
+            }
+          }
+        ]
+      },
+      "responseRawLength": 2692,
+      "elapsed": 1601,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:24.055Z"
+    },
+    {
+      "name": "addAgent",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addAgent",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "name": "Audit Agent",
+          "fatherName": "Test Father",
+          "gender": "Male",
+          "mobile": "9000904056",
+          "password": "[REDACTED]",
+          "gotra": "Prajapat",
+          "village": "Jasal",
+          "address": "Test",
+          "tehsil": "Balotra",
+          "district": "Barmer",
+          "workArea": "Balotra",
+          "bankName": "SBI",
+          "accountNumber": "123",
+          "ifsc": "SBIN0001234",
+          "nomineeName": "Nominee",
+          "nomineeMobile": "9999999998",
+          "nomineeRelation": "Wife",
+          "age": "30"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Agent created successfully",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "Agent created successfully",
+        "data": {
+          "id": "da77ea81-8e39-42d9-875b-34cb0d4a2673",
+          "mobile": "9000904056",
+          "name": "Audit Agent",
+          "email": null,
+          "role": "AGENT",
+          "isActive": true,
+          "createdAt": "2026-06-28T16:08:26.059Z",
+          "updatedAt": "2026-06-28T16:08:26.059Z",
+          "deletedAt": null
+        }
+      },
+      "responseRawLength": 303,
+      "elapsed": 8482,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:32.538Z"
+    },
+    {
+      "name": "editAgent",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editAgent",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "895b88d7-589f-420d-bbe1-ab235707e4aa"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Agent updated successfully",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "Agent updated successfully",
+        "data": {
+          "id": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+          "mobile": "9000198141",
+          "name": "Audit Agent",
+          "email": null,
+          "role": "AGENT",
+          "isActive": true,
+          "createdAt": "2026-06-25T19:36:39.273Z",
+          "updatedAt": "2026-06-28T16:08:33.674Z",
+          "deletedAt": null
+        }
+      },
+      "responseRawLength": 303,
+      "elapsed": 2296,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:34.834Z"
+    },
+    {
+      "name": "deleteAgent",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteAgent",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "895b88d7-589f-420d-bbe1-ab235707e4aa"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Agent deleted successfully",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "Agent deleted successfully",
+        "data": {
+          "id": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+          "name": "Audit Agent",
+          "deletedAt": "2026-06-28T16:08:36.815Z"
+        }
+      },
+      "responseRawLength": 181,
+      "elapsed": 3213,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:38.048Z"
+    },
+    {
+      "name": "getAgentPermissions",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getAgentPermissions",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "agent_id": "895b88d7-589f-420d-bbe1-ab235707e4aa"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Agent not found",
+      "response": {
+        "error": true,
+        "message": "Agent not found"
+      },
+      "responseRawLength": 42,
+      "elapsed": 917,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:38.966Z"
+    },
+    {
+      "name": "setAgentPermissions",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=setAgentPermissions",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "agent_id": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+          "permissions": []
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Agent not found",
+      "response": {
+        "error": true,
+        "message": "Agent not found"
+      },
+      "responseRawLength": 42,
+      "elapsed": 1136,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:40.102Z"
+    },
+    {
+      "name": "getAllBulkData",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getAllBulkData",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "addedby_id": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+          "startDate": "2024-01-01",
+          "endDate": "2026-12-31"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Agent not found",
+      "response": {
+        "error": true,
+        "message": "Agent not found"
+      },
+      "responseRawLength": 42,
+      "elapsed": 397,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:40.500Z"
+    },
+    {
+      "name": "addAgentPaymentForDetails",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addAgentPaymentForDetails",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "agentId": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+          "amount": "1",
+          "startDate": "2024-01-01",
+          "endDate": "2026-12-31"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Agent not found",
+      "response": {
+        "error": true,
+        "message": "Agent not found"
+      },
+      "responseRawLength": 42,
+      "elapsed": 400,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:40.900Z"
+    },
+    {
+      "name": "getAgentPaymentsForDetails",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getAgentPaymentsForDetails",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "agentId": "895b88d7-589f-420d-bbe1-ab235707e4aa"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Agent not found",
+      "response": {
+        "error": true,
+        "message": "Agent not found"
+      },
+      "responseRawLength": 42,
+      "elapsed": 425,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:41.326Z"
+    },
+    {
+      "name": "createApplication",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=createApplication",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": false,
+      "message": "totalAmount is required",
+      "response": {
+        "error": true,
+        "message": "totalAmount is required"
+      },
+      "responseRawLength": 50,
+      "elapsed": 30,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:41.357Z"
+    },
+    {
+      "name": "getApplications",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getApplications",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": [
+          {
+            "id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+            "srNo": 10,
+            "formNumber": "GEN-1010",
+            "applicationDate": "2007-02-01T00:00:00.000Z",
+            "applicantName": "hello",
+            "fatherName": "hell011",
+            "motherName": "helly",
+            "dateOfBirth": "1999-06-02T00:00:00.000Z",
+            "aadharNumber": "252550503030",
+            "gotra": "aaa",
+            "mobile": "9995999999",
+            "address": "blt",
+            "pinCode": "344022",
+            "tehsil": "jasol",
+            "district": "balotara",
+            "state": "rajasthan",
+            "nomineeName": "suresh",
+            "nomineeRelation": "test",
+            "affidavitUrl": null,
+            "passportPhotoUrl": "/uploads/passportPhoto-1782646855838-298589469.png",
+            "gender": "Female",
+            "category": "C",
+            "totalAmount": "9000",
+            "pendingAmount": "4000",
+            "isActive": true,
+            "addedById": "b682f732-acd3-40cb-8281-c8195780fc51",
+            "createdAt": "2026-06-28T11:40:57.003Z",
+            "updatedAt": "2026-06-28T11:40:57.003Z",
+            "deletedAt": null,
+            "addedBy": {
+              "id": "b682f732-acd3-40cb-8281-c8195780fc51",
+              "name": "Default Agent",
+              "mobile": "8888888888"
+            },
+            "form_number": "GEN-1010",
+            "application_date": "2007-02-01T00:00:00.000Z",
+            "applicant_name": "hello",
+            "father_name": "hell011",
+            "mother_name": "helly",
+            "date_of_birth": "1999-06-02T00:00:00.000Z",
+            "aadhar_number": "252550503030",
+            "pin_code": "344022",
+            "nominee_name": "suresh",
+            "nominee_relation": "test",
+            "passport_photo": "/uploads/passportPhoto-1782646855838-298589469.png",
+            "passportPhoto": "/uploads/passportPhoto-1782646855838-298589469.png",
+            "age": "27",
+            "is_active": 1,
+            "added_name": "Default Agent",
+            "added_mobile": "8888888888",
+            "workerName": "Default Agent",
+            "workerMobile": "8888888888",
+            "addedby_id": "b682f732-acd3-40cb-8281-c8195780fc51"
+          },
+          {
+            "id": "842c5bec-3c87-4654-8dbe-44a438bd55a8",
+            "srNo": 9,
+            "formNumber": "GEN-1009",
+            "applicationDate": "2026-06-26T00:00:00.000Z",
+            "applicantName": "suresh",
+            "fatherName": "parasmal",
+            "motherName": "sumitra devi",
+            "dateOfBirth": "1996-06-26T00:00:00.000Z",
+            "aadharNumber": "123112311231",
+            "gotra": "suthar",
+            "mobile": "9950730637",
+            "address": "balotra",
+            "pinCode": "344022",
+            "tehsil": "pachpadra",
+            "district": "balotara",
+            "state": "rajasthan",
+            "nomineeName": "Ashok",
+            "nomineeRelation": "mama",
+            "affidavitUrl": "hhiii",
+            "passportPhotoUrl": "/uploads/passportPhoto-1782505689468-250387704.jpg",
+            "gender": "Male",
+            "category": "C",
+            "totalAmount": "9000",
+            "pendingAmount": "0",
+            "isActive": true,
+            "addedById": "b682f732-acd3-40cb-8281-c8195780fc51",
+            "createdAt": "2026-06-26T20:28:10.121Z",
+            "updatedAt": "2026-06-26T20:28:10.121Z",
+            "deletedAt": null,
+            "addedBy": {
+              "id": "b682f732-acd3-40cb-8281-c8195780fc51",
+              "name": "Default Agent",
+              "mobile": "8888888888"
+            },
+            "form_number": "GEN-1009",
+            "application_date": "2026-06-26T00:00:00.000Z",
+            "applicant_name": "suresh",
+            "father_name": "parasmal",
+            "mother_name": "sumitra devi",
+            "date_of_birth": "1996-06-26T00:00:00.000Z",
+            "aadhar_number": "123112311231",
+            "pin_code": "344022",
+            "nominee_name": "Ashok",
+            "nominee_relation": "mama",
+            "passport_photo": "/uploads/passportPhoto-1782505689468-250387704.jpg",
+            "passportPhoto": "/uploads/passportPhoto-1782505689468-250387704.jpg",
+            "affidavit": "hhiii",
+            "age": "30",
+            "is_active": 1,
+            "added_name": "Default Agent",
+            "added_mobile": "8888888888",
+            "workerName": "Default Agent",
+            "workerMobile": "8888888888",
+            "addedby_id": "b682f732-acd3-40cb-8281-c8195780fc51"
+          },
+          {
+            "id": "c301bb59-7b4a-43b6-a76b-d2f6c1100149",
+            "srNo": 8,
+            "formNumber": "GEN-1008",
+            "applicationDate": "2026-06-21T00:00:00.000Z",
+            "applicantName": "API Test 003759",
+            "fatherName": "Test Father",
+            "motherName": "Test Mother",
+            "dateOfBirth": "2000-03-15T00:00:00.000Z",
+            "aadharNumber": "123400375956",
+            "gotra": "Prajapat",
+            "mobile": "9003759123",
+            "address": "Test Village",
+            "pinCode": "344001",
+            "tehsil": "Balotra",
+            "district": "Barmer",
+            "state": "Rajasthan",
+            "nomineeName": "Nominee",
+            "nomineeRelation": "Brother",
+            "affidavitUrl": null,
+            "passportPhotoUrl": null,
+            "gender": "Male",
+            "category": "C",
+            "totalAmount": "9000",
+            "pendingAmount": "8000",
+            "isActive": true,
+            "addedById": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+            "createdAt": "2026-06-26T19:08:00.860Z",
+            "updatedAt": "2026-06-26T19:08:00.860Z",
+            "deletedAt": null,
+            "addedBy": {
+              "id": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+              "name": "Audit Agent",
+              "mobile": "9000198141"
+            },
+            "form_number": "GEN-1008",
+            "application_date": "2026-06-21T00:00:00.000Z",
+            "applicant_name": "API Test 003759",
+            "father_name": "Test Father",
+            "mother_name": "Test Mother",
+            "date_of_birth": "2000-03-15T00:00:00.000Z",
+            "aadhar_number": "123400375956",
+            "pin_code": "344001",
+            "nominee_name": "Nominee",
+            "nominee_relation": "Brother",
+            "age": "26",
+            "is_active": 1,
+            "added_name": "Audit Agent",
+            "added_mobile": "9000198141",
+            "workerName": "Audit Agent",
+            "workerMobile": "9000198141",
+            "addedby_id": "895b88d7-589f-420d-bbe1-ab235707e4aa"
+          },
+          {
+            "id": "0c8e5767-44d1-43ef-8663-433892b597c9",
+            "srNo": 7,
+            "formNumber": "GEN-1007",
+            "applicationDate": "2026-06-01T00:00:00.000Z",
+            "applicantName": "Dinesh",
+            "fatherName": "Paras mal",
+            "motherName": "sumitra",
+            "dateOfBirth": "1987-06-10T00:00:00.000Z",
+            "aadharNumber": "741085209630",
+            "gotra": "jangid",
+            "mobile": "8974563210",
+            "address": "blt",
+            "pinCode": "344022",
+            "tehsil": "jdp",
+            "district": "balotara",
+            "state": "newRaj",
+            "nomineeName": "tets1",
+            "nomineeRelation": "test2",
+            "affidavitUrl": "test ",
+            "passportPhotoUrl": "/uploads/passportPhoto-1782506076308-908049391.jpg",
+            "gender": "Male",
+            "category": "C",
+            "totalAmount": "9000",
+            "pendingAmount": "9000",
+            "isActive": true,
+            "addedById": "b682f732-acd3-40cb-8281-c8195780fc51",
+            "createdAt": "2026-06-26T17:32:55.128Z",
+            "updatedAt": "2026-06-26T20:34:36.804Z",
+            "deletedAt": null,
+            "addedBy": {
+              "id": "b682f732-acd3-40cb-8281-c8195780fc51",
+              "name": "Default Agent",
+              "mobile": "8888888888"
+            },
+            "form_number": "GEN-1007",
+            "application_date": "2026-06-01T00:00:00.000Z",
+            "applicant_name": "Dinesh",
+            "father_name": "Paras mal",
+            "mother_name": "sumitra",
+            "date_of_birth": "1987-06-10T00:00:00.000Z",
+            "aadhar_number": "741085209630",
+            "pin_code": "344022",
+            "nominee_name": "tets1",
+            "nominee_relation": "test2",
+            "passport_photo": "/uploads/passportPhoto-1782506076308-908049391.jpg",
+            "passportPhoto": "/uploads/passportPhoto-1782506076308-908049391.jpg",
+            "affidavit": "test ",
+            "age": "39",
+            "is_active": 1,
+            "added_name": "Default Agent",
+            "added_mobile": "8888888888",
+            "workerName": "Default Agent",
+            "workerMobile": "8888888888",
+            "addedby_id": "b682f732-acd3-40cb-8281-c8195780fc51"
+          },
+          {
+            "id": "638cfb80-44ca-42fd-a776-bc9c2cdeccfb",
+            "srNo": 6,
+            "formNumber": "GEN-1006",
+            "applicationDate": "2026-06-26T00:00:00.000Z",
+            "applicantName": "Test Applicant",
+            "fatherName": "Test Father",
+            "motherName": "Test Mother",
+            "dateOfBirth": "2000-01-01T00:00:00.000Z",
+            "aadharNumber": "123456789012",
+            "gotra": "Prajapat",
+            "mobile": "9876543210",
+            "address": "Test Address",
+            "pinCode": "344001",
+            "tehsil": "Balotra",
+            "district": "Barmer",
+            "state": "Rajasthan",
+            "nomineeName": "test",
+            "nomineeRelation": "test",
+            "affidavitUrl": null,
+            "passportPhotoUrl": "/uploads/passportPhoto-1782498422586-346774183.jpg",
+            "gender": "Male",
+            "category": "C",
+            "totalAmount": "5000",
+            "pendingAmount": "4000",
+            "isActive": true,
+            "addedById": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+            "createdAt": "2026-06-26T17:32:13.889Z",
+            "updatedAt": "2026-06-26T18:27:02.876Z",
+            "deletedAt": null,
+            "addedBy": {
+              "id": "895b88d7-589f-420d-bbe1-ab235707e4aa",
+              "name": "Audit Agent",
+              "mobile": "9000198141"
+            },
+            "form_number": "GEN-1006",
+            "application_date": "2026-06-26T00:00:00.000Z",
+            "applicant_name": "Test Applicant",
+            "father_name": "Test Father",
+            "mother_name": "Test Mother",
+            "date_of_birth": "2000-01-01T00:00:00.000Z",
+            "aadhar_number": "123456789012",
+            "pin_code": "344001",
+            "nominee_name": "test",
+            "nominee_relation": "test",
+            "passport_photo": "/uploads/passportPhoto-1782498422586-346774183.jpg",
+            "passportPhoto": "/uploads/passportPhoto-1782498422586-346774183.jpg",
+            "age": "26",
+            "is_active": 1,
+            "added_name": "Audit Agent",
+            "added_mobile": "9000198141",
+            "workerName": "Audit Agent",
+            "workerMobile": "9000198141",
+            "addedby_id": "895b88d7-589f-420d-bbe1-ab235707e4aa"
+          }
+        ]
+      },
+      "responseRawLength": 7465,
+      "elapsed": 1831,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:43.188Z"
+    },
+    {
+      "name": "updateApplication",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updateApplication",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Application updated successfully",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "Application updated successfully",
+        "data": {
+          "id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+          "srNo": 10,
+          "formNumber": "GEN-1010",
+          "applicationDate": "2007-02-01T00:00:00.000Z",
+          "applicantName": "hello",
+          "fatherName": "hell011",
+          "motherName": "helly",
+          "dateOfBirth": "1999-06-02T00:00:00.000Z",
+          "aadharNumber": "252550503030",
+          "gotra": "aaa",
+          "mobile": "9995999999",
+          "address": "blt",
+          "pinCode": "344022",
+          "tehsil": "jasol",
+          "district": "balotara",
+          "state": "rajasthan",
+          "nomineeName": "suresh",
+          "nomineeRelation": "test",
+          "affidavitUrl": null,
+          "passportPhotoUrl": "/uploads/passportPhoto-1782646855838-298589469.png",
+          "gender": "Female",
+          "category": "C",
+          "totalAmount": "9000",
+          "pendingAmount": "4000",
+          "isActive": true,
+          "addedById": "b682f732-acd3-40cb-8281-c8195780fc51",
+          "createdAt": "2026-06-28T11:40:57.003Z",
+          "updatedAt": "2026-06-28T16:08:43.961Z",
+          "deletedAt": null
+        }
+      },
+      "responseRawLength": 854,
+      "elapsed": 1605,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:44.794Z"
+    },
+    {
+      "name": "deleteApplication",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteApplication",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Application deleted successfully",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "Application deleted successfully",
+        "data": {
+          "id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+          "srNo": 10,
+          "formNumber": "GEN-1010",
+          "applicationDate": "2007-02-01T00:00:00.000Z",
+          "applicantName": "hello",
+          "fatherName": "hell011",
+          "motherName": "helly",
+          "dateOfBirth": "1999-06-02T00:00:00.000Z",
+          "aadharNumber": "252550503030",
+          "gotra": "aaa",
+          "mobile": "9995999999",
+          "address": "blt",
+          "pinCode": "344022",
+          "tehsil": "jasol",
+          "district": "balotara",
+          "state": "rajasthan",
+          "nomineeName": "suresh",
+          "nomineeRelation": "test",
+          "affidavitUrl": null,
+          "passportPhotoUrl": "/uploads/passportPhoto-1782646855838-298589469.png",
+          "gender": "Female",
+          "category": "C",
+          "totalAmount": "9000",
+          "pendingAmount": "4000",
+          "isActive": false,
+          "addedById": "b682f732-acd3-40cb-8281-c8195780fc51",
+          "createdAt": "2026-06-28T11:40:57.003Z",
+          "updatedAt": "2026-06-28T16:08:45.200Z",
+          "deletedAt": "2026-06-28T16:08:45.197Z"
+        }
+      },
+      "responseRawLength": 877,
+      "elapsed": 1192,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:45.986Z"
+    },
+    {
+      "name": "updateApplicationActiveStatus",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updateApplicationActiveStatus",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+          "is_active": "1"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Status updated successfully",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "Status updated successfully",
+        "data": {
+          "id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+          "srNo": 10,
+          "formNumber": "GEN-1010",
+          "applicationDate": "2007-02-01T00:00:00.000Z",
+          "applicantName": "hello",
+          "fatherName": "hell011",
+          "motherName": "helly",
+          "dateOfBirth": "1999-06-02T00:00:00.000Z",
+          "aadharNumber": "252550503030",
+          "gotra": "aaa",
+          "mobile": "9995999999",
+          "address": "blt",
+          "pinCode": "344022",
+          "tehsil": "jasol",
+          "district": "balotara",
+          "state": "rajasthan",
+          "nomineeName": "suresh",
+          "nomineeRelation": "test",
+          "affidavitUrl": null,
+          "passportPhotoUrl": "/uploads/passportPhoto-1782646855838-298589469.png",
+          "gender": "Female",
+          "category": "C",
+          "totalAmount": "9000",
+          "pendingAmount": "4000",
+          "isActive": true,
+          "addedById": "b682f732-acd3-40cb-8281-c8195780fc51",
+          "createdAt": "2026-06-28T11:40:57.003Z",
+          "updatedAt": "2026-06-28T16:08:45.993Z",
+          "deletedAt": "2026-06-28T16:08:45.197Z"
+        }
+      },
+      "responseRawLength": 871,
+      "elapsed": 906,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:46.893Z"
+    },
+    {
+      "name": "getApplicationInstallments",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getApplicationInstallments",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "application_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": [
+          {
+            "id": "99316bf9-bd37-407e-8709-e45bc163ec67",
+            "applicationId": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+            "amount": "5000",
+            "date": "2026-06-02T00:00:00.000Z",
+            "note": "Registration Initial Payment",
+            "paymentMode": "CASH",
+            "addedById": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+            "createdAt": "2026-06-28T11:40:57.162Z",
+            "updatedAt": "2026-06-28T11:40:57.162Z",
+            "deletedAt": null
+          }
+        ]
+      },
+      "responseRawLength": 394,
+      "elapsed": 883,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:47.777Z"
+    },
+    {
+      "name": "addApplicationInstallment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addApplicationInstallment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "application_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+          "amount": "1",
+          "date": "2024-01-01"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "General Application not found",
+      "response": {
+        "error": true,
+        "message": "General Application not found"
+      },
+      "responseRawLength": 56,
+      "elapsed": 408,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:48.185Z"
+    },
+    {
+      "name": "getPreviousApplicationsMembers",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getPreviousApplicationsMembers",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "7a7864f9-3def-4daf-b63d-4a377388ab4e"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "categories": {
+          "A": {
+            "members": []
+          },
+          "B": {
+            "members": []
+          },
+          "C": {
+            "members": [
+              {
+                "id": "638cfb80-44ca-42fd-a776-bc9c2cdeccfb",
+                "applicantName": "Test Applicant",
+                "formNumber": "GEN-1006",
+                "category": "C",
+                "payment_status": 0
+              },
+              {
+                "id": "c301bb59-7b4a-43b6-a76b-d2f6c1100149",
+                "applicantName": "API Test 003759",
+                "formNumber": "GEN-1008",
+                "category": "C",
+                "payment_status": 0
+              },
+              {
+                "id": "842c5bec-3c87-4654-8dbe-44a438bd55a8",
+                "applicantName": "suresh",
+                "formNumber": "GEN-1009",
+                "category": "C",
+                "payment_status": 0
+              },
+              {
+                "id": "0c8e5767-44d1-43ef-8663-433892b597c9",
+                "applicantName": "Dinesh",
+                "formNumber": "GEN-1007",
+                "category": "C",
+                "payment_status": 0
+              }
+            ]
+          }
+        }
+      },
+      "responseRawLength": 619,
+      "elapsed": 3555,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:51.740Z"
+    },
+    {
+      "name": "createInsuranceApplication",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=createInsuranceApplication",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found or invalid request data",
+      "response": {
+        "error": true,
+        "message": "Record not found or invalid request data"
+      },
+      "responseRawLength": 67,
+      "elapsed": 1862,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:53.602Z"
+    },
+    {
+      "name": "getInsuranceApplication",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getInsuranceApplication",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 1342,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:54.944Z"
+    },
+    {
+      "name": "editInsuranceApplication",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editInsuranceApplication",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Insurance Application not found",
+      "response": {
+        "error": true,
+        "message": "Insurance Application not found"
+      },
+      "responseRawLength": 58,
+      "elapsed": 791,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:55.736Z"
+    },
+    {
+      "name": "deleteInsuranceApplication",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteInsuranceApplication",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Insurance Application not found",
+      "response": {
+        "error": true,
+        "message": "Insurance Application not found"
+      },
+      "responseRawLength": 58,
+      "elapsed": 394,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:56.130Z"
+    },
+    {
+      "name": "updateInsuranceApplicationActiveStatus",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updateInsuranceApplicationActiveStatus",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001",
+          "is_active": "1"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 770,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:56.901Z"
+    },
+    {
+      "name": "getApplicationInsuranceInstallments",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getApplicationInsuranceInstallments",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "application_insurance_id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 767,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:57.669Z"
+    },
+    {
+      "name": "addApplicationInsuranceInstallment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addApplicationInsuranceInstallment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "application_insurance_id": "00000000-0000-0000-0000-000000000001",
+          "amount": "1",
+          "date": "2024-01-01"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Insurance Application not found",
+      "response": {
+        "error": true,
+        "message": "Insurance Application not found"
+      },
+      "responseRawLength": 58,
+      "elapsed": 370,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:58.040Z"
+    },
+    {
+      "name": "addLoanApplication",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addLoanApplication",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found or invalid request data",
+      "response": {
+        "error": true,
+        "message": "Record not found or invalid request data"
+      },
+      "responseRawLength": 67,
+      "elapsed": 28,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:58.068Z"
+    },
+    {
+      "name": "getLoanApplications",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getLoanApplications",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 847,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:08:58.915Z"
+    },
+    {
+      "name": "editLoanApplication",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editLoanApplication",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 782,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:08:59.697Z"
+    },
+    {
+      "name": "deleteLoanApplication",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteLoanApplication",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Loan application not found",
+      "response": {
+        "error": true,
+        "message": "Loan application not found"
+      },
+      "responseRawLength": 53,
+      "elapsed": 805,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:00.503Z"
+    },
+    {
+      "name": "getLoanApplicationInstallments",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getLoanApplicationInstallments",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "loan_application_id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 789,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:01.292Z"
+    },
+    {
+      "name": "addLoanApplicationInstallment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addLoanApplicationInstallment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "loan_application_id": "00000000-0000-0000-0000-000000000001",
+          "amount": "1",
+          "date": "2024-01-01",
+          "type": "User Repayment"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Loan application not found",
+      "response": {
+        "error": true,
+        "message": "Loan application not found"
+      },
+      "responseRawLength": 53,
+      "elapsed": 411,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:01.703Z"
+    },
+    {
+      "name": "addFinancialHelp",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addFinancialHelp",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found or invalid request data",
+      "response": {
+        "error": true,
+        "message": "Record not found or invalid request data"
+      },
+      "responseRawLength": 67,
+      "elapsed": 10,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:01.714Z"
+    },
+    {
+      "name": "getFinancialHelps",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getFinancialHelps",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 746,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:02.461Z"
+    },
+    {
+      "name": "editFinancialHelp",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editFinancialHelp",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Financial help record not found",
+      "response": {
+        "error": true,
+        "message": "Financial help record not found"
+      },
+      "responseRawLength": 58,
+      "elapsed": 833,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:03.295Z"
+    },
+    {
+      "name": "deleteFinancialHelp",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteFinancialHelp",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Financial help record not found",
+      "response": {
+        "error": true,
+        "message": "Financial help record not found"
+      },
+      "responseRawLength": 58,
+      "elapsed": 879,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:04.175Z"
+    },
+    {
+      "name": "getFinancialHelpInstallments",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getFinancialHelpInstallments",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "financial_help_id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 768,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:04.943Z"
+    },
+    {
+      "name": "addFinancialHelpInstallment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addFinancialHelpInstallment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "financial_help_id": "00000000-0000-0000-0000-000000000001",
+          "amount": "1",
+          "date": "2024-01-01"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 447,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:05.390Z"
+    },
+    {
+      "name": "addDisabilityCycle",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addDisabilityCycle",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found or invalid request data",
+      "response": {
+        "error": true,
+        "message": "Record not found or invalid request data"
+      },
+      "responseRawLength": 67,
+      "elapsed": 12,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:05.403Z"
+    },
+    {
+      "name": "getDisabilityCycles",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getDisabilityCycles",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 804,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:06.207Z"
+    },
+    {
+      "name": "editDisabilityCycle",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editDisabilityCycle",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Disability cycle not found",
+      "response": {
+        "error": true,
+        "message": "Disability cycle not found"
+      },
+      "responseRawLength": 53,
+      "elapsed": 777,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:06.984Z"
+    },
+    {
+      "name": "deleteDisabilityCycle",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteDisabilityCycle",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Disability cycle not found",
+      "response": {
+        "error": true,
+        "message": "Disability cycle not found"
+      },
+      "responseRawLength": 53,
+      "elapsed": 863,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:07.847Z"
+    },
+    {
+      "name": "addMarriageCongrats",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addMarriageCongrats",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": false,
+      "message": "date is required",
+      "response": {
+        "error": true,
+        "message": "date is required"
+      },
+      "responseRawLength": 43,
+      "elapsed": 2356,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:10.203Z"
+    },
+    {
+      "name": "getMarriageCongrats",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getMarriageCongrats",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": [
+          {
+            "id": "7a7864f9-3def-4daf-b63d-4a377388ab4e",
+            "date": "2026-06-26T00:00:00.000Z",
+            "codeNumber": "GEN-1009",
+            "marriageNumber": "PM-35135",
+            "applicantName": "suresh",
+            "fatherName": "parasmal",
+            "wifeOf": null,
+            "gotra": "suthar",
+            "address": "balotra",
+            "membershipJoinDate": "2026-06-26T00:00:00.000Z",
+            "associatedUntil": "0 दिन",
+            "permanentFee": "9000",
+            "installmentAmount": "9000",
+            "totalGrantAmount": "18000",
+            "totalMembersServing": 4,
+            "rate100": "0",
+            "rate200": "0",
+            "rate300": "4",
+            "deductionPercent": "20",
+            "deductedAmount": "240",
+            "totalPaidAmount": "960",
+            "gender": "Male",
+            "addedById": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+            "createdAt": "2026-06-26T20:41:40.587Z",
+            "updatedAt": "2026-06-26T20:41:40.587Z",
+            "deletedAt": null,
+            "addedBy": {
+              "id": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+              "name": "Super Admin"
+            }
+          },
+          {
+            "id": "51665d5a-baf4-4cfb-95fd-d0c5c4a56711",
+            "date": "2026-06-25T00:00:00.000Z",
+            "codeNumber": "GEN-1006",
+            "marriageNumber": "PM-44599",
+            "applicantName": "Test Applicant",
+            "fatherName": "Test Father",
+            "wifeOf": null,
+            "gotra": "Prajapat",
+            "address": "Test Address",
+            "membershipJoinDate": "2026-06-26T00:00:00.000Z",
+            "associatedUntil": "—",
+            "permanentFee": "5000",
+            "installmentAmount": "1000",
+            "totalGrantAmount": "6000",
+            "totalMembersServing": 1,
+            "rate100": "0",
+            "rate200": "0",
+            "rate300": "1",
+            "deductionPercent": "20",
+            "deductedAmount": "60",
+            "totalPaidAmount": "240",
+            "gender": "Male",
+            "addedById": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+            "createdAt": "2026-06-26T18:38:08.896Z",
+            "updatedAt": "2026-06-26T18:38:08.896Z",
+            "deletedAt": null,
+            "addedBy": {
+              "id": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+              "name": "Super Admin"
+            }
+          }
+        ]
+      },
+      "responseRawLength": 1566,
+      "elapsed": 1740,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:11.943Z"
+    },
+    {
+      "name": "getMarriageCongratulations",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getMarriageCongratulations",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "application_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": {
+          "id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+          "applicantName": "hello",
+          "fatherName": "hell011",
+          "gotra": "aaa",
+          "address": "blt",
+          "applicationDate": "2007-02-01T00:00:00.000Z",
+          "gender": "Female",
+          "totalAmount": "9000"
+        },
+        "counts": [
+          {
+            "category": "A",
+            "total": 0
+          },
+          {
+            "category": "B",
+            "total": 0
+          },
+          {
+            "category": "C",
+            "total": 4
+          }
+        ],
+        "totalEMI": 5000
+      },
+      "responseRawLength": 351,
+      "elapsed": 2256,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:14.199Z"
+    },
+    {
+      "name": "editMarriageCongrats",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editMarriageCongrats",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "7a7864f9-3def-4daf-b63d-4a377388ab4e"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Marriage congratulations updated successfully",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "Marriage congratulations updated successfully",
+        "data": {
+          "id": "7a7864f9-3def-4daf-b63d-4a377388ab4e",
+          "date": "2026-06-26T00:00:00.000Z",
+          "codeNumber": "GEN-1009",
+          "marriageNumber": "PM-35135",
+          "applicantName": "suresh",
+          "fatherName": "parasmal",
+          "wifeOf": null,
+          "gotra": "suthar",
+          "address": "balotra",
+          "membershipJoinDate": "2026-06-26T00:00:00.000Z",
+          "associatedUntil": "0 दिन",
+          "permanentFee": "0",
+          "installmentAmount": "0",
+          "totalGrantAmount": "0",
+          "totalMembersServing": 0,
+          "rate100": "0",
+          "rate200": "0",
+          "rate300": "0",
+          "deductionPercent": "0",
+          "deductedAmount": "0",
+          "totalPaidAmount": "0",
+          "gender": "Male",
+          "addedById": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+          "createdAt": "2026-06-26T20:41:40.587Z",
+          "updatedAt": "2026-06-28T16:09:14.205Z",
+          "deletedAt": null
+        }
+      },
+      "responseRawLength": 760,
+      "elapsed": 816,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:15.015Z"
+    },
+    {
+      "name": "deleteMarriageCongrats",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteMarriageCongrats",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "7a7864f9-3def-4daf-b63d-4a377388ab4e"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Marriage congratulations deleted successfully",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "Marriage congratulations deleted successfully",
+        "data": {
+          "id": "7a7864f9-3def-4daf-b63d-4a377388ab4e",
+          "date": "2026-06-26T00:00:00.000Z",
+          "codeNumber": "GEN-1009",
+          "marriageNumber": "PM-35135",
+          "applicantName": "suresh",
+          "fatherName": "parasmal",
+          "wifeOf": null,
+          "gotra": "suthar",
+          "address": "balotra",
+          "membershipJoinDate": "2026-06-26T00:00:00.000Z",
+          "associatedUntil": "0 दिन",
+          "permanentFee": "0",
+          "installmentAmount": "0",
+          "totalGrantAmount": "0",
+          "totalMembersServing": 0,
+          "rate100": "0",
+          "rate200": "0",
+          "rate300": "0",
+          "deductionPercent": "0",
+          "deductedAmount": "0",
+          "totalPaidAmount": "0",
+          "gender": "Male",
+          "addedById": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+          "createdAt": "2026-06-26T20:41:40.587Z",
+          "updatedAt": "2026-06-28T16:09:15.840Z",
+          "deletedAt": "2026-06-28T16:09:15.838Z"
+        }
+      },
+      "responseRawLength": 782,
+      "elapsed": 1576,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:16.591Z"
+    },
+    {
+      "name": "getMarriageCongratulationsPayment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getMarriageCongratulationsPayment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "marriage_congratulations_id": "7a7864f9-3def-4daf-b63d-4a377388ab4e"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "data": []
+      },
+      "responseRawLength": 25,
+      "elapsed": 1510,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:18.101Z"
+    },
+    {
+      "name": "createMarriageCongratulationsPayment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=createMarriageCongratulationsPayment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "marriage_congratulations_id": "7a7864f9-3def-4daf-b63d-4a377388ab4e",
+          "application_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+          "amount": "1",
+          "category": "A"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 772,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:18.874Z"
+    },
+    {
+      "name": "getMarriageDetailsByNumber",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getMarriageDetailsByNumber",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "marriageNumber": "1"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": null
+      },
+      "responseRawLength": 41,
+      "elapsed": 746,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:19.620Z"
+    },
+    {
+      "name": "addMarriageSewing",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addMarriageSewing",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 371,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:19.992Z"
+    },
+    {
+      "name": "getMarriageSewing",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getMarriageSewing",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 769,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:20.761Z"
+    },
+    {
+      "name": "editMarriageSewing",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editMarriageSewing",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Sewing machine application not found",
+      "response": {
+        "error": true,
+        "message": "Sewing machine application not found"
+      },
+      "responseRawLength": 63,
+      "elapsed": 784,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:21.545Z"
+    },
+    {
+      "name": "deleteMarriageSewing",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteMarriageSewing",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Sewing machine application not found",
+      "response": {
+        "error": true,
+        "message": "Sewing machine application not found"
+      },
+      "responseRawLength": 63,
+      "elapsed": 958,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:22.503Z"
+    },
+    {
+      "name": "createmayra_Application",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=createmayra_Application",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found or invalid request data",
+      "response": {
+        "error": true,
+        "message": "Record not found or invalid request data"
+      },
+      "responseRawLength": 67,
+      "elapsed": 1626,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:24.129Z"
+    },
+    {
+      "name": "getmayra_application",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getmayra_application",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 746,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:24.876Z"
+    },
+    {
+      "name": "updatemayra_Application",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updatemayra_Application",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Mayra Registration not found",
+      "response": {
+        "error": true,
+        "message": "Mayra Registration not found"
+      },
+      "responseRawLength": 55,
+      "elapsed": 1137,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:26.013Z"
+    },
+    {
+      "name": "deletemayra_Application",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deletemayra_Application",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Mayra Registration not found",
+      "response": {
+        "error": true,
+        "message": "Mayra Registration not found"
+      },
+      "responseRawLength": 55,
+      "elapsed": 373,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:26.386Z"
+    },
+    {
+      "name": "updateMayraApplicationActiveStatus",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updateMayraApplicationActiveStatus",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001",
+          "is_active": "1"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 816,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:27.203Z"
+    },
+    {
+      "name": "addMayraCongrats",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addMayraCongrats",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Mayra Registration not found",
+      "response": {
+        "error": true,
+        "message": "Mayra Registration not found"
+      },
+      "responseRawLength": 55,
+      "elapsed": 823,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:28.026Z"
+    },
+    {
+      "name": "getMayraCongrats",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getMayraCongrats",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 812,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:28.838Z"
+    },
+    {
+      "name": "editMayraCongrats",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editMayraCongrats",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 1153,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:29.992Z"
+    },
+    {
+      "name": "deleteMayraCongrats",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteMayraCongrats",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Mayra congratulations not found",
+      "response": {
+        "error": true,
+        "message": "Mayra congratulations not found"
+      },
+      "responseRawLength": 58,
+      "elapsed": 851,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:30.843Z"
+    },
+    {
+      "name": "updateMayraCongratulationsStatus",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updateMayraCongratulationsStatus",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001",
+          "payment_status": "1"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 770,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:31.613Z"
+    },
+    {
+      "name": "getMayraCongratulations",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getMayraCongratulations",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "mayra_id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Mayra registration or congratulations record not found",
+      "response": {
+        "status": false,
+        "error": true,
+        "message": "Mayra registration or congratulations record not found"
+      },
+      "responseRawLength": 96,
+      "elapsed": 1562,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:33.175Z"
+    },
+    {
+      "name": "addMayraInstallment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addMayraInstallment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "mayra_id": "00000000-0000-0000-0000-000000000001",
+          "amount": "1",
+          "date": "2024-01-01"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Mayra Registration not found",
+      "response": {
+        "error": true,
+        "message": "Mayra Registration not found"
+      },
+      "responseRawLength": 55,
+      "elapsed": 408,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:33.583Z"
+    },
+    {
+      "name": "getMayraInstallments",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getMayraInstallments",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "mayra_id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 809,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:34.392Z"
+    },
+    {
+      "name": "updateMayraInstallment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updateMayraInstallment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001",
+          "mayra_id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 758,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:35.150Z"
+    },
+    {
+      "name": "deleteMayraInstallment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteMayraInstallment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "mayra_id": "00000000-0000-0000-0000-000000000001",
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Installment not found",
+      "response": {
+        "error": true,
+        "message": "Installment not found"
+      },
+      "responseRawLength": 48,
+      "elapsed": 919,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:36.069Z"
+    },
+    {
+      "name": "getMayraCongratulationsPayment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getMayraCongratulationsPayment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "mayra_id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Mayra Congratulations record not found",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": [],
+        "message": "Mayra Congratulations record not found"
+      },
+      "responseRawLength": 90,
+      "elapsed": 754,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:36.824Z"
+    },
+    {
+      "name": "createMayraCongratulationsPayment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=createMayraCongratulationsPayment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "mayra_congratulations_id": "00000000-0000-0000-0000-000000000001",
+          "mayra_id": "00000000-0000-0000-0000-000000000001",
+          "application_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+          "amount": "1",
+          "category": "100"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Mayra Congratulations record not found",
+      "response": {
+        "error": true,
+        "message": "Mayra Congratulations record not found"
+      },
+      "responseRawLength": 65,
+      "elapsed": 821,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:37.645Z"
+    },
+    {
+      "name": "deleteMayraCongratulationsPayment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteMayraCongratulationsPayment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Payment record not found",
+      "response": {
+        "error": true,
+        "message": "Payment record not found"
+      },
+      "responseRawLength": 51,
+      "elapsed": 753,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:38.399Z"
+    },
+    {
+      "name": "updateMayraCongratulationsPayment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updateMayraCongratulationsPayment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 777,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:39.176Z"
+    },
+    {
+      "name": "getMayraDetailsByNumber",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getMayraDetailsByNumber",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "mayraNumber": "1"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": null
+      },
+      "responseRawLength": 41,
+      "elapsed": 756,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:39.932Z"
+    },
+    {
+      "name": "getMayraBeforeDate",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getMayraBeforeDate",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Mayra Registration not found",
+      "response": {
+        "error": true,
+        "message": "Mayra Registration not found"
+      },
+      "responseRawLength": 55,
+      "elapsed": 389,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:40.322Z"
+    },
+    {
+      "name": "updateMayraStatus",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updateMayraStatus",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "mayra_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+          "data": []
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Payer application not found",
+      "response": {
+        "error": true,
+        "message": "Payer application not found"
+      },
+      "responseRawLength": 54,
+      "elapsed": 1181,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:41.503Z"
+    },
+    {
+      "name": "getMayraPreviousMembers",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getMayraPreviousMembers",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Mayra Congratulations record not found",
+      "response": {
+        "error": true,
+        "message": "Mayra Congratulations record not found"
+      },
+      "responseRawLength": 65,
+      "elapsed": 457,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:41.960Z"
+    },
+    {
+      "name": "getMayraBulkData",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getMayraBulkData",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "userId": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "No member found",
+      "response": {
+        "success": false,
+        "status": false,
+        "message": "No member found"
+      },
+      "responseRawLength": 60,
+      "elapsed": 804,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:42.765Z"
+    },
+    {
+      "name": "getMayraUserData",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getMayraUserData",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "userId": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 5,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:42.771Z"
+    },
+    {
+      "name": "updateMayraPdfStatus",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updateMayraPdfStatus",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "ids": []
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "PDF status updated",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "PDF status updated"
+      },
+      "responseRawLength": 60,
+      "elapsed": 4,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:42.775Z"
+    },
+    {
+      "name": "getUserData",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getUserData",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "userId": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "No member found",
+      "response": {
+        "success": false,
+        "status": false,
+        "message": "No member found"
+      },
+      "responseRawLength": 60,
+      "elapsed": 452,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:43.228Z"
+    },
+    {
+      "name": "updatePaymentStatus",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updatePaymentStatus",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "data": []
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "No payment updates requested",
+      "response": {
+        "status": true,
+        "error": false,
+        "marriages_updated": 0,
+        "marriages_failed": 0,
+        "details": [],
+        "message": "No payment updates requested"
+      },
+      "responseRawLength": 126,
+      "elapsed": 5,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:43.233Z"
+    },
+    {
+      "name": "updatePdfStatus",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updatePdfStatus",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "ids": []
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "PDF status updated",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "PDF status updated"
+      },
+      "responseRawLength": 60,
+      "elapsed": 6,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:43.240Z"
+    },
+    {
+      "name": "addPensionYojana",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addPensionYojana",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found or invalid request data",
+      "response": {
+        "error": true,
+        "message": "Record not found or invalid request data"
+      },
+      "responseRawLength": 67,
+      "elapsed": 11,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:43.251Z"
+    },
+    {
+      "name": "getPensionYojanas",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getPensionYojanas",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 805,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:44.056Z"
+    },
+    {
+      "name": "editPensionYojana",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editPensionYojana",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Pension beneficiary not found",
+      "response": {
+        "error": true,
+        "message": "Pension beneficiary not found"
+      },
+      "responseRawLength": 56,
+      "elapsed": 783,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:44.840Z"
+    },
+    {
+      "name": "deletePensionYojana",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deletePensionYojana",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Pension beneficiary not found",
+      "response": {
+        "error": true,
+        "message": "Pension beneficiary not found"
+      },
+      "responseRawLength": 56,
+      "elapsed": 759,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:45.600Z"
+    },
+    {
+      "name": "getPensionYojanaPayments",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getPensionYojanaPayments",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "pension_yojana_id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Pension beneficiary not found",
+      "response": {
+        "error": true,
+        "message": "Pension beneficiary not found"
+      },
+      "responseRawLength": 56,
+      "elapsed": 382,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:45.983Z"
+    },
+    {
+      "name": "addPensionYojanaPayment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addPensionYojanaPayment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "pension_yojana_id": "00000000-0000-0000-0000-000000000001",
+          "amount": "1",
+          "date": "2024-01-01"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Pension beneficiary not found",
+      "response": {
+        "error": true,
+        "message": "Pension beneficiary not found"
+      },
+      "responseRawLength": 56,
+      "elapsed": 393,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:46.376Z"
+    },
+    {
+      "name": "addSewingCamp",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addSewingCamp",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found or invalid request data",
+      "response": {
+        "error": true,
+        "message": "Record not found or invalid request data"
+      },
+      "responseRawLength": 67,
+      "elapsed": 20,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:46.396Z"
+    },
+    {
+      "name": "getSewingCamp",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getSewingCamp",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 829,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:47.225Z"
+    },
+    {
+      "name": "editSewingCamp",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editSewingCamp",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Sewing machine camp application not found",
+      "response": {
+        "error": true,
+        "message": "Sewing machine camp application not found"
+      },
+      "responseRawLength": 68,
+      "elapsed": 822,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:48.047Z"
+    },
+    {
+      "name": "deleteSewingCamp",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteSewingCamp",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Sewing machine camp application not found",
+      "response": {
+        "error": true,
+        "message": "Sewing machine camp application not found"
+      },
+      "responseRawLength": 68,
+      "elapsed": 808,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:48.855Z"
+    },
+    {
+      "name": "addSurakshaBima",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addSurakshaBima",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Insurance Application not found",
+      "response": {
+        "error": true,
+        "message": "Insurance Application not found"
+      },
+      "responseRawLength": 58,
+      "elapsed": 907,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:49.762Z"
+    },
+    {
+      "name": "getSurakshaBimaList",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getSurakshaBimaList",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 853,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:50.615Z"
+    },
+    {
+      "name": "getSurakshaBima",
+      "method": "GET",
+      "url": "http://localhost:5000/api?apicall=getSurakshaBima&id=00000000-0000-0000-0000-000000000001",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": null
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": null
+      },
+      "responseRawLength": 41,
+      "elapsed": 852,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:51.468Z"
+    },
+    {
+      "name": "getSurakshaBimaData",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getSurakshaBimaData",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "insuranceApplication_id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": null
+      },
+      "responseRawLength": 41,
+      "elapsed": 756,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:52.224Z"
+    },
+    {
+      "name": "editSurakshaBima",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editSurakshaBima",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 807,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:53.032Z"
+    },
+    {
+      "name": "deleteSurakshaBima",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deleteSurakshaBima",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Suraksha Bima not found",
+      "response": {
+        "error": true,
+        "message": "Suraksha Bima not found"
+      },
+      "responseRawLength": 50,
+      "elapsed": 392,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:53.424Z"
+    },
+    {
+      "name": "getPreviousSurakshaBimaMembers",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getPreviousSurakshaBimaMembers",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 1548,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:54.973Z"
+    },
+    {
+      "name": "getSurakshaBimaPaymentById",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getSurakshaBimaPaymentById",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "application_insurance_id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": []
+      },
+      "responseRawLength": 39,
+      "elapsed": 801,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:55.775Z"
+    },
+    {
+      "name": "createSurakshaBimaPayment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=createSurakshaBimaPayment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001",
+          "amount": "1"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found or invalid request data",
+      "response": {
+        "error": true,
+        "message": "Record not found or invalid request data"
+      },
+      "responseRawLength": 67,
+      "elapsed": 1739,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:57.514Z"
+    },
+    {
+      "name": "getInsuranceBulkData",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getInsuranceBulkData",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "userId": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "No member found",
+      "response": {
+        "success": false,
+        "status": false,
+        "message": "No member found"
+      },
+      "responseRawLength": 60,
+      "elapsed": 815,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:58.330Z"
+    },
+    {
+      "name": "updateBimaPaymentStatus",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updateBimaPaymentStatus",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "data": []
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "No payment updates requested",
+      "response": {
+        "status": true,
+        "error": false,
+        "updated": 0,
+        "failed": 0,
+        "details": [],
+        "message": "No payment updates requested"
+      },
+      "responseRawLength": 106,
+      "elapsed": 5,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:58.335Z"
+    },
+    {
+      "name": "updateInsurancePdfStatus",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=updateInsurancePdfStatus",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "ids": []
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "PDF status updated",
+      "response": {
+        "status": true,
+        "error": false,
+        "message": "PDF status updated"
+      },
+      "responseRawLength": 60,
+      "elapsed": 7,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:58.342Z"
+    },
+    {
+      "name": "addPayment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=addPayment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "date": "2024-01-01",
+          "type": "Income",
+          "amount": "1",
+          "remark": "test"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found or invalid request data",
+      "response": {
+        "error": true,
+        "message": "Record not found or invalid request data"
+      },
+      "responseRawLength": 67,
+      "elapsed": 15,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:09:58.358Z"
+    },
+    {
+      "name": "getPaymentList",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=getPaymentList",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {}
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "HTTP 200",
+      "response": {
+        "status": true,
+        "error": false,
+        "data": [],
+        "totalIncome": 0,
+        "totalExpenses": 0,
+        "netBalance": 0
+      },
+      "responseRawLength": 88,
+      "elapsed": 747,
+      "skipWrite": false,
+      "testedAt": "2026-06-28T16:09:59.105Z"
+    },
+    {
+      "name": "editPayment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=editPayment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Record not found",
+      "response": {
+        "error": true,
+        "message": "Record not found"
+      },
+      "responseRawLength": 43,
+      "elapsed": 970,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:10:00.075Z"
+    },
+    {
+      "name": "deletePayment",
+      "method": "POST",
+      "url": "http://localhost:5000/api?apicall=deletePayment",
+      "request": {
+        "headers": {
+          "Authorization": "Bearer [REDACTED]"
+        },
+        "body": {
+          "id": "00000000-0000-0000-0000-000000000001"
+        }
+      },
+      "httpStatus": 200,
+      "working": true,
+      "message": "Payment not found",
+      "response": {
+        "error": true,
+        "message": "Payment not found"
+      },
+      "responseRawLength": 44,
+      "elapsed": 822,
+      "skipWrite": true,
+      "testedAt": "2026-06-28T16:10:00.897Z"
+    }
+  ],
+  "nextResults": [
+    {
+      "path": "/api/proxy-image",
+      "method": "GET",
+      "url": "http://localhost:3000/api/proxy-image?url=test",
+      "working": true,
+      "httpStatus": 500,
+      "message": "HTTP 500",
+      "response": {
+        "error": "Failed to proxy image"
+      }
+    },
+    {
+      "path": "/api/fireconnect",
+      "method": "POST",
+      "working": null,
+      "message": "Skipped (requires payload/secrets)",
+      "response": null
+    },
+    {
+      "path": "/api/razorpay/create-order",
+      "method": "POST",
+      "working": null,
+      "message": "Skipped (requires payload/secrets)",
+      "response": null
+    },
+    {
+      "path": "/api/razorpay/verify-payment",
+      "method": "POST",
+      "working": null,
+      "message": "Skipped (requires payload/secrets)",
+      "response": null
+    },
+    {
+      "path": "/api/whatsapp-test",
+      "method": "GET",
+      "url": "http://localhost:3000/api/whatsapp-test",
+      "working": true,
+      "httpStatus": 200,
+      "message": "HTTP 200",
+      "response": {
+        "message": "WhatsApp Test API",
+        "usage": {
+          "POST": {
+            "description": "Send a WhatsApp message",
+            "body": {
+              "phoneNumber": "string (required)",
+              "message": "string (optional)",
+              "templateName": "string (optional)"
+            },
+            "examples": [
+              {
+                "description": "Send custom message",
+                "body": {
+                  "phoneNumber": "918094983470",
+                  "message": "Hello from Purabiya Foundation!"
+                }
+              },
+              {
+                "description": "Send template message",
+                "body": {
+                  "phoneNumber": "918094983470",
+                  "templateName": "hello_world"
+                }
+              },
+              {
+                "description": "Send application confirmation",
+                "body": {
+                  "phoneNumber": "918094983470"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "path": "/api/fill-pdf-form",
+      "method": "POST",
+      "working": null,
+      "message": "Skipped (requires payload/secrets)",
+      "response": null
+    },
+    {
+      "path": "/api/generate-agent-pdf",
+      "method": "POST",
+      "working": null,
+      "message": "Skipped (requires payload/secrets)",
+      "response": null
+    },
+    {
+      "path": "/api/generate-insurance-pdf",
+      "method": "POST",
+      "working": null,
+      "message": "Skipped (requires payload/secrets)",
+      "response": null
+    },
+    {
+      "path": "/api/generate-mayra-pdf",
+      "method": "POST",
+      "working": null,
+      "message": "Skipped (requires payload/secrets)",
+      "response": null
+    },
+    {
+      "path": "/api/generate-pension-pdf",
+      "method": "POST",
+      "working": null,
+      "message": "Skipped (requires payload/secrets)",
+      "response": null
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "name": "getApplicationInstallments",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=getApplicationInstallments",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "application_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "status": true,
+    "error": false,
+    "data": [
+      {
+        "id": "99316bf9-bd37-407e-8709-e45bc163ec67",
+        "applicationId": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+        "amount": "5000",
+        "date": "2026-06-02T00:00:00.000Z",
+        "note": "Registration Initial Payment",
+        "paymentMode": "CASH",
+        "addedById": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+        "createdAt": "2026-06-28T11:40:57.162Z",
+        "updatedAt": "2026-06-28T11:40:57.162Z",
+        "deletedAt": null
+      }
+    ]
+  },
+  "responseRawLength": 394,
+  "elapsed": 883,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:08:47.777Z"
+}

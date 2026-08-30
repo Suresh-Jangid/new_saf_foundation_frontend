@@ -1,0 +1,23 @@
+{
+  "name": "getInsuranceApplication",
+  "method": "GET",
+  "url": "http://localhost:5000/api?apicall=getInsuranceApplication",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": null
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "status": true,
+    "error": false,
+    "data": []
+  },
+  "responseRawLength": 39,
+  "elapsed": 1342,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:08:54.944Z"
+}

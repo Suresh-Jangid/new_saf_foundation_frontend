@@ -1,0 +1,88 @@
+{
+  "name": "getMarriageCongrats",
+  "method": "GET",
+  "url": "http://localhost:5000/api?apicall=getMarriageCongrats",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": null
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "HTTP 200",
+  "response": {
+    "status": true,
+    "error": false,
+    "data": [
+      {
+        "id": "7a7864f9-3def-4daf-b63d-4a377388ab4e",
+        "date": "2026-06-26T00:00:00.000Z",
+        "codeNumber": "GEN-1009",
+        "marriageNumber": "PM-35135",
+        "applicantName": "suresh",
+        "fatherName": "parasmal",
+        "wifeOf": null,
+        "gotra": "suthar",
+        "address": "balotra",
+        "membershipJoinDate": "2026-06-26T00:00:00.000Z",
+        "associatedUntil": "0 दिन",
+        "permanentFee": "9000",
+        "installmentAmount": "9000",
+        "totalGrantAmount": "18000",
+        "totalMembersServing": 4,
+        "rate100": "0",
+        "rate200": "0",
+        "rate300": "4",
+        "deductionPercent": "20",
+        "deductedAmount": "240",
+        "totalPaidAmount": "960",
+        "gender": "Male",
+        "addedById": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+        "createdAt": "2026-06-26T20:41:40.587Z",
+        "updatedAt": "2026-06-26T20:41:40.587Z",
+        "deletedAt": null,
+        "addedBy": {
+          "id": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+          "name": "Super Admin"
+        }
+      },
+      {
+        "id": "51665d5a-baf4-4cfb-95fd-d0c5c4a56711",
+        "date": "2026-06-25T00:00:00.000Z",
+        "codeNumber": "GEN-1006",
+        "marriageNumber": "PM-44599",
+        "applicantName": "Test Applicant",
+        "fatherName": "Test Father",
+        "wifeOf": null,
+        "gotra": "Prajapat",
+        "address": "Test Address",
+        "membershipJoinDate": "2026-06-26T00:00:00.000Z",
+        "associatedUntil": "—",
+        "permanentFee": "5000",
+        "installmentAmount": "1000",
+        "totalGrantAmount": "6000",
+        "totalMembersServing": 1,
+        "rate100": "0",
+        "rate200": "0",
+        "rate300": "1",
+        "deductionPercent": "20",
+        "deductedAmount": "60",
+        "totalPaidAmount": "240",
+        "gender": "Male",
+        "addedById": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+        "createdAt": "2026-06-26T18:38:08.896Z",
+        "updatedAt": "2026-06-26T18:38:08.896Z",
+        "deletedAt": null,
+        "addedBy": {
+          "id": "91bca7b6-c3db-43ea-ae7f-332e977bc639",
+          "name": "Super Admin"
+        }
+      }
+    ]
+  },
+  "responseRawLength": 1566,
+  "elapsed": 1740,
+  "skipWrite": false,
+  "testedAt": "2026-06-28T16:09:11.943Z"
+}

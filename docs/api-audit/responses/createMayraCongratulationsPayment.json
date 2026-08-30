@@ -1,0 +1,28 @@
+{
+  "name": "createMayraCongratulationsPayment",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=createMayraCongratulationsPayment",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {
+      "mayra_congratulations_id": "00000000-0000-0000-0000-000000000001",
+      "mayra_id": "00000000-0000-0000-0000-000000000001",
+      "application_id": "f06f6e1b-3b31-4c59-b1e7-5bcb3ac6699b",
+      "amount": "1",
+      "category": "100"
+    }
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Mayra Congratulations record not found",
+  "response": {
+    "error": true,
+    "message": "Mayra Congratulations record not found"
+  },
+  "responseRawLength": 65,
+  "elapsed": 821,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:37.645Z"
+}

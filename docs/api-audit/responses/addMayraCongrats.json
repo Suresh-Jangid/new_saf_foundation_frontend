@@ -1,0 +1,22 @@
+{
+  "name": "addMayraCongrats",
+  "method": "POST",
+  "url": "http://localhost:5000/api?apicall=addMayraCongrats",
+  "request": {
+    "headers": {
+      "Authorization": "Bearer [REDACTED]"
+    },
+    "body": {}
+  },
+  "httpStatus": 200,
+  "working": true,
+  "message": "Mayra Registration not found",
+  "response": {
+    "error": true,
+    "message": "Mayra Registration not found"
+  },
+  "responseRawLength": 55,
+  "elapsed": 823,
+  "skipWrite": true,
+  "testedAt": "2026-06-28T16:09:28.026Z"
+}

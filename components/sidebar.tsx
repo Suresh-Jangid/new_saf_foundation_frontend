@@ -210,9 +210,15 @@ export const Sidebar = memo(
       >
         <div className="flex-1 space-y-4 py-4">
           <div className="px-3 py-2">
-            <div className="px-4 py-2">
-              <Link href="/dashboard" className="flex items-center gap-2 font-semibold text-lg text-white">
-                <img src="/assets/images/logo.png" alt="SAF Foundation Logo" />
+            <div className="px-3 py-3 border-b border-white/10 mb-2">
+              <Link href="/dashboard" className="flex items-center gap-3 font-semibold text-lg text-white group">
+                <div className="bg-white rounded-full p-1 shadow-md flex-shrink-0 group-hover:scale-105 transition-transform">
+                  <img src="/assets/images/logo.png" alt="SAF Foundation Logo" className="h-10 w-10 object-contain rounded-full" />
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-bold text-white leading-snug truncate">SAF Foundation</span>
+                  <span className="text-[11px] text-white/70 leading-none truncate">शिक्षा अमृतम फाउंडेशन</span>
+                </div>
               </Link>
             </div>
 

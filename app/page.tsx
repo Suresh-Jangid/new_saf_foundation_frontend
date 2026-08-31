@@ -117,22 +117,20 @@ export default function LoginPage() {
               <h1 className="text-2xl font-bold text-white mb-2">
                 {translationsReady ? formatBilingual("login.title") : "Login / लॉगिन"}
               </h1>
-              <div className=" flex items-center">
-              <div className="">
-                <img
-                  src="/assets/images/sincelogo.png"
-                  alt="SAF Foundation Logo"
-                  className=" h-28 md:h-32 object-contain"
-                />
-              </div>
-                <div>
-                  <h2 className="md:text-3xl text-lg font-semibold text-[#ff5c00] mb-1">
-                    SAF
-                  </h2>
-                  <h3 className="text-base md:text-xl font-medium text-white/90 mb-2">
-                    FOUNDATION
-                  </h3>
+              <div className="flex flex-col items-center justify-center my-4">
+                <div className="bg-white rounded-full p-2 shadow-xl border border-white/20 mb-3 transform hover:scale-105 transition-transform duration-200">
+                  <img
+                    src="/assets/images/logo.png"
+                    alt="SAF Foundation Logo"
+                    className="h-28 w-28 md:h-32 md:w-32 object-contain rounded-full"
+                  />
                 </div>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-wide">
+                  SAF <span className="text-[#ff5c00]">FOUNDATION</span>
+                </h2>
+                <p className="text-sm font-medium text-white/90 mt-1">
+                  शिक्षा अमृतम फाउंडेशन
+                </p>
               </div>
 
               <p className="text-sm text-white/70 leading-relaxed">

@@ -4,26 +4,40 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 210 20% 98%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
+    
+    /* Primary: SAF Royal Navy Blue (#0B4A8F / #072E5C) */
+    --primary: 212 85% 30%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96%;
+    
+    /* Secondary: SAF Forest/Emerald Green (#15803D) */
+    --secondary: 142 71% 29%;
+    --secondary-foreground: 0 0% 100%;
+    
+    /* Accent: SAF Saffron Orange (#F57C00 / #EA580C) */
+    --accent: 28 95% 48%;
+    --accent-foreground: 0 0% 100%;
+    
+    --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 212 85% 30%;
     --radius: 0.5rem;
+
+    /* SAF Global Brand Tokens */
+    --saf-blue: #0B4A8F;
+    --saf-blue-dark: #071E3D;
+    --saf-green: #15803D;
+    --saf-orange: #F57C00;
+    --sidebar-bg: #071E3D;
   }
 }
 
@@ -34,6 +48,37 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* SAF Custom Theme Utilities */
+.saf-gradient-primary {
+  background: linear-gradient(135deg, #071E3D 0%, #0B4A8F 50%, #15803D 100%);
+}
+
+.saf-gradient-hero {
+  background: linear-gradient(135deg, #071E3D 0%, #0B3B7B 60%, #0A192F 100%);
+}
+
+.saf-gradient-accent {
+  background: linear-gradient(135deg, #F57C00 0%, #EA580C 100%);
+}
+
+.saf-btn-primary {
+  background-color: #0B4A8F;
+  color: #ffffff;
+  transition: all 0.2s ease-in-out;
+}
+.saf-btn-primary:hover {
+  background-color: #072E5C;
+}
+
+.saf-btn-accent {
+  background-color: #F57C00;
+  color: #ffffff;
+  transition: all 0.2s ease-in-out;
+}
+.saf-btn-accent:hover {
+  background-color: #E65100;
 }
 
 @media print {

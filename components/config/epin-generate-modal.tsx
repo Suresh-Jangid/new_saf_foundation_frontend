@@ -150,7 +150,7 @@ export const EpinGenerateModal: React.FC<EpinGenerateModalProps> = ({
               </Button>
               <Button
                 onClick={handleClose}
-                className="bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs"
+                className="bg-[#0B4A8F] hover:bg-[#072E5C] text-white text-xs"
               >
                 Done / पूरा हुआ
               </Button>
@@ -161,7 +161,7 @@ export const EpinGenerateModal: React.FC<EpinGenerateModalProps> = ({
             <DialogHeader>
               <div className="flex items-center gap-2 text-primary">
                 <div className="p-2 bg-primary/10 rounded-lg">
-                  <KeyRound className="h-5 w-5 text-[#ff5c00]" />
+                  <KeyRound className="h-5 w-5 text-[#0B4A8F]" />
                 </div>
                 <DialogTitle className="text-xl">Generate E-PIN Batch</DialogTitle>
               </div>
@@ -246,7 +246,7 @@ export const EpinGenerateModal: React.FC<EpinGenerateModalProps> = ({
               </Button>
               <Button
                 type="submit"
-                className="bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center gap-2"
+                className="bg-[#0B4A8F] hover:bg-[#072E5C] text-white flex items-center gap-2"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (

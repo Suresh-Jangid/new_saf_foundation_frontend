@@ -44,7 +44,7 @@ export const ModuleDisabledBanner: React.FC<ModuleDisabledBannerProps> = ({
 
           <div className="flex flex-wrap gap-3 pt-2">
             <Link href="/dashboard">
-              <Button variant="default" className="bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center gap-2">
+              <Button variant="default" className="bg-[#0B4A8F] hover:bg-[#072E5C] text-white flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
                 Return to Dashboard / डैशबोर्ड पर वापस जाएं
               </Button>

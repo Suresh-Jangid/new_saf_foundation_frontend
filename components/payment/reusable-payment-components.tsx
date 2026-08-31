@@ -181,7 +181,7 @@ export const PaymentActionButtons: React.FC<PaymentActionButtonsProps> = ({
           variant="default"
           onClick={onOnlinePay}
           disabled={!canPay || isLoading}
-          className="bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center gap-1.5"
+          className="bg-[#F57C00] hover:bg-[#E65100] text-white flex items-center gap-1.5 shadow-sm"
         >
           <CreditCard className="h-4 w-4" />
           <span>Razorpay / ऑनलाइन</span>

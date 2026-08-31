@@ -477,7 +477,7 @@ export default function BulkMayraEMIPage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Receipt className="h-8 w-8 text-[#ff5c00]" />
+              <Receipt className="h-8 w-8 text-[#0B4A8F]" />
               बल्क मायरा ईएमआई / Bulk Mayra EMI
             </h1>
             <p className="text-muted-foreground">

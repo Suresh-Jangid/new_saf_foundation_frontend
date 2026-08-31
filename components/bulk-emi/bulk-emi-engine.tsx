@@ -111,7 +111,7 @@ export const BulkEmiEngine: React.FC<BulkEmiEngineProps> = ({
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center gap-2"
+                className="w-full bg-[#0B4A8F] hover:bg-[#072E5C] text-white flex items-center justify-center gap-2"
               >
                 {isLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 <span>Fetch Records</span>
@@ -153,7 +153,7 @@ export const BulkEmiEngine: React.FC<BulkEmiEngineProps> = ({
                 variant="default"
                 onClick={() => onBatchSubmit("Online")}
                 disabled={isSubmitting}
-                className="flex-1 sm:flex-none bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center gap-2"
+                className="flex-1 sm:flex-none bg-[#F57C00] hover:bg-[#E65100] text-white flex items-center gap-2 shadow-sm"
               >
                 <CreditCard className="h-4 w-4" />
                 <span>Pay Online (Razorpay)</span>

@@ -149,7 +149,7 @@ export default function EpinManagementPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <div className="p-2 bg-primary/10 rounded-xl text-[#ff5c00]">
+              <div className="p-2 bg-primary/10 rounded-xl text-[#0B4A8F]">
                 <KeyRound className="h-6 w-6" />
               </div>
               <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
@@ -210,7 +210,7 @@ export default function EpinManagementPage() {
                 <Button
                   size="sm"
                   onClick={() => setGenerateModalOpen(true)}
-                  className="bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center gap-1.5 shadow-sm"
+                  className="bg-[#0B4A8F] hover:bg-[#072E5C] text-white flex items-center gap-1.5 shadow-sm"
                 >
                   <Sparkles className="h-4 w-4" />
                   <span>Generate Batch</span>

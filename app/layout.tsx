@@ -10,8 +10,13 @@ export const metadata: Metadata = {
   title: "SAF Foundation Admin Panel",
   description: "SAF Foundation Social & Welfare Administration Portal",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/favicon.ico", type: "image/x-icon" },
+      { url: "/assets/images/logo.png", type: "image/png" },
+    ],
+    shortcut: "/icon.png",
+    apple: "/apple-touch-icon.png",
   },
 }
 

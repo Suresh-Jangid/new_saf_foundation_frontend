@@ -23,10 +23,18 @@ LoadingSpinner.displayName = 'LoadingSpinner';
 
 // Memoized header component
 const MobileHeader = memo(({ userRole }: { userRole: string }) => (
-  <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
-    <h1 className="text-lg font-semibold">
-      {isAdmin() ? formatBilingual("roles.foundationAdmin") : formatBilingual("roles.foundationAgent")}
-    </h1>
+  <header className="lg:hidden bg-[#071E3D] text-white border-b border-white/10 px-4 py-2.5 flex items-center justify-between sticky top-0 z-30 shadow-md">
+    <div className="flex items-center gap-2.5">
+      <div className="bg-white rounded-full p-1 shadow-sm">
+        <img src="/assets/images/logo.png" alt="SAF Logo" className="h-7 w-7 object-contain rounded-full" />
+      </div>
+      <div>
+        <h1 className="text-sm font-bold text-white leading-tight">SAF Foundation</h1>
+        <p className="text-[10px] text-white/70 leading-none">
+          {isAdmin() ? formatBilingual("roles.foundationAdmin") : formatBilingual("roles.foundationAgent")}
+        </p>
+      </div>
+    </div>
     <MobileSidebar />
   </header>
 ));

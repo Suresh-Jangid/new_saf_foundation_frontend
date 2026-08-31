@@ -87,23 +87,25 @@ const MenuItem = memo(
         <Link
           href={item.route}
           className={cn(
-            "flex flex-col gap-1 rounded-lg px-3 py-2 text-sm transition-all hover:bg-[#ff5c00]",
-            isActive ? "bg-[#ff5c00] text-white" : "text-white/70"
+            "flex flex-col gap-1 rounded-lg px-3 py-2.5 text-sm transition-all duration-150",
+            isActive
+              ? "bg-gradient-to-r from-[#0B4A8F] to-[#0D5EB3] text-white shadow-md shadow-blue-950/30 border-l-4 border-[#F57C00]"
+              : "text-slate-200/80 hover:bg-white/10 hover:text-white"
           )}
           onClick={onMenuItemClick}
         >
           <div className="flex items-center gap-3">
-            <IconComponent className="h-4 w-4 shrink-0" />
-            <span className="font-medium">{item.name.hi}</span>
+            <IconComponent className={cn("h-4 w-4 shrink-0", isActive ? "text-[#F57C00]" : "text-slate-300")} />
+            <span className="font-semibold">{item.name.hi}</span>
           </div>
           {item.subtitle && (
-            <span className="text-xs text-white/50 ml-7">{item.subtitle.en}</span>
+            <span className={cn("text-xs ml-7", isActive ? "text-slate-200" : "text-slate-400")}>{item.subtitle.en}</span>
           )}
         </Link>
 
         {/* Render children if present */}
         {filteredChildren.length > 0 && (
-          <div className="ml-8 mt-1 space-y-1">
+          <div className="ml-6 mt-1 pl-2 border-l border-white/10 space-y-1">
             {filteredChildren.map((child) => {
               const ChildIcon = ICON_MAP[child.iconName] || FileText;
               const isChildActive = pathname === child.route;
@@ -112,16 +114,18 @@ const MenuItem = memo(
                   key={child.route}
                   href={child.route}
                   className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all hover:bg-[#ff5c00]",
-                    isChildActive ? "bg-[#ff5c00] text-white" : "text-white/70"
+                    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-150",
+                    isChildActive
+                      ? "bg-[#0B4A8F] text-white font-medium shadow-sm border-l-2 border-[#F57C00]"
+                      : "text-slate-300/80 hover:bg-white/10 hover:text-white"
                   )}
                   onClick={onMenuItemClick}
                 >
-                  <ChildIcon className="h-4 w-4 shrink-0" />
-                  <div className="flex flex-col">
-                    <span className="font-medium">{child.name.hi}</span>
+                  <ChildIcon className={cn("h-3.5 w-3.5 shrink-0", isChildActive ? "text-[#F57C00]" : "text-slate-400")} />
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-medium truncate">{child.name.hi}</span>
                     {child.subtitle && (
-                      <span className="text-xs text-white/50">{child.subtitle.en}</span>
+                      <span className="text-[11px] text-slate-400 truncate">{child.subtitle.en}</span>
                     )}
                   </div>
                 </Link>
@@ -204,7 +208,7 @@ export const Sidebar = memo(
       <div
         className={cn("pb-12 flex flex-col h-screen overflow-y-auto", className)}
         style={{
-          background: "var(--sidebar-bg, #2a120d)",
+          background: "var(--sidebar-bg, #071E3D)",
           width: "var(--sidebar-width, 20rem)",
         }}
       >
@@ -212,7 +216,7 @@ export const Sidebar = memo(
           <div className="px-3 py-2">
             <div className="px-3 py-3 border-b border-white/10 mb-2">
               <Link href="/dashboard" className="flex items-center gap-3 font-semibold text-lg text-white group">
-                <div className="bg-white rounded-full p-1 shadow-md flex-shrink-0 group-hover:scale-105 transition-transform">
+                <div className="bg-white rounded-full p-1.5 shadow-md flex-shrink-0 group-hover:scale-105 transition-transform">
                   <img src="/assets/images/logo.png" alt="SAF Foundation Logo" className="h-10 w-10 object-contain rounded-full" />
                 </div>
                 <div className="flex flex-col min-w-0">
@@ -240,7 +244,7 @@ export const Sidebar = memo(
         <div className="px-4 mt-auto">
           <Button
             variant="ghost"
-            className="w-full flex items-center justify-center gap-2 rounded-full bg-[#ff5c00] text-white hover:bg-red-600 hover:text-white transition"
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#F57C00] to-[#E65100] hover:from-[#E65100] hover:to-[#BF360C] text-white shadow-md transition-all duration-200 hover:shadow-lg font-medium"
             onClick={handleLogout}
           >
             <LogOut className="h-5 w-5" />

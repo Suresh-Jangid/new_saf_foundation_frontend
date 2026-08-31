@@ -148,7 +148,7 @@ export function RoleGuard({
             <div className="flex gap-2 justify-center pt-2">
               <Button
                 onClick={() => router.push("/dashboard")}
-                className="bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center gap-2"
+                className="bg-[#0B4A8F] hover:bg-[#072E5C] text-white flex items-center gap-2"
               >
                 <Shield className="h-4 w-4" />
                 Go to Dashboard

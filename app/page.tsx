@@ -5,6 +5,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import { Eye, EyeOff, User, Lock, LogIn, Shield, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 // Preload translations on mount to avoid blocking render
 let formatBilingualFn: ((key: string, separator?: string) => string) | null = null;
@@ -98,12 +99,12 @@ export default function LoginPage() {
   }, [mobile, password, role, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-orange-600 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#071E3D] via-[#0B3B7B] to-[#051329] flex items-center justify-center p-4">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-orange-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-pink-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#F57C00] rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#15803D] rounded-full mix-blend-screen filter blur-3xl opacity-25 animate-pulse"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-[#0B4A8F] rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-pulse"></div>
       </div>
 
       {/* Main login card */}
@@ -126,7 +127,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-wide">
-                  SAF <span className="text-[#ff5c00]">FOUNDATION</span>
+                  SAF <span className="text-[#F57C00]">FOUNDATION</span>
                 </h2>
                 <p className="text-sm font-medium text-white/90 mt-1">
                   शिक्षा अमृतम फाउंडेशन
@@ -143,15 +144,15 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Role Selection with Radio Buttons */}
             <div className="space-y-3">
-              <label className="text-sm font-medium text-white/80 flex items-center gap-2">
-                <Shield className="h-4 w-4" />
+              <label className="text-sm font-medium text-white/90 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-[#F57C00]" />
                 Select Role
               </label>
               <div className="grid grid-cols-2 gap-3">
                 {/* Admin Radio Button */}
                 <label className={`relative flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
                   role === "admin" 
-                    ? "border-orange-400 bg-orange-500/20 text-white" 
+                    ? "border-[#F57C00] bg-[#F57C00]/20 text-white shadow-lg shadow-orange-950/20" 
                     : "border-white/20 bg-white/5 text-white/70 hover:bg-white/10"
                 }`}>
                   <input
@@ -163,18 +164,18 @@ export default function LoginPage() {
                     className="sr-only"
                   />
                   <div className="flex flex-col items-center gap-2">
-                    <Shield className="h-6 w-6" />
-                    <span className="font-medium text-sm">Admin</span>
+                    <Shield className={cn("h-6 w-6", role === "admin" ? "text-[#F57C00]" : "text-white/60")} />
+                    <span className="font-semibold text-sm">Admin</span>
                   </div>
                   {role === "admin" && (
-                    <div className="absolute top-2 right-2 w-3 h-3 bg-orange-400 rounded-full"></div>
+                    <div className="absolute top-2 right-2 w-3 h-3 bg-[#F57C00] rounded-full ring-2 ring-white/30"></div>
                   )}
                 </label>
 
                 {/* Agent Radio Button */}
                 <label className={`relative flex items-center justify-center p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
                   role === "agent" 
-                    ? "border-orange-400 bg-orange-500/20 text-white" 
+                    ? "border-[#15803D] bg-[#15803D]/25 text-white shadow-lg shadow-green-950/20" 
                     : "border-white/20 bg-white/5 text-white/70 hover:bg-white/10"
                 }`}>
                   <input
@@ -186,11 +187,11 @@ export default function LoginPage() {
                     className="sr-only"
                   />
                   <div className="flex flex-col items-center gap-2">
-                    <UserCheck className="h-6 w-6" />
-                    <span className="font-medium text-sm">Agent</span>
+                    <UserCheck className={cn("h-6 w-6", role === "agent" ? "text-[#22c55e]" : "text-white/60")} />
+                    <span className="font-semibold text-sm">Agent</span>
                   </div>
                   {role === "agent" && (
-                    <div className="absolute top-2 right-2 w-3 h-3 bg-orange-400 rounded-full"></div>
+                    <div className="absolute top-2 right-2 w-3 h-3 bg-[#22c55e] rounded-full ring-2 ring-white/30"></div>
                   )}
                 </label>
               </div>
@@ -207,7 +208,7 @@ export default function LoginPage() {
                 maxLength={10}
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
+                className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-[#0B4A8F] focus:border-[#0B4A8F] transition-all duration-300 backdrop-blur-sm"
                 placeholder={translationsReady ? formatBilingual("placeholders.enterMobile") : "Enter Mobile Number"}
                 required
               />
@@ -222,7 +223,7 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all duration-300 backdrop-blur-sm"
+                className="w-full pl-10 pr-12 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-[#0B4A8F] focus:border-[#0B4A8F] transition-all duration-300 backdrop-blur-sm"
                 placeholder={translationsReady ? formatBilingual("placeholders.enterPassword") : "Enter Password"}
                 required
               />
@@ -243,7 +244,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full py-3.5 bg-gradient-to-r from-[#0B4A8F] via-[#0D63BF] to-[#F57C00] hover:from-[#072E5C] hover:via-[#0B4A8F] hover:to-[#E65100] text-white font-bold rounded-xl transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#F57C00] focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-xl shadow-blue-950/40"
             >
               {isLoading ? (
                 <>

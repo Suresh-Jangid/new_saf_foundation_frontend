@@ -58,7 +58,7 @@ export const EpinAuditModal: React.FC<EpinAuditModalProps> = ({
       <DialogContent className="sm:max-w-[620px] max-h-[85vh] flex flex-col">
         <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary/10 rounded-lg text-[#ff5c00]">
+            <div className="p-2 bg-primary/10 rounded-lg text-[#0B4A8F]">
               <History className="h-5 w-5" />
             </div>
             <div>

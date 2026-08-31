@@ -59,17 +59,117 @@ export type EpinState = "ACTIVE" | "ASSIGNED" | "USED" | "BURNT";
 export interface EpinRecord {
   id: string;
   pinNumber: string;
+  pinCode?: string;
+  batchNumber?: string;
   schemeTypeId?: string;
+  schemeCode?: string;
+  slabCode?: string;
   schemeAmount: number;
+  amount?: number;
   poolId?: string;
   status: EpinState;
   assignedAgentId?: string;
   assignedAgentName?: string;
+  assignedDate?: string;
+  assignedAt?: string;
+  applicationId?: string;
+  applicantName?: string;
   usedByApplicationId?: string;
   usedByApplicantName?: string;
   usedDate?: string;
+  usedAt?: string;
   burntReason?: string;
+  burntDate?: string;
+  burntAt?: string;
   createdAt: string;
+  updatedAt?: string;
+}
+
+export interface EpinAuditItem {
+  id: string;
+  epinId: string;
+  pinNumber: string;
+  action: "GENERATED" | "ASSIGNED" | "USED" | "BURNT" | "VALIDATED" | string;
+  previousState?: EpinState | string;
+  newState: EpinState | string;
+  actorId?: string;
+  actorName?: string;
+  actorRole?: string;
+  remarks?: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+}
+
+export interface EpinFilterParams {
+  status?: EpinState | "ALL";
+  agentId?: string;
+  search?: string;
+  batchNumber?: string;
+  schemeAmount?: number;
+  schemeTypeId?: string;
+  poolId?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface EpinGeneratePayload {
+  count: number;
+  schemeAmount: number;
+  schemeTypeId?: string;
+  poolId?: string;
+  remarks?: string;
+}
+
+export interface EpinAssignPayload {
+  epinIds: string[];
+  agentId: string;
+  agentName?: string;
+  remarks?: string;
+}
+
+export interface EpinValidationResponse {
+  valid: boolean;
+  status?: EpinState;
+  pinNumber: string;
+  schemeAmount?: number;
+  amount?: number;
+  schemeTypeId?: string;
+  schemeCode?: string;
+  assignedAgentId?: string;
+  assignedAgentName?: string;
+  message: string;
+  code: "VALID" | "INVALID" | "ALREADY_USED" | "BURNT" | "NOT_ASSIGNED" | "UNAUTHORIZED" | "UNAVAILABLE";
+}
+
+export interface EpinConsumePayload {
+  pinNumber: string;
+  applicationId: string;
+  applicantName: string;
+  agentId?: string;
+  moduleType?: string;
+  remarks?: string;
+}
+
+export interface EpinBurnPayload {
+  epinId: string;
+  pinNumber?: string;
+  reason: string;
+}
+
+export interface EpinSummaryCounts {
+  total: number;
+  active: number;
+  assigned: number;
+  used: number;
+  burnt: number;
+}
+
+export type EpinSummary = EpinSummaryCounts;
+
+export interface EpinAuditResponse {
+  success: boolean;
+  data: EpinAuditItem[];
+  message?: string;
 }
 
 export interface ModuleRegistryItem {

@@ -37,6 +37,7 @@ export const AVAILABLE_MODULES: ModulePermission[] = [
   { module: "suraksha_bima_yojana_payment", actions: ["view", "create", "update", "delete"] },
   { module: "balika_loan_application", actions: ["view", "create", "update", "delete"] },
   { module: "financial_help", actions: ["view", "create", "update", "delete"] },
+  { module: "epin_management", actions: ["view", "create", "update", "delete"] },
   { module: "system_settings", actions: ["view", "update"] },
 ];
 
@@ -68,6 +69,7 @@ export const MODULE_DISPLAY_NAMES: { [key: string]: string } = {
   loan_payment: "Payment Management - Loan Application Payment",
   balika_loan_application: "Balika Loan Application",
   financial_help: "Financial Application Payment",
+  epin_management: "E-PIN Operational Management",
   system_settings: "Configuration & System Settings",
 };
 
@@ -99,6 +101,7 @@ export const DEFAULT_AGENT_PERMISSIONS: ModulePermission[] = [
   { module: "bulk_suraksha_bima_emi", actions: ["view", "update"] },
   { module: "mayra_registration", actions: ["view", "create", "update", "delete"] },
   { module: "bulk_mayra_emi", actions: ["view", "update"] },
+  { module: "epin_management", actions: ["view"] },
 ];
 
 export function getUserRole(): string {

@@ -23,13 +23,16 @@ import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode, GENDER_OPTIO
 import { RoleGuard } from "@/components/role-guard"
 import { RazorpayPayment } from "@/components/razorpay-payment"
 import { sendWhatsAppMessage, sendWhatsAppFile } from "@/lib/fireconnect-whatsapp-service"
+import { useAgeCategory } from "@/hooks/use-age-category"
+import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
+import { EpinService } from "@/lib/epin-service"
 
 
 export default function AddGeneralApplicationPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
- 
-  const [formData, setFormData] = useState<{   
+
+  const [formData, setFormData] = useState<{
     applicationDate: string;
     applicantName: string;
     fatherName: string;
@@ -54,8 +57,7 @@ export default function AddGeneralApplicationPage() {
     paymentDate?: string;
     pendingAmount?: string;
     selectedAgentId?: string;
-    
-   
+    epinNumber?: string;
   }>({
     // Auto-fill today's date on the add form (same behaviour as Mayra registration)
     applicationDate: formatDate(new Date()),
@@ -74,16 +76,15 @@ export default function AddGeneralApplicationPage() {
     nomineeName: "",
     nomineeRelation: "",
     affidavit: "",
-    passportPhoto: null,   
+    passportPhoto: null,
     gender: "",
     category: "",
     paymentAmount: "",
     paymentMode: "",
     paymentDate: "",
     pendingAmount: '',
-    selectedAgentId: ""
-  
-   
+    selectedAgentId: "",
+    epinNumber: ""
   })
 
   // Helper function to convert dd-mm-yyyy to yyyymmdd format
@@ -91,11 +92,11 @@ export default function AddGeneralApplicationPage() {
     if (!dateString) return "";
     const parsedDate = parseDateFromDDMMYYYY(dateString);
     if (!parsedDate) return "";
-    
+
     const year = parsedDate.getFullYear();
     const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
     const day = String(parsedDate.getDate()).padStart(2, '0');
-    
+
     return `${year}-${month}-${day}`;
   };
 
@@ -143,8 +144,8 @@ export default function AddGeneralApplicationPage() {
       }
 
       const apiFormData = new FormData()
-      
-    
+
+
       apiFormData.append("applicationDate", convertToYYYYMMDD(formData.applicationDate))
       apiFormData.append("applicantName", formData.applicantName)
       apiFormData.append("fatherName", formData.fatherName)
@@ -164,22 +165,22 @@ export default function AddGeneralApplicationPage() {
       } else {
         apiFormData.append("nomineeName", "")
       }
-      
+
       if (formData.nomineeRelation && formData.nomineeRelation.trim()) {
         apiFormData.append("nomineeRelation", formData.nomineeRelation.trim())
       } else {
         apiFormData.append("nomineeRelation", "")
       }
-      
+
       apiFormData.append("affidavit", formData.affidavit)
       apiFormData.append("gender", formData.gender)
       apiFormData.append("category", formData.category)
-      
+
       // Include computed fee as totalAmount for API consumption
       if (fee) {
         apiFormData.append("totalAmount", fee)
       }
-      
+
       // Add payment details if available
       if (formData.paymentAmount) {
         apiFormData.append("paymentAmount", formData.paymentAmount)
@@ -190,20 +191,25 @@ export default function AddGeneralApplicationPage() {
       if (formData.paymentDate) {
         apiFormData.append("paymentDate", convertToYYYYMMDD(formData.paymentDate))
       }
-      
+
       // Add Razorpay payment details if payment was made online
       if (paymentData && paymentStatus === 'paid') {
         apiFormData.append("razorpay_payment_id", paymentData.payment_id)
         apiFormData.append("razorpay_order_id", paymentData.order_id)
         apiFormData.append("payment_status", "completed")
       }
-    
+
       // Add passport photo if available
       if (formData.passportPhoto) {
         apiFormData.append("passportPhoto", formData.passportPhoto)
       }
 
       apiFormData.append('age', computedAge)
+
+      if (formData.epinNumber) {
+        apiFormData.append('epin', formData.epinNumber)
+        apiFormData.append('epinNumber', formData.epinNumber)
+      }
 
       // Use selected agent for addedby and addedby_id
       apiFormData.append('pendingAmount', String(Number(fee) - Number(formData.paymentAmount || 0)))
@@ -219,12 +225,28 @@ export default function AddGeneralApplicationPage() {
       })
 
       const response = await post("?apicall=createApplication", apiFormData)
-      
+
       if (response.data.status) {
         toast.success("Application added successfully")
-        
+
         const applicationNumber: any = response.data.applicationNumber || response.data.id || response.data.formNumber || response.data.form_number;
-        
+
+        // Atomically consume E-PIN if applied
+        if (formData.epinNumber) {
+          try {
+            await EpinService.consumeEpin({
+              pinNumber: formData.epinNumber,
+              applicationId: String(applicationNumber || response.data.id || ""),
+              applicantName: formData.applicantName,
+              agentId: formData.selectedAgentId,
+              moduleType: "applicant_registration",
+              remarks: "Consumed for General Marriage Application",
+            });
+          } catch (epinErr) {
+            console.error("E-PIN post-registration consumption note:", epinErr);
+          }
+        }
+
         // Find selected agent name for the bond
         const selectedAgent = agents.find(a => a.id.toString() === formData.selectedAgentId);
         const agentName = selectedAgent ? selectedAgent.name : '';
@@ -372,92 +394,36 @@ export default function AddGeneralApplicationPage() {
     fetchAgents();
   }, []);
 
-  // Helper to calculate age from date of birth
-  function calculateAge(dob: string) {
-    if (!dob) return "";
-    const birthDate = parseDateFromDDMMYYYY(dob);
-    if (!birthDate) return "";
-    
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age.toString();
-  }
+  const { age: calculatedAge, category: calculatedCategory, fee: calculatedFee } = useAgeCategory(formData.dateOfBirth);
 
-  // Category calculation logic based on gender and date of birth
+  // Category calculation logic based on centralized A-F age slabs
   React.useEffect(() => {
-    if (!formData.gender || !formData.dateOfBirth) {
+    if (!formData.dateOfBirth) {
       setCategory("");
       setFee("");
       setComputedAge("");
       setFormData((prev) => ({ ...prev, category: "" }));
       return;
     }
-    
-    const calculatedAge = calculateAge(formData.dateOfBirth);
-    const ageNum = parseInt(calculatedAge, 10);
-    
-    // Only proceed if we have a valid age
-    if (isNaN(ageNum)) {
-      setComputedAge("");
-      setCategory("");
-      setFee("");
-      setFormData((prev) => ({ ...prev, category: "" }));
-      return;
-    }
-    
-    setComputedAge(ageNum.toString());
-    let newCategory = "";
-    
-    if (isFemale(formData.gender)) {
-      if (ageNum >= 5 && ageNum <= 10) {
-        newCategory = "A";
-        setFee("3000");
-      } else if (ageNum >= 11 && ageNum <= 15) {
-        newCategory = "B";
-        setFee("6000");
-      } else if (ageNum >= 16) {
-        newCategory = "C";
-        setFee("9000");
-      } else {
-        setFee("");
-      }
-    } else if (isMale(formData.gender)) {
-      if (ageNum >= 6 && ageNum <= 12) {
-        newCategory = "A";
-        setFee("3000");
-      } else if (ageNum >= 13 && ageNum <= 18) {
-        newCategory = "B";
-        setFee("6000");
-      } else if (ageNum >= 19) {
-        newCategory = "C";
-        setFee("9000");
-      } else {
-        setFee("");
-      }
-    } else {
-      setFee("");
-    }
-    
-    setCategory(newCategory);
-    setFormData((prev) => ({ ...prev, category: newCategory }));
-  }, [formData.gender, formData.dateOfBirth]);
+
+    setComputedAge(calculatedAge || "");
+    setCategory(calculatedCategory || "");
+    setFee(calculatedFee || "");
+    setFormData((prev) => ({ ...prev, category: calculatedCategory || "" }));
+  }, [formData.dateOfBirth, calculatedAge, calculatedCategory, calculatedFee]);
 
   // Handle phone number change with validation
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const phone = e.target.value;
     const digits = phone.replace(/\D/g, '').slice(0, 10);
     setFormData((prev) => ({ ...prev, mobile: digits }));
-    
+
     // Clear error if field is empty (required field)
     if (!digits) {
       setPhoneError("");
       return;
     }
-    
+
     // Validate phone number
     if (!validatePhoneNumber(digits)) {
       setPhoneError("कृपया एक वैध 10 अंकों का फोन नंबर दर्ज करें");
@@ -483,13 +449,13 @@ export default function AddGeneralApplicationPage() {
   // Handle payment mode change
   const handlePaymentModeChange = (mode: string) => {
     setFormData((prev) => ({ ...prev, paymentMode: mode }));
-    
+
     // Reset payment status when changing from Razorpay to other modes
     if (mode !== PAYMENT_MODE.RAZORPAY && paymentStatus === 'paid') {
       setPaymentStatus('pending');
       setPaymentData(null);
     }
-    
+
     // Reset payment status when changing to Razorpay
     if (mode === PAYMENT_MODE.RAZORPAY) {
       setPaymentStatus('pending');
@@ -951,9 +917,20 @@ export default function AddGeneralApplicationPage() {
               </div>
 
               {/* Payment Details Section */}
-              <div className="mt-8">
-                <h2 className="text-lg font-semibold mb-4">Payment Details</h2>
-                
+              <div className="mt-8 space-y-4">
+                <h2 className="text-lg font-semibold">Payment Details</h2>
+
+                {/* E-PIN Voucher Verification */}
+                <div className="p-4 bg-muted/20 border rounded-lg">
+                  <EpinInputVerifier
+                    value={formData.epinNumber || ""}
+                    onChange={(pin) =>
+                      setFormData((prev) => ({ ...prev, epinNumber: pin }))
+                    }
+                    agentId={formData.selectedAgentId}
+                  />
+                </div>
+
                 {/* Payment Status Display */}
                 {paymentStatus === 'paid' && (
                   <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
@@ -961,7 +938,7 @@ export default function AddGeneralApplicationPage() {
                     <p className="text-green-600 text-sm">Payment ID: {paymentData?.payment_id}</p>
                   </div>
                 )}
-                
+
                 {paymentStatus === 'failed' && (
                   <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
                     <p className="text-red-800 font-medium">❌ Payment Failed</p>
@@ -1122,9 +1099,9 @@ export default function AddGeneralApplicationPage() {
                 <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading} className="w-full sm:w-auto">
                   रद्द करें / Cancel
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isLoading || (isRazorpayPaymentMode(formData.paymentMode) && paymentStatus !== 'paid')} 
+                <Button
+                  type="submit"
+                  disabled={isLoading || (isRazorpayPaymentMode(formData.paymentMode) && paymentStatus !== 'paid')}
                   className="w-full sm:w-auto"
                 >
                   {isLoading ? "Adding..." : "आवेदन बनाएं / Create Application"}

@@ -18,6 +18,8 @@ import { cn, formatDate, formatDateForAPI, parseDateFromDDMMYYYY, getCurrentUser
 import { API_ENDPOINTS, post, postUrlEncoded } from "@/lib/api";
 import { toast } from "sonner";
 import { RoleGuard } from "@/components/role-guard";
+import { useSchemeTypes } from "@/hooks/use-app-config";
+import ConfigService from "@/lib/config-service";
 import {
   Select,
   SelectContent,
@@ -38,6 +40,7 @@ const isFemale = (gender: string) => normalizeGender(gender) === "Female";
 export default function EditMayraCongratsPage() {
   const router = useRouter();
   const { id } = useParams();
+  const { schemeTypes } = useSchemeTypes();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
@@ -59,7 +62,7 @@ export default function EditMayraCongratsPage() {
     rate100: "0",
     rate200: "0",
     rate300: "0",
-    deductionPercent: "20",
+    deductionPercent: String(ConfigService.getDeductionPercentForScheme("mayra") || 20),
     deductedAmount: "0",
     totalPaidAmount: "0",
     gender: "Female",
@@ -74,10 +77,10 @@ export default function EditMayraCongratsPage() {
       setIsFetching(true);
       const response = await postUrlEncoded(API_ENDPOINTS.GET_MAYRA_CONGRATS, { id });
       if (response.data.status && response.data.data) {
-        const record = Array.isArray(response.data.data) 
-          ? response.data.data.find((r: any) => r.id.toString() === id.toString()) 
+        const record = Array.isArray(response.data.data)
+          ? response.data.data.find((r: any) => r.id.toString() === id.toString())
           : response.data.data;
-        
+
         if (record) {
           setFormData({
             date: record.date || "",
@@ -97,7 +100,7 @@ export default function EditMayraCongratsPage() {
             rate100: record.rate100?.toString() || "0",
             rate200: record.rate200?.toString() || "0",
             rate300: record.rate300?.toString() || "0",
-            deductionPercent: record.deductionPercent || "20",
+            deductionPercent: record.deductionPercent || String(ConfigService.getDeductionPercentForScheme("mayra") || 20),
             deductedAmount: record.deductedAmount || "0",
             totalPaidAmount: record.totalPaidAmount || "0",
             gender: normalizeGender(record.gender),
@@ -125,18 +128,26 @@ export default function EditMayraCongratsPage() {
     const r100 = parseInt(formData.rate100) || 0;
     const r200 = parseInt(formData.rate200) || 0;
     const r300 = parseInt(formData.rate300) || 0;
-    const dp = parseInt(formData.deductionPercent) || 20;
+    const dp =
+      parseInt(formData.deductionPercent) ||
+      ConfigService.getDeductionPercentForScheme("mayra") ||
+      20;
+
+    const activeSchemes = ConfigService.getSchemeTypesSync();
+    const rate1 = activeSchemes[0]?.amount ?? 100;
+    const rate2 = activeSchemes[1]?.amount ?? 200;
+    const rate3 = activeSchemes[2]?.amount ?? 300;
 
     const totalMembers = r100 + r200 + r300;
-    const grant = (r100 * 100) + (r200 * 200) + (r300 * 300);
+    const grant = r100 * rate1 + r200 * rate2 + r300 * rate3;
     const da = Math.round((grant * dp) / 100);
     const final = grant - da;
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       totalMembersServing: totalMembers.toString(),
-      deducedAmount: da.toString(),
-      totalPaidAmount: final.toString()
+      deductedAmount: da.toString(),
+      totalPaidAmount: final.toString(),
     }));
   }, [formData.rate100, formData.rate200, formData.rate300, formData.deductionPercent]);
 
@@ -203,14 +214,14 @@ export default function EditMayraCongratsPage() {
                         <Button variant="ghost" className="absolute right-0 top-0 h-full px-3"><CalendarDays className="h-4 w-4" /></Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
-                        <Calendar 
-                          mode="single" 
-                          selected={dateObj} 
+                        <Calendar
+                          mode="single"
+                          selected={dateObj}
                           onSelect={(d) => {
                             setDateObj(d);
                             setFormData(p => ({ ...p, date: formatDateForAPI(d as any) }));
                             setDateOpen(false);
-                          }} 
+                          }}
                         />
                       </PopoverContent>
                     </Popover>
@@ -302,18 +313,57 @@ export default function EditMayraCongratsPage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t pt-4">
-                    <div className="space-y-1">
-                      <Label>100x (A)</Label>
-                      <Input type="number" value={formData.rate100} onChange={e=>setFormData(p=>({...p, rate100: e.target.value}))} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>200x (B)</Label>
-                      <Input type="number" value={formData.rate200} onChange={e=>setFormData(p=>({...p, rate200: e.target.value}))} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>300x (C)</Label>
-                      <Input type="number" value={formData.rate300} onChange={e=>setFormData(p=>({...p, rate300: e.target.value}))} />
-                    </div>
+                    {schemeTypes && schemeTypes.length > 0 ? (
+                      schemeTypes.slice(0, 3).map((scheme, idx) => {
+                        const fieldKey = idx === 0 ? "rate100" : idx === 1 ? "rate200" : "rate300";
+                        const letter = idx === 0 ? "A" : idx === 1 ? "B" : "C";
+                        return (
+                          <div className="space-y-1" key={scheme.id || idx}>
+                            <Label>₹{scheme.amount}x ({letter})</Label>
+                            <Input
+                              type="number"
+                              value={(formData as any)[fieldKey]}
+                              onChange={(e) =>
+                                setFormData((p) => ({ ...p, [fieldKey]: e.target.value }))
+                              }
+                            />
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <>
+                        <div className="space-y-1">
+                          <Label>100x (A)</Label>
+                          <Input
+                            type="number"
+                            value={formData.rate100}
+                            onChange={(e) =>
+                              setFormData((p) => ({ ...p, rate100: e.target.value }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>200x (B)</Label>
+                          <Input
+                            type="number"
+                            value={formData.rate200}
+                            onChange={(e) =>
+                              setFormData((p) => ({ ...p, rate200: e.target.value }))
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label>300x (C)</Label>
+                          <Input
+                            type="number"
+                            value={formData.rate300}
+                            onChange={(e) =>
+                              setFormData((p) => ({ ...p, rate300: e.target.value }))
+                            }
+                          />
+                        </div>
+                      </>
+                    )}
                     <div className="space-y-1">
                       <Label>Total Serving</Label>
                       <Input value={formData.totalMembersServing} readOnly className="bg-gray-50" />

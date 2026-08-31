@@ -1,4 +1,5 @@
-import { post } from "@/lib/api";
+import api, { post, syncAuthSession } from "@/lib/api";
+import { getBackendOrigin } from "./api-url";
 import {
   AppConfig,
   SchemeType,
@@ -31,22 +32,105 @@ getAllRegistryModules().forEach((m) => {
 /**
  * Centralized Configuration Service
  *
- * Backend is authoritative. This service calls backend configuration APIs if present,
- * updates in-memory cache, and provides safe fallbacks when backend is unreachable or endpoints are pending.
+ * Backend is authoritative. This service calls backend Phase 2-A configuration APIs
+ * (/api/v1/config/application), updates in-memory cache, and provides safe fallbacks
+ * when backend is unreachable or endpoints return partial data.
  */
 export const ConfigService = {
   /**
    * Fetch Application Meta (Name, Support Mobile, Default Deductions)
+   * Autoritative Backend Route: GET /api/v1/config/application
    */
   async getAppConfig(forceRefresh = false): Promise<AppConfig> {
     try {
-      // Check if backend exposes an app config endpoint
-      const response = await post("?apicall=getAppConfig").catch(() => null);
-      if (response?.data?.status && response.data.data) {
-        cachedAppConfig = {
-          ...DEFAULT_APP_CONFIG,
-          ...response.data.data,
-        };
+      syncAuthSession();
+      // 1. Primary: RESTful endpoint from Phase 2-A Backend
+      let response: any = await api
+        .get(`${getBackendOrigin()}/api/v1/config/application`)
+        .catch(() => null);
+
+      // 2. Secondary fallback: Legacy query dispatcher
+      if (!response?.data) {
+        response = await post("?apicall=getAppConfig").catch(() => null);
+      }
+
+      if (response?.data) {
+        const payload = response.data.data || response.data;
+
+        // Populate AppConfig
+        if (payload) {
+          cachedAppConfig = {
+            ...DEFAULT_APP_CONFIG,
+            appName: payload.appName || payload.name || DEFAULT_APP_CONFIG.appName,
+            appSubtitle: payload.appSubtitle || payload.subtitle || DEFAULT_APP_CONFIG.appSubtitle,
+            officialMobile: payload.officialMobile || payload.mobile || DEFAULT_APP_CONFIG.officialMobile,
+            supportEmail: payload.supportEmail || payload.email || DEFAULT_APP_CONFIG.supportEmail,
+            defaultDeductionPercent: Number(payload.defaultDeductionPercent ?? payload.deductionPercent ?? DEFAULT_APP_CONFIG.defaultDeductionPercent),
+            insuranceDeductionPercent: Number(payload.insuranceDeductionPercent ?? DEFAULT_APP_CONFIG.insuranceDeductionPercent),
+            agentCommissionPercent: Number(payload.agentCommissionPercent ?? DEFAULT_APP_CONFIG.agentCommissionPercent),
+            updatedAt: payload.updatedAt || payload.updated_at,
+          };
+        }
+
+        // If backend embeds schemeTypes in unified config
+        if (Array.isArray(payload.schemeTypes)) {
+          cachedSchemeTypes = payload.schemeTypes.map((item: any) => ({
+            id: String(item.id || item.code),
+            code: String(item.code || `SCHEME_${item.amount}`),
+            name: item.name || `₹${item.amount} Scheme`,
+            amount: Number(item.amount),
+            status: item.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+            effectiveFrom: item.effectiveFrom,
+            effectiveTo: item.effectiveTo,
+            description: item.description,
+          }));
+        }
+
+        // If backend embeds ageSlabs in unified config
+        if (Array.isArray(payload.ageSlabs)) {
+          cachedAgeSlabs = payload.ageSlabs.map((item: any) => ({
+            id: String(item.id || item.code),
+            code: String(item.code),
+            minAge: Number(item.minAge ?? item.min_age),
+            maxAge: Number(item.maxAge ?? item.max_age),
+            fee: Number(item.fee ?? item.amount),
+            label: item.label || `${item.code} (${item.minAge ?? item.min_age}–${item.maxAge ?? item.max_age} Years)`,
+            status: item.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+            description: item.description,
+          }));
+        }
+
+        // If backend embeds pools in unified config
+        if (Array.isArray(payload.pools)) {
+          cachedPools = payload.pools.map((item: any) => ({
+            id: String(item.id || item.code),
+            code: String(item.code),
+            name: item.name,
+            nameHi: item.nameHi || item.name_hi,
+            allowedGenders: Array.isArray(item.allowedGenders) ? item.allowedGenders : [item.gender || "All"],
+            status: item.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+          }));
+        }
+
+        // If backend embeds deductions in unified config
+        if (Array.isArray(payload.deductions)) {
+          cachedDeductions = payload.deductions.map((item: any) => ({
+            id: String(item.id),
+            schemeId: item.schemeId || item.scheme_id,
+            schemeName: item.schemeName || item.scheme_name,
+            percent: Number(item.percent),
+            description: item.description,
+            status: item.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+          }));
+        }
+
+        // If backend embeds module statuses in unified config
+        if (payload.moduleStatuses && typeof payload.moduleStatuses === "object") {
+          moduleEnabledMap = {
+            ...moduleEnabledMap,
+            ...payload.moduleStatuses,
+          };
+        }
       }
     } catch {
       // Graceful fallback to default config
@@ -66,6 +150,9 @@ export const ConfigService = {
    */
   async getSchemeTypes(forceRefresh = false): Promise<SchemeType[]> {
     try {
+      if (forceRefresh) {
+        await this.getAppConfig(true);
+      }
       const response = await post("?apicall=getSchemeTypes").catch(() => null);
       if (response?.data?.status && Array.isArray(response.data.data)) {
         cachedSchemeTypes = response.data.data.map((item: any) => ({
@@ -97,6 +184,9 @@ export const ConfigService = {
    */
   async getAgeSlabs(forceRefresh = false): Promise<AgeSlab[]> {
     try {
+      if (forceRefresh) {
+        await this.getAppConfig(true);
+      }
       const response = await post("?apicall=getAgeSlabs").catch(() => null);
       if (response?.data?.status && Array.isArray(response.data.data)) {
         cachedAgeSlabs = response.data.data.map((item: any) => ({
@@ -150,6 +240,9 @@ export const ConfigService = {
    */
   async getPools(forceRefresh = false): Promise<PoolConfig[]> {
     try {
+      if (forceRefresh) {
+        await this.getAppConfig(true);
+      }
       const response = await post("?apicall=getPools").catch(() => null);
       if (response?.data?.status && Array.isArray(response.data.data)) {
         cachedPools = response.data.data.map((item: any) => ({
@@ -179,6 +272,9 @@ export const ConfigService = {
    */
   async getDeductions(forceRefresh = false): Promise<DeductionConfig[]> {
     try {
+      if (forceRefresh) {
+        await this.getAppConfig(true);
+      }
       const response = await post("?apicall=getDeductions").catch(() => null);
       if (response?.data?.status && Array.isArray(response.data.data)) {
         cachedDeductions = response.data.data.map((item: any) => ({
@@ -226,6 +322,7 @@ export const ConfigService = {
    */
   async refreshModuleStatuses(): Promise<Record<string, boolean>> {
     try {
+      await this.getAppConfig(true);
       const response = await post("?apicall=getModuleStatuses").catch(() => null);
       if (response?.data?.status && response.data.data) {
         moduleEnabledMap = {

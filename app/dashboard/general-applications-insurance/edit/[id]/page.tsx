@@ -21,6 +21,7 @@ import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, getApplicantPhotoP
 import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode, GENDER_OPTIONS } from "@/lib/form-values"
 import { formatBilingual } from '@/lib/translations'
 import { RazorpayPayment } from "@/components/razorpay-payment"
+import { useAgeCategory } from "@/hooks/use-age-category"
 
 export type GeneralApplicationFormData = {
  formNumber?:string;
@@ -139,26 +140,13 @@ export default function EditGeneralInsuranceApplicationPage() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
+  const { age: calculatedAge, category: calculatedCategory, fee: calculatedFee } = useAgeCategory(formData.dateOfBirth);
+
   // Agents state
   const [agents, setAgents] = useState<Array<{ id: number; name: string }>>([]);
   const [isLoadingAgents, setIsLoadingAgents] = useState(false);
 
-  // Fetch agents and application data will be handled in the unified useEffect below
-
-  // Helper to calculate age from date of birth
-  function calculateAge(dob: string) {
-    if (!dob) return "";
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age.toString();
-  }
-
-  // Category calculation logic based on age only (match add page)
+  // Category calculation logic based on centralized A-F slabs
   useEffect(() => {
     if (!formData.dateOfBirth) {
       setCategory("");
@@ -167,30 +155,11 @@ export default function EditGeneralInsuranceApplicationPage() {
       setFormData((prev) => ({ ...prev, category: "" }));
       return;
     }
-    const ageNum = parseInt(calculateAge(formData.dateOfBirth), 10);
-    setComputedAge(ageNum.toString());
-    let newCategory = "";
-    let newFee = "";
-    if (ageNum >= 21 && ageNum <= 55) {
-      newCategory = "A";
-      newFee = "2000";
-    } else if (ageNum >= 56 && ageNum <= 60) {
-      newCategory = "B";
-      newFee = "4000";
-    } else if (ageNum >= 61 && ageNum <= 65) {
-      newCategory = "C";
-      newFee = "6000";
-    } else if (ageNum >= 66 && ageNum <= 70) {
-      newCategory = "D";
-      newFee = "8000";
-    } else if (ageNum >= 71 && ageNum <= 75) {
-      newCategory = "E";
-      newFee = "11000";
-    }
-    setCategory(newCategory);
-    setFee(newFee);
-    setFormData((prev) => ({ ...prev, category: newCategory }));
-  }, [formData.dateOfBirth]);
+    setComputedAge(calculatedAge || "");
+    setCategory(calculatedCategory || "");
+    setFee(calculatedFee || "");
+    setFormData((prev) => ({ ...prev, category: calculatedCategory || "" }));
+  }, [formData.dateOfBirth, calculatedAge, calculatedCategory, calculatedFee]);
 
   useEffect(() => {
     const parseApiDate = (value?: string) => {
@@ -245,7 +214,7 @@ export default function EditGeneralInsuranceApplicationPage() {
           const dateOfBirth = getRecordField(record, "dateOfBirth", "date_of_birth")
           const paymentDate = getRecordField(record, "paymentDate", "payment_date")
           const photoPath = getApplicantPhotoPath(record)
-          
+
           // Try to match agent by name first, then by ID
           let agentId = "";
           const workerName = record.workerName || record.worker_name || record.added_name || (record.addedBy && record.addedBy.name) || "";
@@ -463,7 +432,7 @@ export default function EditGeneralInsuranceApplicationPage() {
 
   return (
     <div className="p-6">
-      
+
       <div className="flex ">
         <div className="mb-4">
           <Button type="button" variant="link" onClick={() => router.back()}>
@@ -484,7 +453,7 @@ export default function EditGeneralInsuranceApplicationPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3  gap-4">
-              
+
               <div>
                 <Label htmlFor="applicationDate">आवेदन तिथि / Application Date</Label>
                 <div className="relative flex gap-2">
@@ -515,7 +484,7 @@ export default function EditGeneralInsuranceApplicationPage() {
                   />
                   <Popover open={applicationDateOpen} onOpenChange={setApplicationDateOpen}>
                     <PopoverTrigger asChild>
-                    
+
                     <Button
                           id="applicationDate-picker"
                           variant="ghost"
@@ -585,7 +554,7 @@ export default function EditGeneralInsuranceApplicationPage() {
                   />
                   <Popover open={dateOfBirthOpen} onOpenChange={setDateOfBirthOpen}>
                     <PopoverTrigger asChild>
-                     
+
                       <Button
                           id="dateOfBirth-picker"
                           variant="ghost"
@@ -724,7 +693,7 @@ export default function EditGeneralInsuranceApplicationPage() {
                   disabled
                 />
               </div>
-            </div>           
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2  gap-4">
               <div>
@@ -785,7 +754,7 @@ export default function EditGeneralInsuranceApplicationPage() {
                   type="number"
                   inputMode="numeric"
                   value={formData.mobile}
-                  onChange={(e) => 
+                  onChange={(e) =>
                   {
                     const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
                     setFormData((prev) => ({ ...prev, mobile: digits }))
@@ -917,7 +886,7 @@ export default function EditGeneralInsuranceApplicationPage() {
               />
             </div>
 
-         
+
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -941,14 +910,14 @@ export default function EditGeneralInsuranceApplicationPage() {
                   />
                 )}
               </div>
-              
+
             </div>
 
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
                 रद्द करें
               </Button>
-              
+
               <Button type="submit" disabled={loading}>
                 {loading ? "Updating..." : "आवेदन अपडेट करें"}
               </Button>
@@ -958,4 +927,4 @@ export default function EditGeneralInsuranceApplicationPage() {
       </Card>
     </div>
   )
-} 
+}

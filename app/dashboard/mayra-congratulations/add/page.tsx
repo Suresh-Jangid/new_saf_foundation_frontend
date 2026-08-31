@@ -33,6 +33,8 @@ import { formatBilingual } from "@/lib/translations";
 import { getCurrentUserInfo, formatDate, formatDateForAPI, parseDateFromDDMMYYYY, MAYRA_ASSOCIATION_DURATION_HI } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard";
 import { Pagination } from "@/components/ui/pagination";
+import { useSchemeTypes } from "@/hooks/use-app-config";
+import ConfigService from "@/lib/config-service";
 
 // Helper function to check gender
 const isMale = (gender: string): boolean => {
@@ -74,12 +76,13 @@ interface CountData {
 export default function AddMayraCongratulationsPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { schemeTypes } = useSchemeTypes();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
   const [isLoadingMayraData, setIsLoadingMayraData] = useState(false);
   const [applications, setApplications] = useState<MayraApplication[]>([]);
   const [selectedApplicationId, setSelectedApplicationId] = useState<string>("");
-  
+
   // Search and pagination states
   const [applicationSearchTerm, setApplicationSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -103,13 +106,13 @@ export default function AddMayraCongratulationsPage() {
     address: "",
     membershipJoinDate: "",
     associatedUntil: MAYRA_ASSOCIATION_DURATION_HI,
-    permanentFee: "",
-    installmentAmount: "",
-    totalGrantAmount: "",
-    totalMembersServing: "",
+    permanentFee: "0",
+    installmentAmount: "0",
+    totalGrantAmount: "0",
+    totalMembersServing: "0",
     rate200: "0",
     rate300: "0",
-    deductionPercent: "20",
+    deductionPercent: String(ConfigService.getDeductionPercentForScheme("mayra") || 20),
     deductedAmount: "0",
     totalPaidAmount: "0",
     memberContribution: "0",
@@ -188,21 +191,21 @@ export default function AddMayraCongratulationsPage() {
 
     try {
       setIsLoadingMayraData(true);
-      const response = await postUrlEncoded(API_ENDPOINTS.GET_MAYRA_CONGRATULATIONS_DETAILS, { 
+      const response = await postUrlEncoded(API_ENDPOINTS.GET_MAYRA_CONGRATULATIONS_DETAILS, {
         mayra_id: mayraId,
-        date: formData.date 
+        date: formData.date
       });
 
       const data = response.data;
       if (data.status && data.data) {
         const apiData = data.data;
-        
+
         const selectedApp = applications.find((a) => a.id.toString() === mayraId);
 
         // Handle counts and rates (B=200, C=300)
         let r200 = "0", r300 = "0";
         let totalServing = 0;
-        
+
         if (data.counts && Array.isArray(data.counts)) {
           data.counts.forEach((count: CountData) => {
             if (count.category === "B") r200 = count.total.toString();
@@ -213,8 +216,13 @@ export default function AddMayraCongratulationsPage() {
           });
         }
 
-        const calculatedTotal = (parseInt(r200) * 200) + (parseInt(r300) * 300);
-        const deductionPercent = 20;
+        // Dynamic rate resolution from active scheme types
+        const activeSchemes = ConfigService.getSchemeTypesSync();
+        const r1 = activeSchemes[0]?.amount ?? 200;
+        const r2 = activeSchemes[1]?.amount ?? 300;
+
+        const calculatedTotal = (parseInt(r200) * r1) + (parseInt(r300) * r2);
+        const deductionPercent = ConfigService.getDeductionPercentForScheme("mayra") || 20;
         const deductionAmount = Math.round((calculatedTotal * deductionPercent) / 100);
         const totalPaidAmount = calculatedTotal - deductionAmount;
         const totalEMI = data.totalEMI || 0;
@@ -236,6 +244,7 @@ export default function AddMayraCongratulationsPage() {
           totalMembersServing: totalServing.toString(),
           rate200: r200,
           rate300: r300,
+          deductionPercent: String(deductionPercent),
           deductedAmount: deductionAmount.toString(),
           totalPaidAmount: totalPaidAmount.toString(),
           memberContribution: calculatedTotal.toString(),
@@ -258,9 +267,16 @@ export default function AddMayraCongratulationsPage() {
   const calculateTotals = React.useCallback(() => {
     const r200 = parseInt(formData.rate200) || 0;
     const r300 = parseInt(formData.rate300) || 0;
-    const dPercent = parseInt(formData.deductionPercent) || 20;
+    const dPercent =
+      parseInt(formData.deductionPercent) ||
+      ConfigService.getDeductionPercentForScheme("mayra") ||
+      20;
 
-    const total = (r200 * 200) + (r300 * 300);
+    const activeSchemes = ConfigService.getSchemeTypesSync();
+    const r1 = activeSchemes[0]?.amount ?? 200;
+    const r2 = activeSchemes[1]?.amount ?? 300;
+
+    const total = (r200 * r1) + (r300 * r2);
     const dAmount = Math.round((total * dPercent) / 100);
     const paid = total - dAmount;
 
@@ -275,7 +291,7 @@ export default function AddMayraCongratulationsPage() {
 
   // Effects
   useEffect(() => { fetchApplications(); }, [fetchApplications]);
-  
+
   useEffect(() => { filterApplications(applicationSearchTerm); setCurrentPage(1); }, [applications, applicationSearchTerm, filterApplications]);
 
   useEffect(() => { calculateTotals(); }, [formData.rate200, formData.rate300, formData.deductionPercent]);

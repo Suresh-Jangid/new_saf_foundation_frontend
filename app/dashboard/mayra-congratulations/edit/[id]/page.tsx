@@ -13,10 +13,13 @@ import { toast } from "sonner"
 import { formatDate, parseDateFromDDMMYYYY, getCurrentUserInfo } from "@/lib/utils"
 import { GENDER } from "@/lib/form-values"
 import { RoleGuard } from "@/components/role-guard"
+import { useSchemeTypes } from "@/hooks/use-app-config"
+import ConfigService from "@/lib/config-service"
 
 export default function EditMayraCongratulationsPage() {
   const router = useRouter()
   const { id } = useParams()
+  const { schemeTypes } = useSchemeTypes()
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(true)
 
@@ -38,7 +41,7 @@ export default function EditMayraCongratulationsPage() {
     totalMembersServing: "",
     rate200: "",
     rate300: "",
-    deductionPercent: "20",
+    deductionPercent: String(ConfigService.getDeductionPercentForScheme("mayra") || 20),
     deductedAmount: "",
     totalPaidAmount: "",
     gender: "female",
@@ -75,7 +78,7 @@ export default function EditMayraCongratulationsPage() {
               totalMembersServing: record.totalMembersServing || "",
               rate200: record.rate200 || "",
               rate300: record.rate300 || "",
-              deductionPercent: record.deductionPercent || "20",
+              deductionPercent: record.deductionPercent || String(ConfigService.getDeductionPercentForScheme("mayra") || 20),
               deductedAmount: record.deductedAmount || "",
               totalPaidAmount: record.totalPaidAmount || "",
               gender: record.gender || "female",
@@ -95,9 +98,16 @@ export default function EditMayraCongratulationsPage() {
   useEffect(() => {
     const r200 = parseInt(formData.rate200) || 0
     const r300 = parseInt(formData.rate300) || 0
-    const dPercent = parseInt(formData.deductionPercent) || 20
+    const dPercent =
+      parseInt(formData.deductionPercent) ||
+      ConfigService.getDeductionPercentForScheme("mayra") ||
+      20
 
-    const total = (r200 * 200) + (r300 * 300)
+    const activeSchemes = ConfigService.getSchemeTypesSync()
+    const rate1 = activeSchemes[0]?.amount ?? 200
+    const rate2 = activeSchemes[1]?.amount ?? 300
+
+    const total = (r200 * rate1) + (r300 * rate2)
     const dAmount = Math.round((total * dPercent) / 100)
     const paid = total - dAmount
 
@@ -116,11 +126,11 @@ export default function EditMayraCongratulationsPage() {
       const { addedby, addedby_id } = getCurrentUserInfo()
       const apiFormData = new FormData()
       apiFormData.append("id", id as string)
-      
+
       Object.entries(formData).forEach(([k, v]) => {
         apiFormData.append(k, String(v ?? ""))
       })
-      
+
       apiFormData.append("addedby", addedby)
       apiFormData.append("addedby_id", addedby_id)
 

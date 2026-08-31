@@ -43,6 +43,8 @@ import { formatBilingual } from "@/lib/translations";
 import { getCurrentUserInfo } from "@/lib/utils";
 import { formatDate, formatDateForAPI, validatePhoneNumber, parseDateFromDDMMYYYY, calculateDuration } from "@/lib/utils";
 import { GENDER_OPTIONS, isMale, isFemale } from "@/lib/form-values";
+import { useSchemeTypes, useDeductions } from "@/hooks/use-app-config";
+import ConfigService from "@/lib/config-service";
 
 // Interface for application data from the API
 interface ApplicationData {
@@ -95,6 +97,7 @@ interface ApiResponse {
 export default function AddMarriageCongratulationPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { schemeTypes } = useSchemeTypes();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
   const [isLoadingMarriageData, setIsLoadingMarriageData] = useState(false);
@@ -108,7 +111,7 @@ export default function AddMarriageCongratulationPage() {
   const [applicationDateObj, setApplicationDateObj] = useState<Date | undefined>(undefined);
   const [applicationDateOpen, setApplicationDateOpen] = useState(false);
   const [applicationDateValue, setApplicationDateValue] = useState("");
-  
+
   // Pagination and search states for applications
   const [applicationSearchTerm, setApplicationSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -277,97 +280,97 @@ export default function AddMarriageCongratulationPage() {
           // Pre-fill the form with the returned data
           const applicationData = data.data;
 
-          // Handle counts data if available
-          if (data.counts && Array.isArray(data.counts)) {
-            setCategoryCounts(data.counts);
-          }
+        // Handle counts data if available
+        if (data.counts && Array.isArray(data.counts)) {
+          setCategoryCounts(data.counts);
+        }
 
-          // Map category counts to rate fields
-          let rate100 = "0";
-          let rate200 = "0";
-          let rate300 = "0";
-          let totalMembersServing = "0";
+        // Map category counts to rate fields
+        let rate100 = "0";
+        let rate200 = "0";
+        let rate300 = "0";
+        let totalMembersServing = "0";
 
-          if (data.counts && Array.isArray(data.counts)) {
-            data.counts.forEach((count: CountData) => {
-              if (count.category === "A") {
-                rate100 = count.total.toString();
-              } else if (count.category === "B") {
-                rate200 = count.total.toString();
-              } else if (count.category === "C") {
-                rate300 = count.total.toString();
-              }
-            });
-
-            // Calculate total members serving
-            totalMembersServing = data.counts
-              .reduce((sum: number, count: CountData) => sum + count.total, 0)
-              .toString();
-          }
-
-          // Calculate total grant amount based on rate × count
-          let calculatedTotal = 0;
-          calculatedTotal += parseInt(rate100) * 100; // 100 × count
-          calculatedTotal += parseInt(rate200) * 200; // 200 × count
-          calculatedTotal += parseInt(rate300) * 300; // 300 × count
-
-          // let totalGrantAmount =( Number(formData.permanentFee) +  Number(data.totalEMI)).toString()
-
-          // Get totalEMI from API response
-          const totalEMI = data.totalEMI || 0;
-
-          // Calculate deduction amount based on percentage
-          const deductionPercent = 20; // Default 20% for API data
-          const deductionAmount = Math.round(
-            (calculatedTotal * deductionPercent) / 100
-          );
-
-          // Calculate final paid amount after deduction
-          const totalPaidAmount = calculatedTotal - deductionAmount;
-
-          console.log("Calculated values:", {
-            rate100,
-            rate200,
-            rate300,
-            totalMembersServing,
-            // totalGrantAmount,
-            calculatedTotal,
-            deductionAmount,
-            totalPaidAmount,
-            totalEMI,
-            counts: data.counts,
-            payments: data.payments,
+        if (data.counts && Array.isArray(data.counts)) {
+          data.counts.forEach((count: CountData) => {
+            if (count.category === "A") {
+              rate100 = count.total.toString();
+            } else if (count.category === "B") {
+              rate200 = count.total.toString();
+            } else if (count.category === "C") {
+              rate300 = count.total.toString();
+            }
           });
 
-          setFormData((prev) => {
-            const updatedFormData = {
-              ...prev,
-             
-              application_id: applicationData.id.toString() || "",             
-              applicantName: applicationData.applicantName || "",
-              fatherName: applicationData.fatherName || "",
-              wifeOf: "", // This will be filled based on gender
-              gotra: applicationData.gotra || "",
-              address: applicationData.address || "",
-              gender: applicationData.gender || "",
-              membershipJoinDate: applicationData.applicationDate || "",
-              associatedUntil: "",
-              permanentFee: applicationData.totalAmount?.toString() || "",
-              installmentAmount: totalEMI.toString(),
-              totalGrantAmount:  (Number(applicationData.totalAmount) +  Number(totalEMI)).toString(),
-              totalMembersServing: totalMembersServing,
-              rate100: rate100,
-              rate200: rate200,
-              rate300: rate300,
-              deductionPercent: "20",
-              deductedAmount: deductionAmount.toString(),
-              totalPaidAmount: totalPaidAmount.toString(),
-            };
+          // Calculate total members serving
+          totalMembersServing = data.counts
+            .reduce((sum: number, count: CountData) => sum + count.total, 0)
+            .toString();
+        }
 
-            console.log("Updating form data:", updatedFormData);
-            return updatedFormData;
-          });
+        // Dynamic rate resolution from active scheme types
+        const activeSchemes = ConfigService.getSchemeTypesSync();
+        const r1 = activeSchemes[0]?.amount ?? 100;
+        const r2 = activeSchemes[1]?.amount ?? 200;
+        const r3 = activeSchemes[2]?.amount ?? 300;
 
+        let calculatedTotal = 0;
+        calculatedTotal += parseInt(rate100) * r1;
+        calculatedTotal += parseInt(rate200) * r2;
+        calculatedTotal += parseInt(rate300) * r3;
+
+        // Get totalEMI from API response
+        const totalEMI = data.totalEMI || 0;
+
+        // Dynamic deduction calculation from authoritative configuration
+        const deductionPercent = ConfigService.getDeductionPercentForScheme("general_marriage") || 20;
+        const deductionAmount = Math.round(
+          (calculatedTotal * deductionPercent) / 100
+        );
+
+        // Calculate final paid amount after deduction
+        const totalPaidAmount = calculatedTotal - deductionAmount;
+
+        console.log("Calculated values:", {
+          rate100,
+          rate200,
+          rate300,
+          totalMembersServing,
+          calculatedTotal,
+          deductionAmount,
+          totalPaidAmount,
+          totalEMI,
+          counts: data.counts,
+          payments: data.payments,
+        });
+
+        setFormData((prev) => {
+          const updatedFormData = {
+            ...prev,
+            application_id: applicationData.id.toString() || "",
+            applicantName: applicationData.applicantName || "",
+            fatherName: applicationData.fatherName || "",
+            wifeOf: "", // This will be filled based on gender
+            gotra: applicationData.gotra || "",
+            address: applicationData.address || "",
+            gender: applicationData.gender || "",
+            membershipJoinDate: applicationData.applicationDate || "",
+            associatedUntil: "",
+            permanentFee: applicationData.totalAmount?.toString() || "",
+            installmentAmount: totalEMI.toString(),
+            totalGrantAmount: (Number(applicationData.totalAmount) + Number(totalEMI)).toString(),
+            totalMembersServing: totalMembersServing,
+            rate100: rate100,
+            rate200: rate200,
+            rate300: rate300,
+            deductionPercent: String(deductionPercent),
+            deductedAmount: deductionAmount.toString(),
+            totalPaidAmount: totalPaidAmount.toString(),
+          };
+
+          console.log("Updating form data:", updatedFormData);
+          return updatedFormData;
+        });
 
           if (applicationData.applicationDate) {
             const joinDate = new Date(applicationData.applicationDate);
@@ -413,11 +416,20 @@ export default function AddMarriageCongratulationPage() {
     const rate100Count = parseInt(formData.rate100) || 0;
     const rate200Count = parseInt(formData.rate200) || 0;
     const rate300Count = parseInt(formData.rate300) || 0;
-    const deductionPercent = parseInt(formData.deductionPercent) || 20;
+    const deductionPercent =
+      parseInt(formData.deductionPercent) ||
+      ConfigService.getDeductionPercentForScheme("general_marriage") ||
+      20;
+
+    // Resolve multipliers dynamically from active scheme types
+    const activeSchemes = ConfigService.getSchemeTypesSync();
+    const r1 = activeSchemes[0]?.amount ?? 100;
+    const r2 = activeSchemes[1]?.amount ?? 200;
+    const r3 = activeSchemes[2]?.amount ?? 300;
 
     // Calculate total grant amount
     const calculatedTotal =
-      rate100Count * 100 + rate200Count * 200 + rate300Count * 300;
+      rate100Count * r1 + rate200Count * r2 + rate300Count * r3;
 
     // Calculate deduction amount
     const deductionAmount = Math.round(
@@ -426,9 +438,12 @@ export default function AddMarriageCongratulationPage() {
 
     // Calculate final paid amount
     const totalPaidAmount = calculatedTotal - deductionAmount;
+    const memberContribution = calculatedTotal;
 
-    const memberContribution =  calculatedTotal
-    console.log("Recalculating totals:", {
+    console.log("Recalculating totals with dynamic scheme rates:", {
+      r1,
+      r2,
+      r3,
       rate100Count,
       rate200Count,
       rate300Count,
@@ -442,7 +457,6 @@ export default function AddMarriageCongratulationPage() {
     // Update form data
     setFormData((prev) => ({
       ...prev,
-      // totalGrantAmount: calculatedTotal.toString(),
       deductedAmount: deductionAmount.toString(),
       totalPaidAmount: totalPaidAmount.toString(),
       memberContribution: memberContribution.toString(),
@@ -564,7 +578,7 @@ export default function AddMarriageCongratulationPage() {
 
     // Basic validation
     if (
-      !formData.date ||     
+      !formData.date ||
       !formData.applicantName ||
       !formData.gender ||
       !formData.gotra ||
@@ -581,7 +595,7 @@ export default function AddMarriageCongratulationPage() {
     // Additional validation based on gender
     if (isMale(formData.gender) && !formData.fatherName) {
       toast({
-        title: "Validation Error",  
+        title: "Validation Error",
         description: "Father's name is required for Male applicants",
         variant: "destructive",
       });
@@ -834,8 +848,8 @@ export default function AddMarriageCongratulationPage() {
                   </ComboboxPopoverTrigger>
                   <ComboboxPopoverContent className="w-full p-0 max-h-96">
                     <Command>
-                      <CommandInput 
-                        placeholder="Search by form number, name, mobile, or Aadhar..." 
+                      <CommandInput
+                        placeholder="Search by form number, name, mobile, or Aadhar..."
                         value={applicationSearchTerm}
                         onValueChange={setApplicationSearchTerm}
                       />
@@ -875,7 +889,7 @@ export default function AddMarriageCongratulationPage() {
                             </CommandItem>
                           ))}
                         </CommandGroup>
-                        
+
                         {/* Pagination Controls */}
                         {totalPages > 1 && (
                           <Pagination
@@ -1018,12 +1032,12 @@ export default function AddMarriageCongratulationPage() {
                   ))}
                 </select>
               </div>
-                   
+
             </div>
 
             {/* Applicant Name with Autocomplete */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              
+
               {isMale(formData.gender) && (
                   <div>
                     <Label htmlFor="fatherName">
@@ -1042,7 +1056,7 @@ export default function AddMarriageCongratulationPage() {
                     }
                     required
                   />
-                
+
                   </div>
                 )}
               {isFemale(formData.gender) && (
@@ -1093,11 +1107,11 @@ export default function AddMarriageCongratulationPage() {
                   }
                   required
                  />
-              
+
             </div>
             </div>
 
-                     
+
 
             <div className="grid grid-cols-1 sm:grid-cols-2  gap-4">
               <div>
@@ -1183,10 +1197,10 @@ export default function AddMarriageCongratulationPage() {
                   <Input
                     id="associatedUntil"
                     value={associatedUntilValue}
-                    disabled                 
-                    className="bg-background pr-10"                  
+                    disabled
+                    className="bg-background pr-10"
                   />
-               
+
                 </div>
               </div>
             </div>
@@ -1273,61 +1287,84 @@ export default function AddMarriageCongratulationPage() {
             <div>
               <Label>किस दर x सदस्य = योग (Rate x Members = Total)</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="rate100">100 x</Label>
-                  <Input
-                    id="rate100"
-                    disabled
-                    value={formData.rate100}
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        rate100: e.target.value,
-                      }));
-                      // Recalculate totals after a short delay
-                      setTimeout(calculateTotals, 100);
-                    }}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="rate200">200 x</Label>
-                  <Input
-                    id="rate200"
-                    value={formData.rate200}
-                    disabled
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        rate200: e.target.value,
-                      }));
-                      // Recalculate totals after a short delay
-                      setTimeout(calculateTotals, 100);
-                    }}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="rate300">300 x</Label>
-                  <Input
-                    id="rate300"
-                    value={formData.rate300}
-                    disabled
-                    onChange={(e) => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        rate300: e.target.value,
-                      }));
-                      // Recalculate totals after a short delay
-                      setTimeout(calculateTotals, 100);
-                    }}
-                    placeholder="0"
-                  />
-                </div>
+                {schemeTypes.length > 0 ? (
+                  schemeTypes.slice(0, 3).map((scheme, idx) => {
+                    const fieldKey = idx === 0 ? "rate100" : idx === 1 ? "rate200" : "rate300";
+                    return (
+                      <div key={scheme.id || idx}>
+                        <Label htmlFor={fieldKey}>₹{scheme.amount} x</Label>
+                        <Input
+                          id={fieldKey}
+                          disabled
+                          value={(formData as any)[fieldKey]}
+                          onChange={(e) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              [fieldKey]: e.target.value,
+                            }));
+                            setTimeout(calculateTotals, 100);
+                          }}
+                          placeholder="0"
+                        />
+                      </div>
+                    );
+                  })
+                ) : (
+                  <>
+                    <div>
+                      <Label htmlFor="rate100">100 x</Label>
+                      <Input
+                        id="rate100"
+                        disabled
+                        value={formData.rate100}
+                        onChange={(e) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            rate100: e.target.value,
+                          }));
+                          setTimeout(calculateTotals, 100);
+                        }}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="rate200">200 x</Label>
+                      <Input
+                        id="rate200"
+                        value={formData.rate200}
+                        disabled
+                        onChange={(e) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            rate200: e.target.value,
+                          }));
+                          setTimeout(calculateTotals, 100);
+                        }}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="rate300">300 x</Label>
+                      <Input
+                        id="rate300"
+                        value={formData.rate300}
+                        disabled
+                        onChange={(e) => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            rate300: e.target.value,
+                          }));
+                          setTimeout(calculateTotals, 100);
+                        }}
+                        placeholder="0"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2  gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="deductionPercent">
                   कटौती प्रतिशत चुनें (Select Deduction Percent)
@@ -1342,30 +1379,12 @@ export default function AddMarriageCongratulationPage() {
                       ...prev,
                       deductionPercent: newPercent,
                     }));
-                    // Recalculate totals immediately
-                    setTimeout(() => {
-                      const rate100Count = parseInt(formData.rate100) || 0;
-                      const rate200Count = parseInt(formData.rate200) || 0;
-                      const rate300Count = parseInt(formData.rate300) || 0;
-                      const calculatedTotal =
-                        rate100Count * 100 +
-                        rate200Count * 200 +
-                        rate300Count * 300;
-                      const deductionAmount = Math.round(
-                        (calculatedTotal * parseInt(newPercent)) / 100
-                      );
-                      const totalPaidAmount = calculatedTotal - deductionAmount;
-
-                      setFormData((prev) => ({
-                        ...prev,
-                        deductedAmount: deductionAmount.toString(),
-                        totalPaidAmount: totalPaidAmount.toString(),
-                      }));
-                    }, 50);
+                    setTimeout(calculateTotals, 50);
                   }}
                   className="bg-background border rounded px-3 py-2 w-full"
                 >
                   <option value="10">10%</option>
+                  <option value="15">15%</option>
                   <option value="20">20%</option>
                 </select>
               </div>
@@ -1433,8 +1452,8 @@ export default function AddMarriageCongratulationPage() {
                 {formatBilingual("common.cancel")}
               </Button>
 
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={isSubmitting || !formData.date || !selectedApplicationId}
                 title={!formData.date ? "Please select a date first" : !selectedApplicationId ? "Please select an application first" : ""}
               >

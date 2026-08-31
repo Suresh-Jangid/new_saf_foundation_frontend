@@ -18,6 +18,7 @@ import { toast } from "sonner"
 import { formatDate, parseDateFromDDMMYYYY, validatePhoneNumber, getApplicantPhotoPath, getNomineePhotoPath, getProxiedPhotoSrc, getRecordField, unwrapApiRecordById } from "@/lib/utils"
 import { normalizePaymentModeInput, PAYMENT_MODE_OPTIONS, GENDER_OPTIONS } from "@/lib/form-values"
 import { RoleGuard } from "@/components/role-guard"
+import { useAgeCategory } from "@/hooks/use-age-category"
 
 const normalizeNomineeRelation = (relation?: string): string => {
   const r = (relation || "").trim()
@@ -71,6 +72,8 @@ export default function EditMayraRegistrationPage() {
     gender: "",
   })
 
+  const { age: calculatedAge, category: calculatedCategory, fee: calculatedFee } = useAgeCategory(formData.dateOfBirth);
+
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'failed'>('pending');
   const [paymentData, setPaymentData] = useState<any>(null);
 
@@ -95,7 +98,7 @@ export default function EditMayraRegistrationPage() {
         const response = await post(API_ENDPOINTS.GET_MAYRA_APPLICATIONS, createFormData({ id }))
         if (response.data?.status && response.data?.data) {
           const record = unwrapApiRecordById<Record<string, unknown>>(response.data.data, id as string)
-          
+
           if (record) {
             const firstInstallment = Array.isArray(record.installments)
               ? record.installments[0]
@@ -212,7 +215,7 @@ export default function EditMayraRegistrationPage() {
     if (!dateString) return ""
     // If it's already in YYYY-MM-DD, return as is
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
-    
+
     const parsedDate = parseDateFromDDMMYYYY(dateString)
     if (!parsedDate) return ""
     const year = parsedDate.getFullYear()
@@ -221,51 +224,18 @@ export default function EditMayraRegistrationPage() {
     return `${year}-${month}-${day}`
   }
 
-  const calculateAge = (dob: string) => {
-    if (!dob) return ""
-    const birthDate = parseDateFromDDMMYYYY(dob)
-    if (!birthDate) return ""
-    const today = new Date()
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const m = today.getMonth() - birthDate.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--
-    }
-    return age.toString()
-  }
-
   useEffect(() => {
     if (formData.dateOfBirth) {
-      const calculatedAge = calculateAge(formData.dateOfBirth)
-      const ageNum = parseInt(calculatedAge, 10)
-      
-      let newCategory = ""
-      let newFee = ""
-
-      if (!isNaN(ageNum)) {
-        if (ageNum >= 0 && ageNum <= 9) {
-          newCategory = "A"
-          newFee = "3000"
-        } else if (ageNum >= 10 && ageNum <= 15) {
-          newCategory = "B"
-          newFee = "6000"
-        } else if (ageNum >= 16 && ageNum <= 18) {
-          newCategory = "C"
-          newFee = "9000"
-        } else if (ageNum >= 19) {
-          newCategory = "D"
-          newFee = "11000"
-        }
-      }
-
-      setFormData(prev => ({ 
-        ...prev, 
-        age: calculatedAge,
-        category: newCategory,
-        fee: newFee
+      setFormData(prev => ({
+        ...prev,
+        age: calculatedAge || "",
+        category: calculatedCategory || "",
+        fee: calculatedFee || ""
       }))
+    } else {
+      setFormData(prev => ({ ...prev, age: "", category: "", fee: "" }))
     }
-  }, [formData.dateOfBirth])
+  }, [formData.dateOfBirth, calculatedAge, calculatedCategory, calculatedFee])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -326,7 +296,7 @@ export default function EditMayraRegistrationPage() {
       })
 
       const response = await post(API_ENDPOINTS.UPDATE_MAYRA_APPLICATION, apiFormData)
-      
+
       if (response.data.status) {
         toast.success("Mayra Registration updated successfully")
         router.push("/dashboard/mayra-registration")
@@ -408,7 +378,7 @@ export default function EditMayraRegistrationPage() {
               {/* Section 1: Applicant Details */}
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">भाणेज/भाणजी का विवरण (Applicant Details)</h2>
-                
+
                 {/* Row 1: Form No + same order as add (Date, Name, Gender) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>

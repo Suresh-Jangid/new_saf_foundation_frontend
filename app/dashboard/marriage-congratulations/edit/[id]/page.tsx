@@ -20,6 +20,8 @@ import { API_ENDPOINTS, postUrlEncoded } from "@/lib/api"
 import { toast } from "sonner"
 import { formatDate, formatDateForAPI } from "@/lib/utils"
 import { GENDER_OPTIONS } from "@/lib/form-values"
+import { useSchemeTypes } from "@/hooks/use-app-config"
+import ConfigService from "@/lib/config-service"
 
 interface MarriageCongratulationRecord {
   id: string;
@@ -51,16 +53,17 @@ export default function EditMarriageCongratulationPage() {
   const router = useRouter()
   const params = useParams()
   const id = params?.id as string
+  const { schemeTypes } = useSchemeTypes()
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingData, setIsLoadingData] = useState(true)
-  
+
   const [formData, setFormData] = useState({
     date: "",
     application_id: "",
     marriageNumber: "",
-    applicantName: "", 
-    fatherName: "",    
-    wifeOf: "",        
+    applicantName: "",
+    fatherName: "",
+    wifeOf: "",
     gotra: "",
     address: "",
     membershipJoinDate: "",
@@ -76,7 +79,7 @@ export default function EditMarriageCongratulationPage() {
     deductedAmount: "",
     totalPaidAmount: "",
     memberContribution: "", // New field for member contribution
-    gender: "", 
+    gender: "",
   })
 
   const { readByIdApi, updateApi } = useCRUD<MarriageCongratulationRecord>("marriageCongratulationsRecords", [], {
@@ -103,8 +106,8 @@ export default function EditMarriageCongratulationPage() {
   const [membershipJoinDateOpen, setMembershipJoinDateOpen] = useState(false)
   const [membershipJoinDateValue, setMembershipJoinDateValue] = useState(membershipJoinDateObj ? formatDate(membershipJoinDateObj) : "")
 
- 
- 
+
+
   const [associatedUntilValue, setAssociatedUntilValue] = useState(formData.associatedUntil)
 
   const fetchLiveDetails = useCallback(async (targetDate: string) => {
@@ -159,14 +162,14 @@ export default function EditMarriageCongratulationPage() {
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
-      
+
       try {
         setIsLoadingData(true);
         const record = await readByIdApi(id);
-        
+
         if (record) {
           console.log("API Response:", record);
-          
+
           setFormData({
             date: record.date || "",
             application_id: record.application_id || "",
@@ -185,15 +188,15 @@ export default function EditMarriageCongratulationPage() {
             deductionPercent: record.deductionPercent || "20",
             deductedAmount: record.deductedAmount || "",
             totalPaidAmount: record.totalPaidAmount || "",
-            memberContribution: "",            
-            gender: record.gender 
+            memberContribution: "",
+            gender: record.gender
               ? record.gender.charAt(0).toUpperCase() + record.gender.slice(1).toLowerCase()
               : "",
             fatherName: record.fatherName || "",
-            wifeOf: record.wifeOf || "",          
+            wifeOf: record.wifeOf || "",
             applicantName: record.applicantName || "",
           });
-          
+
           // Set date objects
           if (record.date) {
             const dateObj = new Date(record.date)
@@ -202,33 +205,31 @@ export default function EditMarriageCongratulationPage() {
             fetchLiveDetails(record.date);
           }
           if (record.membershipJoinDate) {
-            const joinDateObj = new Date(record.membershipJoinDate)
-            setMembershipJoinDateObj(joinDateObj)
-            setMembershipJoinDateValue(formatDate(joinDateObj))
+            const joinDate = new Date(record.membershipJoinDate)
+            setMembershipJoinDateObj(joinDate)
+            setMembershipJoinDateValue(formatDate(joinDate))
           }
-         
         } else {
-          toast.error("Marriage congratulations record not found");
-          router.push("/dashboard/marriage-congratulations");
+          toast.error("Record not found")
+          router.push("/dashboard/marriage-congratulations")
         }
-      } catch (error: any) {
-        console.error("Error fetching marriage congratulations:", error);
-        toast.error("Failed to load marriage congratulations data");
-        router.push("/dashboard/marriage-congratulations");
+      } catch (error) {
+        console.error("Error fetching record:", error)
+        toast.error("Failed to load record")
+        router.push("/dashboard/marriage-congratulations")
       } finally {
-        setIsLoadingData(false);
+        setIsLoadingData(false)
       }
     };
 
     fetchData();
-  }, [id, router, fetchLiveDetails]);
+  }, [id, router, fetchLiveDetails, readByIdApi]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
     setFormData((prev) => ({ ...prev, [id]: value }))
   }
 
-  // --- Add this handler for Select dropdown ---
   const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { id, value } = e.target
     setFormData((prev) => ({ ...prev, [id]: value }))
@@ -239,11 +240,19 @@ export default function EditMarriageCongratulationPage() {
     const rate100Count = parseInt(formData.rate100) || 0;
     const rate200Count = parseInt(formData.rate200) || 0;
     const rate300Count = parseInt(formData.rate300) || 0;
-    const deductionPercent = parseInt(formData.deductionPercent) || 20;
+    const deductionPercent =
+      parseInt(formData.deductionPercent) ||
+      ConfigService.getDeductionPercentForScheme("general_marriage") ||
+      20;
+
+    const activeSchemes = ConfigService.getSchemeTypesSync();
+    const r1 = activeSchemes[0]?.amount ?? 100;
+    const r2 = activeSchemes[1]?.amount ?? 200;
+    const r3 = activeSchemes[2]?.amount ?? 300;
 
     // Calculate total grant amount
     const calculatedTotal =
-      rate100Count * 100 + rate200Count * 200 + rate300Count * 300;
+      rate100Count * r1 + rate200Count * r2 + rate300Count * r3;
 
     // Calculate deduction amount
     const deductionAmount = Math.round(
@@ -252,7 +261,6 @@ export default function EditMarriageCongratulationPage() {
 
     // Calculate final paid amount
     const totalPaidAmount = calculatedTotal - deductionAmount;
-
     const memberContribution = calculatedTotal;
 
     const permanentFeeVal = parseFloat(formData.permanentFee) || 0;
@@ -288,7 +296,7 @@ export default function EditMarriageCongratulationPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Basic validation
     if (!formData.date || !formData.marriageNumber || !formData.applicantName || !formData.gender || !formData.gotra || !formData.address) {
       toast.error("कृपया सभी आवश्यक फील्ड भरें");
@@ -309,7 +317,7 @@ export default function EditMarriageCongratulationPage() {
 
     try {
       const success = await updateApi(id, formData);
-      
+
       if (success) {
         router.push("/dashboard/marriage-congratulations");
       }
@@ -472,7 +480,7 @@ export default function EditMarriageCongratulationPage() {
 
             {/* Applicant Name with Autocomplete */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              
+
               {formData.gender.toLowerCase() === "male" && (
                   <div>
                     <Label htmlFor="fatherName">
@@ -597,9 +605,9 @@ export default function EditMarriageCongratulationPage() {
                     value={formData.associatedUntil}
                     placeholder="01 June, 2025"
                     className="bg-background pr-10"
-                   
+
                   />
-                
+
                 </div>
               </div>
             </div>
@@ -659,36 +667,55 @@ export default function EditMarriageCongratulationPage() {
             <div>
               <Label>किस दर x सदस्य = योग (Rate x Members = Total)</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="rate100">100 x</Label>
-                  <Input
-                    id="rate100"
-                    value={formData.rate100}
-                    onChange={handleChange}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="rate200">200 x</Label>
-                  <Input
-                    id="rate200"
-                    value={formData.rate200}
-                    onChange={handleChange}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="rate300">300 x</Label>
-                  <Input
-                    id="rate300"
-                    value={formData.rate300}
-                    onChange={handleChange}
-                    placeholder="0"
-                  />
-                </div>
+                {schemeTypes && schemeTypes.length > 0 ? (
+                  schemeTypes.slice(0, 3).map((scheme, idx) => {
+                    const fieldKey = idx === 0 ? "rate100" : idx === 1 ? "rate200" : "rate300";
+                    return (
+                      <div key={scheme.id || idx}>
+                        <Label htmlFor={fieldKey}>₹{scheme.amount} x</Label>
+                        <Input
+                          id={fieldKey}
+                          value={(formData as any)[fieldKey]}
+                          onChange={handleChange}
+                          placeholder="0"
+                        />
+                      </div>
+                    );
+                  })
+                ) : (
+                  <>
+                    <div>
+                      <Label htmlFor="rate100">100 x</Label>
+                      <Input
+                        id="rate100"
+                        value={formData.rate100}
+                        onChange={handleChange}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="rate200">200 x</Label>
+                      <Input
+                        id="rate200"
+                        value={formData.rate200}
+                        onChange={handleChange}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="rate300">300 x</Label>
+                      <Input
+                        id="rate300"
+                        value={formData.rate300}
+                        onChange={handleChange}
+                        placeholder="0"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2  gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="deductionPercent">
                   कटौती प्रतिशत चुनें (Select Deduction Percent)
@@ -700,6 +727,7 @@ export default function EditMarriageCongratulationPage() {
                   className="bg-background border rounded px-3 py-2 w-full"
                 >
                   <option value="10">10%</option>
+                  <option value="15">15%</option>
                   <option value="20">20%</option>
                 </select>
               </div>
@@ -747,7 +775,7 @@ export default function EditMarriageCongratulationPage() {
               <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
                 रद्द करें
               </Button>
-             
+
               <Button type="submit" disabled={isLoading}>
                 {isLoading ? "अपडेट हो रहा है..." : "रिकॉर्ड अपडेट करें"}
               </Button>

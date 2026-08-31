@@ -32,6 +32,7 @@ import {
   Home,
   Sparkles,
   Settings,
+  KeyRound,
 } from "lucide-react";
 import { getUserRole, hasModulePermission, isAdmin, getAgentData } from "@/lib/permissions";
 import { MODULE_REGISTRY } from "@/config/module-registry";
@@ -49,6 +50,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   IndianRupee,
   BriefcaseBusiness,
   LockKeyhole,
+  KeyRound,
   Receipt,
   Shield,
   FileBarChart,

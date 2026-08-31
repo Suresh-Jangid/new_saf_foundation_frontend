@@ -14,7 +14,7 @@ import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode } from "@/lib
 import { DatePickerField } from "./date-picker-field"
 import { InputField } from "./input-field"
 import { SelectField } from "./select-field"
-import { 
+import {
   PersonalInfoSection,
   ContactInfoSection,
   NomineeInfoSection,
@@ -23,6 +23,8 @@ import {
 import { useFormData } from "@/hooks/use-form-data"
 import { useAgeCategory } from "@/hooks/use-age-category"
 import APIService from "@/lib/services"
+import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
+import { EpinService } from "@/lib/epin-service"
 
 import { post, API_ENDPOINTS } from "@/lib/api"
 
@@ -83,7 +85,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!isFormValid) {
       toast({
         title: "Validation Error",
@@ -144,24 +146,43 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
         selectedAgentId: formData.selectedAgentId,
         addedby: "agent",
         addedby_id: formData.selectedAgentId || "",
+        epin: (formData as any).epinNumber || "",
+        epinNumber: (formData as any).epinNumber || "",
       }
 
       const response = await APIService.createInsuranceApplication(applicationData)
-      
+
       if (response.status) {
         toast({
           title: formatBilingual("common.success"),
           description: formatBilingual("messages.applicationSubmitted"),
         })
 
+        const res = response as any
+        const applicationNumber = res.applicationNumber || res.id || res.formNumber || res.form_number
+
+        // Atomically consume E-PIN if applied
+        if ((formData as any).epinNumber) {
+          try {
+            await EpinService.consumeEpin({
+              pinNumber: (formData as any).epinNumber,
+              applicationId: String(applicationNumber || res.id || ""),
+              applicantName: formData.applicantName,
+              agentId: formData.selectedAgentId,
+              moduleType: "insurance_application",
+              remarks: "Consumed for Insurance Application",
+            });
+          } catch (epinErr) {
+            console.error("E-PIN post-registration consumption note:", epinErr);
+          }
+        }
+
         // --- WhatsApp Messaging & Bond Generation ---
         try {
-          const res = response as any
-          const applicationNumber = res.applicationNumber || res.id || res.formNumber || res.form_number
-          
+
           const selectedAgent = agents.find(a => a.id.toString() === formData.selectedAgentId)
           const agentName = selectedAgent ? selectedAgent.name : ''
-          
+
           const recordData = {
             id: res.id,
             formNumber: applicationNumber,
@@ -191,7 +212,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
 
           // 1. Send Text Message
           const message = `नमस्ते ${formData.applicantName},\n\n पुरबिया प्रजापति बालिका विवाह & सशक्तिकरण फाउण्डेशन के सुरक्षा योजना मे जुड़ने के लिए आपका बहुत बहुत धन्यवाद 🙏 \n\nअधिक जानकारी हेतु संपर्क करे \nपीराराम तेनगरिया जसोल \n9413032072, 8209467238`
-          
+
           await sendWhatsAppMessage(formData.mobile, message)
           toast({
             title: "Success",
@@ -203,24 +224,24 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
             title: "Info",
             description: "Generating and sending bond...",
           })
-          
-          const imageData = await processImageForPDF(formData.passportPhoto)          
+
+          const imageData = await processImageForPDF(formData.passportPhoto)
           const bondResponse = await fetch('/api/generate-insurance-bond-pdf', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ 
-              record: recordData, 
+            body: JSON.stringify({
+              record: recordData,
               imageData,
-              daysText: "90 दिन" 
+              daysText: "90 दिन"
             }),
           })
 
           if (bondResponse.ok) {
             const bondBlob = await bondResponse.blob()
             const bondFile = new File([bondBlob], `Bond_${applicationNumber}.pdf`, { type: 'application/pdf' })
-            
+
             await sendWhatsAppFile(formData.mobile, bondFile, `Bond - ${applicationNumber}`)
             toast({
               title: "Success",
@@ -242,7 +263,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
             variant: "destructive",
           })
         }
-        
+
         router.push("/dashboard/general-applications-insurance")
       } else {
         throw new Error(response.message || "Failed to create application")
@@ -339,8 +360,18 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
               />
 
               {/* Payment Details Section */}
-              <div className="mt-8">
-                <h2 className="text-lg font-semibold mb-4">Payment Details</h2>
+              <div className="mt-8 space-y-4">
+                <h2 className="text-lg font-semibold">Payment Details</h2>
+
+                {/* E-PIN Voucher Verification */}
+                <div className="p-4 bg-muted/20 border rounded-lg">
+                  <EpinInputVerifier
+                    value={(formData as any).epinNumber || ""}
+                    onChange={(val) => updateField("epinNumber" as any, val)}
+                    agentId={formData.selectedAgentId}
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <InputField
                     id="paymentAmount"
@@ -372,7 +403,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
                     required
                   />
                 </div>
-                
+
                 {/* Payment Status Display */}
                 {paymentStatus === 'paid' && (
                   <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
@@ -380,7 +411,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
                     <p className="text-green-600 text-sm">Payment ID: {paymentData?.payment_id}</p>
                   </div>
                 )}
-                
+
                 {paymentStatus === 'failed' && (
                   <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
                     <p className="text-red-800 font-medium">❌ Payment Failed</p>
@@ -422,7 +453,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
                 <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
                   {formatBilingual("common.cancel")}
                 </Button>
-                
+
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting ? (
                     <>

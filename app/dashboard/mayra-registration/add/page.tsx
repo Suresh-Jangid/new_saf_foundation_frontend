@@ -20,6 +20,9 @@ import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode, GENDER_OPTIO
 import { RoleGuard } from "@/components/role-guard"
 import { RazorpayPayment } from "@/components/razorpay-payment"
 import { getCurrentUserInfo } from "@/lib/utils"
+import { useAgeCategory } from "@/hooks/use-age-category"
+import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
+import { EpinService } from "@/lib/epin-service"
 
 export default function AddMayraRegistrationPage() {
   const router = useRouter()
@@ -58,7 +61,10 @@ export default function AddMayraRegistrationPage() {
     passportPhoto: null as File | null,
     nomineePassportPhoto: null as File | null,
     gender: "",
+    epinNumber: "",
   })
+
+  const { age: calculatedAge, category: calculatedCategory, fee: calculatedFee } = useAgeCategory(formData.dateOfBirth);
 
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'failed'>('pending');
   const [paymentData, setPaymentData] = useState<any>(null);
@@ -86,7 +92,6 @@ export default function AddMayraRegistrationPage() {
     fetchAgents()
   }, [])
 
-
   const convertToYYYYMMDD = (dateString: string): string => {
     if (!dateString) return ""
     const parsedDate = parseDateFromDDMMYYYY(dateString)
@@ -97,53 +102,18 @@ export default function AddMayraRegistrationPage() {
     return `${year}-${month}-${day}`
   }
 
-  const calculateAge = (dob: string) => {
-    if (!dob) return ""
-    const birthDate = parseDateFromDDMMYYYY(dob)
-    if (!birthDate) return ""
-    const today = new Date()
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const m = today.getMonth() - birthDate.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--
-    }
-    return age.toString()
-  }
-
   useEffect(() => {
     if (formData.dateOfBirth) {
-      const calculatedAge = calculateAge(formData.dateOfBirth)
-      const ageNum = parseInt(calculatedAge, 10)
-      
-      let newCategory = ""
-      let newFee = ""
-
-      if (!isNaN(ageNum)) {
-        if (ageNum >= 0 && ageNum <= 9) {
-          newCategory = "A"
-          newFee = "3000"
-        } else if (ageNum >= 10 && ageNum <= 15) {
-          newCategory = "B"
-          newFee = "6000"
-        } else if (ageNum >= 16 && ageNum <= 18) {
-          newCategory = "C"
-          newFee = "9000"
-        } else if (ageNum >= 19) {
-          newCategory = "D"
-          newFee = "11000"
-        }
-      }
-
-      setFormData(prev => ({ 
-        ...prev, 
-        age: calculatedAge,
-        category: newCategory,
-        fee: newFee
+      setFormData(prev => ({
+        ...prev,
+        age: calculatedAge || "",
+        category: calculatedCategory || "",
+        fee: calculatedFee || ""
       }))
     } else {
       setFormData(prev => ({ ...prev, age: "", category: "", fee: "" }))
     }
-  }, [formData.dateOfBirth])
+  }, [formData.dateOfBirth, calculatedAge, calculatedCategory, calculatedFee])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -197,7 +167,7 @@ export default function AddMayraRegistrationPage() {
       apiFormData.append("gender", formData.gender)
       apiFormData.append("addedby", addedby)
       apiFormData.append("addedby_id", addedby_id)
-      
+
       const selectedAgent = agents.find(a => a.id.toString() === formData.selectedAgentId)
       if (selectedAgent) {
         apiFormData.append("workerName", selectedAgent.name)
@@ -207,7 +177,12 @@ export default function AddMayraRegistrationPage() {
 
       if (formData.paymentMode) apiFormData.append("paymentMode", formData.paymentMode)
       if (formData.paymentDate) apiFormData.append("paymentDate", convertToYYYYMMDD(formData.paymentDate))
-      
+
+      if (formData.epinNumber) {
+        apiFormData.append("epin", formData.epinNumber)
+        apiFormData.append("epinNumber", formData.epinNumber)
+      }
+
       if (paymentData && paymentStatus === 'paid') {
         apiFormData.append("razorpay_payment_id", paymentData.payment_id)
         apiFormData.append("razorpay_order_id", paymentData.order_id)
@@ -218,9 +193,27 @@ export default function AddMayraRegistrationPage() {
       if (formData.nomineePassportPhoto) apiFormData.append("nomineePassportPhoto", formData.nomineePassportPhoto)
 
       const response = await post(API_ENDPOINTS.CREATE_MAYRA_APPLICATION, apiFormData)
-      
+
       if (response.data.status) {
         toast.success("Mayra Registration added successfully")
+
+        // Atomically consume E-PIN if applied
+        if (formData.epinNumber) {
+          try {
+            const appId = response.data.applicationNumber || response.data.id || response.data.formNumber || "";
+            await EpinService.consumeEpin({
+              pinNumber: formData.epinNumber,
+              applicationId: String(appId),
+              applicantName: formData.applicantName,
+              agentId: formData.selectedAgentId,
+              moduleType: "mayra_registration",
+              remarks: "Consumed for Mayra Registration",
+            });
+          } catch (epinErr) {
+            console.error("E-PIN post-registration consumption note:", epinErr);
+          }
+        }
+
         router.push("/dashboard/mayra-registration")
       } else {
         toast.error(response.data.message || "Failed to add registration")
@@ -295,7 +288,7 @@ export default function AddMayraRegistrationPage() {
               {/* Section 1: Applicant Details */}
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">भाणेज/भाणजी का विवरण (Applicant Details)</h2>
-                
+
                 {/* Row 1: 4 columns */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
@@ -462,7 +455,7 @@ export default function AddMayraRegistrationPage() {
                   </div>
                 </div>
 
-               
+
                 <div>
                   <Label>निवासी / Resident of</Label>
                   <Textarea
@@ -613,7 +606,18 @@ export default function AddMayraRegistrationPage() {
               {/* Section 4: Payment Details */}
               <div className="space-y-4 pt-4 border-t">
                 <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">भुगतान विवरण (Payment Details)</h2>
-                
+
+                {/* E-PIN Voucher Verification */}
+                <div className="p-4 bg-muted/20 border rounded-lg">
+                  <EpinInputVerifier
+                    value={formData.epinNumber || ""}
+                    onChange={(pin) =>
+                      setFormData((prev) => ({ ...prev, epinNumber: pin }))
+                    }
+                    agentId={formData.selectedAgentId}
+                  />
+                </div>
+
                 {paymentStatus === 'paid' && (
                   <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
                     <p className="text-green-800 font-medium">✅ Payment Completed Successfully</p>

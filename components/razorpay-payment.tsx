@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import ConfigService from '@/lib/config-service';
 
 interface RazorpayPaymentProps {
   amount: number;
@@ -87,7 +88,7 @@ export const RazorpayPayment: React.FC<RazorpayPaymentProps> = ({
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: orderData.order.amount,
         currency: orderData.order.currency,
-        name: 'Purabiya Foundation',
+        name: ConfigService.getAppConfigSync().appName || 'SAF Foundation',
         description: description,
         order_id: orderData.order.id,
         handler: async (response: any) => {

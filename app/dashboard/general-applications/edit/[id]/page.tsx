@@ -20,6 +20,7 @@ import { formatDate, isValidDate, calculateAge, formatDateForAPI, formatDateForI
 import { RoleGuard } from "@/components/role-guard"
 import { GENDER_OPTIONS, isMale, isFemale } from "@/lib/form-values"
 import { formatBilingual } from '@/lib/translations'
+import { useAgeCategory } from "@/hooks/use-age-category"
 
 export type GeneralApplicationFormData = {
   formNumber? : string;
@@ -57,7 +58,7 @@ export default function EditGeneralApplicationPage() {
   const [isLoadingData, setIsLoadingData] = useState(true)
 
   const [formData, setFormData] = useState<GeneralApplicationFormData>({
-    formNumber: "", 
+    formNumber: "",
     applicationDate: "",
     applicantName: "",
     fatherName: "",
@@ -112,82 +113,47 @@ export default function EditGeneralApplicationPage() {
   const [category, setCategory] = useState("");
   const [fee, setFee] = useState("");
   const [computedAge, setComputedAge] = useState("");
-  
+
   // Photo state
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string>("");
 
   // Phone validation state
   const [phoneError, setPhoneError] = useState("");
 
+  const { age: calculatedAge, category: calculatedCategory, fee: calculatedFee } = useAgeCategory(formData.dateOfBirth);
+
   // Agents state
   const [agents, setAgents] = useState<Array<{ id: number; name: string }>>([]);
   const [isLoadingAgents, setIsLoadingAgents] = useState(false);
 
-  // Category calculation logic based on gender and date of birth
+  // Category calculation logic based on centralized A-F age slabs
   useEffect(() => {
-    if (!formData.gender || !formData.dateOfBirth) {
+    if (!formData.dateOfBirth) {
       setCategory("");
       setFee("");
       setComputedAge("");
       setFormData((prev) => ({ ...prev, category: "" }));
       return;
     }
-    const ageNum = calculateAge(formData.dateOfBirth);
-    setComputedAge(ageNum !== null ? ageNum.toString() : "");
-    let newCategory = "";
-    
-    if (ageNum === null) {
-      setFee("");
-      setCategory("");
-      setFormData((prev) => ({ ...prev, category: "" }));
-      return;
-    }
-    
-    if (isFemale(formData.gender)) {
-      if (ageNum >= 5 && ageNum <= 10) {
-        newCategory = "A";
-        setFee("3000");
-      } else if (ageNum >= 11 && ageNum <= 15) {
-        newCategory = "B";
-        setFee("6000");
-      } else if (ageNum >= 16) {
-        newCategory = "C";
-        setFee("9000");
-      } else {
-        setFee("");
-      }
-    } else if (isMale(formData.gender)) {
-      if (ageNum >= 6 && ageNum <= 12) {
-        newCategory = "A";
-        setFee("3000");
-      } else if (ageNum >= 13 && ageNum <= 18) {
-        newCategory = "B";
-        setFee("6000");
-      } else if (ageNum >= 19) {
-        newCategory = "C";
-        setFee("9000");
-      } else {
-        setFee("");
-      }
-    } else {
-      setFee("");
-    }
-    setCategory(newCategory);
-    setFormData((prev) => ({ ...prev, category: newCategory }));
-  }, [formData.gender, formData.dateOfBirth]);
+
+    setComputedAge(calculatedAge || "");
+    setCategory(calculatedCategory || "");
+    setFee(calculatedFee || "");
+    setFormData((prev) => ({ ...prev, category: calculatedCategory || "" }));
+  }, [formData.dateOfBirth, calculatedAge, calculatedCategory, calculatedFee]);
 
   // Handle phone number change with validation
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const phone = e.target.value;
     const digits = phone.replace(/\D/g, '').slice(0, 10);
     setFormData((prev) => ({ ...prev, mobile: digits }));
-    
+
     // Clear error if field is empty (required field)
     if (!digits) {
       setPhoneError("");
       return;
     }
-    
+
     // Validate phone number
     if (!validatePhoneNumber(digits)) {
       setPhoneError("कृपया एक वैध 10 अंकों का फोन नंबर दर्ज करें");
@@ -200,12 +166,12 @@ export default function EditGeneralApplicationPage() {
   useEffect(() => {
     const fetchAllData = async () => {
       if (!id) return;
-      
+
       let fetchedAgents: Array<{ id: string; name: string }> = [];
       try {
         setIsLoadingData(true);
         setIsLoadingAgents(true);
-        
+
         // Fetch agents first
         const responseAgents = await post('?apicall=getAgents');
         const dataAgents = responseAgents.data;
@@ -226,13 +192,13 @@ export default function EditGeneralApplicationPage() {
       try {
         const formData = new URLSearchParams();
         formData.append('id', id);
-        
+
         const response = await post('?apicall=getApplications', formData, {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded'
           }
         });
-        
+
         if (response.data.status && response.data.data) {
           const record = unwrapApiRecordById<any>(response.data.data, id);
           if (!record) {
@@ -240,14 +206,14 @@ export default function EditGeneralApplicationPage() {
             router.push("/dashboard/general-applications");
             return;
           }
-          
+
           console.log("API Response:", record);
-          
+
           // Parse the date of birth first to get the proper format
           let formattedDateOfBirth = record.dateOfBirth || "";
           if (record.dateOfBirth) {
-            const dobDate = record.dateOfBirth.includes('-') && record.dateOfBirth.split('-')[0].length === 4 
-              ? new Date(record.dateOfBirth) 
+            const dobDate = record.dateOfBirth.includes('-') && record.dateOfBirth.split('-')[0].length === 4
+              ? new Date(record.dateOfBirth)
               : parseDateFromDDMMYYYY(record.dateOfBirth);
             formattedDateOfBirth = dobDate ? formatDate(dobDate) : record.dateOfBirth;
           }
@@ -316,38 +282,38 @@ export default function EditGeneralApplicationPage() {
             pendingAmount: record.pendingAmount || "",
             selectedAgentId: agentId,
           });
-          
+
           // Set existing photo URL if available
           const photoPath = getApplicantPhotoPath(record);
           if (photoPath) {
             setExistingPhotoUrl(photoPath);
           }
-          
+
           // Set date objects - handle both API format (YYYY-MM-DD) and display format (DD-MM-YYYY)
           if (record.applicationDate) {
-            const appDate = record.applicationDate.includes('-') && record.applicationDate.split('-')[0].length === 4 
-              ? new Date(record.applicationDate) 
+            const appDate = record.applicationDate.includes('-') && record.applicationDate.split('-')[0].length === 4
+              ? new Date(record.applicationDate)
               : parseDateFromDDMMYYYY(record.applicationDate);
             setApplicationDateObj(appDate);
             setApplicationDateValue(appDate ? formatDate(appDate) : "");
           }
-          
+
           if (record.dateOfBirth) {
-            const dobDate = record.dateOfBirth.includes('-') && record.dateOfBirth.split('-')[0].length === 4 
-              ? new Date(record.dateOfBirth) 
+            const dobDate = record.dateOfBirth.includes('-') && record.dateOfBirth.split('-')[0].length === 4
+              ? new Date(record.dateOfBirth)
               : parseDateFromDDMMYYYY(record.dateOfBirth);
             setDateOfBirthObj(dobDate);
             setDateOfBirthValue(dobDate ? formatDate(dobDate) : "");
           }
 
           if (record.paymentDate) {
-            const payDate = record.paymentDate.includes('-') && record.paymentDate.split('-')[0].length === 4 
-              ? new Date(record.paymentDate) 
+            const payDate = record.paymentDate.includes('-') && record.paymentDate.split('-')[0].length === 4
+              ? new Date(record.paymentDate)
               : parseDateFromDDMMYYYY(record.paymentDate);
             setPaymentDateObj(payDate);
             setPaymentDateValue(payDate ? formatDate(payDate) : "");
           }
-          
+
           // Set category and fee based on loaded data
           setCategory(record.category || "");
           // Age calculation will be handled by the useEffect that depends on formData.gender and formData.dateOfBirth
@@ -417,7 +383,7 @@ export default function EditGeneralApplicationPage() {
       })
 
       const response = await post("?apicall=updateApplication", apiFormData)
-      
+
       if (response.data.status) {
         toast.success("Application updated successfully")
         router.push("/dashboard/general-applications")
@@ -536,7 +502,7 @@ export default function EditGeneralApplicationPage() {
                     </Popover>
                   </div>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="dateOfBirth">जन्म तिथि / Date of Birth</Label>
                   <div className="relative flex gap-2">
@@ -899,4 +865,4 @@ export default function EditGeneralApplicationPage() {
       </div>
     </RoleGuard>
   )
-} 
+}

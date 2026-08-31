@@ -17,6 +17,7 @@ import { formatBilingual } from '@/lib/translations'
 import APIService from '@/lib/services'
 import { formatDate, formatDateForAPI, getCurrentUserInfo } from '@/lib/utils'
 import { PaginatedTableSection } from "@/components/paginated-table-section"
+import ConfigService from "@/lib/config-service"
 
 type Payment = {
   amount: number;
@@ -118,16 +119,16 @@ export default function AddMayraCongratulationsPaymentPage() {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Fetch all mayra congratulations data
         const response = await APIService.getMayraCongratulations();
-        
+
         if (response.status && response.data) {
           // Find the specific user by ID
-          const userData = response.data.find((item: MayraCongratulationsData) => 
+          const userData = response.data.find((item: MayraCongratulationsData) =>
             item.id.toString() === userId
           );
-          
+
           if (userData) {
             setUser(userData);
           } else {
@@ -159,11 +160,11 @@ export default function AddMayraCongratulationsPaymentPage() {
 
       try {
         console.log("Fetching payment installments for mayra ID:", user.mayra_id);
-        
+
         const response = await APIService.getMayraInstallments(user.mayra_id);
-        
+
         console.log("Mayra Installments API Response:", response);
-        
+
         if (response.status && response.data) {
           // Map API response to our Payment type
           const mappedPayments = response.data.map((installment: InstallmentData) => ({
@@ -199,12 +200,12 @@ export default function AddMayraCongratulationsPaymentPage() {
       try {
         setMembersLoading(true);
         membersDataFetched.current = true;
-        
+
         const response = await APIService.getMayraPreviousMembers(user.mayra_id || '');
-        
+
         if (response.status && response.categories) {
           const transformedMembers: Member[] = [];
-          
+
           Object.keys(response.categories).forEach(category => {
             const categoryData = response.categories[category];
             if (categoryData.members && Array.isArray(categoryData.members)) {
@@ -215,12 +216,12 @@ export default function AddMayraCongratulationsPaymentPage() {
                   formNumber: member.formNumber,
                   payment_status: member.payment_status,
                   category: member.category,
-                  payments: [] 
+                  payments: []
                 });
               });
             }
           });
-          
+
           setMembers(transformedMembers);
         } else {
           setMembers([]);
@@ -243,9 +244,9 @@ export default function AddMayraCongratulationsPaymentPage() {
 
       try {
         setPaymentSummaryLoading(true);
-        
+
         const response = await APIService.getMayraCongratulationsPayment(user.mayra_id);
-        
+
         if (response.status && response.data) {
           setPaymentSummary(response.data);
         } else {
@@ -270,7 +271,7 @@ export default function AddMayraCongratulationsPaymentPage() {
 
     try {
       const { addedby, addedby_id } = getCurrentUserInfo();
-      
+
       const response = await APIService.createMayraCongratulationsPayment({
         mayra_congratulations_id : String(user.id),
         mayra_id: user.mayra_id,
@@ -280,8 +281,8 @@ export default function AddMayraCongratulationsPaymentPage() {
         addedby: addedby,
         addedby_id: String(addedby_id)
       });
-      
-      if (response.status) {  
+
+      if (response.status) {
         // Update local member state
         setMembers((prev) =>
           prev.map((m) =>
@@ -299,13 +300,13 @@ export default function AddMayraCongratulationsPaymentPage() {
               : m
           )
         );
-        
+
         // Refresh payment summary
         const summaryResponse = await APIService.getMayraCongratulationsPayment(user.mayra_id);
         if (summaryResponse.status && summaryResponse.data) {
           setPaymentSummary(summaryResponse.data);
         }
-        
+
         toast.success(`Payment of ₹${amount} created successfully`);
       } else {
         toast.error(response.message || "Failed to create payment");
@@ -326,7 +327,7 @@ export default function AddMayraCongratulationsPaymentPage() {
         if (summaryResponse.status && summaryResponse.data) {
           setPaymentSummary(summaryResponse.data);
         }
-        
+
         // Refresh members data to reset payment status
         const membersResponse = await APIService.getMayraPreviousMembers(user!.mayra_id || '');
         if (membersResponse.status && membersResponse.categories) {
@@ -359,7 +360,7 @@ export default function AddMayraCongratulationsPaymentPage() {
 
   const handleAddPayment = async () => {
     if (!amount || !dateObj || !user?.id) return;
-    
+
     try {
       setPaymentLoading(true);
       const { addedby, addedby_id } = getCurrentUserInfo();
@@ -371,9 +372,9 @@ export default function AddMayraCongratulationsPaymentPage() {
         addedby: addedby,
         addedby_id: String(addedby_id)
       };
-      
+
       const response = await APIService.addMayraInstallment(payload);
-      
+
       if (response.status) {
         const newPayment = {
           amount: Number(amount),
@@ -404,7 +405,7 @@ export default function AddMayraCongratulationsPaymentPage() {
   const filterMembersBySearch = (members: Member[], searchTerm: string) => {
     if (!searchTerm.trim()) return members;
     const term = searchTerm.toLowerCase();
-    return members.filter(member => 
+    return members.filter(member =>
       member.name.toLowerCase().includes(term) ||
       (member.formNumber && member.formNumber.toLowerCase().includes(term))
     );
@@ -414,10 +415,21 @@ export default function AddMayraCongratulationsPaymentPage() {
     return members.filter(member => member.category === category);
   };
 
-  const categoryAmountMapping = {
-    'B': 200,
-    'C': 300
-  };
+  // Dynamically resolve category amount mapping from active age slabs / configured scheme types
+  const categoryAmountMapping = React.useMemo(() => {
+    const slabs = ConfigService.getAgeSlabsSync();
+    const mapping: Record<string, number> = {};
+    slabs.forEach((slab) => {
+      mapping[slab.code] = slab.fee;
+    });
+    // Ensure existing member categories have mapping
+    members.forEach((m) => {
+      if (m.category && !(m.category in mapping)) {
+        mapping[m.category] = m.category === "B" ? 200 : m.category === "C" ? 300 : 0;
+      }
+    });
+    return mapping;
+  }, [members]);
 
   if (loading) {
     return (
@@ -454,7 +466,7 @@ export default function AddMayraCongratulationsPaymentPage() {
           <span className="block text-base font-normal text-gray-700">मायरा बधाई के लिए भुगतान विवरण जोड़ें</span>
         </h1>
       </div>
-      
+
       <Card className="w-full mb-6">
         <CardHeader>
           <CardTitle>User Details <span className="text-sm font-normal text-gray-600">/ उपयोगकर्ता विवरण</span></CardTitle>
@@ -605,7 +617,7 @@ export default function AddMayraCongratulationsPaymentPage() {
         const setSearchState = amount === 200 ? setSearch200 : setSearch300;
         const categoryMembers = getMembersByCategory(category);
         const filteredMembers = filterMembersBySearch(categoryMembers.filter(m => m.payment_status === 0), searchState);
-        
+
         return (
           <Card className="w-full mb-6" key={category}>
             <CardHeader>
@@ -663,7 +675,7 @@ export default function AddMayraCongratulationsPaymentPage() {
             Payment Summary <span className="text-sm font-normal text-gray-600">/ भुगतान सारांश</span>
             {paymentSummaryLoading && <span className="text-sm text-gray-500 ml-2">(Loading...)</span>}
           </CardTitle>
-          
+
           {/* Payment Summary Statistics */}
           {paymentSummary.length > 0 && (
             <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">

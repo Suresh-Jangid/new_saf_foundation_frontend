@@ -195,15 +195,15 @@ purabiya-foundation-admin-main/
 ```mermaid
 graph TD
     RootLayout["app/layout.tsx<br/>(Font: Inter, Sonner Toaster, Radix ToastProvider)"]
-    
+
     RootLayout --> PublicLogin["app/page.tsx<br/>(Login Screen - Glassmorphism UI)"]
     RootLayout --> DashboardLayout["app/dashboard/layout.tsx<br/>(Authenticated Frame)"]
-    
+
     DashboardLayout --> DesktopSidebar["components/sidebar.tsx<br/>(Desktop Sidebar: Fixed 20rem, Auto-scroll)"]
     DashboardLayout --> Header["Top Navigation Bar<br/>(Mobile Hamburger, User Role Badge, Logout)"]
     DashboardLayout --> MobileSidebarSheet["components/sidebar.tsx: MobileSidebar<br/>(Radix Sheet Component)"]
     DashboardLayout --> PageContent["Page Outlet<br/>(Child Page Component)"]
-    
+
     PageContent --> RoleGuardWrapper["components/role-guard.tsx<br/>(Role Verification & Permission Checks)"]
     PageContent --> PermissionGateWrapper["components/permission-gate.tsx<br/>(Granular Action Gate: view, create, edit, delete)"]
 ```
@@ -263,13 +263,13 @@ The RBAC system is implemented across three core files:
 flowchart TD
     UserLogin["User Logs In<br/>(Admin or Agent)"] --> SessionSaved["Save to LocalStorage<br/>- token<br/>- userRole ('admin' | 'agent')<br/>- agent (with permissions object)"]
     SessionSaved --> NavCheck{"Route/Menu Check"}
-    
+
     NavCheck -->|Role is Admin| AdminFullAccess["Full Access<br/>All 13 Modules<br/>All Actions (view, create, update, delete)"]
-    
+
     NavCheck -->|Role is Agent| FilterPermissions["Filter against AGENT_ALLOWED_MODULES<br/>in lib/permissions.ts"]
-    
+
     FilterPermissions --> AllowedAgentModules["Agent Authorized Modules:<br/>1. dashboard<br/>2. applicant_registration<br/>3. security_application<br/>4. payment_management<br/>5. general_application_payment<br/>6. insurance_application_payment<br/>7. marriage_congratulations_payment<br/>8. suraksha_bima_yojana_payment<br/>9. bulk_marriage_emi<br/>10. bulk_suraksha_bima_emi<br/>11. mayra_registration<br/>12. bulk_mayra_emi"]
-    
+
     AllowedAgentModules --> PermissionGateCheck{"PermissionGate Action Check"}
     PermissionGateCheck -->|Has action ('view'/'create')| RenderComponent["Render UI Block / Page"]
     PermissionGateCheck -->|Missing action| HideOrFallback["Render Null / Access Denied Alert"]
@@ -379,13 +379,13 @@ The frontend communicates with the backend via two layers:
 ```mermaid
 flowchart LR
     FrontendPages["Frontend Pages / Components"]
-    
+
     subgraph NextJS_BFF["Next.js BFF (app/api/*)"]
         PDFGen["PDF Generators (20 endpoints)<br/>/api/generate-*-pdf"]
         RazorpayProxy["Razorpay Gateway<br/>/api/razorpay/*"]
         WhatsAppProxy["WhatsApp Messenger<br/>/api/fireconnect"]
     end
-    
+
     subgraph PHP_Backend["Primary Backend API (REST/PHP)"]
         AuthAPIs["Auth: login, agentLogin"]
         AppAPIs["Applications: getApplications, addApplication..."]
@@ -393,7 +393,7 @@ flowchart LR
         BulkEMIAPIs["Bulk EMI: getBulkMarriageData, updateBulk..."]
         AgentAPIs["Agents: getAgents, getAgentPermissions..."]
     end
-    
+
     FrontendPages -->|Direct Axios Call| PHP_Backend
     FrontendPages -->|Fetch Request| NextJS_BFF
     NextJS_BFF -->|Proxy Data / Webhooks| PHP_Backend
@@ -467,7 +467,7 @@ graph TD
     AgentWork["3. Agent Collection Workflow<br/>(Agent registers beneficiaries & collects EMIs)"]
     AgentComm["4. Agent Commission Hub<br/>/dashboard/agent-commission<br/>(Filter by agent, date range, gender, calculate 15% / commission)"]
     AgentReport["5. Commission Report<br/>/dashboard/agent-commission-report<br/>(Disbursement history & date audit)"]
-    
+
     AgentReg --> AgentPerm
     AgentPerm --> AgentWork
     AgentWork --> AgentComm
@@ -497,7 +497,7 @@ sequenceDiagram
     participant API as Backend API
     participant Razorpay as Razorpay / Cash
     participant WA as WhatsApp Proxy
-    
+
     User->>Page: Select Date Range (Start Date & End Date) + Optional User ID
     Page->>API: Fetch Pending EMIs (e.g. getBulkMarriageData)
     API-->>Page: Return Pending & Completed Records
@@ -883,21 +883,21 @@ graph TD
         Config["config/app-config.ts<br/>(Slabs, Multipliers, Deductions, Meta)"]
         ModuleRegistry["config/module-registry.ts<br/>(Enabled Modules & Endpoints)"]
     end
-    
+
     subgraph Generic_UI_Engines
         SchemeForm["UnifiedSchemeForm.tsx<br/>(Dynamic Slabs, DOB, Nominee, Agent Select)"]
         GrantCalc["UnifiedGrantCalculator.tsx<br/>(Multipliers: 300/500/1000/1500, Deductions)"]
         BulkEMIEngine["BulkEmiBatchProcessor.tsx<br/>(Multi-select, Razorpay, WhatsApp, PDF)"]
         EpinEngine["EpinManager.tsx<br/>(Status Badges, Generation, Assignment)"]
     end
-    
+
     subgraph Application_Consumers
         MarriageModule["Marriage Module"]
         MayraModule["Mayra Module"]
         InsuranceModule["Insurance Module"]
         NewSchemes["Janni / Aawas / Lado Bahin / Dhundhotsav / ShubhLaxmi"]
     end
-    
+
     Config --> Generic_UI_Engines
     ModuleRegistry --> Generic_UI_Engines
     Generic_UI_Engines --> MarriageModule
@@ -956,7 +956,7 @@ graph TD
     Test_RBAC["2. RBAC & Access Verification<br/>- Admin: 100% route access<br/>- Agent: Only permitted modules<br/>- Disabled modules hidden from sidebar"]
     Test_Forms["3. Form Registration Tests<br/>- Validation (10-digit mobile, 12-digit Aadhaar)<br/>- Auto-fill age slab fee on DOB selection<br/>- Razorpay online vs Cash toggle"]
     Test_Bulk["4. Bulk EMI & Batch Tests<br/>- Date range filter accuracy<br/>- Multi-select batch payment update<br/>- PDF Receipt generation"]
-    
+
     Test_Config --> Test_RBAC --> Test_Forms --> Test_Bulk
 ```
 

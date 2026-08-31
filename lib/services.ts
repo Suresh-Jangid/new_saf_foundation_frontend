@@ -21,6 +21,7 @@ import {
   mayraApplicationAPI,
   mayraInstallmentAPI,
   mayraOtherAPI,
+  janniDeliveryAPI,
   post
 } from './api';
 
@@ -852,6 +853,15 @@ export class APIService {
 
   static addMayraInstallment = (data: { mayra_id: string | number; amount: string | number; date: string; note?: string; addedby?: string; addedby_id?: string | number }) =>
     mayraInstallmentAPI.create(data);
+
+  // Janni Delivery Registration
+  static createJanniDelivery = (data: any) => janniDeliveryAPI.create(data);
+  static getJanniDeliveries = (filters?: Record<string, any>) => janniDeliveryAPI.getAll(filters);
+  static getJanniDeliveryById = (id: string) => janniDeliveryAPI.getById(id);
+  static updateJanniDelivery = (id: string, data: any) => janniDeliveryAPI.update(id, data);
+  static deleteJanniDelivery = (id: string) => janniDeliveryAPI.delete(id);
+  static addJanniInstallment = (id: string, data: any) => janniDeliveryAPI.addInstallment(id, data);
+  static verifyJanniEPin = (pinCode: string) => janniDeliveryAPI.verifyEPin(pinCode);
 }
 
 export default APIService; 

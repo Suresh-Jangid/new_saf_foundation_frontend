@@ -1299,4 +1299,37 @@ export const janniDeliveryAPI = {
   },
 };
 
+// Aawas (Home) Registration API Services
+export const aawasAPI = {
+  create: async (data: any): Promise<ApiResponse<any>> => {
+    const response = await api.post("/v1/aawas", data);
+    return response.data;
+  },
+  getAll: async (filters?: Record<string, any>): Promise<ApiResponse<any>> => {
+    const query = filters ? new URLSearchParams(filters).toString() : "";
+    const response = await api.get(`/v1/aawas${query ? `?${query}` : ""}`);
+    return response.data;
+  },
+  getById: async (id: string): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/v1/aawas/${id}`);
+    return response.data;
+  },
+  update: async (id: string, data: any): Promise<ApiResponse<any>> => {
+    const response = await api.put(`/v1/aawas/${id}`, data);
+    return response.data;
+  },
+  delete: async (id: string): Promise<ApiResponse<any>> => {
+    const response = await api.delete(`/v1/aawas/${id}`);
+    return response.data;
+  },
+  addInstallment: async (id: string, data: any): Promise<ApiResponse<any>> => {
+    const response = await api.post(`/v1/aawas/${id}/installments`, data);
+    return response.data;
+  },
+  verifyEPin: async (pinCode: string): Promise<ApiResponse<any>> => {
+    const response = await api.post("/v1/aawas/verify-epin", { pinCode });
+    return response.data;
+  },
+};
+
 export default api; 

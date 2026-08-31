@@ -124,9 +124,9 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
   {
     id: "aawas_home",
     name: { en: "Aawas (Home) Registration", hi: "आवास योजना पंजीकरण" },
-    subtitle: { en: "Aawas (Home) Registration Application", hi: "आवास योजना आवेदन" },
+    subtitle: { en: "Aawas (Home) Registration Application", hi: "गृह प्रवेश आवास योजना" },
     category: "SCHEME",
-    route: "/dashboard/aawas-home",
+    route: "/dashboard/aawas",
     iconName: "Home",
     permissionKey: "aawas_home",
     enabled: true,

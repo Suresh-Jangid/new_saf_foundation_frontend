@@ -20,6 +20,7 @@ export const AVAILABLE_MODULES: ModulePermission[] = [
   { module: "suraksha_bima_yojana", actions: ["view", "create", "update", "delete"] },
   { module: "janni_delivery", actions: ["view", "create", "update", "delete"] },
   { module: "aawas_home", actions: ["view", "create", "update", "delete"] },
+  { module: "aawas", actions: ["view", "create", "update", "delete"] },
   { module: "lado_bahin", actions: ["view", "create", "update", "delete"] },
   { module: "dhundhotsav", actions: ["view", "create", "update", "delete"] },
   { module: "shubhlaxmi", actions: ["view", "create", "update", "delete"] },
@@ -51,6 +52,7 @@ export const MODULE_DISPLAY_NAMES: { [key: string]: string } = {
   suraksha_bima_yojana: "Insurance Bima Payment",
   janni_delivery: "Janni Delivery Registration",
   aawas_home: "Aawas (Home) Registration",
+  aawas: "Aawas (Home) Registration",
   lado_bahin: "Lado Bahin Registration",
   dhundhotsav: "Dhundhotsav Registration",
   shubhlaxmi: "ShubhLaxmi Registration",
@@ -178,6 +180,8 @@ export function hasModulePermission(module: string, action = "view"): boolean {
   const modulePermission = permissions.find(
     (p) =>
       p.module === module ||
+      (module === "aawas" && p.module === "aawas_home") ||
+      (module === "aawas_home" && p.module === "aawas") ||
       (module === "marriage_congratulations" && p.module === "marriage_congratulations_payment") ||
       (module === "suraksha_bima_yojana" && p.module === "suraksha_bima_yojana_payment")
   );

@@ -318,13 +318,25 @@ export default function AddGeneralApplicationPage() {
           }
         })()
       } else {
-        toast.error(response.data.message || "Failed to add application")
+        const errorMsg = response.data.message || "Failed to add application";
+        if (response.data.status === 409 || /already|assigned|consumed|used/i.test(errorMsg)) {
+          toast.error("यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।");
+        } else {
+          toast.error(errorMsg);
+        }
       }
     } catch (error: any) {
-      console.error("Error adding application:", error)
-      toast.error(error.response?.data?.message || "Failed to add application")
+      console.error("Error adding application:", error);
+      if (error.response?.status === 409 || error.status === 409) {
+        toast.error(
+          error.response?.data?.message ||
+            "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।"
+        );
+      } else {
+        toast.error(error.response?.data?.message || error.message || "Failed to add application");
+      }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

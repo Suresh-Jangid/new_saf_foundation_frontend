@@ -285,7 +285,9 @@ export default function AddAawasPage() {
         paymentAmount: formData.paymentAmount ? Number(formData.paymentAmount) : 0,
         paymentMode: formData.paymentMode,
         selectedAgentId: formData.selectedAgentId || undefined,
+        agentId: formData.selectedAgentId || undefined,
         epinCode: formData.epinCode.trim() || epinVerified?.code || undefined,
+        pinNumber: formData.epinCode.trim() || epinVerified?.code || undefined,
       };
 
       const res = await AawasService.createRegistration(payload);
@@ -296,12 +298,24 @@ export default function AddAawasPage() {
         );
         router.push("/dashboard/aawas");
       } else {
-        toast.error(res?.message || "आवास पंजीकरण असफल / Failed to register application");
+        const errorMsg = res?.message || "आवास पंजीकरण असफल / Failed to register application";
+        if (/already|assigned|consumed|used/i.test(errorMsg)) {
+          toast.error("यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।");
+        } else {
+          toast.error(errorMsg);
+        }
       }
     } catch (err: any) {
       console.error("Error creating Aawas application:", err);
-      const errMsg = err.response?.data?.message || err.message || "पंजीकरण में त्रुटि हुई / An error occurred";
-      toast.error(errMsg);
+      if (err.response?.status === 409 || err.status === 409) {
+        toast.error(
+          err.response?.data?.message ||
+            "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।"
+        );
+      } else {
+        const errMsg = err.response?.data?.message || err.message || "पंजीकरण में त्रुटि हुई / An error occurred";
+        toast.error(errMsg);
+      }
     } finally {
       setIsLoading(false);
     }

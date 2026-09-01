@@ -292,11 +292,18 @@ export default function AddJanniDeliveryPage() {
       router.push("/dashboard/janni-delivery");
     } catch (err: any) {
       console.error("Submission error:", err);
-      const msg =
-        err.response?.data?.message ||
-        err.message ||
-        "पंजीकरण दर्ज करने में त्रुटि / Failed to create registration";
-      toast.error(msg);
+      if (err.response?.status === 409 || err.status === 409) {
+        toast.error(
+          err.response?.data?.message ||
+            "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।"
+        );
+      } else {
+        const msg =
+          err.response?.data?.message ||
+          err.message ||
+          "पंजीकरण दर्ज करने में त्रुटि / Failed to create registration";
+        toast.error(msg);
+      }
     } finally {
       setIsLoading(false);
     }

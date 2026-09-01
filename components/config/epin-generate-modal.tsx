@@ -127,11 +127,21 @@ export const EpinGenerateModal: React.FC<EpinGenerateModalProps> = ({
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Generated PIN Codes:</Label>
               <div className="max-h-48 overflow-y-auto bg-muted/40 p-3 rounded-lg border font-mono text-xs space-y-1">
-                {generatedResult.pins.map((pin, i) => (
-                  <div key={i} className="flex justify-between items-center py-0.5">
-                    <span>{pin}</span>
-                  </div>
-                ))}
+                {generatedResult.pins.map((pin, i) => {
+                  const pinStr =
+                    typeof pin === "string"
+                      ? pin
+                      : (pin as any)?.pinNumber ||
+                        (pin as any)?.pin_number ||
+                        (pin as any)?.pinCode ||
+                        (pin as any)?.code ||
+                        String(pin);
+                  return (
+                    <div key={i} className="flex justify-between items-center py-0.5">
+                      <span>{pinStr}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -140,7 +150,18 @@ export const EpinGenerateModal: React.FC<EpinGenerateModalProps> = ({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  navigator.clipboard.writeText(generatedResult.pins.join("\n"));
+                  const allPins = generatedResult.pins
+                    .map((p) =>
+                      typeof p === "string"
+                        ? p
+                        : (p as any)?.pinNumber ||
+                          (p as any)?.pin_number ||
+                          (p as any)?.pinCode ||
+                          (p as any)?.code ||
+                          String(p)
+                    )
+                    .join("\n");
+                  navigator.clipboard.writeText(allPins);
                   toast.success("PINs copied to clipboard");
                 }}
                 className="flex items-center gap-1 text-xs"

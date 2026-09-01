@@ -207,12 +207,29 @@ export const EpinService = {
       }
 
       if (response?.data && (response.data.status || response.data.success)) {
+        const rawPins = response.data.pins || response.data.data?.pins || response.data.data || response.data.epins || [];
+        const pins: string[] = Array.isArray(rawPins)
+          ? rawPins
+              .map((p: any) =>
+                typeof p === "string"
+                  ? p
+                  : String(p?.pinNumber || p?.pin_number || p?.pinCode || p?.code || p?.id || "")
+              )
+              .filter(Boolean)
+          : [];
+
+        const generatedCount = Number(
+          response.data.generatedCount ||
+            response.data.count ||
+            (pins.length > 0 ? pins.length : payload.count)
+        );
+
         return {
           success: true,
-          generatedCount: Number(response.data.generatedCount || response.data.count || payload.count),
+          generatedCount,
           batchNumber: response.data.batchNumber || response.data.batch_number,
-          pins: response.data.pins || [],
-          message: response.data.message || `Successfully generated ${payload.count} E-PIN vouchers`,
+          pins,
+          message: response.data.message || `Successfully generated ${generatedCount} E-PIN vouchers`,
         };
       }
 

@@ -155,10 +155,11 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => {
     const message = response.data?.message;
+    // Only clear session on genuine token/session expiration, never on operational business errors
     if (
       response.data?.error === true &&
       typeof message === "string" &&
-      /jwt expired|invalid token|token missing|unauthorized/i.test(message)
+      /jwt expired|invalid token|jwt malformed|token missing|authentication token expired/i.test(message)
     ) {
       if (typeof window !== "undefined") {
         clearAuthSession();
@@ -176,6 +177,22 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Only genuine 401 Unauthorized with token expiry should reset session
+    if (error?.response?.status === 401) {
+      const errMsg = String(error.response?.data?.message || "");
+      if (/jwt expired|invalid token|jwt malformed|token missing|session expired/i.test(errMsg)) {
+        if (typeof window !== "undefined") {
+          clearAuthSession();
+          localStorage.removeItem("isAuthenticated");
+          localStorage.removeItem("user");
+          localStorage.removeItem("agent");
+          localStorage.removeItem("userRole");
+          if (window.location.pathname.startsWith("/dashboard")) {
+            window.location.href = "/";
+          }
+        }
+      }
+    }
     console.error("API Error:", error);
     return Promise.reject(error);
   }

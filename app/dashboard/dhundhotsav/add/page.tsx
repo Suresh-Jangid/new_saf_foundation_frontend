@@ -284,6 +284,7 @@ export default function AddDhundhotsavPage() {
         paymentAmount: Number(formData.paymentAmount) || 0,
         paymentMode: formData.paymentMode,
         selectedAgentId: formData.selectedAgentId || undefined,
+        agentId: formData.selectedAgentId || undefined,
         epinCode: formData.epinCode.trim() || undefined,
         pinNumber: formData.epinCode.trim() || undefined,
       };
@@ -296,16 +297,26 @@ export default function AddDhundhotsavPage() {
         );
         router.push("/dashboard/dhundhotsav");
       } else {
-        toast.error(res.message || "पंजीकरण में त्रुटि / Failed to create registration");
+        const errorMsg = res.message || "पंजीकरण में त्रुटि / Failed to create registration";
+        if (/already|assigned|consumed|used/i.test(errorMsg)) {
+          toast.error("यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।");
+        } else {
+          toast.error(errorMsg);
+        }
       }
     } catch (err: any) {
       console.error("Submission error:", err);
       // Handle 409 Conflict cleanly
       if (err.response?.status === 409 || err.status === 409) {
-        toast.error(
-          err.response?.data?.message ||
-            "समान आधार या मोबाइल नंबर से सक्रिय पंजीकरण पहले से मौजूद है (Duplicate Record / 409 Conflict)"
-        );
+        const msg = err.response?.data?.message || "";
+        if (/epin|pin|voucher/i.test(msg)) {
+          toast.error("यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।");
+        } else {
+          toast.error(
+            msg ||
+              "समान आधार या मोबाइल नंबर से सक्रिय पंजीकरण पहले से मौजूद है या E-PIN conflict (409 Conflict)"
+          );
+        }
       } else {
         toast.error(
           err.response?.data?.message ||

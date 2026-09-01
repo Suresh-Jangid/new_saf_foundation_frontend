@@ -173,6 +173,7 @@ export default function AddMayraRegistrationPage() {
         apiFormData.append("workerName", selectedAgent.name)
         apiFormData.append("workerMobile", (selectedAgent as any).mobile || "")
         apiFormData.append("selectedAgentId", String(selectedAgent.id))
+        apiFormData.append("agentId", String(selectedAgent.id))
       }
 
       if (formData.paymentMode) apiFormData.append("paymentMode", formData.paymentMode)
@@ -181,6 +182,7 @@ export default function AddMayraRegistrationPage() {
       if (formData.epinNumber) {
         apiFormData.append("epin", formData.epinNumber)
         apiFormData.append("epinNumber", formData.epinNumber)
+        apiFormData.append("pinNumber", formData.epinNumber)
       }
 
       if (paymentData && paymentStatus === 'paid') {
@@ -216,13 +218,25 @@ export default function AddMayraRegistrationPage() {
 
         router.push("/dashboard/mayra-registration")
       } else {
-        toast.error(response.data.message || "Failed to add registration")
+        const errorMsg = response.data.message || "Failed to add registration";
+        if (response.data.status === 409 || /already|assigned|consumed|used/i.test(errorMsg)) {
+          toast.error("यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।");
+        } else {
+          toast.error(errorMsg);
+        }
       }
     } catch (error: any) {
-      console.error("Error adding registration:", error)
-      toast.error(error.response?.data?.message || "Failed to add registration")
+      console.error("Error adding registration:", error);
+      if (error.response?.status === 409 || error.status === 409) {
+        toast.error(
+          error.response?.data?.message ||
+            "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।"
+        );
+      } else {
+        toast.error(error.response?.data?.message || error.message || "Failed to add registration");
+      }
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

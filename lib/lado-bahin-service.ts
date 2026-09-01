@@ -106,6 +106,7 @@ export interface CreateLadoBahinPayload {
   paymentAmount?: number;
   paymentMode?: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER";
   selectedAgentId?: string;
+  agentId?: string;
   epinCode?: string | null;
   pinNumber?: string | null;
 }

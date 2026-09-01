@@ -144,10 +144,12 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
         paymentDate: formData.paymentDate || "",
         pendingAmount: String(Number(fee) - Number(formData.paymentAmount || 0)),
         selectedAgentId: formData.selectedAgentId,
+        agentId: formData.selectedAgentId,
         addedby: "agent",
         addedby_id: formData.selectedAgentId || "",
         epin: (formData as any).epinNumber || "",
         epinNumber: (formData as any).epinNumber || "",
+        pinNumber: (formData as any).epinNumber || "",
       }
 
       const response = await APIService.createInsuranceApplication(applicationData)
@@ -266,15 +268,34 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
 
         router.push("/dashboard/general-applications-insurance")
       } else {
-        throw new Error(response.message || "Failed to create application")
+        const errorMsg = response.message || formatBilingual("messages.failedToSave");
+        if (/already|assigned|consumed|used/i.test(errorMsg)) {
+          toast({
+            title: "E-PIN Conflict",
+            description: "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।",
+            variant: "destructive",
+          });
+        } else {
+          throw new Error(errorMsg);
+        }
       }
     } catch (error: any) {
       console.error("Error creating insurance application:", error)
-      toast({
-        title: formatBilingual("common.error"),
-        description: error.response?.data?.message || error.message || formatBilingual("messages.failedToSave"),
-        variant: "destructive",
-      })
+      if (error?.response?.status === 409 || error?.status === 409) {
+        toast({
+          title: "E-PIN Conflict",
+          description:
+            error.response?.data?.message ||
+            "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।",
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: formatBilingual("common.error"),
+          description: error.response?.data?.message || error.message || formatBilingual("messages.failedToSave"),
+          variant: "destructive",
+        })
+      }
     } finally {
       setIsSubmitting(false)
     }

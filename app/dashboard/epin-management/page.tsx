@@ -100,17 +100,25 @@ export default function EpinManagementPage() {
       });
 
       if (response.success) {
-        setEpins(response.data);
-        setSummary(response.summary);
+        setEpins(Array.isArray(response.data) ? response.data : []);
+        setSummary(
+          response.summary || {
+            total: 0,
+            active: 0,
+            assigned: 0,
+            used: 0,
+            burnt: 0,
+          }
+        );
       } else {
         setEpins([]);
         setErrorMessage(
           response.message || "E-PIN service unavailable / रिकॉर्ड लोड नहीं हो सके"
         );
       }
-    } catch {
+    } catch (err: any) {
       setEpins([]);
-      setErrorMessage("Connection error to E-PIN service. Please retry.");
+      setErrorMessage(err?.message || "Connection error to E-PIN service. Please retry.");
     } finally {
       setIsLoading(false);
     }
@@ -422,7 +430,7 @@ export default function EpinManagementPage() {
 
                           <TableCell>
                             <span className="font-semibold text-emerald-700 dark:text-emerald-400 text-xs">
-                              ₹{record.schemeAmount.toLocaleString("hi-IN")}
+                              ₹{(Number(record.schemeAmount) || 0).toLocaleString("hi-IN")}
                             </span>
                           </TableCell>
 

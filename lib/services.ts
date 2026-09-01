@@ -23,6 +23,7 @@ import {
   mayraOtherAPI,
   janniDeliveryAPI,
   aawasAPI,
+  ladoBahinAPI,
   post
 } from './api';
 
@@ -872,6 +873,15 @@ export class APIService {
   static deleteAawas = (id: string) => aawasAPI.delete(id);
   static addAawasInstallment = (id: string, data: any) => aawasAPI.addInstallment(id, data);
   static verifyAawasEPin = (pinCode: string) => aawasAPI.verifyEPin(pinCode);
+
+  // Lado Bahin (Muklawa) Registration
+  static createLadoBahin = (data: any) => ladoBahinAPI.create(data);
+  static getLadoBahinRegistrations = (filters?: Record<string, any>) => ladoBahinAPI.getAll(filters);
+  static getLadoBahinById = (id: string) => ladoBahinAPI.getById(id);
+  static updateLadoBahin = (id: string, data: any) => ladoBahinAPI.update(id, data);
+  static deleteLadoBahin = (id: string) => ladoBahinAPI.delete(id);
+  static addLadoBahinInstallment = (id: string, data: any) => ladoBahinAPI.addInstallment(id, data);
+  static verifyLadoBahinEPin = (pinCode: string) => ladoBahinAPI.verifyEPin(pinCode);
 }
 
 export default APIService; 

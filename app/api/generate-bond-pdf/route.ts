@@ -170,10 +170,11 @@ export async function POST(request: NextRequest) {
     drawTextAt(fullAddress, 208, 197, 9.5);
 
     // 8. Duration / Maturity ("आपको विवाह योजना का लाभ ... के बाद मिलेगा ।")
-    const durationText = duration || record?.duration || record?.durationText || '';
-    if (durationText) {
-      drawTextAt(durationText, 200, 245, 10, rgb(0.6, 0.1, 0.1));
+    let durationText = duration || record?.duration || record?.durationText || 'बारह महीने';
+    if (durationText === 'अठारह महीने' || durationText === '18 महीने' || !durationText) {
+      durationText = 'बारह महीने';
     }
+    drawTextAt(durationText, 200, 245, 10, rgb(0.6, 0.1, 0.1));
 
     // Serialize the PDF
     const pdfBytes = await pdfDoc.save();

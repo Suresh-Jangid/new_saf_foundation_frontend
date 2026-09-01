@@ -378,7 +378,7 @@ export default function GeneralApplicationsPage() {
         body: JSON.stringify({ 
           record, 
           imageData,
-          duration: "अठारह महीने" // Add duration text
+          duration: "बारह महीने" // Duration: 12 months benefit
         }),
       });
 

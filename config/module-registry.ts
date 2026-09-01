@@ -18,6 +18,18 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
     enabled: true,
   },
 
+  // --- E-PIN Operational Management ---
+  {
+    id: "epin_management",
+    name: { en: "E-PIN Management", hi: "ई-पिन प्रबंधन" },
+    subtitle: { en: "E-PIN Inventory & Lifecycle", hi: "ई-पिन आवंटन व रिकॉर्ड" },
+    category: "ADMINISTRATION",
+    route: "/dashboard/epin-management",
+    iconName: "KeyRound",
+    permissionKey: "epin_management",
+    enabled: true,
+  },
+
   // --- 1. General Marriage Application ---
   {
     id: "applicant_registration",
@@ -198,18 +210,6 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
         enabled: true,
       },
     ],
-  },
-
-  // --- E-PIN Operational Management ---
-  {
-    id: "epin_management",
-    name: { en: "E-PIN Management", hi: "ई-पिन प्रबंधन" },
-    subtitle: { en: "E-PIN Inventory & Lifecycle", hi: "ई-पिन आवंटन व रिकॉर्ड" },
-    category: "ADMINISTRATION",
-    route: "/dashboard/epin-management",
-    iconName: "KeyRound",
-    permissionKey: "epin_management",
-    enabled: true,
   },
 
   // --- 10 & 11 & 12. Agent Commissions & Reports ---

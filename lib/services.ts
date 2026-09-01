@@ -24,6 +24,7 @@ import {
   janniDeliveryAPI,
   aawasAPI,
   ladoBahinAPI,
+  dhundhotsavAPI,
   post
 } from './api';
 
@@ -882,6 +883,15 @@ export class APIService {
   static deleteLadoBahin = (id: string) => ladoBahinAPI.delete(id);
   static addLadoBahinInstallment = (id: string, data: any) => ladoBahinAPI.addInstallment(id, data);
   static verifyLadoBahinEPin = (pinCode: string) => ladoBahinAPI.verifyEPin(pinCode);
+
+  // Dhundhotsav Registration
+  static createDhundhotsav = (data: any) => dhundhotsavAPI.create(data);
+  static getDhundhotsavRegistrations = (filters?: Record<string, any>) => dhundhotsavAPI.getAll(filters);
+  static getDhundhotsavById = (id: string) => dhundhotsavAPI.getById(id);
+  static updateDhundhotsav = (id: string, data: any) => dhundhotsavAPI.update(id, data);
+  static deleteDhundhotsav = (id: string) => dhundhotsavAPI.delete(id);
+  static addDhundhotsavInstallment = (id: string, data: any) => dhundhotsavAPI.addInstallment(id, data);
+  static verifyDhundhotsavEPin = (pinCode: string) => dhundhotsavAPI.verifyEPin(pinCode);
 }
 
 export default APIService; 

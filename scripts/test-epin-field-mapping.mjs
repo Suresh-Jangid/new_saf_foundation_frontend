@@ -148,10 +148,9 @@ if (fs.existsSync(servicesPath)) {
   );
 }
 
-// 5. Mock Simulation Test
+// 5. Mock Simulation Test & Explicit Regression Assertions
 console.log('\n5. Running Mock Simulation of Verification Payload...');
 function simulateVerificationRequest(postalPin, epinCode, agentId) {
-  // Simulates the contract enforced by EpinService.validateEpin
   const trimmed = (epinCode || '').trim();
   const payload = {
     epinCode: trimmed,
@@ -165,19 +164,27 @@ const simulatedPayload = simulateVerificationRequest(testPostalPin, testEpinCode
 
 assert(
   simulatedPayload.epinCode === 'EPIN-7VWF-U9PE-STWA',
-  'Verification payload contains exact epinCode === "EPIN-7VWF-U9PE-STWA"'
+  'E-PIN verification value === "EPIN-7VWF-U9PE-STWA"'
+);
+assert(
+  testPostalPin !== simulatedPayload.epinCode,
+  'postal PIN !== E-PIN verification value'
+);
+assert(
+  simulatedPayload.epinCode === 'EPIN-7VWF-U9PE-STWA',
+  'validateEpin payload epinCode === "EPIN-7VWF-U9PE-STWA"'
 );
 assert(
   simulatedPayload.pinNumber === 'EPIN-7VWF-U9PE-STWA',
-  'Verification payload contains exact pinNumber === "EPIN-7VWF-U9PE-STWA"'
+  'validateEpin payload pinNumber === "EPIN-7VWF-U9PE-STWA"'
 );
 assert(
   simulatedPayload.agentId === '42',
-  'Verification payload preserves selectedAgentId/agentId === "42"'
+  'selectedAgentId / agentId contract remains intact'
 );
 assert(
   !JSON.stringify(simulatedPayload).includes('344022'),
-  'Postal PIN "344022" is strictly absent from the E-PIN verification payload'
+  'postal PIN is never substituted into E-PIN fields'
 );
 
 // 6. Registration Payload Simulation Test

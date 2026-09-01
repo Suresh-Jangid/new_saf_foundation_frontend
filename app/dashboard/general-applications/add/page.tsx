@@ -18,11 +18,10 @@ import { toast } from "sonner"
 
 
 import { formatBilingual } from '@/lib/translations'
-import { formatDate, isValidDate, parseDateFromDDMMYYYY, validatePhoneNumber, processImageForPDF } from "@/lib/utils";
+import { formatDate, isValidDate, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
 import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode, GENDER_OPTIONS, isMale, isFemale } from "@/lib/form-values";
 import { RoleGuard } from "@/components/role-guard"
 import { RazorpayPayment } from "@/components/razorpay-payment"
-import { sendWhatsAppMessage, sendWhatsAppFile } from "@/lib/fireconnect-whatsapp-service"
 import { useAgeCategory } from "@/hooks/use-age-category"
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
 import { EpinService } from "@/lib/epin-service"
@@ -256,76 +255,7 @@ export default function AddGeneralApplicationPage() {
           }
         }
 
-        // Find selected agent name for the bond
-        const selectedAgent = agents.find(a => a.id.toString() === formData.selectedAgentId);
-        const agentName = selectedAgent ? selectedAgent.name : '';
-
-        // Prepare record data for bond generation
-        const recordData = {
-          id: response.data.id,
-          formNumber: applicationNumber,
-          applicationDate: convertToYYYYMMDD(formData.applicationDate),
-          applicantName: formData.applicantName,
-          fatherName: formData.fatherName,
-          motherName: formData.motherName,
-          dateOfBirth: convertToYYYYMMDD(formData.dateOfBirth),
-          aadharNumber: aadharDigits,
-          gotra: formData.gotra,
-          mobile: mobileDigits,
-          address: formData.address,
-          pinCode: formData.pinCode,
-          tehsil: formData.tehsil,
-          district: formData.district,
-          state: formData.state,
-          nomineeName: formData.nomineeName || '',
-          nomineeRelation: formData.nomineeRelation || '',
-          affidavit: formData.affidavit,
-          gender: formData.gender,
-          category: formData.category,
-          age: computedAge,
-          workerName: agentName,
-          added_name: agentName,
-        };
-
-        router.push("/dashboard/general-applications")
-
-        // WhatsApp + bond delivery should not block navigation
-        void (async () => {
-          try {
-            const message = `नमस्ते ${formData.applicantName},\n\n पुरबिया प्रजापति बालिका विवाह & सशक्तिकरण फाउण्डेशन के विवाह योजना मे जुड़ने के लिए आपका बहुत बहुत धन्यवाद 🙏 \n\nअधिक जानकारी हेतु संपर्क करे \nपीराराम तेनगरिया जसोल \n9413032072, 8209467238`;
-            await sendWhatsAppMessage(mobileDigits, message);
-            toast.success("WhatsApp message sent successfully");
-
-            toast.info("Generating and sending bond...");
-            const imageData = await processImageForPDF(formData.passportPhoto);
-            const bondResponse = await fetch("/api/generate-bond-pdf", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                record: recordData,
-                imageData,
-                duration: "अठारह महीने",
-              }),
-            });
-
-            if (bondResponse.ok) {
-              const bondBlob = await bondResponse.blob();
-              const bondFile = new File(
-                [bondBlob],
-                `Bond_${applicationNumber}.pdf`,
-                { type: "application/pdf" }
-              );
-              await sendWhatsAppFile(mobileDigits, bondFile, `Bond - ${applicationNumber}`);
-              toast.success("Bond sent to WhatsApp successfully");
-            } else {
-              console.error("Failed to generate bond for WhatsApp");
-              toast.error("Failed to generate bond for WhatsApp");
-            }
-          } catch (waError) {
-            console.error("WhatsApp integration error:", waError);
-            toast.error("Failed to send WhatsApp message/file");
-          }
-        })()
+        router.push("/dashboard/general-applications");
       } else {
         const errorMsg = response.data.message || "Failed to add application";
         if (response.data.status === 409 || /already|assigned|consumed|used/i.test(errorMsg)) {

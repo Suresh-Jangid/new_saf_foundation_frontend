@@ -297,8 +297,8 @@ export const EpinService = {
    *
    * SECURITY RULE: Never return valid=true without backend confirmation.
    */
-  async validateEpin(pinNumber: string, agentId?: string): Promise<EpinValidationResponse> {
-    const trimmed = (pinNumber || "").trim();
+  async validateEpin(epinCode: string, agentId?: string): Promise<EpinValidationResponse> {
+    const trimmed = (epinCode || "").trim();
     if (!trimmed) {
       return {
         valid: false,
@@ -310,7 +310,11 @@ export const EpinService = {
 
     syncAuthSession();
     try {
-      const payload = { pinNumber: trimmed, agentId };
+      const payload = {
+        epinCode: trimmed,
+        pinNumber: trimmed,
+        agentId: agentId || undefined,
+      };
 
       let response: any = await api
         .post(`${getBackendOrigin()}/api/v1/epins/validate`, payload)

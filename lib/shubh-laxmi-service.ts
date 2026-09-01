@@ -280,12 +280,13 @@ export const ShubhLaxmiService = {
    * Verify E-PIN for ShubhLaxmi
    * POST /api/v1/shubh-laxmi/verify-epin
    */
-  verifyEPin: async (pinCode: string): Promise<ApiResponse<any>> => {
+  verifyEPin: async (epinCode: string): Promise<ApiResponse<any>> => {
     const token = getAuthToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const trimmed = (epinCode || "").trim();
     const response = await api.post<ApiResponse<any>>(
       "/v1/shubh-laxmi/verify-epin",
-      { pinCode },
+      { epinCode: trimmed, pinNumber: trimmed },
       { headers }
     );
     return response.data;

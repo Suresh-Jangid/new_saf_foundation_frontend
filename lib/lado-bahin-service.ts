@@ -293,12 +293,13 @@ export const LadoBahinService = {
    * Verify E-PIN for Lado Bahin
    * POST /api/v1/lado-bahin/verify-epin
    */
-  verifyEPin: async (pinCode: string): Promise<ApiResponse<any>> => {
+  verifyEPin: async (epinCode: string): Promise<ApiResponse<any>> => {
     const token = getAuthToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const trimmed = (epinCode || "").trim();
     const response = await api.post<ApiResponse<any>>(
       "/v1/lado-bahin/verify-epin",
-      { pinCode },
+      { epinCode: trimmed, pinNumber: trimmed },
       { headers }
     );
     return response.data;

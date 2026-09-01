@@ -33,9 +33,9 @@ export const EpinInputVerifier: React.FC<EpinInputVerifierProps> = ({
     useState<EpinValidationResponse | null>(null);
 
   const handleValidate = useCallback(
-    async (pinToValidate?: string) => {
-      const pin = (pinToValidate ?? value).trim();
-      if (!pin) {
+    async (epinCodeToValidate?: string) => {
+      const epinCode = (epinCodeToValidate ?? value).trim();
+      if (!epinCode) {
         setValidationResult(null);
         if (onVerified) onVerified(null);
         return;
@@ -43,13 +43,13 @@ export const EpinInputVerifier: React.FC<EpinInputVerifierProps> = ({
 
       setIsValidating(true);
       try {
-        const result = await EpinService.validateEpin(pin, agentId);
+        const result = await EpinService.validateEpin(epinCode, agentId);
         setValidationResult(result);
         if (onVerified) onVerified(result);
       } catch {
         const errorResult: EpinValidationResponse = {
           valid: false,
-          pinNumber: pin,
+          pinNumber: epinCode,
           message: "E-PIN service unavailable / सेवा अनुपलब्ध है",
           code: "UNAVAILABLE",
         };

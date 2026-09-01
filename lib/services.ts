@@ -865,7 +865,7 @@ export class APIService {
   static updateJanniDelivery = (id: string, data: any) => janniDeliveryAPI.update(id, data);
   static deleteJanniDelivery = (id: string) => janniDeliveryAPI.delete(id);
   static addJanniInstallment = (id: string, data: any) => janniDeliveryAPI.addInstallment(id, data);
-  static verifyJanniEPin = (pinCode: string) => janniDeliveryAPI.verifyEPin(pinCode);
+  static verifyJanniEPin = (epinCode: string) => janniDeliveryAPI.verifyEPin(epinCode);
 
   // Aawas (Home) Registration
   static createAawas = (data: any) => aawasAPI.create(data);
@@ -874,7 +874,7 @@ export class APIService {
   static updateAawas = (id: string, data: any) => aawasAPI.update(id, data);
   static deleteAawas = (id: string) => aawasAPI.delete(id);
   static addAawasInstallment = (id: string, data: any) => aawasAPI.addInstallment(id, data);
-  static verifyAawasEPin = (pinCode: string) => aawasAPI.verifyEPin(pinCode);
+  static verifyAawasEPin = (epinCode: string) => aawasAPI.verifyEPin(epinCode);
 
   // Lado Bahin (Muklawa) Registration
   static createLadoBahin = (data: any) => ladoBahinAPI.create(data);
@@ -883,7 +883,7 @@ export class APIService {
   static updateLadoBahin = (id: string, data: any) => ladoBahinAPI.update(id, data);
   static deleteLadoBahin = (id: string) => ladoBahinAPI.delete(id);
   static addLadoBahinInstallment = (id: string, data: any) => ladoBahinAPI.addInstallment(id, data);
-  static verifyLadoBahinEPin = (pinCode: string) => ladoBahinAPI.verifyEPin(pinCode);
+  static verifyLadoBahinEPin = (epinCode: string) => ladoBahinAPI.verifyEPin(epinCode);
 
   // Dhundhotsav Registration
   static createDhundhotsav = (data: any) => dhundhotsavAPI.create(data);
@@ -892,7 +892,7 @@ export class APIService {
   static updateDhundhotsav = (id: string, data: any) => dhundhotsavAPI.update(id, data);
   static deleteDhundhotsav = (id: string) => dhundhotsavAPI.delete(id);
   static addDhundhotsavInstallment = (id: string, data: any) => dhundhotsavAPI.addInstallment(id, data);
-  static verifyDhundhotsavEPin = (pinCode: string) => dhundhotsavAPI.verifyEPin(pinCode);
+  static verifyDhundhotsavEPin = (epinCode: string) => dhundhotsavAPI.verifyEPin(epinCode);
 
   // ShubhLaxmi Registration
   static createShubhLaxmi = (data: any) => shubhLaxmiAPI.create(data);
@@ -901,7 +901,7 @@ export class APIService {
   static updateShubhLaxmi = (id: string, data: any) => shubhLaxmiAPI.update(id, data);
   static deleteShubhLaxmi = (id: string) => shubhLaxmiAPI.delete(id);
   static addShubhLaxmiInstallment = (id: string, data: any) => shubhLaxmiAPI.addInstallment(id, data);
-  static verifyShubhLaxmiEPin = (pinCode: string) => shubhLaxmiAPI.verifyEPin(pinCode);
+  static verifyShubhLaxmiEPin = (epinCode: string) => shubhLaxmiAPI.verifyEPin(epinCode);
 }
 
 export default APIService; 

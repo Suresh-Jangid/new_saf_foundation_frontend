@@ -271,12 +271,13 @@ export const AawasService = {
    * Verify E-PIN for Aawas
    * POST /api/v1/aawas/verify-epin
    */
-  verifyEPin: async (pinCode: string): Promise<ApiResponse<any>> => {
+  verifyEPin: async (epinCode: string): Promise<ApiResponse<any>> => {
     const token = getAuthToken();
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const trimmed = (epinCode || "").trim();
     const response = await api.post<ApiResponse<any>>(
       "/v1/aawas/verify-epin",
-      { pinCode },
+      { epinCode: trimmed, pinNumber: trimmed },
       { headers }
     );
     return response.data;

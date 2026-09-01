@@ -1310,8 +1310,12 @@ export const janniDeliveryAPI = {
     const response = await api.post(`/v1/janni-delivery/${id}/installments`, data);
     return response.data;
   },
-  verifyEPin: async (pinCode: string): Promise<ApiResponse<any>> => {
-    const response = await api.post("/v1/janni-delivery/verify-epin", { pinCode });
+  verifyEPin: async (epinCode: string): Promise<ApiResponse<any>> => {
+    const trimmed = (epinCode || "").trim();
+    const response = await api.post("/v1/janni-delivery/verify-epin", {
+      epinCode: trimmed,
+      pinNumber: trimmed,
+    });
     return response.data;
   },
 };
@@ -1343,8 +1347,12 @@ export const aawasAPI = {
     const response = await api.post(`/v1/aawas/${id}/installments`, data);
     return response.data;
   },
-  verifyEPin: async (pinCode: string): Promise<ApiResponse<any>> => {
-    const response = await api.post("/v1/aawas/verify-epin", { pinCode });
+  verifyEPin: async (epinCode: string): Promise<ApiResponse<any>> => {
+    const trimmed = (epinCode || "").trim();
+    const response = await api.post("/v1/aawas/verify-epin", {
+      epinCode: trimmed,
+      pinNumber: trimmed,
+    });
     return response.data;
   },
 };
@@ -1376,8 +1384,12 @@ export const ladoBahinAPI = {
     const response = await api.post(`/v1/lado-bahin/${id}/installments`, data);
     return response.data;
   },
-  verifyEPin: async (pinCode: string): Promise<ApiResponse<any>> => {
-    const response = await api.post("/v1/lado-bahin/verify-epin", { pinCode });
+  verifyEPin: async (epinCode: string): Promise<ApiResponse<any>> => {
+    const trimmed = (epinCode || "").trim();
+    const response = await api.post("/v1/lado-bahin/verify-epin", {
+      epinCode: trimmed,
+      pinNumber: trimmed,
+    });
     return response.data;
   },
 };
@@ -1409,8 +1421,12 @@ export const dhundhotsavAPI = {
     const response = await api.post(`/v1/dhundhotsav/${id}/installments`, data);
     return response.data;
   },
-  verifyEPin: async (pinCode: string): Promise<ApiResponse<any>> => {
-    const response = await api.post("/v1/dhundhotsav/verify-epin", { pinCode });
+  verifyEPin: async (epinCode: string): Promise<ApiResponse<any>> => {
+    const trimmed = (epinCode || "").trim();
+    const response = await api.post("/v1/dhundhotsav/verify-epin", {
+      epinCode: trimmed,
+      pinNumber: trimmed,
+    });
     return response.data;
   },
 };
@@ -1442,8 +1458,12 @@ export const shubhLaxmiAPI = {
     const response = await api.post(`/v1/shubh-laxmi/${id}/installments`, data);
     return response.data;
   },
-  verifyEPin: async (pinCode: string): Promise<ApiResponse<any>> => {
-    const response = await api.post("/v1/shubh-laxmi/verify-epin", { pinCode });
+  verifyEPin: async (epinCode: string): Promise<ApiResponse<any>> => {
+    const trimmed = (epinCode || "").trim();
+    const response = await api.post("/v1/shubh-laxmi/verify-epin", {
+      epinCode: trimmed,
+      pinNumber: trimmed,
+    });
     return response.data;
   },
 };

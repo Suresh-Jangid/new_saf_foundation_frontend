@@ -57,6 +57,7 @@ export default function AddGeneralApplicationPage() {
     paymentDate?: string;
     pendingAmount?: string;
     selectedAgentId?: string;
+    epinCode?: string;
     epinNumber?: string;
   }>({
     // Auto-fill today's date on the add form (same behaviour as Mayra registration)
@@ -69,7 +70,7 @@ export default function AddGeneralApplicationPage() {
     gotra: "",
     mobile: "",
     address: "",
-    pinCode: "",
+    pinCode: "", // Applicant postal PIN code (e.g. 344022)
     tehsil: "",
     district: "",
     state: "",
@@ -84,6 +85,7 @@ export default function AddGeneralApplicationPage() {
     paymentDate: "",
     pendingAmount: '',
     selectedAgentId: "",
+    epinCode: "", // E-PIN Voucher Code (e.g. EPIN-7VWF-U9PE-STWA)
     epinNumber: ""
   })
 
@@ -206,15 +208,22 @@ export default function AddGeneralApplicationPage() {
 
       apiFormData.append('age', computedAge)
 
-      if (formData.epinNumber) {
-        apiFormData.append('epin', formData.epinNumber)
-        apiFormData.append('epinNumber', formData.epinNumber)
+      const activeEpin = (formData.epinCode || formData.epinNumber || '').trim()
+      if (activeEpin) {
+        apiFormData.append('epin', activeEpin)
+        apiFormData.append('epinNumber', activeEpin)
+        apiFormData.append('epinCode', activeEpin)
+        apiFormData.append('pinNumber', activeEpin)
       }
 
       // Use selected agent for addedby and addedby_id
       apiFormData.append('pendingAmount', String(Number(fee) - Number(formData.paymentAmount || 0)))
       apiFormData.append('addedby', 'agent')
       apiFormData.append('addedby_id', formData.selectedAgentId || '')
+      if (formData.selectedAgentId) {
+        apiFormData.append('selectedAgentId', formData.selectedAgentId)
+        apiFormData.append('agentId', formData.selectedAgentId)
+      }
 
       // Debug: Log the form data being sent
       console.log("Form data being sent:", {
@@ -232,10 +241,10 @@ export default function AddGeneralApplicationPage() {
         const applicationNumber: any = response.data.applicationNumber || response.data.id || response.data.formNumber || response.data.form_number;
 
         // Atomically consume E-PIN if applied
-        if (formData.epinNumber) {
+        if (activeEpin) {
           try {
             await EpinService.consumeEpin({
-              pinNumber: formData.epinNumber,
+              pinNumber: activeEpin,
               applicationId: String(applicationNumber || response.data.id || ""),
               applicantName: formData.applicantName,
               agentId: formData.selectedAgentId,
@@ -935,11 +944,22 @@ export default function AddGeneralApplicationPage() {
                 {/* E-PIN Voucher Verification */}
                 <div className="p-4 bg-muted/20 border rounded-lg">
                   <EpinInputVerifier
-                    value={formData.epinNumber || ""}
-                    onChange={(pin) =>
-                      setFormData((prev) => ({ ...prev, epinNumber: pin }))
+                    value={formData.epinCode || formData.epinNumber || ""}
+                    onChange={(epinVal) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        epinCode: epinVal,
+                        epinNumber: epinVal,
+                      }))
                     }
-                    agentId={formData.selectedAgentId}
+                    onVerified={(result) => {
+                      if (result && result.valid && result.schemeAmount) {
+                        toast.success(
+                          `E-PIN Validated: ₹${result.schemeAmount.toLocaleString("hi-IN")} voucher applied / ई-पिन मान्य है`
+                        );
+                      }
+                    }}
+                    agentId={formData.selectedAgentId || undefined}
                   />
                 </div>
 

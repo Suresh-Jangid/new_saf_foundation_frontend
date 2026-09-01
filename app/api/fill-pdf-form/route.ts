@@ -30,8 +30,6 @@ export async function POST(request: NextRequest) {
       coordSystem,        // 'bottom-left' | 'top-left'
       valueOffsetX: reqValueOffsetX,
       valueOffsetY: reqValueOffsetY,
-      baseWidth,
-      baseHeight,
       imageData, // Add image data parameter
     } = await request.json();
 
@@ -39,22 +37,16 @@ export async function POST(request: NextRequest) {
     console.log('Type:', type);
     console.log('Image data received:', !!imageData);
 
-    // Determine template path based on gender and type
+    // Determine template path based on type
     let templatePath: string;
     
     if (type === 'general-application') {
-      // For general applications, use gender-specific templates
-      const gender = data?.gender || data?.लिंग;
-      console.log('Gender detected:', gender);
-      
-      if (gender === 'Female' || gender === 'महिला' || gender === 'Female') {
-        templatePath = path.join(process.cwd(), 'public', 'pdf', 'general_application', 'balika_application_form.pdf');
-      } else if (gender === 'Male' || gender === 'पुरुष' || gender === 'Male') {
-        templatePath = path.join(process.cwd(), 'public', 'pdf', 'general_application', 'boys_application_form.pdf');
-      } else {
-        // Default to Female template if gender is not specified
-        templatePath = path.join(process.cwd(), 'public', 'pdf', 'general_application', 'balika_application_form.pdf');
-      }
+      // Use the newly approved unified General Application form template
+      const candidateTemplates = [
+        path.join(process.cwd(), 'public', 'pdf', 'general_application', 'general_application_form.pdf'),
+        path.join(process.cwd(), 'public', 'pdf', 'general_application', '3 (general form).pdf'),
+      ];
+      templatePath = candidateTemplates.find((p) => fs.existsSync(p)) || '';
     } else {
       // For other types (like balika-avedan), use the original template resolution
       const candidateTemplates = [
@@ -103,7 +95,7 @@ export async function POST(request: NextRequest) {
         
         // Determine image type and embed accordingly
         let image;
-        if (imageData.startsWith('data:image/jpeg')) {
+        if (imageData.startsWith('data:image/jpeg') || imageData.startsWith('data:image/jpg')) {
           image = await pdfDoc.embedJpg(imageBytes);
         } else if (imageData.startsWith('data:image/png')) {
           image = await pdfDoc.embedPng(imageBytes);
@@ -112,12 +104,11 @@ export async function POST(request: NextRequest) {
         }
 
         if (image) {
-          // Calculate image position and size for passport photo
-          // Adjust these coordinates based on your form layout
-          const imageX = 480; // X position for photo
-          const imageY = 210; // Y position for photo
-          const imageWidth = 80; // Width of the photo
-          const imageHeight = 95; // Height of the photo
+          // Precise passport photo box dimensions for approved template
+          const imageX = type === 'general-application' ? 460 : 480;
+          const imageY = type === 'general-application' ? 218 : 210;
+          const imageWidth = type === 'general-application' ? 92 : 80;
+          const imageHeight = type === 'general-application' ? 120 : 95;
 
           // Draw the image on the PDF
           firstPage.drawImage(image, {
@@ -138,15 +129,9 @@ export async function POST(request: NextRequest) {
     const debugMode: boolean = Boolean(debug);
     const globalOffsetX: number = typeof offsetX === 'number' ? offsetX : 0;
     const globalOffsetY: number = typeof offsetY === 'number' ? offsetY : 0;
-    // Default to top-left which usually matches how template coordinates are measured visually
+    // Default to top-left which matches visual layout measurement
     const coordinateSystem: 'bottom-left' | 'top-left' =
       coordSystem === 'bottom-left' ? 'bottom-left' : 'top-left';
-
-    // Scale factors if coordinates were measured on a different base size
-    const baseW: number = typeof baseWidth === 'number' && baseWidth > 0 ? baseWidth : 595; // A4 width (pt)
-    const baseH: number = typeof baseHeight === 'number' && baseHeight > 0 ? baseHeight : 842; // A4 height (pt)
-    const scaleX = pageWidth / baseW;
-    const scaleY = pageHeight / baseH;
 
     // Try to embed a Devanagari-capable font; fallback to Helvetica
     let font;
@@ -170,80 +155,93 @@ export async function POST(request: NextRequest) {
       font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     }
 
-    // Updated field mappings - each field appears only once
-    const baseFieldMappings: { field: keyof typeof data; x: number; y: number }[] = [
-      // Header section      
-
-      { field: 'सदस्यता_क्रमांक' as any, x: 80, y: 185 },   // Membership number (top left box)
-      { field: 'आवेदन_दिनांक' as any, x: 490, y: 185 },    // Application date (top right box)
-
-
-        // Main form section - Adjusted based on form structure
-        { field: 'आवेदक_का_नाम' as any, x:90, y: 240 },   // Applicant name (श्रीमती field)
-        { field: 'पिता_का_नाम' as any, x: 315, y: 240 },    // Father's name (पुत्री field)
-        { field: 'माता_का_नाम' as any, x: 120, y: 270 },     // Mother's name
-        { field: 'जन्म_तिथि' as any, x: 325, y: 270 },       // Date of birth
-        { field: 'गोत्र' as any, x: 80, y: 300 },           // Gotra
-        { field: 'उम्र' as any, x: 250, y: 300 },            // Age
-        { field: 'मोबाइल' as any, x: 370, y: 300 },          // Mobile number
-        { field: 'आधार_संख्या' as any, x: 110, y: 330 },     // Aadhaar number
-        
-        // Address section
-        { field: 'पता' as any, x: 80, y: 360 },             // Address
-        { field: 'पिन' as any, x: 80, y: 385 },             // PIN
-        { field: 'तहसील' as any, x: 220, y: 385 },           // Tehsil
-        { field: 'जिला' as any, x: 350, y: 385 },            // District
-        { field: 'राज्य' as any, x: 470, y:385 },           // State
-        
-        // Nominee section
-        { field: 'नामिनी_का_नाम' as any, x: 120, y: 415 },   // Nominee name
-        { field: 'नामिनी_का_सम्बन्ध' as any, x: 390, y: 415 },    // Relationship with nominee
-        // { field: 'नामिनी_का_पता' as any, x: 120, y: 440 },   // Nominee address
-        
-        // Worker section
-        { field: 'कार्यकर्ता_का_नाम' as any, x: 130, y: 450 }, // Worker name
-        { field: 'कार्यकर्ता_का_मोबाइल' as any, x: 340, y: 450 }, // Worker mobile
-        
-        // Oath section fields (शपथ पत्र)
-        { field: 'शपथ_नाम' as any, x: 90, y: 630},         // Name in oath section
-        { field: 'शपथ_पिता_का_नाम' as any, x: 300, y: 630 },    // Father name in oath
-        { field: 'उम्र' as any, x: 480, y: 630 },
-        { field: 'शपथ_गोत्र' as any, x: 60 , y: 660 },       // Gotra in oath
-        { field: 'शपथ_पता' as any, x: 225, y: 660 },         // Address in oath  
-    ];
-
-    // Target anchors for the actual A4 form layout
-    const anchorTargetFor: Record<string, { x: number; y: number }> = {
-      'सदस्यता_क्रमांक': { x: 80, y: 185 },
-      'आवेदन_दिनांक': { x: 490, y: 180 },
+    // Define field mappings according to template type
+    type FieldDef = {
+      field: string;
+      valueKeys: string[];
+      x: number;
+      y: number;
+      size?: number;
+      color?: { r: number; g: number; b: number };
+      isDate?: boolean;
+      formatAmount?: boolean;
     };
 
-    // Compute affine transform (scale + translate) using the two anchors (assume no rotation)
-    const anchorBase1 = baseFieldMappings.find((f) => f.field === ('सदस्यता_क्रमांक' as any))!;
-    const anchorBase2 = baseFieldMappings.find((f) => f.field === ('आवेदन_दिनांक' as any))!;
-    const anchorNew1 = anchorTargetFor['सदस्यता_क्रमांक'];
-    const anchorNew2 = anchorTargetFor['आवेदन_दिनांक'];
+    let fieldDefinitions: FieldDef[] = [];
 
-    const denomX = anchorBase2.x - anchorBase1.x || 1; // prevent divide-by-zero
-    const sxAff = (anchorNew2.x - anchorNew1.x) / denomX;
-    const txAff = anchorNew1.x - sxAff * anchorBase1.x;
+    if (type === 'general-application') {
+      // Approved single-page template with 2 distinct sections
+      fieldDefinitions = [
+        // ==========================================
+        // SECTION 1: "आवेदन–फॉर्म" (Top Section)
+        // ==========================================
+        { field: 'क्रमांक', valueKeys: ['सदस्यता_क्रमांक', 'formNumber', 'applicationNumber', 'application_no'], x: 135, y: 191, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'दिनांक', valueKeys: ['आवेदन_दिनांक', 'applicationDate', 'date', 'created_at'], x: 465, y: 191, size: 9.5, isDate: true },
+        { field: 'नाम', valueKeys: ['आवेदक_का_नाम', 'applicantName', 'name', 'shapath_name', 'शपथ_नाम'], x: 75, y: 222, size: 10 },
+        { field: 'पिता_का_नाम', valueKeys: ['पिता_का_नाम', 'fatherName', 'father_husband_name', 'शपथ_पिता_का_नाम'], x: 140, y: 248, size: 10 },
+        { field: 'जन्म_दिनांक', valueKeys: ['जन्म_तिथि', 'dateOfBirth', 'dob'], x: 110, y: 274, size: 9.5, isDate: true },
+        { field: 'लिंग', valueKeys: ['gender', 'लिंग'], x: 220, y: 274, size: 9.5 },
+        { field: 'शिक्षा', valueKeys: ['education', 'शिक्षा', 'qualification'], x: 330, y: 274, size: 9.5 },
+        { field: 'आधार_संख्या', valueKeys: ['आधार_संख्या', 'aadharNumber', 'aadhar_no', 'aadhaar'], x: 155, y: 301, size: 10 },
+        { field: 'पता', valueKeys: ['पता', 'address', 'full_address', 'शपथ_पता'], x: 75, y: 331, size: 9.5 },
+        { field: 'जिला', valueKeys: ['जिला', 'district'], x: 75, y: 357, size: 9.5 },
+        { field: 'राज्य', valueKeys: ['राज्य', 'state'], x: 215, y: 357, size: 9.5 },
+        { field: 'मोबाइल', valueKeys: ['मोबाइल', 'mobile', 'phone'], x: 370, y: 357, size: 9.5 },
+        { field: 'नामिनी_का_नाम', valueKeys: ['नामिनी_का_नाम', 'nomineeName', 'nominee_name'], x: 130, y: 384, size: 10 },
+        { field: 'नामिनी_का_सम्बन्ध', valueKeys: ['नामिनी_का_सम्बन्ध', 'nomineeRelation', 'nominee_relation'], x: 380, y: 384, size: 10 },
+        { field: 'नामिनी_का_आधार', valueKeys: ['नामिनी_का_आधार', 'nomineeAadhar', 'nominee_aadhar'], x: 150, y: 411, size: 9.5 },
+        { field: 'नामिनी_का_मोबाइल', valueKeys: ['नामिनी_का_मोबाइल', 'nomineeMobile', 'nominee_mobile'], x: 305, y: 411, size: 9.5 },
+        { field: 'कार्यकर्ता_कोड', valueKeys: ['कार्यकर्ता_कोड', 'workerCode', 'worker_code', 'कार्यकर्ता_का_नाम', 'added_name', 'workerName'], x: 485, y: 411, size: 9.5 },
+        { field: 'राशि', valueKeys: ['राशि', 'amount', 'total_amount', 'fee'], x: 70, y: 439, size: 9.5, formatAmount: true },
+        { field: 'भुगतान_विवरण', valueKeys: ['भुगतान_विवरण', 'paymentModeRef', 'paymentRef', 'payment_mode', 'utr_no', 'transaction_id'], x: 310, y: 439, size: 9.5 },
+        { field: 'सीनियर_कोड', valueKeys: ['सीनियर_कोड', 'seniorCode', 'senior_code'], x: 485, y: 439, size: 9.5 },
 
-    // y: anchors had same baseline y, can't solve sy from two points -> assume sy = 1
-    const syAff = 1;
-    const tyAff = ((anchorNew1.y - anchorBase1.y) + (anchorNew2.y - anchorBase2.y)) / 2;
+        // ==========================================
+        // SECTION 2: "सदस्यता फार्म रसीद" (Bottom Section)
+        // ==========================================
+        { field: 'रसीद_क्रमांक', valueKeys: ['सदस्यता_क्रमांक', 'formNumber', 'applicationNumber', 'application_no'], x: 135, y: 656, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'रसीद_दिनांक', valueKeys: ['आवेदन_दिनांक', 'applicationDate', 'date', 'created_at'], x: 485, y: 656, size: 9.5, isDate: true },
+        { field: 'रसीद_नाम', valueKeys: ['आवेदक_का_नाम', 'applicantName', 'name', 'shapath_name', 'शपथ_नाम'], x: 75, y: 681, size: 10 },
+        { field: 'रसीद_पिता_का_नाम', valueKeys: ['पिता_का_नाम', 'fatherName', 'father_husband_name', 'शपथ_पिता_का_नाम'], x: 335, y: 681, size: 10 },
+        { field: 'रसीद_पता', valueKeys: ['पता', 'address', 'full_address', 'शपथ_पता'], x: 75, y: 706, size: 9.5 },
+        { field: 'रसीद_मोबाइल', valueKeys: ['मोबाइल', 'mobile', 'phone'], x: 75, y: 731, size: 9.5 },
+        { field: 'रसीद_भुगतान_विवरण', valueKeys: ['भुगतान_विवरण', 'paymentModeRef', 'paymentRef', 'payment_mode', 'utr_no', 'transaction_id'], x: 325, y: 731, size: 9.5 },
+        { field: 'रसीद_राशि', valueKeys: ['राशि', 'amount', 'total_amount', 'fee'], x: 110, y: 756, size: 9.5, formatAmount: true },
+        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['राशि', 'amount', 'total_amount', 'fee'], x: 120, y: 788, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
+      ];
+    } else {
+      // Legacy / fallback mappings
+      fieldDefinitions = [
+        { field: 'सदस्यता_क्रमांक', valueKeys: ['सदस्यता_क्रमांक'], x: 80, y: 185, size: 12 },
+        { field: 'आवेदन_दिनांक', valueKeys: ['आवेदन_दिनांक'], x: 490, y: 185, size: 12, isDate: true },
+        { field: 'आवेदक_का_नाम', valueKeys: ['आवेदक_का_नाम'], x: 90, y: 240, size: 12 },
+        { field: 'पिता_का_नाम', valueKeys: ['पिता_का_नाम'], x: 315, y: 240, size: 12 },
+        { field: 'माता_का_नाम', valueKeys: ['माता_का_नाम'], x: 120, y: 270, size: 12 },
+        { field: 'जन्म_तिथि', valueKeys: ['जन्म_तिथि'], x: 325, y: 270, size: 12, isDate: true },
+        { field: 'गोत्र', valueKeys: ['गोत्र'], x: 80, y: 300, size: 12 },
+        { field: 'उम्र', valueKeys: ['उम्र'], x: 250, y: 300, size: 12 },
+        { field: 'मोबाइल', valueKeys: ['मोबाइल'], x: 370, y: 300, size: 12 },
+        { field: 'आधार_संख्या', valueKeys: ['आधार_संख्या'], x: 110, y: 330, size: 12 },
+        { field: 'पता', valueKeys: ['पता'], x: 80, y: 360, size: 12 },
+        { field: 'पिन', valueKeys: ['पिन'], x: 80, y: 385, size: 12 },
+        { field: 'तहसील', valueKeys: ['तहसील'], x: 220, y: 385, size: 12 },
+        { field: 'जिला', valueKeys: ['जिला'], x: 350, y: 385, size: 12 },
+        { field: 'राज्य', valueKeys: ['राज्य'], x: 470, y: 385, size: 12 },
+        { field: 'नामिनी_का_नाम', valueKeys: ['नामिनी_का_नाम'], x: 120, y: 415, size: 12 },
+        { field: 'नामिनी_का_सम्बन्ध', valueKeys: ['नामिनी_का_सम्बन्ध'], x: 390, y: 415, size: 12 },
+        { field: 'कार्यकर्ता_का_नाम', valueKeys: ['कार्यकर्ता_का_नाम'], x: 130, y: 450, size: 12 },
+        { field: 'कार्यकर्ता_का_मोबाइल', valueKeys: ['कार्यकर्ता_का_मोबाइल'], x: 340, y: 450, size: 12 },
+        { field: 'शपथ_नाम', valueKeys: ['शपथ_नाम'], x: 90, y: 630, size: 12 },
+        { field: 'शपथ_पिता_का_नाम', valueKeys: ['शपथ_पिता_का_नाम'], x: 300, y: 630, size: 12 },
+        { field: 'शपथ_गोत्र', valueKeys: ['शपथ_गोत्र'], x: 60, y: 660, size: 12 },
+        { field: 'शपथ_पता', valueKeys: ['शपथ_पता'], x: 225, y: 660, size: 12 },
+      ];
+    }
 
-    // Build effective field mappings by transforming baseline coords
-    const fieldMappings = baseFieldMappings.map((f) => ({
-      field: f.field,
-      x: sxAff * f.x + txAff,
-      y: syAff * f.y + tyAff,
-    }));
-
-    // Optional debug grid (helps determine coordinates). Coordinates are in PDF points from bottom-left.
+    // Optional debug grid
     if (debugMode) {
       const gridStep = 25;
       const majorStep = 100;
-      // Grid lines
       for (let x = 0; x <= pageWidth; x += gridStep) {
         firstPage.drawLine({
           start: { x, y: 0 },
@@ -260,69 +258,68 @@ export async function POST(request: NextRequest) {
           color: rgb(0.85, 0.85, 0.85),
         });
       }
-      // Axes labels
       for (let x = 0; x <= pageWidth; x += majorStep) {
         firstPage.drawText(String(x), { x: x + 2, y: 4, size: 8, font, color: rgb(0.2, 0.2, 0.2) });
       }
       for (let y = 0; y <= pageHeight; y += majorStep) {
         firstPage.drawText(String(y), { x: 2, y: y + 2, size: 8, font, color: rgb(0.2, 0.2, 0.2) });
       }
-      
-      // Draw test markers at form field positions
-      fieldMappings.forEach(mapping => {
-        const drawX = mapping.x;
-        const drawY = coordinateSystem === 'top-left' ? pageHeight - mapping.y : mapping.y;
-        
-        // Draw a red dot at each position
-        firstPage.drawCircle({
-          x: drawX,
-          y: drawY,
-          size: 3,
-          color: rgb(1, 0, 0),
-        });
-        // Draw the label
-        firstPage.drawText(String(mapping.field), {
-          x: drawX + 5,
-          y: drawY + 5,
-          size: 6,
-          font,
-          color: rgb(0.2, 0.2, 0.2),
-        });
-      });
     }
 
-    // Treat mapping coordinates as absolute positions; request offsets allow quick nudging
     const valueOffsetX = typeof reqValueOffsetX === 'number' ? reqValueOffsetX : 0;
     const valueOffsetY = typeof reqValueOffsetY === 'number' ? reqValueOffsetY : 0;
-    for (const mapping of fieldMappings) {
-      let value = (data as any)[mapping.field];
-      if (!value) continue;
-      
-      // Format date fields
-      if (mapping.field === 'आवेदन_दिनांक' || mapping.field === 'जन्म_तिथि') {
-        value = formatDateToDDMMYYYY(value);
+
+    for (const def of fieldDefinitions) {
+      let val: any = undefined;
+      for (const key of def.valueKeys) {
+        if (data && data[key] !== undefined && data[key] !== null && String(data[key]).trim() !== '') {
+          val = data[key];
+          break;
+        }
       }
-      // Coordinates are absolute (A4 pt). Apply only request offsets.
-      const baseX = mapping.x + valueOffsetX + globalOffsetX;
-      const baseY = mapping.y + valueOffsetY + globalOffsetY;
+
+      if (val === undefined || val === null || String(val).trim() === '') {
+        continue;
+      }
+
+      let textValue = String(val).trim();
+
+      // Format date
+      if (def.isDate) {
+        textValue = formatDateToDDMMYYYY(textValue);
+      }
+
+      // Format amount
+      if (def.formatAmount) {
+        if (textValue && !textValue.endsWith('/-') && !isNaN(Number(textValue.replace(/,/g, '')))) {
+          textValue = `${textValue}/-`;
+        }
+      }
+
+      const baseX = def.x + valueOffsetX + globalOffsetX;
+      const baseY = def.y + valueOffsetY + globalOffsetY;
       const drawX = baseX;
       const drawY = coordinateSystem === 'top-left' ? pageHeight - baseY : baseY;
+      const fontSize = def.size || 9.5;
+      const textColor = def.color
+        ? rgb(def.color.r, def.color.g, def.color.b)
+        : rgb(0.1, 0.1, 0.1);
+
       if (debugMode) {
-        // Marker to show exact anchor point of text
         firstPage.drawRectangle({ x: drawX - 1, y: drawY - 1, width: 2, height: 2, color: rgb(1, 0, 0) });
       }
-      firstPage.drawText(String(value), {
+
+      firstPage.drawText(textValue, {
         x: drawX,
         y: drawY,
-        size: 12,
+        size: fontSize,
         font,
-        color: rgb(0, 0, 0),
+        color: textColor,
       });
     }
 
     // Serialize the PDF
     const pdfBytes = await pdfDoc.save();
-    // Ensure we pass an ArrayBuffer (BodyInit compatible in this environment)
     const arrayBuffer = pdfBytes.buffer.slice(
       pdfBytes.byteOffset,
       pdfBytes.byteOffset + pdfBytes.byteLength

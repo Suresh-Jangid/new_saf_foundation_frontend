@@ -164,13 +164,13 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
 
   // --- 8. ShubhLaxmi (Deepawali) Registration Application (Generic Architecture Slot) ---
   {
-    id: "shubhlaxmi",
+    id: "shubh_laxmi",
     name: { en: "ShubhLaxmi (Deepawali) Registration", hi: "शुभलक्ष्मी पंजीकरण" },
     subtitle: { en: "ShubhLaxmi Registration Application", hi: "शुभलक्ष्मी आवेदन" },
     category: "SCHEME",
-    route: "/dashboard/shubhlaxmi",
+    route: "/dashboard/shubh-laxmi",
     iconName: "Sparkles",
-    permissionKey: "shubhlaxmi",
+    permissionKey: "shubh_laxmi",
     enabled: true,
     isNewSlot: true,
     hasGrantPayment: true,

@@ -1398,4 +1398,37 @@ export const dhundhotsavAPI = {
   },
 };
 
+// ShubhLaxmi Registration API Services
+export const shubhLaxmiAPI = {
+  create: async (data: any): Promise<ApiResponse<any>> => {
+    const response = await api.post("/v1/shubh-laxmi", data);
+    return response.data;
+  },
+  getAll: async (filters?: Record<string, any>): Promise<ApiResponse<any>> => {
+    const query = filters ? new URLSearchParams(filters).toString() : "";
+    const response = await api.get(`/v1/shubh-laxmi${query ? `?${query}` : ""}`);
+    return response.data;
+  },
+  getById: async (id: string): Promise<ApiResponse<any>> => {
+    const response = await api.get(`/v1/shubh-laxmi/${id}`);
+    return response.data;
+  },
+  update: async (id: string, data: any): Promise<ApiResponse<any>> => {
+    const response = await api.put(`/v1/shubh-laxmi/${id}`, data);
+    return response.data;
+  },
+  delete: async (id: string): Promise<ApiResponse<any>> => {
+    const response = await api.delete(`/v1/shubh-laxmi/${id}`);
+    return response.data;
+  },
+  addInstallment: async (id: string, data: any): Promise<ApiResponse<any>> => {
+    const response = await api.post(`/v1/shubh-laxmi/${id}/installments`, data);
+    return response.data;
+  },
+  verifyEPin: async (pinCode: string): Promise<ApiResponse<any>> => {
+    const response = await api.post("/v1/shubh-laxmi/verify-epin", { pinCode });
+    return response.data;
+  },
+};
+
 export default api; 

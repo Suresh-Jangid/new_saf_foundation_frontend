@@ -25,6 +25,7 @@ import {
   aawasAPI,
   ladoBahinAPI,
   dhundhotsavAPI,
+  shubhLaxmiAPI,
   post
 } from './api';
 
@@ -892,6 +893,15 @@ export class APIService {
   static deleteDhundhotsav = (id: string) => dhundhotsavAPI.delete(id);
   static addDhundhotsavInstallment = (id: string, data: any) => dhundhotsavAPI.addInstallment(id, data);
   static verifyDhundhotsavEPin = (pinCode: string) => dhundhotsavAPI.verifyEPin(pinCode);
+
+  // ShubhLaxmi Registration
+  static createShubhLaxmi = (data: any) => shubhLaxmiAPI.create(data);
+  static getShubhLaxmiRegistrations = (filters?: Record<string, any>) => shubhLaxmiAPI.getAll(filters);
+  static getShubhLaxmiById = (id: string) => shubhLaxmiAPI.getById(id);
+  static updateShubhLaxmi = (id: string, data: any) => shubhLaxmiAPI.update(id, data);
+  static deleteShubhLaxmi = (id: string) => shubhLaxmiAPI.delete(id);
+  static addShubhLaxmiInstallment = (id: string, data: any) => shubhLaxmiAPI.addInstallment(id, data);
+  static verifyShubhLaxmiEPin = (pinCode: string) => shubhLaxmiAPI.verifyEPin(pinCode);
 }
 
 export default APIService; 

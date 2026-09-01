@@ -8,8 +8,6 @@ import { useToast } from "@/hooks/use-toast"
 import { formatBilingual } from "@/lib/translations"
 import { RoleGuard } from "@/components/role-guard"
 import { RazorpayPayment } from "@/components/razorpay-payment"
-import { sendWhatsAppMessage, sendWhatsAppFile } from "@/lib/fireconnect-whatsapp-service"
-import { processImageForPDF } from "@/lib/utils"
 import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode } from "@/lib/form-values"
 import { DatePickerField } from "./date-picker-field"
 import { InputField } from "./input-field"
@@ -177,93 +175,6 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
           } catch (epinErr) {
             console.error("E-PIN post-registration consumption note:", epinErr);
           }
-        }
-
-        // --- WhatsApp Messaging & Bond Generation ---
-        try {
-
-          const selectedAgent = agents.find(a => a.id.toString() === formData.selectedAgentId)
-          const agentName = selectedAgent ? selectedAgent.name : ''
-
-          const recordData = {
-            id: res.id,
-            formNumber: applicationNumber,
-            applicationDate: formData.applicationDate,
-            applicantName: formData.applicantName,
-            fatherName: formData.fatherName,
-            motherName: formData.motherName,
-            dateOfBirth: formData.dateOfBirth,
-            aadharNumber: formData.aadharNumber,
-            wifeName: formData.wifeName,
-            gotra: formData.gotra,
-            mobile: formData.mobile,
-            address: formData.address,
-            pinCode: formData.pinCode,
-            tehsil: formData.tehsil,
-            district: formData.district,
-            state: formData.state,
-            nomineeName: formData.nomineeName || '',
-            nomineeRelation: formData.nomineeRelation || '',
-            affidavit: formData.affidavit,
-            gender: formData.gender,
-            category: formData.category,
-            age: parseInt(age) || 0,
-            workerName: agentName,
-            added_name: agentName,
-          }
-
-          // 1. Send Text Message
-          const message = `नमस्ते ${formData.applicantName},\n\n पुरबिया प्रजापति बालिका विवाह & सशक्तिकरण फाउण्डेशन के सुरक्षा योजना मे जुड़ने के लिए आपका बहुत बहुत धन्यवाद 🙏 \n\nअधिक जानकारी हेतु संपर्क करे \nपीराराम तेनगरिया जसोल \n9413032072, 8209467238`
-
-          await sendWhatsAppMessage(formData.mobile, message)
-          toast({
-            title: "Success",
-            description: "WhatsApp message sent successfully",
-          })
-
-          // 2. Generate and Send Bond
-          toast({
-            title: "Info",
-            description: "Generating and sending bond...",
-          })
-
-          const imageData = await processImageForPDF(formData.passportPhoto)
-          const bondResponse = await fetch('/api/generate-insurance-bond-pdf', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              record: recordData,
-              imageData,
-              daysText: "90 दिन"
-            }),
-          })
-
-          if (bondResponse.ok) {
-            const bondBlob = await bondResponse.blob()
-            const bondFile = new File([bondBlob], `Bond_${applicationNumber}.pdf`, { type: 'application/pdf' })
-
-            await sendWhatsAppFile(formData.mobile, bondFile, `Bond - ${applicationNumber}`)
-            toast({
-              title: "Success",
-              description: "Bond sent to WhatsApp successfully",
-            })
-          } else {
-            console.error("Failed to generate bond for WhatsApp")
-            toast({
-              title: "Error",
-              description: "Failed to generate bond for WhatsApp",
-              variant: "destructive",
-            })
-          }
-        } catch (waError) {
-          console.error("WhatsApp integration error:", waError)
-          toast({
-            title: "Warning",
-            description: "Failed to send WhatsApp message/file",
-            variant: "destructive",
-          })
         }
 
         router.push("/dashboard/general-applications-insurance")

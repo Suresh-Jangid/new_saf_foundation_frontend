@@ -88,6 +88,29 @@ if (fs.existsSync(generalAppPath)) {
     content.includes('यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।'),
     '409 Conflict message is preserved'
   );
+  assert(
+    !content.includes('sendWhatsAppMessage') &&
+    !content.includes('sendWhatsAppFile') &&
+    !content.includes('fireconnect-whatsapp-service') &&
+    !content.includes('Failed to send WhatsApp message/file'),
+    'General Marriage Add page has ZERO obsolete client-side WhatsApp dispatch or error toasts'
+  );
+}
+
+// 2b. Check Insurance Bima Registration form
+console.log('\n2b. Auditing Insurance Bima Registration (components/forms/optimized-insurance-form.tsx)...');
+const insuranceFormPath = path.join(rootDir, 'components', 'forms', 'optimized-insurance-form.tsx');
+assert(fs.existsSync(insuranceFormPath), 'components/forms/optimized-insurance-form.tsx exists');
+
+if (fs.existsSync(insuranceFormPath)) {
+  const content = fs.readFileSync(insuranceFormPath, 'utf8');
+  assert(
+    !content.includes('sendWhatsAppMessage') &&
+    !content.includes('sendWhatsAppFile') &&
+    !content.includes('fireconnect-whatsapp-service') &&
+    !content.includes('Failed to send WhatsApp message/file'),
+    'Insurance Bima Registration form has ZERO obsolete client-side WhatsApp dispatch or error toasts'
+  );
 }
 
 // 3. Check EpinInputVerifier Component

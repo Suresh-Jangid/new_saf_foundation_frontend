@@ -6,6 +6,19 @@ import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 
 export const runtime = 'nodejs';
 
+// Add OPTIONS method to handle CORS preflight requests
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { record, imageData, duration } = await request.json();
@@ -13,22 +26,18 @@ export async function POST(request: NextRequest) {
     console.log('Received record for bond PDF:', record);
     console.log('Image data received for bond:', !!imageData);
 
-    // Determine template path based on gender
-    let templatePath: string;
-    const gender = record?.gender;
-    console.log('Gender detected for bond:', gender);
+    // Determine template path (supporting unified approved Vivah Yojana bond template with fallbacks)
+    const candidateTemplates = [
+      path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'vivah_yojana_bond.pdf'),
+      path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'viva yojana bond(1).pdf'),
+      path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'girl_bond.pdf'),
+      path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'boys_bond.pdf'),
+    ];
     
-    if (gender === 'Female' || gender === 'महिला') {
-      templatePath = path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'girl_bond.pdf');
-    } else if (gender === 'Male' || gender === 'पुरुष') {
-      templatePath = path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'boys_bond.pdf');
-    } else {
-      // Default to girl bond template if gender is not specified
-      templatePath = path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'girl_bond.pdf');
-    }
+    const templatePath = candidateTemplates.find((p) => fs.existsSync(p));
 
-    if (!fs.existsSync(templatePath)) {
-      throw new Error(`Bond template not found: ${templatePath}`);
+    if (!templatePath || !fs.existsSync(templatePath)) {
+      throw new Error(`Bond template not found in candidates: ${candidateTemplates.join(', ')}`);
     }
 
     console.log('Using bond template:', templatePath);
@@ -65,7 +74,7 @@ export async function POST(request: NextRequest) {
         
         // Determine image type and embed accordingly
         let image;
-        if (imageData.startsWith('data:image/jpeg')) {
+        if (imageData.startsWith('data:image/jpeg') || imageData.startsWith('data:image/jpg')) {
           image = await pdfDoc.embedJpg(imageBytes);
         } else if (imageData.startsWith('data:image/png')) {
           image = await pdfDoc.embedPng(imageBytes);
@@ -74,17 +83,16 @@ export async function POST(request: NextRequest) {
         }
 
         if (image) {
-          // Calculate image position and size for passport photo in bond
-          // Adjust these coordinates based on your bond form layout
-          const imageX = 420; // X position for photo
-          const imageY = 180; // Y position for photo
-          const imageWidth = 60; // Width of the photo
-          const imageHeight = 75; // Height of the photo
+          // Precise passport photo box dimensions for approved Vivah Yojana bond template (504 x 324 pt canvas)
+          const imageX = 405;
+          const imageY = 146;
+          const imageWidth = 74;
+          const imageHeight = 84;
 
-          // Draw the image on the PDF
+          // Draw the image on the PDF (converted to bottom-left coordinate system)
           firstPage.drawImage(image, {
             x: imageX,
-            y: pageHeight - imageY - imageHeight, // Convert to bottom-left coordinate system
+            y: pageHeight - imageY - imageHeight,
             width: imageWidth,
             height: imageHeight,
           });
@@ -93,7 +101,6 @@ export async function POST(request: NextRequest) {
         }
       } catch (imageError) {
         console.error('Error embedding image in bond PDF:', imageError);
-        // Continue without image if there's an error
       }
     }
 
@@ -109,9 +116,8 @@ export async function POST(request: NextRequest) {
         throw new Error('Devanagari font found but fontkit is not installed. Run npm i @pdf-lib/fontkit and try again.');
       }
       const customFontBytes = fs.readFileSync(devanagariFontPath);
-      font = await pdfDoc.embedFont(customFontBytes as any, { subset: true });
+      font = await pdfDoc.embedFont(customFontBytes as any, { subset: false });
     } else {
-      // Check if there's Hindi text in the record
       const containsHindi = Object.values(record ?? {}).some((v) => /[\u0900-\u097F]/.test(String(v)));
       if (containsHindi) {
         throw new Error('Hindi text detected but no Devanagari TTF font found. Place a font like public/fonts/NotoSansDevanagari-Regular.ttf.');
@@ -119,78 +125,79 @@ export async function POST(request: NextRequest) {
       font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     }
 
-    // Field mappings for the bond PDF - adjust coordinates as needed
-    const fieldMappings = [
-        { field: 'formNumber', x: 80, y: 150, label: 'Form Number' },
-        { field: 'applicationDate', x: 425, y: 150, label: 'Application Date' },
-      { field: 'applicantName', x: 60, y: 185, label: 'Applicant Name' },
-      { field: 'fatherName', x: 250, y: 185, label: 'Father Name' },    
-      { field: 'age', x: 380, y: 185, label: 'Age' },  
-      { field: 'gotra', x: 60, y: 215, label: 'Gotra' },     
-      { field: 'address', x: 240, y: 215, label: 'Address' },
-    ];
-
-    // Add data to the PDF
-    for (const mapping of fieldMappings) {
-      let value = record[mapping.field];
-      if (!value) continue;
-      
-      // Format date fields
-      if (mapping.field === 'applicationDate') {
-        value = formatDateToDDMMYYYY(value);
-      }
-
-      const drawX = mapping.x;
-      const drawY = pageHeight - mapping.y; // Convert to top-left coordinate system
-
-      firstPage.drawText(String(value), {
-        x: drawX,
-        y: drawY,
-        size: 12,
+    // Helper for drawing text at top-left coordinates
+    const drawTextAt = (text: string | number | undefined | null, x: number, topY: number, size = 10, color = rgb(0.1, 0.1, 0.1)) => {
+      if (text === undefined || text === null || String(text).trim() === '') return;
+      firstPage.drawText(String(text).trim(), {
+        x,
+        y: pageHeight - topY,
+        size,
         font,
-        color: rgb(0, 0, 0),
+        color,
       });
-    }
+    };
 
-    // Add duration text at the bottom of the page
-    if (duration) {
-      const durationY = 65; // Position at bottom (70 points from bottom, moved up 20px)
-      const fontSize = 12;
-      const textWidth = font.widthOfTextAtSize(duration, fontSize);
-      const durationX = (pageWidth - textWidth) / 2; // Center horizontally
-      
-      firstPage.drawText(duration, {
-        x: durationX,
-        y: durationY,
-        size: fontSize,
-        font,
-        color: rgb(0, 0, 0),
-      });
+    // 1. सदस्यता क्र. (Membership Number Box)
+    const membershipNo = record?.membershipNumber || record?.formNumber || record?.सदस्यता_क्रमांक || '';
+    drawTextAt(membershipNo, 80, 126, 11, rgb(0, 0.15, 0.6));
+
+    // 2. आवेदन क्र. (Application Number Box)
+    const applicationNo = record?.applicationNumber || record?.formNumber || record?.application_no || '';
+    drawTextAt(applicationNo, 388, 126, 11, rgb(0, 0.15, 0.6));
+
+    // 3. श्रीमान् (Applicant Name)
+    const applicantName = record?.applicantName || record?.name || record?.आवेदक_का_नाम || '';
+    drawTextAt(applicantName, 55, 172, 10);
+
+    // 4. पिता का नाम (Father's Name)
+    const fatherName = record?.fatherName || record?.father_husband_name || record?.पिता_का_नाम || '';
+    drawTextAt(fatherName, 230, 172, 10);
+
+    // 5. उम्र (Age)
+    const ageVal = record?.age || record?.उम्र || '';
+    const ageStr = ageVal ? (String(ageVal).includes('वर्ष') ? String(ageVal) : `${ageVal} वर्ष`) : '';
+    drawTextAt(ageStr, 348, 172, 9.5);
+
+    // 6. गोत्र (Gotra)
+    const gotra = record?.gotra || record?.गोत्र || '';
+    drawTextAt(gotra, 46, 197, 10);
+
+    // 7. निवासी (Residence / Full Address)
+    const rawAddress = record?.address || record?.full_address || record?.पता || '';
+    const tehsil = record?.tehsil || record?.तहसील || '';
+    const district = record?.district || record?.जिला || '';
+    const fullAddress = [rawAddress, tehsil, district].filter(Boolean).join(', ') || rawAddress;
+    drawTextAt(fullAddress, 208, 197, 9.5);
+
+    // 8. Duration / Maturity ("आपको विवाह योजना का लाभ ... के बाद मिलेगा ।")
+    const durationText = duration || record?.duration || record?.durationText || '';
+    if (durationText) {
+      drawTextAt(durationText, 200, 245, 10, rgb(0.6, 0.1, 0.1));
     }
 
     // Serialize the PDF
     const pdfBytes = await pdfDoc.save();
-    // Ensure we pass an ArrayBuffer (BodyInit compatible in this environment)
     const arrayBuffer = pdfBytes.buffer.slice(
       pdfBytes.byteOffset,
       pdfBytes.byteOffset + pdfBytes.byteLength
     );
 
     // Create a safe filename without Hindi characters
-    const safeName = (record.applicantName || record.formNumber || 'bond')
-      .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
-      .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove special characters except spaces, hyphens, underscores
+    const safeName = (record?.applicantName || record?.formNumber || 'bond')
+      .replace(/[^\x00-\x7F]/g, '')
+      .replace(/[^a-zA-Z0-9\s-_]/g, '')
       .trim()
-      .replace(/\s+/g, '_'); // Replace spaces with underscores
+      .replace(/\s+/g, '_');
     
     // Generate appropriate filename based on gender
+    const gender = record?.gender || record?.लिंग;
     let fileName: string;
     if (gender === 'Female' || gender === 'महिला') {
       fileName = `GIRL_BOND_${safeName}.pdf`;
     } else if (gender === 'Male' || gender === 'पुरुष') {
       fileName = `BOYS_BOND_${safeName}.pdf`;
     } else {
-      fileName = `BOND_${safeName}.pdf`;
+      fileName = `VIVAH_YOJANA_BOND_${safeName}.pdf`;
     }
 
     return new NextResponse(arrayBuffer as ArrayBuffer, {
@@ -198,6 +205,9 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="${fileName}"`,
         'Cache-Control': 'no-store',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       },
     });
   } catch (error) {
@@ -207,7 +217,14 @@ export async function POST(request: NextRequest) {
         error: 'Failed to generate bond PDF',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      }
     );
   }
 }

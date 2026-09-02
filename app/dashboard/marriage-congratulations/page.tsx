@@ -185,15 +185,19 @@ export default function MarriageCongratulationsPage() {
         rate_100: record.rate100,
         rate_200: record.rate200,
         rate_300: record.rate300,
+        rate_1000: (record as any).rate1000 || '0',
         कटौती_प्रतिशत: record.deductionPercent,
         कटौती_राशि: record.deductedAmount,
         कुल_भुगतान: record.totalPaidAmount,
+        रनिंग_क्रम_संख्या: (record as any).runningNumber || record.marriageNumber || '',
+        बंद_खाते: (record as any).closedAccounts || '0',
+        चालू_खाते: (record as any).activeAccounts || record.totalMembersServing || '',
       });
 
       const mapped = mapToHindiFields(record);
       
-      // Add gender information to the mapped data
-      const dataWithGender = { ...mapped, gender: record.gender };
+      // Add full record fields and gender information to payload
+      const dataWithGender = { ...record, ...mapped, gender: record.gender };
       
       const response = await fetch('/api/generate-marriage-congratulations-pdf', {
         method: 'POST',

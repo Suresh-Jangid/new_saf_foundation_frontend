@@ -13,29 +13,24 @@ export async function POST(request: NextRequest) {
       debug,
       offsetX,
       offsetY,
-      coordSystem,        // 'bottom-left' | 'top-left'
       valueOffsetX: reqValueOffsetX,
       valueOffsetY: reqValueOffsetY,
-      baseWidth,
-      baseHeight,
-      imageData,
     } = await request.json();
 
     console.log('Received marriage congratulations data:', data);
-    console.log('Image data received:', !!imageData);
 
-    // Determine template path based on gender
-    const gender = data?.gender || data?.लिंग;
-    console.log('Gender detected:', gender);
-    
-    let templatePath: string;
-    if (gender === 'Female' || gender === 'महिला' || gender == "female") {
-      templatePath = path.join(process.cwd(), 'public', 'pdf', 'marriage_application', 'girl_marriage_payment_form.pdf');
-    } else if (gender === 'Male' || gender === 'पुरुष' || gender == "male") {
-      templatePath = path.join(process.cwd(), 'public', 'pdf', 'marriage_application', 'boys_marriage_payment_form.pdf');
-    } else {
-      // Default to Female template if gender is not specified
-      templatePath = path.join(process.cwd(), 'public', 'pdf', 'marriage_application', 'girl_marriage_payment_form.pdf');
+    // Primary official template: vivahHisab.pdf
+    const officialTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'marriage_application', 'vivahHisab.pdf');
+    let templatePath = officialTemplatePath;
+
+    if (!fs.existsSync(templatePath)) {
+      // Graceful fallback to legacy template if official template is missing
+      const gender = data?.gender || data?.लिंग;
+      if (gender === 'Male' || gender === 'पुरुष' || gender === 'male') {
+        templatePath = path.join(process.cwd(), 'public', 'pdf', 'marriage_application', 'boys_marriage_payment_form.pdf');
+      } else {
+        templatePath = path.join(process.cwd(), 'public', 'pdf', 'marriage_application', 'girl_marriage_payment_form.pdf');
+      }
     }
 
     if (!fs.existsSync(templatePath)) {
@@ -47,7 +42,7 @@ export async function POST(request: NextRequest) {
     // Load existing PDF template
     const existingPdfBytes = fs.readFileSync(templatePath);
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
-    
+
     // Register fontkit to allow embedding TTF fonts
     let fontkitAvailable = false;
     try {
@@ -68,60 +63,7 @@ export async function POST(request: NextRequest) {
     const firstPage = pages[0];
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
-    // Handle image embedding if imageData is provided
-    if (imageData) {
-      try {
-        // Convert base64 to Uint8Array
-        const imageBytes = Uint8Array.from(atob(imageData.split(',')[1]), c => c.charCodeAt(0));
-        
-        // Determine image type and embed accordingly
-        let image;
-        if (imageData.startsWith('data:image/jpeg')) {
-          image = await pdfDoc.embedJpg(imageBytes);
-        } else if (imageData.startsWith('data:image/png')) {
-          image = await pdfDoc.embedPng(imageBytes);
-        } else {
-          console.warn('Unsupported image format, skipping image embedding');
-        }
-
-        if (image) {
-          // Calculate image position and size for passport photo
-          // Adjust these coordinates based on your form layout
-          const imageX = 480; // X position for photo
-          const imageY = 210; // Y position for photo
-          const imageWidth = 80; // Width of the photo
-          const imageHeight = 100; // Height of the photo
-
-          // Draw the image on the PDF
-          firstPage.drawImage(image, {
-            x: imageX,
-            y: pageHeight - imageY - imageHeight, // Convert to bottom-left coordinate system
-            width: imageWidth,
-            height: imageHeight,
-          });
-
-          console.log('Image embedded successfully');
-        }
-      } catch (imageError) {
-        console.error('Error embedding image:', imageError);
-        // Continue without image if there's an error
-      }
-    }
-
-    const debugMode: boolean = Boolean(debug);
-    const globalOffsetX: number = typeof offsetX === 'number' ? offsetX : 0;
-    const globalOffsetY: number = typeof offsetY === 'number' ? offsetY : 0;
-    // Default to top-left which usually matches how template coordinates are measured visually
-    const coordinateSystem: 'bottom-left' | 'top-left' =
-      coordSystem === 'bottom-left' ? 'bottom-left' : 'top-left';
-
-    // Scale factors if coordinates were measured on a different base size
-    const baseW: number = typeof baseWidth === 'number' && baseWidth > 0 ? baseWidth : 595; // A4 width (pt)
-    const baseH: number = typeof baseHeight === 'number' && baseHeight > 0 ? baseHeight : 842; // A4 height (pt)
-    const scaleX = pageWidth / baseW;
-    const scaleY = pageHeight / baseH;
-
-    // Try to embed a Devanagari-capable font; fallback to Helvetica
+    // Embed Devanagari font
     let font;
     const fontCandidates = [
       path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf'),
@@ -133,207 +75,165 @@ export async function POST(request: NextRequest) {
         throw new Error('Devanagari font found but fontkit is not installed. Run npm i @pdf-lib/fontkit and try again.');
       }
       const customFontBytes = fs.readFileSync(devanagariFontPath);
-      font = await pdfDoc.embedFont(customFontBytes as any, { subset: true });
+      font = await pdfDoc.embedFont(customFontBytes as any, { subset: false });
     } else {
-      // If there is Hindi text and no Devanagari font, fail fast with a helpful message
-      const containsHindi = Object.values(data ?? {}).some((v) => /[\u0900-\u097F]/.test(String(v)));
-      if (containsHindi) {
-        throw new Error('Hindi text detected but no Devanagari TTF font found. Place a font like public/fonts/NotoSansDevanagari-Regular.ttf.');
-      }
       font = await pdfDoc.embedFont('Helvetica');
     }
 
-    // Base field mappings for marriage congratulations form
-    // These coordinates need to be adjusted based on the actual PDF template
-    // A4 size is approximately 595 x 842 points
-    const baseFieldMappings: { field: keyof typeof data; x: number; y: number }[] = [
-      { field: 'date' as any, x: 85, y: 205 },
-      { field: 'codeNumber' as any, x: 500, y: 205 },
-      { field: 'marriageNumber' as any, x: 500, y: 230 },
-      { field: 'applicantName' as any, x: 80, y: 280},
-     
-      { field: 'fatherName' as any, x: 300, y: 280 },
-      { field: 'wifeOf' as any, x: 300, y: 280 },
-      { field: 'gotra' as any, x: 460, y: 280 },
-      { field: 'address' as any, x: 100, y: 310 },
-      { field: 'membershipJoinDate' as any, x: 320, y: 345 },
-      { field: 'associatedUntil' as any, x: 320, y: 375 },
-      { field: 'permanentFee' as any, x: 320, y: 400 },
-      { field: 'installmentAmount' as any, x: 320, y: 430 },
-      { field: 'totalGrantAmount' as any, x: 320, y: 460},
-      { field: 'totalMembersServing' as any, x: 320, y: 485 },
-      { field: 'rate100' as any, x: 270, y: 545 },
-      { field: 'rate200' as any, x: 270, y: 562 },
-      { field: 'rate300' as any, x: 270, y: 580 },
+    // Determine gender
+    const rawGender = data?.gender || data?.लिंग || '';
+    const isMale = rawGender === 'Male' || rawGender === 'पुरुष' || rawGender === 'male';
 
-      {field : 'multipliedRate100' as any, x: 370, y: 545},
-      {field : 'multipliedRate200' as any, x: 370, y: 562},
-      {field : 'multipliedRate300' as any, x: 370, y: 580},
-      {field : 'totalMultipliedRate' as any, x: 330, y: 605},
-          
-      { field: 'deductedAmount' as any, x: 290, y: 645 },
-      { field: 'totalPaidAmount' as any, x: 290, y: 665 },
-    ];
+    // Extract raw field values from either English or Hindi keys
+    const rawDate = data?.date || data?.दिनांक || '';
+    const dateStr = rawDate ? formatDateToDDMMYYYY(rawDate) : '';
+    const codeNumber = String(data?.codeNumber || data?.कोड_नंबर || data?.formNumber || '');
+    const marriageNumber = String(data?.marriageNumber || data?.विवाह_संख्या || '');
+    const applicantName = String(data?.applicantName || data?.आवेदक_का_नाम || '');
+    const fatherName = String(data?.fatherName || data?.पिता_का_नाम || '');
+    const wifeOf = String(data?.wifeOf || data?.पति_का_नाम || '');
+    const parentOrSpouse = isMale ? (fatherName || wifeOf) : (wifeOf || fatherName);
+    const gotra = String(data?.gotra || data?.गोत्र || '');
+    const address = String(data?.address || data?.निवासी || '');
 
-    // Target anchors for the actual A4 form layout
-    const anchorTargetFor: Record<string, { x: number; y: number }> = {
-      'date': { x: 85, y: 205},
-      'codeNumber': { x: 500, y: 205 },
-    };
+    const rawJoinDate = data?.membershipJoinDate || data?.सदस्यता_तिथि || '';
+    const membershipJoinDate = rawJoinDate ? formatDateToDDMMYYYY(rawJoinDate) : '';
+    const associatedUntil = String(data?.associatedUntil || data?.संस्था_से_जुड़ी_रही || '');
+    const permanentFee = String(data?.permanentFee || data?.स्थायी_शुल्क || '');
+    const installmentAmount = String(data?.installmentAmount || data?.किस्त_राशि || '');
+    const totalGrantAmount = String(data?.totalGrantAmount || data?.कुल_अनुदान || '');
+    const totalMembersServing = String(data?.totalMembersServing || data?.कुल_सदस्य || '');
 
-    // Compute affine transform (scale + translate) using the two anchors (assume no rotation)
-    const anchorBase1 = baseFieldMappings.find((f) => f.field === ('date' as any))!;
-    const anchorBase2 = baseFieldMappings.find((f) => f.field === ('codeNumber' as any))!;
-    const anchorNew1 = anchorTargetFor['date'];
-    const anchorNew2 = anchorTargetFor['codeNumber'];
+    // Calculations for 300 / 1000 installment table
+    const rate300Count = Number(data?.rate300 ?? data?.rate_300 ?? 0);
+    const rate1000Count = Number(data?.rate1000 ?? data?.rate_1000 ?? 0);
+    const rate100Count = Number(data?.rate100 ?? data?.rate_100 ?? 0);
+    const rate200Count = Number(data?.rate200 ?? data?.rate_200 ?? 0);
 
-    const denomX = anchorBase2.x - anchorBase1.x || 1; // prevent divide-by-zero
-    const sxAff = (anchorNew2.x - anchorNew1.x) / denomX;
-    const txAff = anchorNew1.x - sxAff * anchorBase1.x;
+    const sum300 = rate300Count > 0 ? rate300Count * 300 : 0;
+    const sum1000 = rate1000Count > 0 ? rate1000Count * 1000 : 0;
 
-    // y: anchors had same baseline y, can't solve sy from two points -> assume sy = 1
-    const syAff = 1;
-    const tyAff = ((anchorNew1.y - anchorBase1.y) + (anchorNew2.y - anchorBase2.y)) / 2;
-
-    // Build effective field mappings by transforming baseline coords
-    const fieldMappings = baseFieldMappings.map((f) => ({
-      field: f.field,
-      x: sxAff * f.x + txAff,
-      y: syAff * f.y + tyAff,
-    }));
-
-    // Optional debug grid (helps determine coordinates). Coordinates are in PDF points from bottom-left.
-    if (debugMode) {
-      const gridStep = 25;
-      const majorStep = 100;
-      // Grid lines
-      for (let x = 0; x <= pageWidth; x += gridStep) {
-        firstPage.drawLine({
-          start: { x, y: 0 },
-          end: { x, y: pageHeight },
-          thickness: x % majorStep === 0 ? 0.8 : 0.2,
-          color: rgb(0.85, 0.85, 0.85),
-        });
-      }
-      for (let y = 0; y <= pageHeight; y += gridStep) {
-        firstPage.drawLine({
-          start: { x: 0, y },
-          end: { x: pageWidth, y },
-          thickness: y % majorStep === 0 ? 0.8 : 0.2,
-          color: rgb(0.85, 0.85, 0.85),
-        });
-      }
-      // Axes labels
-      for (let x = 0; x <= pageWidth; x += majorStep) {
-        firstPage.drawText(String(x), { x: x + 2, y: 4, size: 8, font, color: rgb(0.2, 0.2, 0.2) });
-      }
-      for (let y = 0; y <= pageHeight; y += majorStep) {
-        firstPage.drawText(String(y), { x: 2, y: y + 2, size: 8, font, color: rgb(0.2, 0.2, 0.2) });
-      }
-      
-      // Draw test markers at form field positions
-      fieldMappings.forEach(mapping => {
-        const drawX = mapping.x;
-        const drawY = coordinateSystem === 'top-left' ? pageHeight - mapping.y : mapping.y;
-        
-        // Draw a red dot at each position
-        firstPage.drawCircle({
-          x: drawX,
-          y: drawY,
-          size: 3,
-          color: rgb(1, 0, 0),
-        });
-        // Draw the label
-        firstPage.drawText(String(mapping.field), {
-          x: drawX + 5,
-          y: drawY + 5,
-          size: 6,
-          font,
-          color: rgb(0.2, 0.2, 0.2),
-        });
-      });
+    // Determine total installment sum
+    let totalMultipliedRate = 0;
+    if (data?.totalMultipliedRate !== undefined && data?.totalMultipliedRate !== null) {
+      totalMultipliedRate = Number(data.totalMultipliedRate);
+    } else if (rate1000Count > 0 || (rate100Count === 0 && rate200Count === 0)) {
+      totalMultipliedRate = sum300 + sum1000;
+    } else {
+      totalMultipliedRate = (rate100Count * 100) + (rate200Count * 200) + sum300;
     }
 
-    console.log("data in the pdf", data)
-    // Prepare data for PDF
-    const pdfData = {
-      date: formatDateToDDMMYYYY(data?.date || data?.दिनांक),
-      codeNumber: data?.codeNumber || data?.कोड_नंबर || '',
-      marriageNumber: data?.marriageNumber || data?.विवाह_संख्या || '',
-      applicantName: data?.applicantName || data?.आवेदक_का_नाम || '',
-      gender: data?.gender || data?.लिंग || '',
-      fatherName: data?.fatherName || data?.पिता_का_नाम || '',
-      wifeOf: data?.wifeOf || data?.पति_का_नाम || '',
-      gotra: data?.gotra || data?.गोत्र || '',
-      address: data?.address || data?.निवासी || '',
-      membershipJoinDate: formatDateToDDMMYYYY(data?.membershipJoinDate || data?.सदस्यता_तिथि),
-      associatedUntil: data?.associatedUntil || data?.संस्था_से_जुड़ी_रही || '',
-      permanentFee: data?.permanentFee || data?.स्थायी_शुल्क || '',
-      installmentAmount: data?.installmentAmount || data?.किस्त_राशि || '',
-      totalGrantAmount: data?.totalGrantAmount || data?.कुल_अनुदान || '',
-      totalMembersServing: data?.totalMembersServing || data?.कुल_सदस्य || '',
-      rate100: data?.rate100 || data?.rate_100 || '',
-      rate200: data?.rate200 || data?.rate_200 || '',
-      rate300: data?.rate300 || data?.rate_300 || '',
-      multipliedRate100: (data?.rate100 || data?.rate_100 || 0) * 100,
-      multipliedRate200: (data?.rate200 || data?.rate_200 || 0) * 200,
-      multipliedRate300: (data?.rate300 || data?.rate_300 || 0) * 300,
-      totalMultipliedRate: (data?.rate100 || data?.rate_100 || 0) * 100 + (data?.rate200 || data?.rate_200 || 0) * 200 + (data?.rate300 || data?.rate_300 || 0) * 300,
-      deductionPercent: data?.deductionPercent || data?.कटौती_प्रतिशत || '',
-      deductedAmount: data?.deductedAmount || data?.कटौती_राशि || '',
-      totalPaidAmount: data?.totalPaidAmount || data?.कुल_भुगतान || '',
-    };
+    // Deduction calculation
+    const rawDeductedAmount = data?.deductedAmount ?? data?.कटौती_राशि;
+    const deductedAmount = rawDeductedAmount !== undefined && rawDeductedAmount !== null && rawDeductedAmount !== ''
+      ? String(rawDeductedAmount)
+      : String(Math.round(totalMultipliedRate * 0.15));
 
-    // Treat mapping coordinates as absolute positions; request offsets allow quick nudging
-    const valueOffsetX = typeof reqValueOffsetX === 'number' ? reqValueOffsetX : 0;
-    const valueOffsetY = typeof reqValueOffsetY === 'number' ? reqValueOffsetY : 0;
-    
-    // Determine gender for conditional field rendering (gender already extracted above)
-    const isMale = gender === 'Male' || gender === 'पुरुष' || gender === 'male';
-    const isFemale = gender === 'Female' || gender === 'महिला' || gender === 'female';
-    
-    for (const mapping of fieldMappings) {
-      // Skip wifeOf if gender is Male, skip fatherName if gender is Female
-      if (mapping.field === 'wifeOf' && isMale) continue;
-      if (mapping.field === 'fatherName' && isFemale) continue;
-      
-      const value = (pdfData as any)[mapping.field];
-      if (!value) continue;
-      // Coordinates are absolute (A4 pt). Apply only request offsets.
-      const baseX = mapping.x + valueOffsetX + globalOffsetX;
-      const baseY = mapping.y + valueOffsetY + globalOffsetY;
-      const drawX = baseX;
-      const drawY = coordinateSystem === 'top-left' ? pageHeight - baseY : baseY;
-      if (debugMode) {
-        // Marker to show exact anchor point of text
-        firstPage.drawRectangle({ x: drawX - 1, y: drawY - 1, width: 2, height: 2, color: rgb(1, 0, 0) });
+    // Final total payment calculation
+    const rawTotalPaid = data?.totalPaidAmount ?? data?.कुल_भुगतान;
+    const totalPaidAmount = rawTotalPaid !== undefined && rawTotalPaid !== null && rawTotalPaid !== ''
+      ? String(rawTotalPaid)
+      : String(totalMultipliedRate - Number(deductedAmount));
+
+    // Note line details
+    const runningNumber = String(data?.runningNumber || data?.रनिंग_क्रम_संख्या || marriageNumber || '');
+    const closedAccounts = String(data?.closedAccounts || data?.बंद_खाते || '0');
+    const activeAccounts = String(data?.activeAccounts || data?.चालू_खाते || totalMembersServing || '');
+
+    // Request offsets
+    const globalOffsetX = typeof offsetX === 'number' ? offsetX : 0;
+    const globalOffsetY = typeof offsetY === 'number' ? offsetY : 0;
+    const valOffsetX = typeof reqValueOffsetX === 'number' ? reqValueOffsetX : 0;
+    const valOffsetY = typeof reqValueOffsetY === 'number' ? reqValueOffsetY : 0;
+
+    // Helper: draw text with dynamic width scaling to prevent overflow/overlap
+    const drawBoundedText = (
+      text: string,
+      x: number,
+      y: number,
+      defaultSize: number = 9.5,
+      maxWidth: number = 200,
+      textColor = rgb(0.1, 0.1, 0.1)
+    ) => {
+      if (!text || text.trim() === '') return;
+      const cleanText = text.trim();
+      let size = defaultSize;
+
+      if (font.widthOfTextAtSize) {
+        try {
+          const textWidth = font.widthOfTextAtSize(cleanText, defaultSize);
+          if (textWidth > maxWidth) {
+            size = Math.max(6.5, defaultSize * (maxWidth / textWidth));
+          }
+        } catch {}
       }
-      firstPage.drawText(String(value), {
-        x: drawX,
-        y: drawY,
-        size: 12,
+
+      firstPage.drawText(cleanText, {
+        x: x + globalOffsetX + valOffsetX,
+        y: y + globalOffsetY + valOffsetY,
+        size,
         font,
-        color: rgb(0, 0, 0),
+        color: textColor,
       });
-    }
+    };
 
-    // Serialize the PDF
+    // --- RENDER DYNAMIC DATA ON OFFICIAL vivahHisab.pdf ---
+    // 1. Header Details
+    drawBoundedText(dateStr, 80, 627, 9.5, 75);
+    drawBoundedText(codeNumber, 495, 627, 9.5, 75);
+    drawBoundedText(marriageNumber, 495, 604, 9.5, 75);
+
+    // 2. Personal Information
+    drawBoundedText(applicantName, 72, 581, 9.5, 150);
+    drawBoundedText(parentOrSpouse, 298, 581, 9.5, 140);
+    drawBoundedText(gotra, 475, 581, 9.5, 90);
+    drawBoundedText(address, 80, 559, 9.5, 485);
+
+    // 3. Institution Details (colon at x=274)
+    drawBoundedText(membershipJoinDate, 290, 538, 9.5, 275);
+    drawBoundedText(associatedUntil, 290, 515, 9.5, 275);
+    drawBoundedText(permanentFee, 290, 492, 9.5, 275);
+    drawBoundedText(installmentAmount, 290, 470, 9.5, 275);
+    drawBoundedText(totalGrantAmount, 290, 447, 9.5, 275);
+    drawBoundedText(totalMembersServing, 290, 424, 9.5, 275);
+
+    // 4. Installment Calculation Table
+    // Row 1: 300 x [सदस्य] = [योग]
+    drawBoundedText(String(rate300Count), 290, 361, 9.5, 75);
+    drawBoundedText(String(sum300), 395, 361, 9.5, 70);
+
+    // Row 2: 1000 x [सदस्य] = [योग]
+    drawBoundedText(String(rate1000Count), 290, 342, 9.5, 75);
+    drawBoundedText(String(sum1000), 395, 342, 9.5, 70);
+
+    // Row 3: कुल योग
+    drawBoundedText(String(totalMultipliedRate), 320, 318, 9.5, 130);
+
+    // 5. 15% Deduction & Final Payment
+    drawBoundedText(deductedAmount, 360, 263, 10, 105);
+    drawBoundedText(totalPaidAmount, 360, 232, 10, 105);
+
+    // 6. Note Line (रनिंग क्रम संख्या, बंद खाते, चालू खाते)
+    drawBoundedText(runningNumber, 160, 151, 9, 100);
+    drawBoundedText(closedAccounts, 345, 151, 9, 65);
+    drawBoundedText(activeAccounts, 475, 151, 9, 90);
+
+    // Serialize PDF
     const pdfBytes = await pdfDoc.save();
     const arrayBuffer = pdfBytes.buffer.slice(
       pdfBytes.byteOffset,
       pdfBytes.byteOffset + pdfBytes.byteLength
     );
 
-    // Generate filename
-    const marriageNumber = data?.marriageNumber || data?.विवाह_संख्या || 'filled';
+    // Preserve filename convention
+    const safeMarriageNumber = marriageNumber || 'form';
     let filename = 'marriage_congratulations_form.pdf';
-    
-    if (gender === 'Female' || gender === 'महिला') {
-      filename = `girl_marriage_congratulations_${marriageNumber}.pdf`;
-    } else if (gender === 'Male' || gender === 'पुरुष') {
-      filename = `boys_marriage_congratulations_${marriageNumber}.pdf`;
+    if (rawGender === 'Female' || rawGender === 'महिला') {
+      filename = `girl_marriage_congratulations_${safeMarriageNumber}.pdf`;
+    } else if (rawGender === 'Male' || rawGender === 'पुरुष') {
+      filename = `boys_marriage_congratulations_${safeMarriageNumber}.pdf`;
     } else {
-      filename = `marriage_congratulations_${marriageNumber}.pdf`;
+      filename = `marriage_congratulations_${safeMarriageNumber}.pdf`;
     }
 
     return new NextResponse(arrayBuffer as ArrayBuffer, {

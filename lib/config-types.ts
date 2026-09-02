@@ -224,7 +224,7 @@ export const DEFAULT_POOLS: PoolConfig[] = [
 
 export const DEFAULT_DEDUCTIONS: DeductionConfig[] = [
   { id: "ded-default", percent: 15, description: "Standard Administrative Deduction (15%)", status: "ACTIVE" },
-  { id: "ded-marriage", schemeId: "general_marriage", schemeName: "General Marriage", percent: 20, description: "Marriage Grant Administrative Deduction (20%)", status: "ACTIVE" },
+  { id: "ded-marriage", schemeId: "general_marriage", schemeName: "General Marriage", percent: 15, description: "Marriage Grant Administrative Deduction (15%)", status: "ACTIVE" },
   { id: "ded-mayra", schemeId: "mayra", schemeName: "Mayra", percent: 20, description: "Mayra Grant Administrative Deduction (20%)", status: "ACTIVE" },
   { id: "ded-insurance", schemeId: "insurance_bima", schemeName: "Insurance Bima", percent: 10, description: "Insurance Claim Administrative Deduction (10%)", status: "ACTIVE" },
 ];

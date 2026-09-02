@@ -170,7 +170,7 @@ export default function AddMarriageCongratulationPage() {
     rate100: "",
     rate200: "",
     rate300: "",
-    deductionPercent: "20",
+    deductionPercent: "15",
     deductedAmount: "",
     totalPaidAmount: "",
     memberContribution: "", // Initialize new field
@@ -323,7 +323,7 @@ export default function AddMarriageCongratulationPage() {
         const totalEMI = data.totalEMI || 0;
 
         // Dynamic deduction calculation from authoritative configuration
-        const deductionPercent = ConfigService.getDeductionPercentForScheme("general_marriage") || 20;
+        const deductionPercent = ConfigService.getDeductionPercentForScheme("general_marriage") || 15;
         const deductionAmount = Math.round(
           (calculatedTotal * deductionPercent) / 100
         );
@@ -419,7 +419,7 @@ export default function AddMarriageCongratulationPage() {
     const deductionPercent =
       parseInt(formData.deductionPercent) ||
       ConfigService.getDeductionPercentForScheme("general_marriage") ||
-      20;
+      15;
 
     // Resolve multipliers dynamically from active scheme types
     const activeSchemes = ConfigService.getSchemeTypesSync();

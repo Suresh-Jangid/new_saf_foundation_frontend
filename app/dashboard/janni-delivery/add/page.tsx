@@ -5,39 +5,41 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  HeartHandshake,
-  ArrowLeft,
-  Calendar,
-  User,
-  Baby,
-  MapPin,
-  Shield,
-  CreditCard,
-  KeyRound,
+  CalendarDays,
   Upload,
   CheckCircle2,
-  AlertCircle,
   Loader2,
-  Sparkles,
 } from "lucide-react";
 import { RoleGuard } from "@/components/role-guard";
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier";
 import { JanniDeliveryService, CreateJanniDeliveryPayload } from "@/lib/janni-delivery-service";
 import { agentRegistrationAPI } from "@/lib/api";
-import { isAdmin, getUserRole } from "@/lib/permissions";
+import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
-import { validatePhoneNumber } from "@/lib/utils";
+import { formatDate, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
 
 export default function AddJanniDeliveryPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile: string }>>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
+
+  // Date Popover States
+  const [appDateOpen, setAppDateOpen] = useState(false);
+  const [appDateObj, setAppDateObj] = useState<Date | undefined>(new Date());
+  const [dobOpen, setDobOpen] = useState(false);
+  const [dobObj, setDobObj] = useState<Date | undefined>(undefined);
+  const [deliveryDateOpen, setDeliveryDateOpen] = useState(false);
+  const [deliveryDateObj, setDeliveryDateObj] = useState<Date | undefined>(undefined);
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -71,7 +73,7 @@ export default function AddJanniDeliveryPage() {
     selectedAgentId: string;
     epinCode: string;
   }>({
-    applicationDate: new Date().toISOString().split("T")[0],
+    applicationDate: formatDate(new Date()),
     applicantName: "",
     fatherName: "",
     husbandName: "",
@@ -107,7 +109,7 @@ export default function AddJanniDeliveryPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   // E-PIN Validation State
-  const [epinVerified, setEpinVerified] = useState<EpinValidationResponse | null>(null);
+  const [, setEpinVerified] = useState<EpinValidationResponse | null>(null);
 
   // Load agents if Admin
   useEffect(() => {
@@ -119,7 +121,7 @@ export default function AddJanniDeliveryPage() {
           if (res && res.data && Array.isArray(res.data)) {
             setAgents(
               res.data.map((a: any) => ({
-                id: a.id || a.user_id,
+                id: String(a.id || a.user_id),
                 name: a.name || a.agent_name || "Agent",
                 mobile: a.mobile || a.phone || "",
               }))
@@ -136,24 +138,30 @@ export default function AddJanniDeliveryPage() {
   }, []);
 
   // Calculate age when DOB changes
-  const handleDobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dob = e.target.value;
-    setFormData((prev) => {
-      let calculatedAge = prev.age;
-      if (dob) {
-        const birthDate = new Date(dob);
-        const today = new Date();
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-          age--;
-        }
-        if (age >= 0 && age <= 120) {
-          calculatedAge = String(age);
-        }
-      }
-      return { ...prev, dateOfBirth: dob, age: calculatedAge };
-    });
+  const calculateAgeFromDate = (dateVal: string) => {
+    if (!dateVal) return "";
+    let birthDate: Date | null | undefined = null;
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dateVal)) {
+      birthDate = parseDateFromDDMMYYYY(dateVal);
+    } else {
+      birthDate = new Date(dateVal);
+    }
+
+    if (!birthDate || isNaN(birthDate.getTime())) return "";
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age >= 0 && age <= 120 ? String(age) : "";
+  };
+
+  const handleDobTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const age = calculateAgeFromDate(val);
+    setFormData((prev) => ({ ...prev, dateOfBirth: val, age }));
   };
 
   // Image Upload handler
@@ -190,6 +198,17 @@ export default function AddJanniDeliveryPage() {
       }
     }
   }, []);
+
+  const convertToYYYYMMDD = (dateString: string): string => {
+    if (!dateString) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+    const parsedDate = parseDateFromDDMMYYYY(dateString);
+    if (!parsedDate || isNaN(parsedDate.getTime())) return dateString;
+    const year = parsedDate.getFullYear();
+    const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(parsedDate.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,12 +269,12 @@ export default function AddJanniDeliveryPage() {
 
     // Prepare payload
     const payload: CreateJanniDeliveryPayload = {
-      applicationDate: formData.applicationDate,
+      applicationDate: convertToYYYYMMDD(formData.applicationDate),
       applicantName: formData.applicantName.trim(),
       fatherName: formData.fatherName.trim(),
       husbandName: formData.husbandName.trim() || null,
       motherName: formData.motherName.trim() || null,
-      dateOfBirth: formData.dateOfBirth,
+      dateOfBirth: convertToYYYYMMDD(formData.dateOfBirth),
       age: formData.age ? Number(formData.age) : undefined,
       aadharNumber: rawAadhar,
       gotra: formData.gotra.trim(),
@@ -267,7 +286,7 @@ export default function AddJanniDeliveryPage() {
       state: formData.state.trim() || "Rajasthan",
       childName: formData.childName.trim() || null,
       childGender: formData.childGender || null,
-      deliveryDate: formData.deliveryDate || null,
+      deliveryDate: formData.deliveryDate ? convertToYYYYMMDD(formData.deliveryDate) : null,
       hospitalName: formData.hospitalName.trim() || null,
       nomineeName: formData.nomineeName.trim() || null,
       nomineeRelation: formData.nomineeRelation.trim() || null,
@@ -285,7 +304,7 @@ export default function AddJanniDeliveryPage() {
 
     setIsLoading(true);
     try {
-      const response = await JanniDeliveryService.createRegistration(payload);
+      await JanniDeliveryService.createRegistration(payload);
       toast.success(
         "जननी प्रसूति पंजीकरण सफलतापूर्वक दर्ज किया गया! / Janni Delivery Registration Created Successfully!"
       );
@@ -311,631 +330,704 @@ export default function AddJanniDeliveryPage() {
 
   return (
     <RoleGuard requiredModule="janni_delivery" requiredAction="create">
-      <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
-        {/* Top Header */}
-        <div className="flex items-center justify-between border-b pb-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/dashboard/janni-delivery")}
-              className="h-9 w-9 p-0 rounded-full"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                जननी प्रसूति पंजीकरण फॉर्म / Janni Delivery Registration Form
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Enter mother and delivery details to register under the SAF Janni Delivery scheme
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Application Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 1. Header & Scheme Categorization */}
-          <Card className="border-t-4 border-t-[#0B4A8F] shadow-sm">
-            <CardHeader className="py-3 px-5 border-b bg-slate-50/50 dark:bg-slate-900/50">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-                <Sparkles className="h-4 w-4 text-[#0B4A8F]" />
-                Application Metadata & Categorization / आवेदन विवरण
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-              <div className="space-y-1.5">
-                <Label htmlFor="appDate" className="font-semibold text-xs">
-                  Application Date (दिनांक) *
-                </Label>
-                <Input
-                  id="appDate"
-                  type="date"
-                  value={formData.applicationDate}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, applicationDate: e.target.value }))
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="category" className="font-semibold text-xs">
-                  Category (श्रेणी) *
-                </Label>
-                <select
-                  id="category"
-                  value={formData.category}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      category: e.target.value as any,
-                    }))
-                  }
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
+      <div className="min-h-screen bg-white">
+        <div className="w-full">
+          {/* Header Section */}
+          <div className="border-b border-gray-200 bg-white px-6 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => router.back()}
+                  className="p-0 h-auto text-sm text-[#0B4A8F] hover:underline"
+                  disabled={isLoading}
                 >
-                  <option value="A">Category A</option>
-                  <option value="B">Category B</option>
-                  <option value="C">Category C</option>
-                  <option value="D">Category D</option>
-                  <option value="E">Category E</option>
-                  <option value="F">Category F</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="totalAmount" className="font-semibold text-xs">
-                  Total Scheme Value (कुल राशि ₹)
-                </Label>
-                <Input
-                  id="totalAmount"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={formData.totalAmount}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, totalAmount: e.target.value }))
-                  }
-                />
-              </div>
-
-              {isAdmin() && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="agentSelect" className="font-semibold text-xs">
-                    Allocated Agent (कार्यकर्ता)
-                  </Label>
-                  <select
-                    id="agentSelect"
-                    value={formData.selectedAgentId}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, selectedAgentId: e.target.value }))
-                    }
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
-                  >
-                    <option value="">Direct / Self / Current Admin</option>
-                    {agents.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({a.mobile})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* 2. Mother / Applicant Details */}
-          <Card className="shadow-sm">
-            <CardHeader className="py-3 px-5 border-b bg-slate-50/50 dark:bg-slate-900/50">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-                <User className="h-4 w-4 text-[#0B4A8F]" />
-                Mother / Applicant Information / माता (आवेदक) का व्यक्तिगत विवरण
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-              <div className="space-y-1.5">
-                <Label htmlFor="applicantName" className="font-semibold text-xs">
-                  Mother / Applicant Name (माता का नाम) *
-                </Label>
-                <Input
-                  id="applicantName"
-                  placeholder="Enter Mother/Applicant Name"
-                  value={formData.applicantName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, applicantName: e.target.value }))
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="fatherName" className="font-semibold text-xs">
-                  Father's Name (पिता का नाम) *
-                </Label>
-                <Input
-                  id="fatherName"
-                  placeholder="Enter Father's Name"
-                  value={formData.fatherName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, fatherName: e.target.value }))
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="husbandName" className="font-semibold text-xs">
-                  Husband's Name (पति का नाम)
-                </Label>
-                <Input
-                  id="husbandName"
-                  placeholder="Enter Husband's Name"
-                  value={formData.husbandName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, husbandName: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="motherName" className="font-semibold text-xs">
-                  Mother's Name (नानी / माँ का नाम)
-                </Label>
-                <Input
-                  id="motherName"
-                  placeholder="Enter Mother's Name"
-                  value={formData.motherName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, motherName: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="dob" className="font-semibold text-xs">
-                  Date of Birth (जन्म तिथि) *
-                </Label>
-                <Input
-                  id="dob"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={handleDobChange}
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="age" className="font-semibold text-xs">
-                  Age in Years (उम्र)
-                </Label>
-                <Input
-                  id="age"
-                  type="number"
-                  min="1"
-                  max="120"
-                  placeholder="Auto-calculated from DOB"
-                  value={formData.age}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, age: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="aadhar" className="font-semibold text-xs">
-                  Aadhaar Number (आधार कार्ड नंबर) *
-                </Label>
-                <Input
-                  id="aadhar"
-                  inputMode="numeric"
-                  maxLength={12}
-                  placeholder="12-digit Aadhaar Number"
-                  value={formData.aadharNumber}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      aadharNumber: e.target.value.replace(/\D/g, "").slice(0, 12),
-                    }))
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="gotra" className="font-semibold text-xs">
-                  Gotra (गोत्र) *
-                </Label>
-                <Input
-                  id="gotra"
-                  placeholder="Enter Gotra"
-                  value={formData.gotra}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, gotra: e.target.value }))
-                  }
-                  required
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="mobile" className="font-semibold text-xs">
-                  Mobile Number (मोबाइल नंबर) *
-                </Label>
-                <Input
-                  id="mobile"
-                  inputMode="numeric"
-                  maxLength={10}
-                  placeholder="10-digit Mobile Number"
-                  value={formData.mobile}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      mobile: e.target.value.replace(/\D/g, "").slice(0, 10),
-                    }))
-                  }
-                  required
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 3. Delivery & Child Details */}
-          <Card className="border-l-4 border-l-blue-600 shadow-sm">
-            <CardHeader className="py-3 px-5 border-b bg-slate-50/50 dark:bg-slate-900/50">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-                <Baby className="h-4 w-4 text-blue-600" />
-                Delivery & Child Information / प्रसूति एवं शिशु का विवरण
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-              <div className="space-y-1.5">
-                <Label htmlFor="childName" className="font-semibold text-xs">
-                  Child Name (नवजात शिशु का नाम)
-                </Label>
-                <Input
-                  id="childName"
-                  placeholder="Enter Child Name (if named)"
-                  value={formData.childName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, childName: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="childGender" className="font-semibold text-xs">
-                  Child Gender (शिशु का लिंग)
-                </Label>
-                <select
-                  id="childGender"
-                  value={formData.childGender}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      childGender: e.target.value as any,
-                    }))
-                  }
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
-                >
-                  <option value="">Select Child Gender</option>
-                  <option value="Male">Male / बालक</option>
-                  <option value="Female">Female / बालिका</option>
-                  <option value="Other">Other / अन्य</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="deliveryDate" className="font-semibold text-xs">
-                  Delivery Date (प्रसूति दिनांक)
-                </Label>
-                <Input
-                  id="deliveryDate"
-                  type="date"
-                  value={formData.deliveryDate}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, deliveryDate: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="hospitalName" className="font-semibold text-xs">
-                  Hospital Name / Place (अस्पताल का नाम)
-                </Label>
-                <Input
-                  id="hospitalName"
-                  placeholder="Enter Hospital / Place"
-                  value={formData.hospitalName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, hospitalName: e.target.value }))
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 4. Address & Location Details */}
-          <Card className="shadow-sm">
-            <CardHeader className="py-3 px-5 border-b bg-slate-50/50 dark:bg-slate-900/50">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-                <MapPin className="h-4 w-4 text-[#0B4A8F]" />
-                Residential Address Details / स्थायी पता
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 space-y-4 text-xs">
-              <div className="space-y-1.5">
-                <Label htmlFor="address" className="font-semibold text-xs">
-                  Full Residential Address (पूरा पता) *
-                </Label>
-                <Textarea
-                  id="address"
-                  rows={2}
-                  placeholder="Enter house/street address, village, etc."
-                  value={formData.address}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, address: e.target.value }))
-                  }
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="pinCode" className="font-semibold text-xs">
-                    PIN Code (पिन कोड) *
-                  </Label>
-                  <Input
-                    id="pinCode"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="PIN Code"
-                    value={formData.pinCode}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        pinCode: e.target.value.replace(/\D/g, "").slice(0, 6),
-                      }))
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="tehsil" className="font-semibold text-xs">
-                    Tehsil (तहसील) *
-                  </Label>
-                  <Input
-                    id="tehsil"
-                    placeholder="Enter Tehsil"
-                    value={formData.tehsil}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, tehsil: e.target.value }))
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="district" className="font-semibold text-xs">
-                    District (ज़िला) *
-                  </Label>
-                  <Input
-                    id="district"
-                    placeholder="Enter District"
-                    value={formData.district}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, district: e.target.value }))
-                    }
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="state" className="font-semibold text-xs">
-                    State (राज्य)
-                  </Label>
-                  <Input
-                    id="state"
-                    value={formData.state}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, state: e.target.value }))
-                    }
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 5. Nominee Details (Optional) */}
-          <Card className="shadow-sm">
-            <CardHeader className="py-3 px-5 border-b bg-slate-50/50 dark:bg-slate-900/50">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-                <Shield className="h-4 w-4 text-[#0B4A8F]" />
-                Nominee Information (Optional) / नॉमिनी विवरण
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-              <div className="space-y-1.5">
-                <Label htmlFor="nomineeName" className="font-semibold text-xs">
-                  Nominee Name (नॉमिनी का नाम)
-                </Label>
-                <Input
-                  id="nomineeName"
-                  placeholder="Enter Nominee Name"
-                  value={formData.nomineeName}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, nomineeName: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="nomineeRelation" className="font-semibold text-xs">
-                  Relation with Applicant (संबंध)
-                </Label>
-                <Input
-                  id="nomineeRelation"
-                  placeholder="e.g. Husband, Mother, Sister"
-                  value={formData.nomineeRelation}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, nomineeRelation: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="nomineeMobile" className="font-semibold text-xs">
-                  Nominee Mobile (नॉमिनी का मोबाइल)
-                </Label>
-                <Input
-                  id="nomineeMobile"
-                  inputMode="numeric"
-                  maxLength={10}
-                  placeholder="10-digit Mobile Number"
-                  value={formData.nomineeMobile}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      nomineeMobile: e.target.value.replace(/\D/g, "").slice(0, 10),
-                    }))
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 6. E-PIN & Initial Payment Details */}
-          <Card className="border-l-4 border-l-[#F57C00] shadow-sm">
-            <CardHeader className="py-3 px-5 border-b bg-slate-50/50 dark:bg-slate-900/50">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-                <KeyRound className="h-4 w-4 text-[#F57C00]" />
-                E-PIN Voucher & Initial Payment / ई-पिन एवं प्रारंभिक भुगतान
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 space-y-4 text-xs">
-              {/* E-PIN Input Verifier */}
-              <EpinInputVerifier
-                value={formData.epinCode}
-                onChange={(val) => setFormData((prev) => ({ ...prev, epinCode: val }))}
-                onVerified={handleEpinVerified}
-                agentId={formData.selectedAgentId || undefined}
-                required={false}
-              />
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
-                <div className="space-y-1.5">
-                  <Label htmlFor="payAmount" className="font-semibold text-xs">
-                    Initial Paid Amount (प्रारंभिक जमा राशि ₹)
-                  </Label>
-                  <Input
-                    id="payAmount"
-                    type="number"
-                    min="0"
-                    placeholder="0"
-                    value={formData.paymentAmount}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, paymentAmount: e.target.value }))
-                    }
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="payMode" className="font-semibold text-xs">
-                    Payment Mode (भुगतान माध्यम)
-                  </Label>
-                  <select
-                    id="payMode"
-                    value={formData.paymentMode}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        paymentMode: e.target.value as any,
-                      }))
-                    }
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
-                  >
-                    <option value="CASH">Cash / नकद</option>
-                    <option value="ONLINE">Online / ऑनलाइन</option>
-                    <option value="RAZORPAY">Razorpay</option>
-                    <option value="BANK_TRANSFER">Bank Transfer / बैंक ट्रांसफर</option>
-                  </select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 7. Attachments & Photos (Optional) */}
-          <Card className="shadow-sm">
-            <CardHeader className="py-3 px-5 border-b bg-slate-50/50 dark:bg-slate-900/50">
-              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
-                <Upload className="h-4 w-4 text-[#0B4A8F]" />
-                Photo Upload (Optional) / फोटो संलग्न करें
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 flex flex-col sm:flex-row items-center gap-6 text-xs">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="passportPhoto" className="font-semibold text-xs">
-                  Mother's Passport Size Photo / माता का पासपोर्ट साइज फोटो
-                </Label>
-                <Input
-                  id="passportPhoto"
-                  type="file"
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#0B4A8F]/10 file:text-[#0B4A8F] hover:file:bg-[#0B4A8F]/20 cursor-pointer"
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Supports JPG, PNG, WEBP (Max 5MB)
+                  ← वापस जाएं / Go Back
+                </Button>
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mt-2">
+                  जननी प्रसूति सहायता फॉर्म आवेदन पत्र
+                </h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  Add New Janni Delivery Registration Application
                 </p>
               </div>
+            </div>
+          </div>
 
-              {photoPreview && (
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className="h-24 w-24 rounded-lg overflow-hidden border shadow-sm">
-                    <img
-                      src={photoPreview}
-                      alt="Mother Photo Preview"
-                      className="h-full w-full object-cover"
+          <div className="px-6 py-8">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Section 1: Application Metadata & Categorization */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                  आवेदन विवरण (Application & Scheme Details)
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      आवेदन तिथि / Date <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative mt-1">
+                      <Input
+                        value={formData.applicationDate}
+                        readOnly
+                        className="bg-gray-50 text-xs sm:text-sm"
+                      />
+                      <Popover open={appDateOpen} onOpenChange={setAppDateOpen}>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" className="absolute right-0 top-0 h-full px-3">
+                            <CalendarDays className="h-4 w-4 text-gray-400" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                          <Calendar
+                            mode="single"
+                            selected={appDateObj}
+                            onSelect={(date: any) => {
+                              if (date) {
+                                setAppDateObj(date);
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  applicationDate: formatDate(date),
+                                }));
+                              }
+                              setAppDateOpen(false);
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      श्रेणी / Category <span className="text-red-500">*</span>
+                    </Label>
+                    <select
+                      value={formData.category}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          category: e.target.value as any,
+                        }))
+                      }
+                      className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
+                    >
+                      <option value="A">Category A</option>
+                      <option value="B">Category B</option>
+                      <option value="C">Category C</option>
+                      <option value="D">Category D</option>
+                      <option value="E">Category E</option>
+                      <option value="F">Category F</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      कुल सहायता राशि / Scheme Value (₹)
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.totalAmount}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, totalAmount: e.target.value }))
+                      }
                     />
                   </div>
-                  <span className="text-[10px] text-emerald-600 font-medium">
-                    ✓ Photo Loaded
-                  </span>
+
+                  {isAdmin() && (
+                    <div>
+                      <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                        कार्यकर्ता / Allocated Worker
+                      </Label>
+                      <select
+                        value={formData.selectedAgentId}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, selectedAgentId: e.target.value }))
+                        }
+                        className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
+                        disabled={loadingAgents}
+                      >
+                        <option value="">Direct / Self / Admin</option>
+                        {agents.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name} ({a.mobile})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/dashboard/janni-delivery")}
-              disabled={isLoading}
-            >
-              Cancel / रद्द करें
-            </Button>
+              {/* Section 2: Mother / Applicant Details */}
+              <div className="space-y-4 pt-4 border-t">
+                <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                  माता (आवेदक) का व्यक्तिगत विवरण (Mother / Applicant Details)
+                </h2>
 
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-[#0B4A8F] hover:bg-[#072E5C] text-white px-6 font-semibold shadow-md shadow-blue-950/20 flex items-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Submitting Application...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4" />
-                  Submit Registration / पंजीकरण सबमिट करें
-                </>
-              )}
-            </Button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      माता / आवेदक का नाम <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      required
+                      placeholder="माता का नाम दर्ज करें"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.applicantName}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, applicantName: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      पिता का नाम (Father's Name) <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      required
+                      placeholder="पिता का नाम दर्ज करें"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.fatherName}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, fatherName: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      पति का नाम (Husband's Name)
+                    </Label>
+                    <Input
+                      placeholder="पति का नाम दर्ज करें"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.husbandName}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, husbandName: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      नानी / माँ का नाम (Mother's Name)
+                    </Label>
+                    <Input
+                      placeholder="माँ का नाम दर्ज करें"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.motherName}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, motherName: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      जन्म तिथि (DOB) <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative mt-1">
+                      <Input
+                        required
+                        placeholder="dd-mm-yyyy"
+                        className="text-xs sm:text-sm"
+                        value={formData.dateOfBirth}
+                        onChange={handleDobTextChange}
+                      />
+                      <Popover open={dobOpen} onOpenChange={setDobOpen}>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" className="absolute right-0 top-0 h-full px-3">
+                            <CalendarDays className="h-4 w-4 text-gray-400" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                          <Calendar
+                            mode="single"
+                            selected={dobObj}
+                            captionLayout="dropdown"
+                            fromYear={1950}
+                            toYear={new Date().getFullYear()}
+                            onSelect={(date: any) => {
+                              if (date) {
+                                setDobObj(date);
+                                const formatted = formatDate(date);
+                                const age = calculateAgeFromDate(formatted);
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  dateOfBirth: formatted,
+                                  age,
+                                }));
+                              }
+                              setDobOpen(false);
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      उम्र / Age (Years)
+                    </Label>
+                    <Input
+                      readOnly
+                      placeholder="Auto calculated"
+                      className="bg-gray-50 mt-1 text-xs sm:text-sm"
+                      value={formData.age}
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      गोत्र / Gotra <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      required
+                      placeholder="गोत्र दर्ज करें"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.gotra}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, gotra: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      आधार कार्ड नंबर <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      required
+                      inputMode="numeric"
+                      maxLength={12}
+                      placeholder="12 digit Aadhaar No."
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.aadharNumber}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          aadharNumber: e.target.value.replace(/\D/g, "").slice(0, 12),
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      मोबाइल नंबर / Mobile <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      required
+                      inputMode="numeric"
+                      maxLength={10}
+                      placeholder="10 digit Mobile No."
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.mobile}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          mobile: e.target.value.replace(/\D/g, "").slice(0, 10),
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      लिंग / Gender
+                    </Label>
+                    <select
+                      value={formData.gender}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          gender: e.target.value as any,
+                        }))
+                      }
+                      className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
+                    >
+                      <option value="Female">Female / महिला</option>
+                      <option value="Male">Male / पुरुष</option>
+                      <option value="Other">Other / अन्य</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 3: Delivery & Child Details */}
+              <div className="space-y-4 pt-4 border-t">
+                <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                  प्रसूति एवं शिशु का विवरण (Delivery & Child Information)
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      नवजात शिशु का नाम (Child Name)
+                    </Label>
+                    <Input
+                      placeholder="शिशु का नाम (यदि रखा गया हो)"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.childName}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, childName: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      शिशु का लिंग (Child Gender)
+                    </Label>
+                    <select
+                      value={formData.childGender}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          childGender: e.target.value as any,
+                        }))
+                      }
+                      className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
+                    >
+                      <option value="">लिंग चुनें / Select Gender</option>
+                      <option value="Male">Male / बालक</option>
+                      <option value="Female">Female / बालिका</option>
+                      <option value="Other">Other / अन्य</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      प्रसूति दिनांक (Delivery Date)
+                    </Label>
+                    <div className="relative mt-1">
+                      <Input
+                        placeholder="dd-mm-yyyy"
+                        className="text-xs sm:text-sm"
+                        value={formData.deliveryDate}
+                        onChange={(e) =>
+                          setFormData((prev) => ({ ...prev, deliveryDate: e.target.value }))
+                        }
+                      />
+                      <Popover open={deliveryDateOpen} onOpenChange={setDeliveryDateOpen}>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" className="absolute right-0 top-0 h-full px-3">
+                            <CalendarDays className="h-4 w-4 text-gray-400" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="end">
+                          <Calendar
+                            mode="single"
+                            selected={deliveryDateObj}
+                            onSelect={(date: any) => {
+                              if (date) {
+                                setDeliveryDateObj(date);
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  deliveryDate: formatDate(date),
+                                }));
+                              }
+                              setDeliveryDateOpen(false);
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      अस्पताल का नाम / स्थान (Hospital)
+                    </Label>
+                    <Input
+                      placeholder="अस्पताल का नाम दर्ज करें"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.hospitalName}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, hospitalName: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 4: Address Details */}
+              <div className="space-y-4 pt-4 border-t">
+                <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                  स्थायी पता (Residential Address Details)
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="sm:col-span-2 lg:col-span-4">
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      पूरा पता (Full Address) <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      required
+                      rows={2}
+                      placeholder="मकान नंबर, गली/मोहल्ला, गांव आदि दर्ज करें"
+                      className="mt-1 text-xs sm:text-sm bg-white"
+                      value={formData.address}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, address: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      पिन कोड / PIN Code <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      required
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="6 digit PIN Code"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.pinCode}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          pinCode: e.target.value.replace(/\D/g, "").slice(0, 6),
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      तहसील / Tehsil <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      required
+                      placeholder="तहसील दर्ज करें"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.tehsil}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, tehsil: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      ज़िला / District <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      required
+                      placeholder="ज़िला दर्ज करें"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.district}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, district: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      राज्य / State
+                    </Label>
+                    <Input
+                      placeholder="राज्य दर्ज करें"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.state}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, state: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 5: Nominee Details */}
+              <div className="space-y-4 pt-4 border-t">
+                <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                  नॉमिनी का विवरण (Nominee Information)
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      नॉमिनी का नाम (Nominee Name)
+                    </Label>
+                    <Input
+                      placeholder="नॉमिनी का नाम दर्ज करें"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.nomineeName}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, nomineeName: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      संबंध / Relation
+                    </Label>
+                    <Input
+                      placeholder="उदा. पति, सास, माता, बहन"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.nomineeRelation}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, nomineeRelation: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      नॉमिनी मोबाइल / Mobile
+                    </Label>
+                    <Input
+                      inputMode="numeric"
+                      maxLength={10}
+                      placeholder="10 digit Mobile No."
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.nomineeMobile}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          nomineeMobile: e.target.value.replace(/\D/g, "").slice(0, 10),
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 6: E-PIN & Initial Payment Details */}
+              <div className="space-y-4 pt-4 border-t">
+                <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                  ई-पिन एवं भुगतान विवरण (E-PIN & Payment Details)
+                </h2>
+
+                {/* E-PIN Voucher Verification */}
+                <div className="p-4 bg-muted/20 border rounded-lg">
+                  <EpinInputVerifier
+                    value={formData.epinCode}
+                    onChange={(val) => setFormData((prev) => ({ ...prev, epinCode: val }))}
+                    onVerified={handleEpinVerified}
+                    agentId={formData.selectedAgentId || undefined}
+                    required={false}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      प्रारंभिक भुगतान राशि / Initial Amount (₹)
+                    </Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.paymentAmount}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, paymentAmount: e.target.value }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      भुगतान माध्यम / Payment Mode
+                    </Label>
+                    <select
+                      value={formData.paymentMode}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          paymentMode: e.target.value as any,
+                        }))
+                      }
+                      className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
+                    >
+                      <option value="CASH">Cash / नकद</option>
+                      <option value="ONLINE">Online / ऑनलाइन</option>
+                      <option value="RAZORPAY">Razorpay</option>
+                      <option value="BANK_TRANSFER">Bank Transfer / बैंक ट्रांसफर</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 7: Photos */}
+              <div className="space-y-4 pt-4 border-t">
+                <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">
+                  फोटो संलग्न करें (Photo Upload)
+                </h2>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      माता का पासपोर्ट साइज फोटो (Mother's Photo)
+                    </Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="text-xs sm:text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#0B4A8F]/10 file:text-[#0B4A8F] hover:file:bg-[#0B4A8F]/20 cursor-pointer"
+                    />
+                    <p className="text-xs text-gray-500">Supports JPG, PNG, WEBP (Max 5MB)</p>
+                    {photoPreview && (
+                      <div className="mt-2">
+                        <img
+                          src={photoPreview}
+                          alt="Mother Preview"
+                          className="h-24 w-24 object-cover rounded border"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.back()}
+                  disabled={isLoading}
+                  className="w-full sm:w-auto"
+                >
+                  रद्द करें / Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full sm:w-auto bg-[#0B4A8F] hover:bg-[#072E5C] text-white font-medium flex items-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      सहेजें / Save Registration
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     </RoleGuard>
   );

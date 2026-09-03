@@ -130,6 +130,18 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
     enabled: true,
     isNewSlot: true,
     hasGrantPayment: true,
+    children: [
+      {
+        id: "janni_congress_payment",
+        name: { en: "Janni Congress Payment", hi: "जननी प्रसूति बधाई पत्र" },
+        subtitle: { en: "Janni Congress Payment", hi: "जननी प्रसूति बधाई पत्र" },
+        category: "SCHEME",
+        route: "/dashboard/janni-delivery/congress-payment",
+        iconName: "Gift",
+        permissionKey: "janni_delivery",
+        enabled: true,
+      },
+    ],
   },
 
   // --- 5. Aawas (Home) Registration Application (Generic Architecture Slot) ---

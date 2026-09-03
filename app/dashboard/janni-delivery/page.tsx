@@ -417,7 +417,7 @@ export default function JanniDeliveryListPage() {
     {
       key: "custom_actions",
       label: "कार्य",
-      className: "min-w-[210px]",
+      className: "min-w-[150px]",
       render: (_: unknown, row: JanniDeliveryRegistration) => (
         <TooltipProvider>
           <div className="flex items-center gap-1">
@@ -482,38 +482,6 @@ export default function JanniDeliveryListPage() {
               </TooltipTrigger>
               <TooltipContent>
                 <p>Delete</p>
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handleOpenViewModal(row)}
-                >
-                  <Eye className="w-4 h-4 text-[#0B4A8F]" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>View Details</p>
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handleOpenInstallmentModal(row)}
-                >
-                  <IndianRupee className="w-4 h-4 text-emerald-600" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Add Installment / Payment</p>
               </TooltipContent>
             </Tooltip>
           </div>

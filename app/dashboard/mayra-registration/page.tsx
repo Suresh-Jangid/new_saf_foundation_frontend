@@ -223,7 +223,8 @@ export default function MayraRegistrationPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `mayra_registration_${record.applicantName}.pdf`
+      const safeName = (record.applicantName || record.formNumber || record.id || 'form').replace(/[^a-zA-Z0-9_\-\u0900-\u097F]/g, '_')
+      a.download = `MAYRA_FORM_${safeName}.pdf`
       document.body.appendChild(a)
       a.click()
       a.remove()

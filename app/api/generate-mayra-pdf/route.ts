@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
     const rawSafeName = applicantName || membershipNo || record?.id || 'form';
     const safeName = String(rawSafeName).trim().replace(/[^a-zA-Z0-9_\-\u0900-\u097F]/g, '_');
 
-    return new Response(pdfBytes, {
+    return new Response(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="MAYRA_FORM_${encodeURIComponent(safeName)}.pdf"`,

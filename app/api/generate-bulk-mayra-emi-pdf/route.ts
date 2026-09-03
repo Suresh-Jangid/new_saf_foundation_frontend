@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
 
     const pdfBytes = await pdfDoc.save();
 
-    return new Response(pdfBytes, {
+    return new Response(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="bulk_mayra_emi_${Date.now()}.pdf"`,

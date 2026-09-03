@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -40,13 +39,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DataTable } from "@/components/data-table";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  HeartHandshake,
-  Plus,
-  RefreshCw,
-  Search,
+  FileSpreadsheet,
   Eye,
   Trash2,
   Receipt,
@@ -54,19 +52,10 @@ import {
   Baby,
   Calendar,
   MapPin,
-  CreditCard,
+  IndianRupee,
+  ShieldCheck,
   KeyRound,
   FileText,
-  DollarSign,
-  ShieldCheck,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  FileSpreadsheet,
-  IndianRupee,
-  AlertCircle,
-  Clock,
-  CheckCircle2,
 } from "lucide-react";
 import { RoleGuard } from "@/components/role-guard";
 import { JanniDeliveryService, JanniDeliveryRegistration } from "@/lib/janni-delivery-service";
@@ -77,12 +66,8 @@ export default function JanniDeliveryListPage() {
   const router = useRouter();
   const [registrations, setRegistrations] = useState<JanniDeliveryRegistration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("ALL");
-  const [selectedDistrict, setSelectedDistrict] = useState("ALL");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [currentAddressFilter, setCurrentAddressFilter] = useState("all");
+  const [currentGenderFilter, setCurrentGenderFilter] = useState("all");
 
   // Modals state
   const [selectedRecord, setSelectedRecord] = useState<JanniDeliveryRegistration | null>(null);
@@ -102,46 +87,19 @@ export default function JanniDeliveryListPage() {
   const [installmentPaymentMode, setInstallmentPaymentMode] = useState("CASH");
   const [isSubmittingInstallment, setIsSubmittingInstallment] = useState(false);
 
-  // Summary counts
-  const [summary, setSummary] = useState<{
-    totalRecords: number;
-    totalAmount: number;
-    totalPending: number;
-  }>({
-    totalRecords: 0,
-    totalAmount: 0,
-    totalPending: 0,
-  });
-
   const fetchRegistrations = useCallback(async () => {
     setIsLoading(true);
     try {
       const filters: Record<string, any> = {
-        page,
-        limit: 20,
+        limit: 1000,
       };
-      if (searchTerm.trim()) filters.search = searchTerm.trim();
-      if (selectedCategory !== "ALL") filters.category = selectedCategory;
-      if (selectedDistrict !== "ALL") filters.district = selectedDistrict;
+      if (currentAddressFilter !== "all") {
+        filters.district = currentAddressFilter;
+      }
 
       const res = await JanniDeliveryService.getAllRegistrations(filters);
       if (res && res.data) {
         setRegistrations(res.data);
-        if (res.pagination) {
-          setTotalPages(res.pagination.totalPages || 1);
-          setTotalCount(res.pagination.total || res.data.length);
-        }
-        if (res.summary) {
-          setSummary(res.summary);
-        } else {
-          const totalAmt = res.data.reduce((acc, curr) => acc + (Number(curr.totalAmount) || 0), 0);
-          const totalPend = res.data.reduce((acc, curr) => acc + (Number(curr.pendingAmount) || 0), 0);
-          setSummary({
-            totalRecords: res.data.length,
-            totalAmount: totalAmt,
-            totalPending: totalPend,
-          });
-        }
       }
     } catch (err: any) {
       console.error("Failed to load Janni Delivery registrations:", err);
@@ -149,13 +107,28 @@ export default function JanniDeliveryListPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, searchTerm, selectedCategory, selectedDistrict]);
+  }, [currentAddressFilter]);
 
   useEffect(() => {
     fetchRegistrations();
   }, [fetchRegistrations]);
 
-  const handleDelete = async () => {
+  // Distinct addresses/districts for filter dropdown
+  const uniqueAddresses = useMemo(() => {
+    const set = new Set<string>();
+    registrations.forEach((r) => {
+      if (r.district && r.district.trim()) set.add(r.district.trim());
+      else if (r.address && r.address.trim()) set.add(r.address.trim());
+    });
+    return Array.from(set).sort();
+  }, [registrations]);
+
+  const handleDeleteClick = (id: string) => {
+    setRecordToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
     if (!recordToDelete) return;
     setIsDeleting(true);
     try {
@@ -180,6 +153,11 @@ export default function JanniDeliveryListPage() {
     setInstallmentNote("");
     setInstallmentPaymentMode("CASH");
     setIsInstallmentModalOpen(true);
+  };
+
+  const handleOpenViewModal = (record: JanniDeliveryRegistration) => {
+    setSelectedRecord(record);
+    setIsViewModalOpen(true);
   };
 
   const handleAddInstallment = async (e: React.FormEvent) => {
@@ -233,8 +211,8 @@ export default function JanniDeliveryListPage() {
         "आवेदन तिथि": record.applicationDate,
         "माता का नाम": record.applicantName,
         "पिता का नाम": record.fatherName,
-        "पति का नाम": record.husbandName || "N/A",
-        "आयु": record.age || "N/A",
+        "पति का नाम": record.husbandName || "",
+        "आयु": record.age || "",
         "गोत्र": record.gotra,
         "आधार": record.aadharNumber,
         "मोबाइल": record.mobile,
@@ -242,390 +220,253 @@ export default function JanniDeliveryListPage() {
         "तहसील": record.tehsil,
         "जिला": record.district,
         "पिन कोड": record.pinCode,
-        "शिशु का नाम": record.childName || "N/A",
-        "शिशु का लिंग": record.childGender || "N/A",
-        "प्रसूति तिथि": record.deliveryDate || "N/A",
-        "अस्पताल": record.hospitalName || "N/A",
-        "नॉमिनी का नाम": record.nomineeName || "N/A",
-        "नॉमिनी संबंध": record.nomineeRelation || "N/A",
+        "शिशु का नाम": record.childName || "",
+        "शिशु का लिंग": record.childGender || "",
+        "प्रसूति तिथि": record.deliveryDate || "",
+        "अस्पताल": record.hospitalName || "",
+        "नॉमिनी का नाम": record.nomineeName || "",
+        "नॉमिनी संबंध": record.nomineeRelation || "",
         "कुल सहायता": record.totalAmount,
         "लंबित राशि": record.pendingAmount,
-        "ई-पिन": record.epinCode || "N/A",
+        "ई-पिन": record.epinCode || "",
       }));
 
       const ws = XLSX.utils.json_to_sheet(excelData);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Janni Registrations");
-      XLSX.writeFile(wb, `janni_delivery_registrations_${new Date().toISOString().split("T")[0]}.xlsx`);
+      XLSX.writeFile(wb, `janni_registrations_${new Date().toISOString().split("T")[0]}.xlsx`);
       toast.success("Excel exported successfully!");
     } catch (e: any) {
       toast.error("Export failed: " + e.message);
     }
   };
 
-  // Distinct districts for filtering
-  const distinctDistricts = useMemo(() => {
-    const set = new Set<string>();
-    registrations.forEach((r) => {
-      if (r.district) set.add(r.district.trim());
-    });
-    return Array.from(set).sort();
-  }, [registrations]);
+  const columns = [
+    {
+      key: "formNumber",
+      label: "फॉर्म संख्या",
+      className: "min-w-[120px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) => (
+        <span className="font-mono text-xs font-semibold text-[#0B4A8F]">
+          {row.formNumber || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "applicationDate",
+      label: "आवेदन तिथि",
+      className: "min-w-[110px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) =>
+        row.applicationDate ? formatDate(row.applicationDate) : "—",
+    },
+    {
+      key: "applicantName",
+      label: "नाम",
+      className: "min-w-[150px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) => (
+        <span className="font-medium text-xs text-gray-900 dark:text-gray-100">
+          {row.applicantName}
+        </span>
+      ),
+    },
+    {
+      key: "fatherName",
+      label: "पिता का नाम",
+      className: "min-w-[130px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) => row.fatherName || "—",
+    },
+    {
+      key: "husbandName",
+      label: "पति का नाम",
+      className: "min-w-[130px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) => row.husbandName || "—",
+    },
+    {
+      key: "dateOfBirth",
+      label: "जन्म तिथि",
+      className: "min-w-[110px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) =>
+        row.dateOfBirth ? formatDate(row.dateOfBirth) : "—",
+    },
+    {
+      key: "age",
+      label: "आयु",
+      className: "min-w-[70px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) =>
+        row.age ? `${row.age}` : "—",
+    },
+    { key: "gotra", label: "गोत्र", className: "min-w-[90px]" },
+    { key: "aadharNumber", label: "आधार", className: "min-w-[120px]" },
+    { key: "mobile", label: "मोबाइल", className: "min-w-[110px]" },
+    { key: "address", label: "पता", className: "min-w-[160px]" },
+    { key: "tehsil", label: "तहसील", className: "min-w-[100px]" },
+    { key: "district", label: "जिला", className: "min-w-[100px]" },
+    {
+      key: "childName",
+      label: "शिशु का नाम",
+      className: "min-w-[120px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) => row.childName || "—",
+    },
+    {
+      key: "childGender",
+      label: "शिशु लिंग",
+      className: "min-w-[90px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) => row.childGender || "—",
+    },
+    {
+      key: "deliveryDate",
+      label: "प्रसूति तिथि",
+      className: "min-w-[110px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) =>
+        row.deliveryDate ? formatDate(row.deliveryDate) : "—",
+    },
+    {
+      key: "hospitalName",
+      label: "अस्पताल",
+      className: "min-w-[140px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) => row.hospitalName || "—",
+    },
+    {
+      key: "nomineeName",
+      label: "नॉमिनी का नाम",
+      className: "min-w-[130px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) => row.nomineeName || "—",
+    },
+    {
+      key: "nomineeRelation",
+      label: "नॉमिनी संबंध",
+      className: "min-w-[110px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) => row.nomineeRelation || "—",
+    },
+    {
+      key: "totalAmount",
+      label: "कुल सहायता",
+      className: "min-w-[100px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) =>
+        `₹${Number(row.totalAmount || 0).toLocaleString("en-IN")}`,
+    },
+    {
+      key: "pendingAmount",
+      label: "बकाया राशि",
+      className: "min-w-[100px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) =>
+        `₹${Number(row.pendingAmount || 0).toLocaleString("en-IN")}`,
+    },
+    {
+      key: "epinCode",
+      label: "ई-पिन",
+      className: "min-w-[110px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) =>
+        row.epinCode ? (
+          <Badge className="bg-emerald-100 text-emerald-800 border-none text-[10px]">
+            {row.epinCode}
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground text-xs">—</span>
+        ),
+    },
+    {
+      key: "custom_actions",
+      label: "कार्य",
+      className: "min-w-[140px]",
+      render: (_: unknown, row: JanniDeliveryRegistration) => (
+        <TooltipProvider>
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => handleOpenViewModal(row)}
+                >
+                  <Eye className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View Details</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => handleOpenInstallmentModal(row)}
+                >
+                  <IndianRupee className="w-4 h-4 text-emerald-600" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Add Installment / Payment</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                  onClick={() => handleDeleteClick(row.id)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Delete</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
+      ),
+    },
+  ];
 
   return (
     <RoleGuard requiredModule="janni_delivery" requiredAction="view">
-      <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
-        {/* Page Header matching Mayra / Marriage UI */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-[#0B4A8F] to-[#0D5EB3] text-white rounded-2xl shadow-md shadow-blue-950/20">
-              <HeartHandshake className="h-7 w-7" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                जननी प्रसूति पंजीकरण (Janni Delivery Registration)
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                जननी प्रसूति योजना पंजीकरण व सहायता प्रबंधन पोर्टल
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5">
+      <>
+        <DataTable
+          data={registrations}
+          columns={columns}
+          title="जननी प्रसूति पंजीकरण (Janni Delivery Registration)"
+          subtitle="जननी प्रसूति फॉर्म पंजीकरण संभालें"
+          addNewUrl="/dashboard/janni-delivery/add"
+          addNewLabel="Add New Janni"
+          onDelete={handleDeleteClick}
+          editUrlPattern="/dashboard/janni-delivery/edit/[id]"
+          showActionsColumn={false}
+          searchFields={["applicantName", "mobile", "aadharNumber", "formNumber"]}
+          itemsPerPage={10}
+          showGenderFilter={false}
+          showAddressFilter={true}
+          addressField="district"
+          onAddressFilterChange={(addr) => setCurrentAddressFilter(addr)}
+          currentAddressFilter={currentAddressFilter}
+          uniqueAddresses={uniqueAddresses}
+          module="janni_delivery"
+          headerActions={
             <Button
+              onClick={handleExportExcel}
               variant="outline"
               size="sm"
-              onClick={handleExportExcel}
+              className="flex items-center gap-2"
               disabled={registrations.length === 0}
-              className="flex items-center gap-1.5"
             >
-              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <FileSpreadsheet className="w-4 h-4" />
               <span className="hidden sm:inline">Export Excel</span>
             </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchRegistrations}
-              disabled={isLoading}
-              className="flex items-center gap-1.5"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-              <span>Refresh</span>
-            </Button>
-
-            <Button
-              onClick={() => router.push("/dashboard/janni-delivery/add")}
-              className="bg-[#0B4A8F] hover:bg-[#072E5C] text-white flex items-center gap-2 shadow-md shadow-blue-950/20"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add New Janni</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="border-l-4 border-l-[#0B4A8F] shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">
-                कुल पंजीकरण / Total Registrations
-              </CardTitle>
-              <FileText className="h-4 w-4 text-[#0B4A8F]" />
-            </CardHeader>
-            <CardContent className="px-4 pb-3">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {summary.totalRecords || totalCount}
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">सक्रिय जननी प्रसूति लाभार्थी</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-emerald-600 shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">
-                कुल योजना राशि / Total Scheme Amount
-              </CardTitle>
-              <IndianRupee className="h-4 w-4 text-emerald-600" />
-            </CardHeader>
-            <CardContent className="px-4 pb-3">
-              <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
-                ₹{(summary.totalAmount || 0).toLocaleString("en-IN")}
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">स्वीकृत सहायता मूल्य</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-[#F57C00] shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-xs font-semibold text-muted-foreground uppercase">
-                बकाया / Pending Amount
-              </CardTitle>
-              <Receipt className="h-4 w-4 text-[#F57C00]" />
-            </CardHeader>
-            <CardContent className="px-4 pb-3">
-              <div className="text-2xl font-bold text-[#F57C00]">
-                ₹{(summary.totalPending || 0).toLocaleString("en-IN")}
-              </div>
-              <p className="text-xs text-muted-foreground mt-0.5">लंबित किश्त राशि</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filter and Search Bar */}
-        <Card className="shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
-              <div className="relative w-full md:w-80">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="आवेदक नाम, मोबाइल, आधार या फॉर्म क्र..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-                <div className="flex items-center gap-1.5">
-                  <Filter className="h-4 w-4 text-muted-foreground hidden sm:inline" />
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-[140px] text-xs">
-                      <SelectValue placeholder="श्रेणी / Category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">सभी श्रेणियां</SelectItem>
-                      <SelectItem value="A">Category A</SelectItem>
-                      <SelectItem value="B">Category B</SelectItem>
-                      <SelectItem value="C">Category C</SelectItem>
-                      <SelectItem value="D">Category D</SelectItem>
-                      <SelectItem value="E">Category E</SelectItem>
-                      <SelectItem value="F">Category F</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Select value={selectedDistrict} onValueChange={setSelectedDistrict}>
-                  <SelectTrigger className="w-[140px] text-xs">
-                    <SelectValue placeholder="जिला / District" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">सभी ज़िले</SelectItem>
-                    {distinctDistricts.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {(searchTerm || selectedCategory !== "ALL" || selectedDistrict !== "ALL") && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setSelectedCategory("ALL");
-                      setSelectedDistrict("ALL");
-                    }}
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    Clear Filters
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Applications Data Table */}
-        <Card className="shadow-sm overflow-hidden border">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-slate-50 dark:bg-slate-900/60">
-                <TableRow>
-                  <TableHead className="font-semibold text-xs text-gray-700 dark:text-gray-300">फॉर्म क्र.</TableHead>
-                  <TableHead className="font-semibold text-xs text-gray-700 dark:text-gray-300">आवेदन तिथि</TableHead>
-                  <TableHead className="font-semibold text-xs text-gray-700 dark:text-gray-300">माता / आवेदक का नाम</TableHead>
-                  <TableHead className="font-semibold text-xs text-gray-700 dark:text-gray-300">पिता / पति</TableHead>
-                  <TableHead className="font-semibold text-xs text-gray-700 dark:text-gray-300">शिशु विवरण</TableHead>
-                  <TableHead className="font-semibold text-xs text-gray-700 dark:text-gray-300">संपर्क व आधार</TableHead>
-                  <TableHead className="font-semibold text-xs text-gray-700 dark:text-gray-300">स्थान / जिला</TableHead>
-                  <TableHead className="font-semibold text-xs text-right text-gray-700 dark:text-gray-300">ई-पिन / बकाया</TableHead>
-                  <TableHead className="font-semibold text-xs text-center text-gray-700 dark:text-gray-300">कार्य</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <RefreshCw className="h-6 w-6 animate-spin text-[#0B4A8F]" />
-                        <span>Loading Janni Delivery records...</span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : registrations.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-12 text-muted-foreground">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <HeartHandshake className="h-10 w-10 text-muted-foreground/50" />
-                        <span className="font-semibold text-base">कोई पंजीकरण नहीं मिला / No records found</span>
-                        <span className="text-xs">
-                          नया पंजीकरण दर्ज करने के लिए ऊपर "Add New Janni" बटन पर क्लिक करें।
-                        </span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  registrations.map((item) => (
-                    <TableRow
-                      key={item.id}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-900/40 transition-colors"
-                    >
-                      <TableCell className="font-semibold text-xs text-[#0B4A8F] whitespace-nowrap font-mono">
-                        <Badge variant="outline" className="border-[#0B4A8F]/30 bg-[#0B4A8F]/5 text-[#0B4A8F]">
-                          {item.formNumber || "—"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                        {item.applicationDate ? formatDate(item.applicationDate) : "—"}
-                      </TableCell>
-                      <TableCell className="font-medium text-xs text-gray-900 dark:text-gray-100">
-                        <div className="font-semibold">{item.applicantName}</div>
-                        <div className="text-[11px] text-muted-foreground">
-                          गोत्र: <span className="font-medium">{item.gotra || "—"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs text-gray-700 dark:text-gray-300">
-                        <div>{item.husbandName || item.fatherName || "—"}</div>
-                        {item.husbandName && item.fatherName && (
-                          <div className="text-[10px] text-muted-foreground">पिता: {item.fatherName}</div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs text-gray-700 dark:text-gray-300">
-                        {item.childGender ? (
-                          <div className="flex items-center gap-1">
-                            <Baby className="h-3.5 w-3.5 text-blue-600" />
-                            <span>{item.childGender} {item.childName ? `(${item.childName})` : ""}</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground italic">—</span>
-                        )}
-                        {item.deliveryDate && (
-                          <div className="text-[11px] text-muted-foreground">
-                            प्रसूति: {formatDate(item.deliveryDate)}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        <div className="font-medium text-slate-800 dark:text-slate-200">{item.mobile}</div>
-                        <div className="text-[11px] text-muted-foreground font-mono">
-                          आधार: {item.aadharNumber ? `••••${item.aadharNumber.slice(-4)}` : "—"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs text-gray-600 dark:text-gray-400">
-                        <div>{item.tehsil ? `${item.tehsil}, ` : ""}{item.district || "—"}</div>
-                        <div className="text-[11px] text-muted-foreground">पिन: {item.pinCode || "—"}</div>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-right">
-                        {item.epinCode ? (
-                          <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-none text-[10px]">
-                            <KeyRound className="h-2.5 w-2.5 mr-1" />
-                            E-PIN Verified
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-muted-foreground text-[10px]">
-                            Cash / Direct
-                          </Badge>
-                        )}
-                        <div className="mt-1 font-semibold text-xs text-[#F57C00]">
-                          बकाया: ₹{(Number(item.pendingAmount) || 0).toLocaleString("en-IN")}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 px-2 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 border-emerald-300 dark:bg-emerald-950/30 dark:text-emerald-400 flex items-center gap-1"
-                            onClick={() => handleOpenInstallmentModal(item)}
-                            title="किश्त / सहायता भुगतान दर्ज करें"
-                          >
-                            <IndianRupee className="h-3 w-3" />
-                            <span className="hidden sm:inline">किश्त</span>
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                            onClick={() => {
-                              setSelectedRecord(item);
-                              setIsViewModalOpen(true);
-                            }}
-                            title="विवरण देखें"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => {
-                              setRecordToDelete(item.id);
-                              setIsDeleteModalOpen(true);
-                            }}
-                            title="हटाएं / Delete"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="p-3 border-t flex items-center justify-between text-xs text-muted-foreground">
-              <span>
-                Page {page} of {totalPages} ({totalCount} total records)
-              </span>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="h-7 px-2"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="h-7 px-2"
-                >
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </Card>
+          }
+        />
 
         {/* ── Modal 1: View Details Modal ────────────────────────────── */}
         <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-lg">
-                <HeartHandshake className="h-5 w-5 text-[#0B4A8F]" />
+                <FileText className="h-5 w-5 text-[#0B4A8F]" />
                 <span>जननी प्रसूति पंजीकरण विवरण</span>
               </DialogTitle>
               <DialogDescription>
@@ -639,11 +480,11 @@ export default function JanniDeliveryListPage() {
 
             {selectedRecord && (
               <div className="space-y-4 py-2 text-xs">
-                {/* Section 1: Mother Details */}
+                {/* Mother Details */}
                 <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border space-y-2">
                   <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs uppercase tracking-wider">
                     <User className="h-3.5 w-3.5 text-[#0B4A8F]" />
-                    <span>माता / आवेदक का विवरण (Mother Details)</span>
+                    <span>माता / आवेदक का विवरण</span>
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     <div>
@@ -659,31 +500,21 @@ export default function JanniDeliveryListPage() {
                       <p className="font-semibold text-gray-900 dark:text-gray-100">{selectedRecord.husbandName || "—"}</p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">माता का नाम:</span>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">{selectedRecord.motherName || "—"}</p>
-                    </div>
-                    <div>
                       <span className="text-muted-foreground">जन्म तिथि / आयु:</span>
                       <p className="font-semibold text-gray-900 dark:text-gray-100">
                         {selectedRecord.dateOfBirth ? formatDate(selectedRecord.dateOfBirth) : "—"} {selectedRecord.age ? `(${selectedRecord.age} वर्ष)` : ""}
                       </p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">गोत्र / श्रेणी:</span>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">
-                        {selectedRecord.gotra} {selectedRecord.category ? `(Cat ${selectedRecord.category})` : ""}
-                      </p>
+                      <span className="text-muted-foreground">गोत्र:</span>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">{selectedRecord.gotra}</p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">आधार नंबर:</span>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100 font-mono">{selectedRecord.aadharNumber || "—"}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">मोबाइल:</span>
-                      <p className="font-semibold text-gray-900 dark:text-gray-100">{selectedRecord.mobile}</p>
+                      <span className="text-muted-foreground">आधार / मोबाइल:</span>
+                      <p className="font-semibold text-gray-900 dark:text-gray-100">{selectedRecord.aadharNumber} / {selectedRecord.mobile}</p>
                     </div>
                     <div className="col-span-2 sm:col-span-3">
-                      <span className="text-muted-foreground">पूरा पता:</span>
+                      <span className="text-muted-foreground">पता:</span>
                       <p className="font-semibold text-gray-900 dark:text-gray-100">
                         {[selectedRecord.address, selectedRecord.tehsil, selectedRecord.district, selectedRecord.state, selectedRecord.pinCode].filter(Boolean).join(", ")}
                       </p>
@@ -691,11 +522,11 @@ export default function JanniDeliveryListPage() {
                   </div>
                 </div>
 
-                {/* Section 2: Delivery & Child Details */}
+                {/* Delivery & Child Details */}
                 <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border space-y-2">
                   <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs uppercase tracking-wider">
                     <Baby className="h-3.5 w-3.5 text-blue-600" />
-                    <span>प्रसूति एवं शिशु विवरण (Delivery & Child Details)</span>
+                    <span>प्रसूति एवं शिशु विवरण</span>
                   </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     <div>
@@ -713,21 +544,21 @@ export default function JanniDeliveryListPage() {
                       </p>
                     </div>
                     <div className="col-span-2 sm:col-span-3">
-                      <span className="text-muted-foreground">अस्पताल का नाम:</span>
+                      <span className="text-muted-foreground">अस्पताल:</span>
                       <p className="font-semibold text-gray-900 dark:text-gray-100">{selectedRecord.hospitalName || "—"}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Section 3: Nominee Details */}
+                {/* Nominee Details */}
                 <div className="p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border space-y-2">
                   <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs uppercase tracking-wider">
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                    <span>नॉमिनी विवरण (Nominee Details)</span>
+                    <span>नॉमिनी विवरण</span>
                   </h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-3 gap-2.5">
                     <div>
-                      <span className="text-muted-foreground">नॉमिनी का नाम:</span>
+                      <span className="text-muted-foreground">नाम:</span>
                       <p className="font-semibold text-gray-900 dark:text-gray-100">{selectedRecord.nomineeName || "—"}</p>
                     </div>
                     <div>
@@ -735,39 +566,39 @@ export default function JanniDeliveryListPage() {
                       <p className="font-semibold text-gray-900 dark:text-gray-100">{selectedRecord.nomineeRelation || "—"}</p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">नॉमिनी मोबाइल:</span>
+                      <span className="text-muted-foreground">मोबाइल:</span>
                       <p className="font-semibold text-gray-900 dark:text-gray-100">{selectedRecord.nomineeMobile || "—"}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Section 4: Aid & Payment Summary */}
-                <div className="grid grid-cols-3 gap-3 text-center p-3 bg-gradient-to-r from-blue-50 to-emerald-50 dark:from-blue-950/20 dark:to-emerald-950/20 rounded-xl border">
+                {/* Payment Breakdown */}
+                <div className="grid grid-cols-3 gap-3 text-center p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border">
                   <div>
                     <span className="text-[11px] text-muted-foreground font-medium">कुल सहायता</span>
-                    <p className="text-base font-bold text-blue-700 dark:text-blue-400">
+                    <p className="text-base font-bold text-[#0B4A8F]">
                       ₹{Number(selectedRecord.totalAmount || 0).toLocaleString("en-IN")}
                     </p>
                   </div>
                   <div>
                     <span className="text-[11px] text-muted-foreground font-medium">भुगतान राशि</span>
-                    <p className="text-base font-bold text-emerald-700 dark:text-emerald-400">
+                    <p className="text-base font-bold text-emerald-600">
                       ₹{(Number(selectedRecord.totalAmount || 0) - Number(selectedRecord.pendingAmount || 0)).toLocaleString("en-IN")}
                     </p>
                   </div>
                   <div>
                     <span className="text-[11px] text-muted-foreground font-medium">शेष बकाया</span>
-                    <p className="text-base font-bold text-amber-700 dark:text-amber-400">
+                    <p className="text-base font-bold text-amber-600">
                       ₹{Number(selectedRecord.pendingAmount || 0).toLocaleString("en-IN")}
                     </p>
                   </div>
                 </div>
 
-                {/* Installments History Table */}
+                {/* Installments Table */}
                 {selectedRecord.installments && selectedRecord.installments.length > 0 && (
                   <div className="space-y-1.5">
                     <h4 className="font-bold text-gray-900 dark:text-gray-100 text-xs">
-                      किश्त भुगतान इतिहास (Installments History)
+                      किश्त भुगतान इतिहास
                     </h4>
                     <div className="border rounded-lg overflow-hidden">
                       <Table>
@@ -776,7 +607,7 @@ export default function JanniDeliveryListPage() {
                             <TableHead className="text-[11px] py-1.5">#</TableHead>
                             <TableHead className="text-[11px] py-1.5">तिथि</TableHead>
                             <TableHead className="text-[11px] py-1.5">माध्यम</TableHead>
-                            <TableHead className="text-[11px] py-1.5">विवरण / रसीद</TableHead>
+                            <TableHead className="text-[11px] py-1.5">रसीद / विवरण</TableHead>
                             <TableHead className="text-[11px] py-1.5 text-right">राशि (₹)</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -949,7 +780,7 @@ export default function JanniDeliveryListPage() {
         <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>पंजीकरण हटाएं (Delete Registration)</AlertDialogTitle>
+              <AlertDialogTitle>पंजीकरण हटाएं</AlertDialogTitle>
               <AlertDialogDescription>
                 क्या आप वाकई इस जननी प्रसूति पंजीकरण रिकॉर्ड को हटाना चाहते हैं?
               </AlertDialogDescription>
@@ -957,7 +788,7 @@ export default function JanniDeliveryListPage() {
             <AlertDialogFooter>
               <AlertDialogCancel disabled={isDeleting}>रद्द करें</AlertDialogCancel>
               <AlertDialogAction
-                onClick={handleDelete}
+                onClick={confirmDelete}
                 className="bg-red-600 hover:bg-red-700 text-white"
                 disabled={isDeleting}
               >
@@ -966,7 +797,7 @@ export default function JanniDeliveryListPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </div>
+      </>
     </RoleGuard>
   );
 }

@@ -1,19 +1,12 @@
+import 'regenerator-runtime/runtime';
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
-import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
-import { MAYRA_ASSOCIATION_DURATION_HI } from '@/lib/utils';
 
 export const runtime = 'nodejs';
-
-type FieldMapping = {
-  getValue: (record: Record<string, any>) => string | undefined;
-  x: number;
-  y: number;
-  size?: number;
-};
 
 function getField(record: Record<string, any>, ...keys: string[]): string {
   for (const key of keys) {
@@ -23,40 +16,6 @@ function getField(record: Record<string, any>, ...keys: string[]): string {
     }
   }
   return '';
-}
-
-function normalizeRecord(raw: Record<string, any>): Record<string, any> {
-  return {
-    ...raw,
-    formNumber: getField(raw, 'formNumber', 'form_number', 'sr_no'),
-    applicationDate: getField(raw, 'applicationDate', 'application_date'),
-    applicantName: getField(raw, 'applicantName', 'applicant_name'),
-    fatherName: getField(raw, 'fatherName', 'father_name', 'parentName', 'parent_name'),
-    gotra: getField(raw, 'gotra', 'gotra_name'),
-    age: getField(raw, 'age'),
-    address: getField(raw, 'address', 'applicant_address'),
-    nomineeName: getField(raw, 'nomineeName', 'nominee_name'),
-    nomineeFathername: getField(
-      raw,
-      'nomineeFathername',
-      'nominee_father_name',
-      'nominee_fathername',
-      'nomineeFather',
-      'nominee_fathers_name',
-    ),
-    nomineeGotra: getField(raw, 'nomineeGotra', 'nominee_gotra'),
-    nomineeAddress: getField(raw, 'nomineeAddress', 'nominee_address'),
-    nomineeRelation: getField(raw, 'nomineeRelation', 'nominee_relation', 'relation'),
-  };
-}
-
-function resolveRelationLabel(record: Record<string, any>): string {
-  const relation = getField(record, 'nomineeRelation', 'nominee_relation', 'relation');
-  const r = relation.trim();
-  const lower = r.toLowerCase();
-  if (r === 'भांजी' || lower === 'bhenji' || lower === 'bhanji') return 'भांजी';
-  if (r === 'भांजा' || r === 'भांजे' || lower === 'bhanej' || lower === 'bhanja' || lower === 'bhanje') return 'भांजा';
-  return r || 'भांजा';
 }
 
 export async function POST(request: NextRequest) {
@@ -69,7 +28,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const record = normalizeRecord(body?.record || body?.data || {});
+    const record = body?.record || body?.data || (body && typeof body === 'object' && !Array.isArray(body) ? body : {});
+
     const applicantPhotoSource = pickPhotoSource(
       body?.imageData,
       record?.imageData,
@@ -88,11 +48,12 @@ export async function POST(request: NextRequest) {
       record?.nomineePhoto,
       record?.nominee_photo,
     );
-    const duration = body?.duration || MAYRA_ASSOCIATION_DURATION_HI;
 
     console.log('Generating Mayra bond PDF for:', record.applicantName || 'Unknown');
 
-    const templatePath = path.join(process.cwd(), 'public', 'pdf', 'mayra', 'mayra_bond.pdf');
+    const primaryTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'mayra_bond', 'mayra_bond.pdf');
+    const fallbackTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'mayra', 'mayra_bond.pdf');
+    const templatePath = fs.existsSync(primaryTemplatePath) ? primaryTemplatePath : fallbackTemplatePath;
 
     if (!fs.existsSync(templatePath)) {
       return NextResponse.json({ error: 'Mayra bond template not found on server' }, { status: 500 });
@@ -100,21 +61,7 @@ export async function POST(request: NextRequest) {
 
     const existingPdfBytes = fs.readFileSync(templatePath);
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
-
-    let fontkitAvailable = false;
-    try {
-      try {
-        await import('regenerator-runtime/runtime');
-      } catch {}
-      const fontkitModule: any = await import('@pdf-lib/fontkit');
-      const fontkit = fontkitModule?.default ?? fontkitModule;
-      if (fontkit) {
-        pdfDoc.registerFontkit(fontkit);
-        fontkitAvailable = true;
-      }
-    } catch {
-      fontkitAvailable = false;
-    }
+    pdfDoc.registerFontkit(fontkit);
 
     const pages = pdfDoc.getPages();
     if (pages.length === 0) {
@@ -122,100 +69,117 @@ export async function POST(request: NextRequest) {
     }
 
     const firstPage = pages[0];
-    const { height: pageHeight } = firstPage.getSize();
+    const pageHeight = firstPage.getSize().height;
 
-    // Photo boxes measured from mayra_bond.pdf template (648 x 504)
+    // Measured Photo Boxes from official mayra_bond.pdf template (612 x 792):
+    // Nominee Photo Box (Top):          x = 295.5, yFromTop = 131.0, w = 46.0, h = 53.0 (y in PDF: 608 to 661)
+    // Account-holder Photo Box (Bottom): x = 295.5, yFromTop = 200.5, w = 46.0, h = 53.0 (y in PDF: 538.5 to 591.5)
     if (nomineePhotoSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 284, 206, 79, 95);
+      await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 295.5, 131.0, 46.0, 53.0);
     }
     if (applicantPhotoSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 284, 325, 79, 97);
+      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 295.5, 200.5, 46.0, 53.0);
     }
 
-    let font;
     const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf');
-    try {
-      if (fs.existsSync(fontPath) && fontkitAvailable) {
-        const customFontBytes = fs.readFileSync(fontPath);
-        font = await pdfDoc.embedFont(customFontBytes, { subset: true });
-      } else {
-        font = await pdfDoc.embedFont('Helvetica');
-      }
-    } catch (e) {
-      console.error('Error loading font:', e);
-      font = await pdfDoc.embedFont('Helvetica');
-    }
+    const font = fs.existsSync(fontPath)
+      ? await pdfDoc.embedFont(fs.readFileSync(fontPath), { subset: false })
+      : await pdfDoc.embedFont('Helvetica');
 
-    const formatDate = (value: string) => {
-      if (!value) return '';
-      if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}/.test(value)) {
-        return value.replace(/-/g, '/');
+    const drawBounded = (
+      text: string,
+      x: number,
+      y: number,
+      size: number = 9.5,
+      maxW?: number,
+      color = rgb(0, 0, 0)
+    ) => {
+      if (!text) return;
+      const str = String(text).trim();
+      if (!str) return;
+      let s = size;
+      if (maxW && font.widthOfTextAtSize) {
+        const w = font.widthOfTextAtSize(str, size);
+        if (w > maxW) {
+          s = Math.max(6.0, size * (maxW / w));
+        }
       }
-      return formatDateToDDMMYYYY(value) || value;
+      firstPage.drawText(str, {
+        x,
+        y,
+        size: s,
+        font,
+        color,
+      });
     };
 
-    const drawText = (text: string | undefined, x: number, y: number, size = 11) => {
-      try {
-        if (!text?.trim()) return;
-        firstPage.drawText(String(text), {
-          x,
-          y: pageHeight - y,
-          size,
-          font,
-          color: rgb(0, 0, 0),
-        });
-      } catch (e) {
-        console.error(`Error drawing text "${text}" at (${x}, ${y}):`, e);
-      }
-    };
+    // ── Field Extraction According to Project Rules ──────────────────────
+    // 1. Membership number MUST use ONLY record.membershipNumber / membership_number
+    const membershipNo = getField(record, 'membershipNumber', 'membership_number');
 
-    const fieldMappings: FieldMapping[] = [
-      // Header boxes
-      { getValue: (r) => r.formNumber, x: 105, y: 190 },
-      { getValue: (r) => formatDate(r.applicationDate), x: 535, y: 190 },
-
-      // Nominee details (left column)
-      { getValue: (r) => r.nomineeName, x: 60, y: 252 },
-      { getValue: (r) => r.nomineeFathername, x: 90, y: 278 },
-      { getValue: (r) => r.nomineeGotra || r.gotra, x: 45, y: 304 },
-      { getValue: (r) => r.nomineeAddress || r.address, x: 62, y: 331 },
-      { getValue: (r) => resolveRelationLabel(r), x: 135, y: 357 },
-
-      // Applicant / nephew-niece details (right column)
-      { getValue: (r) => r.applicantName, x: 452, y: 260 },
-      { getValue: (r) => r.fatherName, x: 440, y: 286 },
-      { getValue: (r) => r.gotra, x: 420, y: 312 },
-      { getValue: (r) => r.age, x: 570, y: 312 },
-      { getValue: (r) => r.address, x: 437, y: 339 },
-    ];
-
-    for (const mapping of fieldMappings) {
-      drawText(mapping.getValue(record), mapping.x, mapping.y, mapping.size);
-    }
-
-    // Duration — dotted blank in "इस योजना का लाभ ___ के बाद मिलेगा"
-    if (duration) {
-      drawText(duration, 438, 392, 11);
-    }
-
-    const pdfBytes = await pdfDoc.save();
-    const arrayBuffer = pdfBytes.buffer.slice(
-      pdfBytes.byteOffset,
-      pdfBytes.byteOffset + pdfBytes.byteLength,
+    // 2. Application number maps to authoritative Mayra application/form-number field ONLY
+    const applicationNo = getField(
+      record,
+      'formNumber',
+      'form_number',
+      'applicationNumber',
+      'application_number',
+      'applicationNo',
+      'mayraNumber',
+      'mayra_number',
     );
 
-    const safeName =
-      getField(record, 'applicantName', 'formNumber', 'id')
-        .replace(/[^\x00-\x7F]/g, '')
-        .replace(/[^a-zA-Z0-9\s-_]/g, '')
-        .trim()
-        .replace(/\s+/g, '_') || 'bond';
+    // 3. Nominee details (Left Section: "नॉमिनी का विवरण")
+    const nomineeName = getField(record, 'nomineeName', 'nominee_name');
+    const nomineeFathername = getField(
+      record,
+      'nomineeFathername',
+      'nominee_father_name',
+      'nominee_fathername',
+      'nomineeFather',
+      'nominee_fathers_name',
+      'nomineeHusbandName',
+      'nominee_husband_name',
+    );
+    const nomineeGotra = getField(record, 'nomineeGotra', 'nominee_gotra', 'gotra');
+    const nomineeAddress = getField(record, 'nomineeAddress', 'nominee_address', 'address');
 
-    return new NextResponse(arrayBuffer as ArrayBuffer, {
+    // 4. Account holder / Bhanej-Bhanji details (Right Section: "भाणेज-भाणजी का विवरण")
+    const applicantName = getField(record, 'applicantName', 'applicant_name');
+    const fatherName = getField(record, 'fatherName', 'father_name', 'parentName', 'parent_name');
+    const gotra = getField(record, 'gotra', 'gotra_name');
+    const rawAge = getField(record, 'age');
+    const age = rawAge ? (/^\d+$/.test(rawAge) ? `${rawAge} वर्ष` : rawAge) : '';
+    const address = getField(record, 'address', 'applicant_address');
+
+    // ── Draw Text on Official Template Coordinates ───────────────────────
+    // TOP HEADER INPUT BOXES
+    drawBounded(membershipNo, 160, 669.5, 10, 80);
+    drawBounded(applicationNo, 442, 669.5, 10, 84);
+
+    // LEFT SECTION: नॉमिनी का विवरण
+    drawBounded(nomineeName, 132, 625.5, 9.5, 150);
+    drawBounded(nomineeFathername, 152, 604.5, 9.5, 130);
+    drawBounded(nomineeGotra, 122, 583.5, 9.5, 160);
+    drawBounded(nomineeAddress, 130, 557.0, 9.0, 118);
+
+    // RIGHT SECTION: भाणेज-भाणजी का विवरण
+    drawBounded(applicantName, 396, 625.5, 9.5, 128);
+    drawBounded(fatherName, 392, 606.0, 9.5, 132);
+    drawBounded(gotra, 374, 586.5, 9.5, 62);
+    drawBounded(age, 460, 586.5, 9.5, 64);
+    drawBounded(address, 385, 567.5, 9.0, 138);
+
+    // Fixed statement: "इस योजना का लाभ एक वर्ष के बाद मिलेगा" is pre-printed on template.
+
+    const pdfBytes = await pdfDoc.save();
+    const rawSafeName = applicantName || membershipNo || applicationNo || record?.id || 'bond';
+    const safeName = String(rawSafeName).trim().replace(/[^a-zA-Z0-9_\-\u0900-\u097F]/g, '_');
+
+    return new Response(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="MAYRA_BOND_${safeName}.pdf"`,
-        'Cache-Control': 'no-store',
+        'Content-Disposition': `attachment; filename="MAYRA_BOND_${encodeURIComponent(safeName)}.pdf"`,
       },
     });
   } catch (error: any) {

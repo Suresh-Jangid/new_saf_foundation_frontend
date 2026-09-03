@@ -1,30 +1,30 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Sparkles,
-  ArrowLeft,
-  Calendar,
-  User,
-  MapPin,
-  Shield,
-  CreditCard,
-  KeyRound,
+  CalendarDays,
   Upload,
   CheckCircle2,
-  AlertCircle,
   Loader2,
-  Users,
-  DollarSign,
+  ArrowLeft,
+  User,
+  MapPin,
   Heart,
+  Shield,
+  CreditCard,
+  Building,
 } from "lucide-react";
 import { RoleGuard } from "@/components/role-guard";
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier";
@@ -36,7 +36,7 @@ import {
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
-import { validatePhoneNumber } from "@/lib/utils";
+import { formatDate, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
 
 export default function AddLadoBahinPage() {
   const router = useRouter();
@@ -44,10 +44,17 @@ export default function AddLadoBahinPage() {
   const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile: string }>>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
 
+  // Date Popover States
+  const [appDateOpen, setAppDateOpen] = useState(false);
+  const [appDateObj, setAppDateObj] = useState<Date | undefined>(new Date());
+  const [dobOpen, setDobOpen] = useState(false);
+  const [dobObj, setDobObj] = useState<Date | undefined>(undefined);
+  const [muklawaDateOpen, setMuklawaDateOpen] = useState(false);
+  const [muklawaDateObj, setMuklawaDateObj] = useState<Date | undefined>(undefined);
+
   // Form State
   const [formData, setFormData] = useState<{
     applicationDate: string;
-    muklawaDate: string;
     applicantName: string;
     fatherName: string;
     husbandName: string;
@@ -62,6 +69,7 @@ export default function AddLadoBahinPage() {
     tehsil: string;
     district: string;
     state: string;
+    muklawaDate: string;
     nomineeName: string;
     nomineeRelation: string;
     nomineeMobile: string;
@@ -77,8 +85,7 @@ export default function AddLadoBahinPage() {
     selectedAgentId: string;
     epinCode: string;
   }>({
-    applicationDate: new Date().toISOString().split("T")[0],
-    muklawaDate: "",
+    applicationDate: formatDate(new Date()),
     applicantName: "",
     fatherName: "",
     husbandName: "",
@@ -93,6 +100,7 @@ export default function AddLadoBahinPage() {
     tehsil: "",
     district: "",
     state: "Rajasthan",
+    muklawaDate: "",
     nomineeName: "",
     nomineeRelation: "",
     nomineeMobile: "",
@@ -109,10 +117,9 @@ export default function AddLadoBahinPage() {
     epinCode: "",
   });
 
-  // Photo / Document state
+  // Photo state
   const [passportPhotoBase64, setPassportPhotoBase64] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [documentBase64, setDocumentBase64] = useState<string | null>(null);
 
   // E-PIN Validation State
   const [epinVerified, setEpinVerified] = useState<EpinValidationResponse | null>(null);
@@ -133,18 +140,18 @@ export default function AddLadoBahinPage() {
       agentRegistrationAPI
         .getAll()
         .then((res: any) => {
-          if (res && res.data) {
+          if (res && res.data && Array.isArray(res.data)) {
             setAgents(
-              res.data.map((ag: any) => ({
-                id: ag.id,
-                name: ag.applicantName || ag.name || "Agent",
-                mobile: ag.mobileNumber || ag.mobile || "",
+              res.data.map((a: any) => ({
+                id: String(a.id || a.user_id),
+                name: a.name || a.applicantName || "Agent",
+                mobile: a.mobile || a.mobileNumber || "",
               }))
             );
           }
         })
-        .catch(() => {
-          // non-blocking
+        .catch((err: any) => {
+          console.warn("Could not load agents list:", err);
         })
         .finally(() => {
           setLoadingAgents(false);
@@ -152,101 +159,98 @@ export default function AddLadoBahinPage() {
     }
   }, []);
 
-  // Calculate age when dateOfBirth changes
-  const handleDobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const dob = e.target.value;
+  // Calculate age when DOB changes
+  const calculateAgeFromDate = (dateVal: string) => {
+    if (!dateVal) return "";
+    let birthDate: Date | null | undefined = null;
+    if (/^\d{2}-\d{2}-\d{4}$/.test(dateVal)) {
+      birthDate = parseDateFromDDMMYYYY(dateVal);
+    } else {
+      birthDate = new Date(dateVal);
+    }
+
+    if (!birthDate || isNaN(birthDate.getTime())) return "";
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age >= 0 ? String(age) : "";
+  };
+
+  const handleInputChange = (
+    field: string,
+    value: any
+  ) => {
     setFormData((prev) => {
-      let calculatedAge = prev.age;
-      if (dob) {
-        const birthDate = new Date(dob);
-        const today = new Date();
-        let calculated = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-          calculated--;
-        }
-        if (calculated >= 0 && calculated <= 120) {
-          calculatedAge = String(calculated);
-        }
+      const next = { ...prev, [field]: value };
+      if (field === "dateOfBirth") {
+        next.age = calculateAgeFromDate(value);
       }
-      return { ...prev, dateOfBirth: dob, age: calculatedAge };
+      return next;
     });
   };
 
-  // File Upload Handlers
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("फोटो का आकार 2MB से कम होना चाहिए / Photo size must be under 2MB");
+    if (!file.type.startsWith("image/")) {
+      toast.error("कृपया केवल इमेज फाइल अपलोड करें (JPEG/PNG) / Please select an image file");
       return;
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const b64 = reader.result as string;
-      setPassportPhotoBase64(b64);
-      setPhotoPreview(b64);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("दस्तावेज़ का आकार 5MB से कम होना चाहिए / Document size must be under 5MB");
+      toast.error("इमेज का आकार 5MB से कम होना चाहिए / Image must be under 5MB");
       return;
     }
 
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setDocumentBase64(reader.result as string);
+    reader.onload = () => {
+      const result = reader.result as string;
+      setPassportPhotoBase64(result);
+      setPhotoPreview(result);
     };
     reader.readAsDataURL(file);
   };
 
-  // Form Submission
+  const removePhoto = () => {
+    setPassportPhotoBase64(null);
+    setPhotoPreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Client-side validations
+    // Validation
     if (!formData.applicantName.trim()) {
-      toast.error("कृपया आवेदिका का नाम दर्ज करें / Applicant Name is required");
+      toast.error("कृपया आवेदक का नाम दर्ज करें / Please enter Applicant Name");
       return;
     }
-    if (!formData.fatherName.trim()) {
-      toast.error("कृपया पिता का नाम दर्ज करें / Father Name is required");
+    if (!formData.fatherName.trim() && !formData.husbandName.trim()) {
+      toast.error("कृपया पिता या पति का नाम दर्ज करें / Please enter Father or Husband Name");
       return;
     }
-    if (!formData.gotra.trim()) {
-      toast.error("कृपया गोत्र दर्ज करें / Gotra is required");
+    if (!formData.mobile.trim()) {
+      toast.error("कृपया मोबाइल नंबर दर्ज करें / Please enter Mobile Number");
       return;
     }
-    if (!formData.mobile.trim() || formData.mobile.replace(/\D/g, "").length !== 10) {
-      toast.error("कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें / Enter valid 10-digit mobile number");
+    if (!validatePhoneNumber(formData.mobile)) {
+      toast.error("कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें / Invalid 10-digit mobile number");
       return;
     }
-    if (formData.aadharNumber.trim() && formData.aadharNumber.replace(/\D/g, "").length !== 12) {
-      toast.error("आधार कार्ड नंबर 12 अंकों का होना चाहिए / Aadhaar must be 12 digits");
-      return;
-    }
-    if (!formData.address.trim()) {
-      toast.error("कृपया पूरा पता दर्ज करें / Address is required");
+    if (!formData.aadharNumber.trim() || formData.aadharNumber.replace(/\D/g, "").length !== 12) {
+      toast.error("कृपया 12 अंकों का वैध आधार नंबर दर्ज करें / Invalid 12-digit Aadhaar number");
       return;
     }
     if (!formData.district.trim()) {
-      toast.error("कृपया जिला दर्ज करें / District is required");
+      toast.error("कृपया जिला चुनें / Please enter District");
       return;
     }
-    if (!formData.tehsil.trim()) {
-      toast.error("कृपया तहसील दर्ज करें / Tehsil is required");
-      return;
-    }
-    if (!formData.pinCode.trim() || formData.pinCode.replace(/\D/g, "").length !== 6) {
-      toast.error("कृपया 6 अंकों का वैध पिन कोड दर्ज करें / Enter valid 6-digit PIN code");
+    if (!formData.address.trim()) {
+      toast.error("कृपया पता दर्ज करें / Please enter Address");
       return;
     }
 
@@ -255,77 +259,50 @@ export default function AddLadoBahinPage() {
     try {
       const payload: CreateLadoBahinPayload = {
         applicationDate: formData.applicationDate,
-        muklawaDate: formData.muklawaDate || undefined,
         applicantName: formData.applicantName.trim(),
         fatherName: formData.fatherName.trim(),
-        husbandName: formData.husbandName.trim() || undefined,
-        motherName: formData.motherName.trim() || undefined,
-        dateOfBirth: formData.dateOfBirth || undefined,
-        age: formData.age ? Number(formData.age) : undefined,
+        husbandName: formData.husbandName.trim() || null,
+        motherName: formData.motherName.trim() || null,
+        dateOfBirth: formData.dateOfBirth || null,
+        age: formData.age ? Number(formData.age) : null,
         aadharNumber: formData.aadharNumber.replace(/\D/g, ""),
         gotra: formData.gotra.trim(),
-        mobile: formData.mobile.replace(/\D/g, ""),
+        mobile: formData.mobile.trim(),
         address: formData.address.trim(),
-        pinCode: formData.pinCode.replace(/\D/g, ""),
+        pinCode: formData.pinCode.trim(),
         tehsil: formData.tehsil.trim(),
         district: formData.district.trim(),
         state: formData.state.trim() || "Rajasthan",
-        nomineeName: formData.nomineeName.trim() || undefined,
-        nomineeRelation: formData.nomineeRelation.trim() || undefined,
-        nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || undefined,
-        nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || undefined,
-        passportPhotoUrl: passportPhotoBase64 || undefined,
-        documentUrl: documentBase64 || undefined,
-        gender: formData.gender,
+        muklawaDate: formData.muklawaDate || null,
+        nomineeName: formData.nomineeName.trim() || null,
+        nomineeRelation: formData.nomineeRelation.trim() || null,
+        nomineeMobile: formData.nomineeMobile.trim() || null,
+        nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || null,
+        passportPhotoUrl: passportPhotoBase64 || null,
+        gender: "Female",
         category: formData.category,
         schemeType: "LADO_BAHIN",
         pool: "FEMALE_POOL",
         accountType: formData.accountType,
         membershipFee: 5100,
+        grantFee: 5100,
         totalAmount: 5100,
         paymentAmount: Number(formData.paymentAmount) || 0,
         paymentMode: formData.paymentMode,
+        epinCode: formData.epinCode.trim() || null,
         selectedAgentId: formData.selectedAgentId || undefined,
-        agentId: formData.selectedAgentId || undefined,
-        epinCode: formData.epinCode.trim() || undefined,
-        pinNumber: formData.epinCode.trim() || undefined,
       };
 
       const res = await LadoBahinService.createRegistration(payload);
-
-      if (res && res.success !== false) {
-        toast.success(
-          `लाडो बहिन पंजीकरण सफलतापूर्वक संपन्न हुआ! फॉर्म नं: ${res.data?.formNumber || "LB-XXXX"}`
-        );
+      if (res && res.data) {
+        toast.success("लाडो बहिन पंजीकरण सफलतापूर्वक सुरक्षित किया गया / Registration created successfully");
         router.push("/dashboard/lado-bahin");
       } else {
-        const errorMsg = res.message || "पंजीकरण में त्रुटि / Failed to create registration";
-        if (/already|assigned|consumed|used/i.test(errorMsg)) {
-          toast.error("यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।");
-        } else {
-          toast.error(errorMsg);
-        }
+        throw new Error(res?.message || "Failed to create registration");
       }
     } catch (err: any) {
-      console.error("Submission error:", err);
-      // Handle 409 Conflict cleanly
-      if (err.response?.status === 409 || err.status === 409) {
-        const msg = err.response?.data?.message || "";
-        if (/epin|pin|voucher/i.test(msg)) {
-          toast.error("यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।");
-        } else {
-          toast.error(
-            msg ||
-              "समान आधार या मोबाइल नंबर से सक्रिय पंजीकरण पहले से मौजूद है या E-PIN conflict (409 Conflict)"
-          );
-        }
-      } else {
-        toast.error(
-          err.response?.data?.message ||
-            err.message ||
-            "पंजीकरण सहेजने में विफल / Failed to save registration"
-        );
-      }
+      console.error("Error creating registration:", err);
+      toast.error(err.message || "पंजीकरण सुरक्षित करने में विफल / Failed to create registration");
     } finally {
       setIsLoading(false);
     }
@@ -333,602 +310,610 @@ export default function AddLadoBahinPage() {
 
   return (
     <RoleGuard requiredModule="lado_bahin" requiredAction="create">
-      <div className="space-y-6 p-4 md:p-6 pb-16 max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border/60 pb-4">
+      <div className="w-full max-w-5xl mx-auto space-y-6 pb-12">
+        {/* Top Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
           <div className="flex items-center gap-3">
             <Button
-              variant="ghost"
-              size="sm"
+              variant="outline"
+              size="icon"
               onClick={() => router.push("/dashboard/lado-bahin")}
-              className="h-8 w-8 p-0"
+              className="h-9 w-9 rounded-lg border-border/60"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="w-4 h-4" />
             </Button>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <span>लाडो बहिन (मुकलावा) पंजीकरण फॉर्म</span>
-                <Badge className="bg-pink-500/10 text-pink-600 border-pink-200">
-                  Fixed Fee ₹5,100
-                </Badge>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                नया लाडो बहिन पंजीकरण (New Lado Bahin Registration)
               </h1>
-              <p className="text-xs text-muted-foreground">
-                Lado Bahin (Muklawa) Registration Application — Scheme Type: LADO_BAHIN | Pool: FEMALE_POOL
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                लाडो बहिन (मुकलावा) सहायता योजना के लिए नया आवेदन दर्ज करें
               </p>
             </div>
           </div>
         </div>
 
-        {/* Scheme Highlights Banner */}
-        <Card className="border-pink-200 dark:border-pink-900/40 bg-pink-50/40 dark:bg-pink-950/20 shadow-sm">
-          <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-pink-600 text-white">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-pink-900 dark:text-pink-200">
-                  लाडो बहिन योजना नियम एवं अनुदान (Lado Bahin Rules)
-                </div>
-                <div className="text-xs text-pink-700 dark:text-pink-300 mt-0.5">
-                  सदस्यता अनुदान शुल्क: <strong>₹5,100 (नियत)</strong> • दो स्वतंत्र खाते: <strong>₹300</strong> व <strong>₹1,000</strong>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-white/80 dark:bg-black/40 text-pink-700 dark:text-pink-300 border-pink-300">
-                Pool: FEMALE_POOL
-              </Badge>
-              <Badge variant="outline" className="bg-white/80 dark:bg-black/40 text-pink-700 dark:text-pink-300 border-pink-300">
-                No Age Slab
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Main Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Section 1: Applicant Information */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 px-6 py-4 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <User className="h-4 w-4 text-pink-600" />
-                <span>1. आवेदिका का व्यक्तिगत विवरण / Applicant Details</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Application Date */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="applicationDate" className="text-xs font-semibold">
-                    आवेदन दिनांक / Application Date <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="applicationDate"
-                    type="date"
-                    value={formData.applicationDate}
-                    onChange={(e) => setFormData({ ...formData, applicationDate: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
+          {/* 1. Scheme & Application Details Card */}
+          <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+              <Shield className="w-4 h-4 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">
+                1. आवेदन एवं योजना विवरण (Application & Scheme Details)
+              </h2>
+            </div>
 
-                {/* Muklawa Date */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="muklawaDate" className="text-xs font-semibold">
-                    मुकलावा दिनांक / Muklawa Date (Optional)
-                  </Label>
-                  <Input
-                    id="muklawaDate"
-                    type="date"
-                    value={formData.muklawaDate}
-                    onChange={(e) => setFormData({ ...formData, muklawaDate: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Caste / Social Category */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="category" className="text-xs font-semibold">
-                    वर्ग / Category <span className="text-destructive">*</span>
-                  </Label>
-                  <select
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                    required
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="A">Category A</option>
-                    <option value="B">Category B</option>
-                    <option value="C">Category C</option>
-                    <option value="D">Category D</option>
-                    <option value="E">Category E</option>
-                    <option value="F">Category F</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Applicant Name */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="applicantName" className="text-xs font-semibold">
-                    आवेदिका का नाम / Applicant Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="applicantName"
-                    placeholder="उदा. सुनीता देवी"
-                    value={formData.applicantName}
-                    onChange={(e) => setFormData({ ...formData, applicantName: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Father Name */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="fatherName" className="text-xs font-semibold">
-                    पिता का नाम / Father Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="fatherName"
-                    placeholder="उदा. रामेश्वर लाल"
-                    value={formData.fatherName}
-                    onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Husband Name */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="husbandName" className="text-xs font-semibold">
-                    पति का नाम / Husband Name (Optional)
-                  </Label>
-                  <Input
-                    id="husbandName"
-                    placeholder="उदा. दिनेश कुमार"
-                    value={formData.husbandName}
-                    onChange={(e) => setFormData({ ...formData, husbandName: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Mother Name */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="motherName" className="text-xs font-semibold">
-                    माता का नाम / Mother Name (Optional)
-                  </Label>
-                  <Input
-                    id="motherName"
-                    placeholder="माता का नाम..."
-                    value={formData.motherName}
-                    onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Date of Birth */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="dateOfBirth" className="text-xs font-semibold">
-                    जन्म दिनांक / Date of Birth (Optional)
-                  </Label>
-                  <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={handleDobChange}
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Age (No pricing slab) */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="age" className="text-xs font-semibold">
-                    आयु / Age (Years)
-                  </Label>
-                  <Input
-                    id="age"
-                    type="number"
-                    placeholder="उदा. 22"
-                    value={formData.age}
-                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Gender */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="gender" className="text-xs font-semibold">
-                    लिंग / Gender <span className="text-destructive">*</span>
-                  </Label>
-                  <select
-                    id="gender"
-                    value={formData.gender}
-                    onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
-                    required
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="Female">महिला (Female)</option>
-                    <option value="Male">पुरुष (Male)</option>
-                    <option value="Other">अन्य (Other)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Gotra */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="gotra" className="text-xs font-semibold">
-                    गोत्र / Gotra <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="gotra"
-                    placeholder="उदा. जांगिड़ / राठौड़"
-                    value={formData.gotra}
-                    onChange={(e) => setFormData({ ...formData, gotra: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Mobile */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="mobile" className="text-xs font-semibold">
-                    मोबाइल नंबर / Mobile <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="mobile"
-                    type="tel"
-                    maxLength={10}
-                    placeholder="10 अंकों का मोबाइल"
-                    value={formData.mobile}
-                    onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Aadhaar Number */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="aadharNumber" className="text-xs font-semibold">
-                    आधार नंबर / Aadhaar Number <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="aadharNumber"
-                    maxLength={12}
-                    placeholder="12 अंकों का आधार नंबर"
-                    value={formData.aadharNumber}
-                    onChange={(e) => setFormData({ ...formData, aadharNumber: e.target.value })}
-                    required
-                    className="text-sm font-mono"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 2: Residential Details */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 px-6 py-4 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-pink-600" />
-                <span>2. निवास एवं पता विवरण / Address Details</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Application Date */}
               <div className="space-y-1.5">
-                <Label htmlFor="address" className="text-xs font-semibold">
-                  स्थाई पता / Full Residential Address <span className="text-destructive">*</span>
+                <Label className="text-xs font-semibold text-foreground">
+                  आवेदन दिनांक (Application Date) <span className="text-rose-500">*</span>
+                </Label>
+                <Popover open={appDateOpen} onOpenChange={setAppDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal h-10 border-input bg-background"
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
+                      {formData.applicationDate || "दिनांक चुनें / Select Date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={appDateObj}
+                      onSelect={(date) => {
+                        setAppDateObj(date);
+                        if (date) {
+                          handleInputChange("applicationDate", formatDate(date));
+                        }
+                        setAppDateOpen(false);
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Category */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  श्रेणी (Category) <span className="text-rose-500">*</span>
+                </Label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => handleInputChange("category", e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="A">Category A</option>
+                  <option value="B">Category B</option>
+                  <option value="C">Category C</option>
+                  <option value="D">Category D</option>
+                  <option value="E">Category E</option>
+                  <option value="F">Category F</option>
+                </select>
+              </div>
+
+              {/* Account Type */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  खाता प्रकार (Account Type) <span className="text-rose-500">*</span>
+                </Label>
+                <select
+                  value={formData.accountType}
+                  onChange={(e) => handleInputChange("accountType", e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="LADO_BAHIN_300">लाडो बहिन ₹300 (मासिक / Monthly)</option>
+                  <option value="LADO_BAHIN_1000">लाडो बहिन ₹1000 (मासिक / Monthly)</option>
+                </select>
+              </div>
+
+              {/* Scheme Type (Fixed) */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">योजना (Scheme)</Label>
+                <Input
+                  value="लाडो बहिन (LADO_BAHIN)"
+                  disabled
+                  className="h-10 bg-muted text-muted-foreground font-medium"
+                />
+              </div>
+
+              {/* Pool (Fixed) */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">पूल (Pool)</Label>
+                <Input
+                  value="महिला पूल (FEMALE_POOL)"
+                  disabled
+                  className="h-10 bg-muted text-muted-foreground font-medium"
+                />
+              </div>
+
+              {/* Scheme Value (Fixed) */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">योजना राशि (Scheme Fee)</Label>
+                <Input
+                  value="₹5,100"
+                  disabled
+                  className="h-10 bg-muted text-muted-foreground font-semibold"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Personal & Family Details Card */}
+          <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+              <User className="w-4 h-4 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">
+                2. व्यक्तिगत एवं पारिवारिक विवरण (Personal & Family Details)
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Applicant Name */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  आवेदक का नाम (Applicant Name) <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  placeholder="उदा. सुनीता प्रजापत"
+                  value={formData.applicantName}
+                  onChange={(e) => handleInputChange("applicantName", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Father Name */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  पिता का नाम (Father&apos;s Name) <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  placeholder="उदा. रमेश प्रजापत"
+                  value={formData.fatherName}
+                  onChange={(e) => handleInputChange("fatherName", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Husband Name */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  पति का नाम (Husband&apos;s Name)
+                </Label>
+                <Input
+                  placeholder="उदा. विक्रम प्रजापत"
+                  value={formData.husbandName}
+                  onChange={(e) => handleInputChange("husbandName", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Mother Name */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  माता का नाम (Mother&apos;s Name)
+                </Label>
+                <Input
+                  placeholder="उदा. शांति देवी"
+                  value={formData.motherName}
+                  onChange={(e) => handleInputChange("motherName", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Date of Birth */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  जन्म दिनांक (Date of Birth)
+                </Label>
+                <Popover open={dobOpen} onOpenChange={setDobOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal h-10 border-input bg-background"
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
+                      {formData.dateOfBirth || "जन्म दिनांक चुनें"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dobObj}
+                      onSelect={(date) => {
+                        setDobObj(date);
+                        if (date) {
+                          handleInputChange("dateOfBirth", formatDate(date));
+                        }
+                        setDobOpen(false);
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Age */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  उम्र (Age in Years)
+                </Label>
+                <Input
+                  placeholder="उदा. 24"
+                  type="number"
+                  value={formData.age}
+                  onChange={(e) => handleInputChange("age", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Gotra */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  गोत्र (Gotra) <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  placeholder="उदा. प्रजापत"
+                  value={formData.gotra}
+                  onChange={(e) => handleInputChange("gotra", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Aadhaar Number */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  आधार कार्ड संख्या (Aadhaar Number) <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  placeholder="12 अंकों का आधार नंबर"
+                  maxLength={14}
+                  value={formData.aadharNumber}
+                  onChange={(e) => handleInputChange("aadharNumber", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Mobile Number */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  मोबाइल नंबर (Mobile Number) <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  placeholder="10 अंकों का मोबाइल नंबर"
+                  maxLength={10}
+                  value={formData.mobile}
+                  onChange={(e) => handleInputChange("mobile", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Muklawa Date */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  मुकलावा दिनांक (Muklawa Date)
+                </Label>
+                <Popover open={muklawaDateOpen} onOpenChange={setMuklawaDateOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal h-10 border-input bg-background"
+                    >
+                      <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
+                      {formData.muklawaDate || "मुकलावा दिनांक चुनें"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={muklawaDateObj}
+                      onSelect={(date) => {
+                        setMuklawaDateObj(date);
+                        if (date) {
+                          handleInputChange("muklawaDate", formatDate(date));
+                        }
+                        setMuklawaDateOpen(false);
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Gender (Fixed) */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">लिंग (Gender)</Label>
+                <Input
+                  value="महिला (Female)"
+                  disabled
+                  className="h-10 bg-muted text-muted-foreground font-medium"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Address & Location Card */}
+          <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+              <MapPin className="w-4 h-4 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">
+                3. पता एवं स्थान विवरण (Address & Location Details)
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="sm:col-span-2 lg:col-span-3 space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  पूरा पता (Full Address) <span className="text-rose-500">*</span>
                 </Label>
                 <Textarea
-                  id="address"
-                  placeholder="मकान संख्या, गली/मोहल्ला, ग्राम..."
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  required
+                  placeholder="मकान नं., गली, गाँव/मोहल्ला"
                   rows={2}
-                  className="text-sm"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange("address", e.target.value)}
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Tehsil */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="tehsil" className="text-xs font-semibold">
-                    तहसील / Tehsil <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="tehsil"
-                    placeholder="उदा. सांगानेर"
-                    value={formData.tehsil}
-                    onChange={(e) => setFormData({ ...formData, tehsil: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* District */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="district" className="text-xs font-semibold">
-                    जिला / District <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="district"
-                    placeholder="उदा. जयपुर"
-                    value={formData.district}
-                    onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* PIN Code */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="pinCode" className="text-xs font-semibold">
-                    पिन कोड / PIN Code <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="pinCode"
-                    maxLength={6}
-                    placeholder="6 अंकों का पिन कोड"
-                    value={formData.pinCode}
-                    onChange={(e) => setFormData({ ...formData, pinCode: e.target.value })}
-                    required
-                    className="text-sm font-mono"
-                  />
-                </div>
-
-                {/* State */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="state" className="text-xs font-semibold">
-                    राज्य / State <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="state"
-                    value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 3: Nominee Details */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 px-6 py-4 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Users className="h-4 w-4 text-pink-600" />
-                <span>3. वारिसदार / नॉमिनी विवरण / Nominee Details (Optional)</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="nomineeName" className="text-xs font-semibold">
-                    नॉमिनी का नाम / Nominee Name
-                  </Label>
-                  <Input
-                    id="nomineeName"
-                    placeholder="नॉमिनी का नाम..."
-                    value={formData.nomineeName}
-                    onChange={(e) => setFormData({ ...formData, nomineeName: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="nomineeRelation" className="text-xs font-semibold">
-                    संबंध / Relationship
-                  </Label>
-                  <Input
-                    id="nomineeRelation"
-                    placeholder="उदा. पति / पिता / भाई"
-                    value={formData.nomineeRelation}
-                    onChange={(e) => setFormData({ ...formData, nomineeRelation: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="nomineeMobile" className="text-xs font-semibold">
-                    नॉमिनी मोबाइल / Nominee Mobile
-                  </Label>
-                  <Input
-                    id="nomineeMobile"
-                    maxLength={10}
-                    placeholder="10 अंकों का मोबाइल"
-                    value={formData.nomineeMobile}
-                    onChange={(e) => setFormData({ ...formData, nomineeMobile: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="nomineeAadhar" className="text-xs font-semibold">
-                    नॉमिनी आधार / Nominee Aadhaar
-                  </Label>
-                  <Input
-                    id="nomineeAadhar"
-                    maxLength={12}
-                    placeholder="12 अंकों का आधार"
-                    value={formData.nomineeAadhar}
-                    onChange={(e) => setFormData({ ...formData, nomineeAadhar: e.target.value })}
-                    className="text-sm font-mono"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 4: Photo and Documents */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 px-6 py-4 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Upload className="h-4 w-4 text-pink-600" />
-                <span>4. फोटो एवं दस्तावेज़ / Photo & Documents (Optional)</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Photo Upload */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">
-                    पासपोर्ट फोटो / Passport Photo (&lt; 2MB)
-                  </Label>
-                  <div className="flex items-center gap-4">
-                    {photoPreview ? (
-                      <img
-                        src={photoPreview}
-                        alt="Preview"
-                        className="h-20 w-20 rounded-lg object-cover border border-border"
-                      />
-                    ) : (
-                      <div className="h-20 w-20 rounded-lg bg-muted border border-dashed border-border flex items-center justify-center text-muted-foreground text-xs">
-                        No Photo
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoUpload}
-                        className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-pink-50 file:text-pink-700"
-                      />
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        JPG, PNG, WebP supported
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Supporting Document */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">
-                    सहायक दस्तावेज़ / Supporting Document / Affidavit (&lt; 5MB)
-                  </Label>
-                  <Input
-                    type="file"
-                    accept=".pdf,image/*"
-                    onChange={handleDocumentUpload}
-                    className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-pink-50 file:text-pink-700"
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    PDF, JPG, PNG supported
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 5: E-PIN & Financials */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 px-6 py-4 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-pink-600" />
-                <span>5. ई-पिन एवं वित्तीय विवरण / E-PIN & Financial Details</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              {/* E-PIN Input Verifier */}
-              <div className="max-w-md">
-                <EpinInputVerifier
-                  value={formData.epinCode}
-                  onChange={(val) => setFormData({ ...formData, epinCode: val })}
-                  onVerified={handleEpinVerified}
-                  agentId={formData.selectedAgentId || undefined}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  तहसील (Tehsil) <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  placeholder="उदा. समदड़ी"
+                  value={formData.tehsil}
+                  onChange={(e) => handleInputChange("tehsil", e.target.value)}
+                  className="h-10"
                 />
               </div>
 
-              {/* Financial Account Choice & Membership Fee Display */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-border/60">
-                {/* Fixed Membership Fee */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">
-                    सदस्यता शुल्क / Membership Grant Fee
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      value="₹5,100 (नियत अनुदान राशि)"
-                      readOnly
-                      className="bg-muted font-bold text-amber-600 dark:text-amber-400"
-                    />
-                  </div>
-                </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  जिला (District) <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  placeholder="उदा. बालोतरा"
+                  value={formData.district}
+                  onChange={(e) => handleInputChange("district", e.target.value)}
+                  className="h-10"
+                />
+              </div>
 
-                {/* Primary Account Choice */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="accountType" className="text-xs font-semibold">
-                    प्राथमिक खाता प्रकार / Account Type <span className="text-destructive">*</span>
-                  </Label>
-                  <select
-                    id="accountType"
-                    value={formData.accountType}
-                    onChange={(e) =>
-                      setFormData({ ...formData, accountType: e.target.value as any })
-                    }
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  राज्य (State)
+                </Label>
+                <Input
+                  placeholder="उदा. राजस्थान"
+                  value={formData.state}
+                  onChange={(e) => handleInputChange("state", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  पिन कोड (Pin Code)
+                </Label>
+                <Input
+                  placeholder="6 अंकों का पिन कोड"
+                  maxLength={6}
+                  value={formData.pinCode}
+                  onChange={(e) => handleInputChange("pinCode", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Nominee Details Card */}
+          <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+              <Heart className="w-4 h-4 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">
+                4. नॉमिनी विवरण (Nominee Details)
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  नॉमिनी का नाम (Nominee Name)
+                </Label>
+                <Input
+                  placeholder="उदा. विक्रम प्रजापत"
+                  value={formData.nomineeName}
+                  onChange={(e) => handleInputChange("nomineeName", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  संबंध (Relationship)
+                </Label>
+                <select
+                  value={formData.nomineeRelation}
+                  onChange={(e) => handleInputChange("nomineeRelation", e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                >
+                  <option value="">संबंध चुनें / Select</option>
+                  <option value="पति (Husband)">पति (Husband)</option>
+                  <option value="पिता (Father)">पिता (Father)</option>
+                  <option value="माता (Mother)">माता (Mother)</option>
+                  <option value="पुत्र (Son)">पुत्र (Son)</option>
+                  <option value="पुत्री (Daughter)">पुत्री (Daughter)</option>
+                  <option value="भाई (Brother)">भाई (Brother)</option>
+                  <option value="अन्य (Other)">अन्य (Other)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  नॉमिनी मोबाइल (Mobile)
+                </Label>
+                <Input
+                  placeholder="10 अंकों का मोबाइल"
+                  maxLength={10}
+                  value={formData.nomineeMobile}
+                  onChange={(e) => handleInputChange("nomineeMobile", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  नॉमिनी आधार (Aadhaar)
+                </Label>
+                <Input
+                  placeholder="12 अंकों का आधार"
+                  maxLength={14}
+                  value={formData.nomineeAadhar}
+                  onChange={(e) => handleInputChange("nomineeAadhar", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Photo Upload Card */}
+          <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+              <Upload className="w-4 h-4 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">
+                5. आवेदक फोटो (Applicant Photo)
+              </h2>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+              {photoPreview ? (
+                <div className="relative w-28 h-36 rounded-lg border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photoPreview}
+                    alt="Applicant Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={removePhoto}
+                    className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 text-xs hover:bg-rose-700 shadow-xs"
                   >
-                    <option value="LADO_BAHIN_300">₹300 खाता (Account 300)</option>
-                    <option value="LADO_BAHIN_1000">₹1,000 खाता (Account 1000)</option>
-                  </select>
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div className="w-28 h-36 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground bg-muted/30">
+                  <User className="w-8 h-8 opacity-40 mb-1" />
+                  <span className="text-[10px]">कोई फोटो नहीं</span>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="photo-upload" className="cursor-pointer">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-sm font-medium transition-colors">
+                    <Upload className="w-4 h-4" />
+                    <span>फोटो चुनें / Choose Photo</span>
+                  </div>
+                  <input
+                    id="photo-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  पासपोर्ट साइज़ फोटो (JPG, PNG). अधिकतम साइज़: 5MB
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 6. E-PIN & Payment Details Card */}
+          <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+              <CreditCard className="w-4 h-4 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">
+                6. ई-पिन एवं भुगतान विवरण (E-PIN & Payment Details)
+              </h2>
+            </div>
+
+            <div className="space-y-4">
+              {/* E-PIN Verifier Component */}
+              <EpinInputVerifier
+                value={formData.epinCode}
+                onChange={(val) => handleInputChange("epinCode", val)}
+                onVerified={handleEpinVerified}
+                disabled={isLoading}
+              />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                {/* Initial Payment Amount */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-foreground">
+                    प्रारंभिक जमा राशि (Initial Paid Amount)
+                  </Label>
+                  <Input
+                    placeholder="₹ 0"
+                    type="number"
+                    value={formData.paymentAmount}
+                    onChange={(e) => handleInputChange("paymentAmount", e.target.value)}
+                    className="h-10"
+                  />
                 </div>
 
                 {/* Payment Mode */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="paymentMode" className="text-xs font-semibold">
-                    भुगतान माध्यम / Payment Mode
+                  <Label className="text-xs font-semibold text-foreground">
+                    भुगतान माध्यम (Payment Mode)
                   </Label>
                   <select
-                    id="paymentMode"
                     value={formData.paymentMode}
-                    onChange={(e) =>
-                      setFormData({ ...formData, paymentMode: e.target.value as any })
-                    }
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                    onChange={(e) => handleInputChange("paymentMode", e.target.value)}
+                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/20"
                   >
-                    <option value="CASH">नकद (Cash)</option>
-                    <option value="ONLINE">ऑनलाइन (Online)</option>
-                    <option value="BANK_TRANSFER">बैंक ट्रांसफर (Bank Transfer)</option>
+                    <option value="CASH">नकद (CASH)</option>
+                    <option value="ONLINE">ऑनलाइन (ONLINE)</option>
+                    <option value="BANK_TRANSFER">बैंक ट्रांसफर (BANK_TRANSFER)</option>
+                    <option value="RAZORPAY">रेज़रपे (RAZORPAY)</option>
                   </select>
                 </div>
+
+                {/* Agent Selection if Admin */}
+                {isAdmin() && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-foreground">
+                      कार्यकर्ता / एजेंट (Worker / Agent)
+                    </Label>
+                    <select
+                      value={formData.selectedAgentId}
+                      onChange={(e) => handleInputChange("selectedAgentId", e.target.value)}
+                      disabled={loadingAgents}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="">स्वयं / Self</option>
+                      {agents.map((ag) => (
+                        <option key={ag.id} value={ag.id}>
+                          {ag.name} ({ag.mobile})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
+            </div>
+          </div>
 
-              {/* Admin Agent Selector */}
-              {isAdmin() && (
-                <div className="space-y-1.5 max-w-md pt-2">
-                  <Label htmlFor="agentSelect" className="text-xs font-semibold">
-                    एजेंट का चयन करें / Assign Agent (Admin Only)
-                  </Label>
-                  <select
-                    id="agentSelect"
-                    value={formData.selectedAgentId}
-                    onChange={(e) => setFormData({ ...formData, selectedAgentId: e.target.value })}
-                    disabled={loadingAgents}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="">-- स्वयं (Admin / No Specific Agent) --</option>
-                    {agents.map((ag) => (
-                      <option key={ag.id} value={ag.id}>
-                        {ag.name} ({ag.mobile})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/60">
+          {/* Form Actions Footer */}
+          <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => router.push("/dashboard/lado-bahin")}
+              className="w-full sm:w-auto h-11 px-6 border-border/80"
               disabled={isLoading}
             >
               रद्द करें / Cancel
@@ -936,15 +921,18 @@ export default function AddLadoBahinPage() {
             <Button
               type="submit"
               disabled={isLoading}
-              className="bg-pink-600 hover:bg-pink-700 text-white min-w-[160px]"
+              className="w-full sm:w-auto h-11 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  सहेज रहे हैं...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  सुरक्षित कर रहे हैं... / Saving...
                 </>
               ) : (
-                "पंजीकरण जमा करें / Submit"
+                <>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  पंजीकरण सुरक्षित करें / Save Registration
+                </>
               )}
             </Button>
           </div>

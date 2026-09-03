@@ -46,6 +46,7 @@ import { toast } from "sonner";
 import {
   FileSpreadsheet,
   Eye,
+  Edit,
   Trash2,
   Receipt,
   User,
@@ -196,6 +197,54 @@ export default function JanniDeliveryListPage() {
       toast.error(err.message || "Failed to add installment");
     } finally {
       setIsSubmittingInstallment(false);
+    }
+  };
+
+  const handleGeneratePDFForm = async (record: JanniDeliveryRegistration) => {
+    try {
+      toast.loading("Generating PDF Form...", { id: "pdf-form" });
+      const response = await fetch("/api/generate-janni-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ record }),
+      });
+      if (!response.ok) throw new Error("Failed to generate PDF");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Janni_Application_${record.formNumber || record.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("PDF Form generated successfully", { id: "pdf-form" });
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate PDF", { id: "pdf-form" });
+    }
+  };
+
+  const handleGenerateBond = async (record: JanniDeliveryRegistration) => {
+    try {
+      toast.loading("Generating Bond PDF...", { id: "bond-pdf" });
+      const response = await fetch("/api/generate-janni-bond-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ record }),
+      });
+      if (!response.ok) throw new Error("Failed to generate Bond PDF");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Janni_Bond_${record.formNumber || record.id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Bond PDF generated successfully", { id: "bond-pdf" });
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate Bond PDF", { id: "bond-pdf" });
     }
   };
 
@@ -368,7 +417,7 @@ export default function JanniDeliveryListPage() {
     {
       key: "custom_actions",
       label: "कार्य",
-      className: "min-w-[140px]",
+      className: "min-w-[210px]",
       render: (_: unknown, row: JanniDeliveryRegistration) => (
         <TooltipProvider>
           <div className="flex items-center gap-1">
@@ -378,9 +427,73 @@ export default function JanniDeliveryListPage() {
                   size="sm"
                   variant="outline"
                   className="h-8 w-8 p-0"
+                  onClick={() => handleGeneratePDFForm(row)}
+                >
+                  <FileText className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Generate PDF Form</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => router.push(`/dashboard/janni-delivery/${row.id}`)}
+                >
+                  <Edit className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Edit</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => handleGenerateBond(row)}
+                >
+                  <FileText className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Generate Bond PDF</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
+                  onClick={() => handleDeleteClick(row.id)}
+                >
+                  <Trash2 className="w-4 h-4 text-red-600" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Delete</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 w-8 p-0"
                   onClick={() => handleOpenViewModal(row)}
                 >
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-4 h-4 text-[#0B4A8F]" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -401,22 +514,6 @@ export default function JanniDeliveryListPage() {
               </TooltipTrigger>
               <TooltipContent>
                 <p>Add Installment / Payment</p>
-              </TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                  onClick={() => handleDeleteClick(row.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Delete</p>
               </TooltipContent>
             </Tooltip>
           </div>

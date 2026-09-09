@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, PHOTO_X, PHOTO_Y_FROM_TOP, PHOTO_WIDTH, PHOTO_HEIGHT);
     }
 
-    // Embed applicant/director signatures if provided
+    // Embed applicant/director signatures if provided (placed neatly above the bottom signature labels)
     const applicantSignatureSource = pickPhotoSource(
       body?.applicantSignature,
       record?.applicantSignature,
@@ -81,10 +81,10 @@ export async function POST(request: NextRequest) {
     );
 
     if (applicantSignatureSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantSignatureSource, 45, 710, 90, 32);
+      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantSignatureSource, 45, 675, 90, 32);
     }
     if (directorSignatureSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, directorSignatureSource, 465, 710, 90, 32);
+      await embedPdfImage(pdfDoc, firstPage, pageHeight, directorSignatureSource, 465, 675, 90, 32);
     }
 
     const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf');
@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
     ) => {
       if (!text) return;
       const str = String(text).trim();
-      if (!str) return;
+      if (!str || str === 'undefined' || str === 'null' || str === 'NaN') return;
       let s = size;
       if (maxW && font.widthOfTextAtSize) {
         const w = font.widthOfTextAtSize(str, size);
@@ -128,16 +128,21 @@ export async function POST(request: NextRequest) {
     };
 
     // ── 1. Top Header Boxes ──────────────────────────────────
-    const formNo = getField(record, 'formNumber', 'form_number', 'applicationNumber', 'application_number');
+    // Template has "क्रमांक : NGO/26/" pre-printed from x=46.16 to 125.98.
+    // Strip leading "NGO/26/" if present to avoid duplication.
+    const rawFormNo = getField(record, 'formNumber', 'form_number', 'applicationNumber', 'application_number');
+    const formNo = rawFormNo.replace(/^NGO\/26\//i, '').trim();
     const appDate = formatDate(getField(record, 'applicationDate', 'application_date', 'createdAt', 'created_at', 'date'));
-    drawBounded(formNo, 145, 630, 10, 120);
-    drawBounded(appDate, 440, 630, 10, 110);
+
+    drawBounded(formNo, 130, 621.5, 10, 200);
+    drawBounded(appDate, 452, 621.5, 10, 110);
 
     // ── 2. Applicant Section ─────────────────────────────────
     const applicantName = getField(record, 'applicantName', 'applicant_name', 'name');
     const fatherHusbandName = getField(record, 'husbandName', 'husband_name', 'fatherName', 'father_name');
     const dob = formatDate(getField(record, 'dateOfBirth', 'date_of_birth', 'dob'));
-    const gender = getField(record, 'gender', 'childGender') || 'महिला / Female';
+    const rawGender = getField(record, 'gender', 'childGender') || 'महिला';
+    const gender = rawGender.includes('/') ? rawGender.split('/')[0].trim() : rawGender;
     const education = getField(record, 'education', 'qualification');
     const aadhar = getField(record, 'aadharNumber', 'aadhar_number', 'aadhar');
     const address = [getField(record, 'address'), getField(record, 'tehsil')].filter(Boolean).join(', ');
@@ -145,16 +150,16 @@ export async function POST(request: NextRequest) {
     const state = getField(record, 'state') || 'राजस्थान';
     const mobile = getField(record, 'mobile', 'mobileNumber', 'phone');
 
-    drawBounded(applicantName, 80, 600, 10, 360);
-    drawBounded(fatherHusbandName, 125, 572, 10, 320);
-    drawBounded(dob, 105, 544, 9.5, 75);
-    drawBounded(gender, 205, 544, 9.5, 75);
-    drawBounded(education, 305, 544, 9.5, 140);
-    drawBounded(aadhar, 140, 516, 10, 300);
-    drawBounded(address, 75, 488, 9.5, 370);
-    drawBounded(district, 75, 460, 9.5, 90);
-    drawBounded(state, 185, 460, 9.5, 80);
-    drawBounded(mobile, 325, 460, 9.5, 120);
+    drawBounded(applicantName, 72, 593.5, 10, 390);
+    drawBounded(fatherHusbandName, 128, 565.8, 10, 330);
+    drawBounded(dob, 100, 538.2, 9.5, 80);
+    drawBounded(gender, 204, 538.2, 9.5, 68);
+    drawBounded(education, 306, 538.2, 9.5, 154);
+    drawBounded(aadhar, 140, 510.5, 10, 320);
+    drawBounded(address, 70, 482.7, 9.5, 490);
+    drawBounded(district, 75, 455.0, 9.5, 95);
+    drawBounded(state, 200, 455.0, 9.5, 105);
+    drawBounded(mobile, 342, 455.0, 9.5, 220);
 
     // ── 3. Nominee & Payment Section ─────────────────────────
     const nomineeName = getField(record, 'nomineeName', 'nominee_name');
@@ -171,27 +176,27 @@ export async function POST(request: NextRequest) {
     ].filter(Boolean).join(' / ');
     const seniorWorker = getField(record, 'seniorWorker', 'senior_worker');
 
-    drawBounded(nomineeName, 120, 432, 9.5, 180);
-    drawBounded(nomineeRelation, 330, 432, 9.5, 190);
-    drawBounded(nomineeAadhar, 130, 404, 9, 130);
-    drawBounded(nomineeMobile, 285, 404, 9, 90);
-    drawBounded(workerName, 445, 404, 9, 110);
+    drawBounded(nomineeName, 116, 427.3, 9.5, 190);
+    drawBounded(nomineeRelation, 348, 427.3, 9.5, 215);
+    drawBounded(nomineeAadhar, 140, 399.5, 9, 122);
+    drawBounded(nomineeMobile, 286, 399.5, 9, 126);
+    drawBounded(workerName, 480, 399.5, 9, 85);
 
-    drawBounded(amountStr, 75, 376, 9, 110);
-    drawBounded(paymentMode, 215, 376, 8.5, 190);
-    drawBounded(seniorWorker, 445, 376, 9, 110);
+    drawBounded(amountStr, 70, 371.8, 9, 54);
+    drawBounded(paymentMode, 255, 371.8, 8.5, 120);
+    drawBounded(seniorWorker, 476, 371.8, 9, 88);
 
     // ── 4. Shapath-Patra (शपथ-पत्र) Section ─────────────────
     const age = getField(record, 'age');
     const ageStr = age ? `${age} वर्ष` : '';
     const gotra = getField(record, 'gotra');
-    const fullAddress = [getField(record, 'address'), getField(record, 'tehsil'), district].filter(Boolean).join(', ');
+    const fullAddress = [getField(record, 'address'), getField(record, 'tehsil'), district, getField(record, 'state')].filter(Boolean).join(', ');
 
-    drawBounded(applicantName, 65, 262, 9.5, 150);
-    drawBounded(fatherHusbandName, 245, 262, 9.5, 130);
-    drawBounded(ageStr, 395, 262, 9.5, 60);
-    drawBounded(gotra, 475, 262, 9.5, 75);
-    drawBounded(fullAddress, 80, 232, 9.5, 460);
+    drawBounded(applicantName, 56, 237.4, 9.5, 134);
+    drawBounded(fatherHusbandName, 292, 237.4, 9.5, 114);
+    drawBounded(ageStr, 430, 237.4, 9.5, 54);
+    drawBounded(gotra, 510, 237.4, 9.5, 54);
+    drawBounded(fullAddress, 78, 203.2, 9, 112);
 
     const pdfBytes = await pdfDoc.save();
 

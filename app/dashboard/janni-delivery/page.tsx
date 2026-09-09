@@ -402,19 +402,6 @@ export default function JanniDeliveryListPage() {
         `₹${Number(row.pendingAmount || 0).toLocaleString("en-IN")}`,
     },
     {
-      key: "epinCode",
-      label: "ई-पिन",
-      className: "min-w-[110px]",
-      render: (_: unknown, row: JanniDeliveryRegistration) =>
-        row.epinCode ? (
-          <Badge className="bg-emerald-100 text-emerald-800 border-none text-[10px]">
-            {row.epinCode}
-          </Badge>
-        ) : (
-          <span className="text-muted-foreground text-xs">—</span>
-        ),
-    },
-    {
       key: "custom_actions",
       label: "कार्य",
       className: "min-w-[150px]",

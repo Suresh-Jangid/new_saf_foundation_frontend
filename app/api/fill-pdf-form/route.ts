@@ -204,10 +204,10 @@ export async function POST(request: NextRequest) {
         { field: 'रसीद_नाम', valueKeys: ['आवेदक_का_नाम', 'applicantName', 'name', 'shapath_name', 'शपथ_नाम', 'applicant_name'], x: 75, y: 681, size: 10 },
         { field: 'रसीद_पिता_का_नाम', valueKeys: ['पिता_का_नाम', 'fatherName', 'father_husband_name', 'father_name', 'शपथ_पिता_का_नाम'], x: 335, y: 681, size: 10 },
         { field: 'रसीद_पता', valueKeys: ['पता', 'address', 'full_address', 'शपथ_पता'], x: 75, y: 706, size: 9.5 },
-        { field: 'रसीद_मोबाइल', valueKeys: ['मोबाइल', 'mobile', 'phone'], x: 75, y: 731, size: 9.5 },
-        { field: 'रसीद_भुगतान_विवरण', valueKeys: ['भुगतान_विवरण', 'paymentModeRef', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo', 'transaction_id', 'transactionId', 'razorpay_payment_id', 'payment_type'], x: 325, y: 731, size: 9.5 },
-        { field: 'रसीद_राशि', valueKeys: ['राशि', 'amount', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 110, y: 756, size: 9.5, formatAmount: true },
-        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['राशि', 'amount', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 120, y: 788, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
+        { field: 'रसीद_मोबाइल', valueKeys: ['मोबाइल', 'mobile', 'phone'], x: 75, y: 726, size: 9.5 },
+        { field: 'रसीद_भुगतान_विवरण', valueKeys: ['भुगतान_विवरण', 'paymentModeRef', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo', 'transaction_id', 'transactionId', 'razorpay_payment_id', 'payment_type'], x: 325, y: 726, size: 9.5 },
+        { field: 'रसीद_राशि', valueKeys: ['राशि', 'amount', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 110, y: 750, size: 9.5, formatAmount: true },
+        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['राशि', 'amount', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 120, y: 781, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
       ];
     } else {
       // Legacy / fallback mappings

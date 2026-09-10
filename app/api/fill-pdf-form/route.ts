@@ -175,39 +175,39 @@ export async function POST(request: NextRequest) {
         // ==========================================
         // SECTION 1: "आवेदन–फॉर्म" (Top Section)
         // ==========================================
-        { field: 'क्रमांक', valueKeys: ['सदस्यता_क्रमांक', 'formNumber', 'applicationNumber', 'application_no'], x: 135, y: 191, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-        { field: 'दिनांक', valueKeys: ['आवेदन_दिनांक', 'applicationDate', 'date', 'created_at'], x: 465, y: 191, size: 9.5, isDate: true },
-        { field: 'नाम', valueKeys: ['आवेदक_का_नाम', 'applicantName', 'name', 'shapath_name', 'शपथ_नाम'], x: 75, y: 222, size: 10 },
-        { field: 'पिता_का_नाम', valueKeys: ['पिता_का_नाम', 'fatherName', 'father_husband_name', 'शपथ_पिता_का_नाम'], x: 140, y: 248, size: 10 },
-        { field: 'जन्म_दिनांक', valueKeys: ['जन्म_तिथि', 'dateOfBirth', 'dob'], x: 110, y: 274, size: 9.5, isDate: true },
+        { field: 'क्रमांक', valueKeys: ['सदस्यता_क्रमांक', 'formNumber', 'applicationNumber', 'application_no', 'form_number'], x: 135, y: 191, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'दिनांक', valueKeys: ['आवेदन_दिनांक', 'applicationDate', 'date', 'created_at', 'application_date'], x: 465, y: 191, size: 9.5, isDate: true },
+        { field: 'नाम', valueKeys: ['आवेदक_का_नाम', 'applicantName', 'name', 'shapath_name', 'शपथ_नाम', 'applicant_name'], x: 75, y: 222, size: 10 },
+        { field: 'पिता_का_नाम', valueKeys: ['पिता_का_नाम', 'fatherName', 'father_husband_name', 'father_name', 'शपथ_पिता_का_नाम'], x: 140, y: 248, size: 10 },
+        { field: 'जन्म_दिनांक', valueKeys: ['जन्म_तिथि', 'dateOfBirth', 'dob', 'date_of_birth'], x: 110, y: 274, size: 9.5, isDate: true },
         { field: 'लिंग', valueKeys: ['gender', 'लिंग'], x: 220, y: 274, size: 9.5 },
         { field: 'शिक्षा', valueKeys: ['education', 'शिक्षा', 'qualification'], x: 330, y: 274, size: 9.5 },
-        { field: 'आधार_संख्या', valueKeys: ['आधार_संख्या', 'aadharNumber', 'aadhar_no', 'aadhaar'], x: 155, y: 301, size: 10 },
+        { field: 'आधार_संख्या', valueKeys: ['आधार_संख्या', 'aadharNumber', 'aadhar_no', 'aadhaar', 'aadhar_number'], x: 155, y: 301, size: 10 },
         { field: 'पता', valueKeys: ['पता', 'address', 'full_address', 'शपथ_पता'], x: 75, y: 331, size: 9.5 },
         { field: 'जिला', valueKeys: ['जिला', 'district'], x: 75, y: 357, size: 9.5 },
         { field: 'राज्य', valueKeys: ['राज्य', 'state'], x: 215, y: 357, size: 9.5 },
         { field: 'मोबाइल', valueKeys: ['मोबाइल', 'mobile', 'phone'], x: 370, y: 357, size: 9.5 },
         { field: 'नामिनी_का_नाम', valueKeys: ['नामिनी_का_नाम', 'nomineeName', 'nominee_name'], x: 130, y: 384, size: 10 },
         { field: 'नामिनी_का_सम्बन्ध', valueKeys: ['नामिनी_का_सम्बन्ध', 'nomineeRelation', 'nominee_relation'], x: 380, y: 384, size: 10 },
-        { field: 'नामिनी_का_आधार', valueKeys: ['नामिनी_का_आधार', 'nomineeAadhar', 'nominee_aadhar'], x: 150, y: 411, size: 9.5 },
-        { field: 'नामिनी_का_मोबाइल', valueKeys: ['नामिनी_का_मोबाइल', 'nomineeMobile', 'nominee_mobile'], x: 305, y: 411, size: 9.5 },
-        { field: 'कार्यकर्ता_कोड', valueKeys: ['कार्यकर्ता_कोड', 'workerCode', 'worker_code', 'कार्यकर्ता_का_नाम', 'added_name', 'workerName'], x: 485, y: 411, size: 9.5 },
-        { field: 'राशि', valueKeys: ['राशि', 'amount', 'total_amount', 'fee'], x: 70, y: 439, size: 9.5, formatAmount: true },
-        { field: 'भुगतान_विवरण', valueKeys: ['भुगतान_विवरण', 'paymentModeRef', 'paymentRef', 'payment_mode', 'utr_no', 'transaction_id'], x: 310, y: 439, size: 9.5 },
-        { field: 'सीनियर_कोड', valueKeys: ['सीनियर_कोड', 'seniorCode', 'senior_code'], x: 485, y: 439, size: 9.5 },
+        { field: 'नामिनी_का_आधार', valueKeys: ['नामिनी_का_आधार', 'nomineeAadhar', 'nominee_aadhar', 'nomineeAadharNumber', 'nominee_aadhaar', 'nominee_aadhar_number', 'nominee_aadhaar_number'], x: 150, y: 411, size: 9.5 },
+        { field: 'नामिनी_का_मोबाइल', valueKeys: ['नामिनी_का_मोबाइल', 'nomineeMobile', 'nominee_mobile', 'nomineePhone', 'nominee_phone', 'nomineeMobileNumber'], x: 305, y: 411, size: 9.5 },
+        { field: 'कार्यकर्ता_कोड', valueKeys: ['कार्यकर्ता_कोड', 'workerCode', 'worker_code', 'agentCode', 'agent_code', 'added_code', 'addedby_id', 'addedById', 'selectedAgentId', 'कार्यकर्ता_का_नाम', 'added_name', 'workerName'], x: 485, y: 411, size: 9.5 },
+        { field: 'राशि', valueKeys: ['राशि', 'amount', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 70, y: 439, size: 9.5, formatAmount: true },
+        { field: 'भुगतान_विवरण', valueKeys: ['भुगतान_विवरण', 'paymentModeRef', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo', 'transaction_id', 'transactionId', 'razorpay_payment_id', 'payment_type'], x: 310, y: 439, size: 9.5 },
+        { field: 'सीनियर_कोड', valueKeys: ['सीनियर_कोड', 'seniorCode', 'senior_code', 'seniorWorker', 'senior_worker', 'seniorAgentCode', 'senior_agent_code'], x: 485, y: 439, size: 9.5 },
 
         // ==========================================
         // SECTION 2: "सदस्यता फार्म रसीद" (Bottom Section)
         // ==========================================
-        { field: 'रसीद_क्रमांक', valueKeys: ['सदस्यता_क्रमांक', 'formNumber', 'applicationNumber', 'application_no'], x: 135, y: 656, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-        { field: 'रसीद_दिनांक', valueKeys: ['आवेदन_दिनांक', 'applicationDate', 'date', 'created_at'], x: 485, y: 656, size: 9.5, isDate: true },
-        { field: 'रसीद_नाम', valueKeys: ['आवेदक_का_नाम', 'applicantName', 'name', 'shapath_name', 'शपथ_नाम'], x: 75, y: 681, size: 10 },
-        { field: 'रसीद_पिता_का_नाम', valueKeys: ['पिता_का_नाम', 'fatherName', 'father_husband_name', 'शपथ_पिता_का_नाम'], x: 335, y: 681, size: 10 },
+        { field: 'रसीद_क्रमांक', valueKeys: ['सदस्यता_क्रमांक', 'formNumber', 'applicationNumber', 'application_no', 'form_number'], x: 135, y: 656, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'रसीद_दिनांक', valueKeys: ['आवेदन_दिनांक', 'applicationDate', 'date', 'created_at', 'application_date'], x: 485, y: 656, size: 9.5, isDate: true },
+        { field: 'रसीद_नाम', valueKeys: ['आवेदक_का_नाम', 'applicantName', 'name', 'shapath_name', 'शपथ_नाम', 'applicant_name'], x: 75, y: 681, size: 10 },
+        { field: 'रसीद_पिता_का_नाम', valueKeys: ['पिता_का_नाम', 'fatherName', 'father_husband_name', 'father_name', 'शपथ_पिता_का_नाम'], x: 335, y: 681, size: 10 },
         { field: 'रसीद_पता', valueKeys: ['पता', 'address', 'full_address', 'शपथ_पता'], x: 75, y: 706, size: 9.5 },
         { field: 'रसीद_मोबाइल', valueKeys: ['मोबाइल', 'mobile', 'phone'], x: 75, y: 731, size: 9.5 },
-        { field: 'रसीद_भुगतान_विवरण', valueKeys: ['भुगतान_विवरण', 'paymentModeRef', 'paymentRef', 'payment_mode', 'utr_no', 'transaction_id'], x: 325, y: 731, size: 9.5 },
-        { field: 'रसीद_राशि', valueKeys: ['राशि', 'amount', 'total_amount', 'fee'], x: 110, y: 756, size: 9.5, formatAmount: true },
-        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['राशि', 'amount', 'total_amount', 'fee'], x: 120, y: 788, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
+        { field: 'रसीद_भुगतान_विवरण', valueKeys: ['भुगतान_विवरण', 'paymentModeRef', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo', 'transaction_id', 'transactionId', 'razorpay_payment_id', 'payment_type'], x: 325, y: 731, size: 9.5 },
+        { field: 'रसीद_राशि', valueKeys: ['राशि', 'amount', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 110, y: 756, size: 9.5, formatAmount: true },
+        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['राशि', 'amount', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 120, y: 788, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
       ];
     } else {
       // Legacy / fallback mappings

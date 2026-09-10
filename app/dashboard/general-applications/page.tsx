@@ -66,7 +66,37 @@ interface GeneralApplicationRecord {
   createdAt: string
   is_active: number
   added_name?: string
-  added_mobile?:string
+  added_mobile?: string
+  nomineeAadhar?: string
+  nominee_aadhar?: string
+  nomineeMobile?: string
+  nominee_mobile?: string
+  workerCode?: string
+  worker_code?: string
+  seniorCode?: string
+  senior_code?: string
+  totalAmount?: string | number
+  total_amount?: string | number
+  amount?: string | number
+  fee?: string | number
+  paymentAmount?: string | number
+  paymentMode?: string
+  payment_mode?: string
+  paymentModeRef?: string
+  paymentRef?: string
+  utr_no?: string
+  transaction_id?: string
+  education?: string
+  addedby_id?: string
+  addedById?: string
+  addedBy?: {
+    id?: string
+    name?: string
+    mobile?: string
+    code?: string
+    agentCode?: string
+    agent_code?: string
+  }
 }
 
 // Helper to calculate category based on gender and age
@@ -94,14 +124,96 @@ function mapApplicationRecord(item: GeneralApplicationRecord & Record<string, an
       ? 1
       : 0;
 
+  const nomineeAadhar =
+    item.nomineeAadhar ||
+    item.nominee_aadhar ||
+    item.nomineeAadharNumber ||
+    item.nominee_aadhar_number ||
+    item.nomineeAadhaar ||
+    item.nominee_aadhaar ||
+    "";
+
+  const nomineeMobile =
+    item.nomineeMobile ||
+    item.nominee_mobile ||
+    item.nomineePhone ||
+    item.nominee_phone ||
+    item.nomineeMobileNumber ||
+    "";
+
+  const workerCode =
+    item.workerCode ||
+    item.worker_code ||
+    item.agentCode ||
+    item.agent_code ||
+    item.added_code ||
+    item.addedBy?.agentCode ||
+    item.addedBy?.code ||
+    item.addedBy?.agent_code ||
+    item.agent?.agentCode ||
+    item.agent?.code ||
+    item.agent?.agent_code ||
+    item.addedby_id ||
+    item.addedById ||
+    item.selectedAgentId ||
+    "";
+
+  const seniorCode =
+    item.seniorCode ||
+    item.senior_code ||
+    item.seniorWorker ||
+    item.senior_worker ||
+    item.seniorAgentCode ||
+    item.senior_agent_code ||
+    "";
+
+  const totalAmount =
+    item.totalAmount ??
+    item.total_amount ??
+    item.amount ??
+    item.fee ??
+    item.paymentAmount ??
+    item.payment_amount ??
+    item.membershipFee ??
+    "";
+
+  const rawPaymentMode = item.paymentMode || item.payment_mode || item.payment_type || item.paymentType || "";
+  const rawPaymentRef =
+    item.paymentModeRef ||
+    item.paymentRef ||
+    item.payment_ref ||
+    item.utr_no ||
+    item.utrNo ||
+    item.transaction_id ||
+    item.transactionId ||
+    item.razorpay_payment_id ||
+    (item.epinCode || item.epinNumber ? `EPIN: ${item.epinCode || item.epinNumber}` : "") ||
+    "";
+
+  let paymentModeRef = item.paymentModeRef || "";
+  if (!paymentModeRef) {
+    if (rawPaymentMode && rawPaymentRef && rawPaymentMode.toLowerCase() !== rawPaymentRef.toLowerCase()) {
+      paymentModeRef = `${rawPaymentMode} / ${rawPaymentRef}`;
+    } else {
+      paymentModeRef = rawPaymentMode || rawPaymentRef || "";
+    }
+  }
+
   return {
     ...item,
     dateOfBirth,
     age: String(computedAge),
     is_active,
-    added_name: item.added_name || item.workerName || "",
-    added_mobile: item.added_mobile || item.workerMobile || "",
-    passportPhoto: item.passportPhoto || item.passport_photo,
+    added_name: item.added_name || item.workerName || item.addedBy?.name || item.agent?.name || "",
+    added_mobile: item.added_mobile || item.workerMobile || item.addedBy?.mobile || item.agent?.mobile || "",
+    nomineeAadhar,
+    nomineeMobile,
+    workerCode,
+    seniorCode,
+    totalAmount: String(totalAmount),
+    amount: String(totalAmount),
+    paymentModeRef,
+    passportPhoto: item.passportPhoto || item.passport_photo || item.passportPhotoUrl,
   };
 }
 
@@ -277,41 +389,96 @@ export default function GeneralApplicationsPage() {
   ]
 
   // Map English fields to Hindi for the PDF template
-  const mapToHindiFields = (record: GeneralApplicationRecord) => ({
-    सदस्यता_क्रमांक: record.formNumber,
-    आवेदन_दिनांक: record.applicationDate,
-    आवेदक_का_नाम: record.applicantName,
-    पिता_का_नाम: record.fatherName,
-    माता_का_नाम: record.motherName,
-    जन्म_तिथि: record.dateOfBirth,
-    गोत्र: record.gotra,
-    उम्र: record.age,
-    मोबाइल: record.mobile,
-    आधार_संख्या: record.aadharNumber,
-    पता: record.address,
-    पिन: record.pinCode,
-    तहसील: record.tehsil,
-    जिला: record.district,
-    राज्य: record.state,
-    नामिनी_का_नाम: record.nomineeName,
-    नामिनी_का_सम्बन्ध: record.nomineeRelation,
-    नामिनी_का_पता: record.address, // Using applicant's address as nominee address
-    कार्यकर्ता_का_नाम: record.added_name,
-    कार्यकर्ता_का_मोबाइल: record.added_mobile,
-    शपथ_नाम: record.applicantName,
-    शपथ_पिता_का_नाम: record.fatherName,
-    शपथ_गोत्र: record.gotra,
-    शपथ_पता: record.address,
+  const mapToHindiFields = (record: GeneralApplicationRecord & Record<string, any>) => ({
+    सदस्यता_क्रमांक: record.formNumber || record.form_number || "",
+    आवेदन_दिनांक: record.applicationDate || record.application_date || "",
+    आवेदक_का_नाम: record.applicantName || record.applicant_name || "",
+    पिता_का_नाम: record.fatherName || record.father_name || record.father_husband_name || "",
+    माता_का_नाम: record.motherName || record.mother_name || "",
+    जन्म_तिथि: record.dateOfBirth || record.date_of_birth || "",
+    गोत्र: record.gotra || "",
+    उम्र: record.age || "",
+    लिंग: record.gender || "",
+    शिक्षा: record.education || record.qualification || "",
+    मोबाइल: record.mobile || record.phone || "",
+    आधार_संख्या: record.aadharNumber || record.aadhar_number || record.aadhaar || "",
+    पता: record.address || "",
+    पिन: record.pinCode || record.pin_code || "",
+    तहसील: record.tehsil || "",
+    जिला: record.district || "",
+    राज्य: record.state || "",
+    नामिनी_का_नाम: record.nomineeName || record.nominee_name || "",
+    नामिनी_का_सम्बन्ध: record.nomineeRelation || record.nominee_relation || "",
+    नामिनी_का_पता: record.address || "", // Using applicant's address as nominee address
+    नामिनी_का_आधार:
+      record.nomineeAadhar ||
+      record.nominee_aadhar ||
+      record.nomineeAadharNumber ||
+      record.nominee_aadhaar ||
+      "",
+    नामिनी_का_मोबाइल:
+      record.nomineeMobile ||
+      record.nominee_mobile ||
+      record.nomineePhone ||
+      record.nominee_phone ||
+      "",
+    कार्यकर्ता_का_नाम: record.added_name || record.workerName || record.addedBy?.name || "",
+    कार्यकर्ता_का_मोबाइल: record.added_mobile || record.workerMobile || record.addedBy?.mobile || "",
+    कार्यकर्ता_कोड:
+      record.workerCode ||
+      record.worker_code ||
+      record.agentCode ||
+      record.agent_code ||
+      record.added_code ||
+      record.addedBy?.agentCode ||
+      record.addedBy?.code ||
+      record.addedby_id ||
+      record.addedById ||
+      record.selectedAgentId ||
+      "",
+    राशि:
+      record.totalAmount ||
+      record.total_amount ||
+      record.amount ||
+      record.fee ||
+      record.paymentAmount ||
+      record.payment_amount ||
+      "",
+    भुगतान_विवरण:
+      record.paymentModeRef ||
+      record.paymentRef ||
+      record.payment_mode ||
+      record.paymentMode ||
+      record.utr_no ||
+      record.utrNo ||
+      record.transaction_id ||
+      record.transactionId ||
+      record.razorpay_payment_id ||
+      "",
+    सीनियर_कोड:
+      record.seniorCode ||
+      record.senior_code ||
+      record.seniorWorker ||
+      record.senior_worker ||
+      record.seniorAgentCode ||
+      record.senior_agent_code ||
+      "",
+    शपथ_नाम: record.applicantName || record.applicant_name || "",
+    शपथ_पिता_का_नाम: record.fatherName || record.father_name || record.father_husband_name || "",
+    शपथ_गोत्र: record.gotra || "",
+    शपथ_पता: record.address || "",
   });
-
-
 
   const handleGeneratePDFForm = async (record: GeneralApplicationRecord) => {
     try {
       const mapped = mapToHindiFields(record);
       
-      // Add gender information to the mapped data
-      const dataWithGender = { ...mapped, gender: record.gender };
+      // Combine raw record fields, mapped Hindi fields, and explicitly resolved attributes
+      const dataForPdf = {
+        ...record,
+        ...mapped,
+        gender: record.gender,
+      };
       
       // Get image data if available
       const imageData = await processImageData(record.passportPhoto);
@@ -323,7 +490,7 @@ export default function GeneralApplicationsPage() {
         },
         body: JSON.stringify({
           type: 'general-application',
-          data: dataWithGender,
+          data: dataForPdf,
           offsetX: 0,
           offsetY: 0,
           valueOffsetX: 0,

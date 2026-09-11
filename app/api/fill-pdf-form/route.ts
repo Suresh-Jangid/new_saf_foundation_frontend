@@ -175,8 +175,8 @@ export async function POST(request: NextRequest) {
         // ==========================================
         // SECTION 1: "आवेदन–फॉर्म" (Top Section)
         // ==========================================
-        { field: 'क्रमांक', valueKeys: ['सदस्यता_क्रमांक', 'formNumber', 'applicationNumber', 'application_no', 'form_number'], x: 135, y: 191, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-        { field: 'ऑफलाइन_फॉर्म_नं', valueKeys: ['ऑफलाइन_फॉर्म_नं', 'offlineFormNumber', 'offline_form_number', 'offlineFormNo'], x: 260, y: 191, size: 9.5, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'क्रमांक', valueKeys: ['सदस्यता_क्रमांक', 'formNumber', 'applicationNumber', 'application_no', 'form_number'], x: 100, y: 168, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'ऑफलाइन_फॉर्म_नं', valueKeys: ['ऑफलाइन_फॉर्म_नं', 'offlineFormNumber', 'offline_form_number', 'offlineFormNo'], x: 135, y: 191, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
         { field: 'दिनांक', valueKeys: ['आवेदन_दिनांक', 'applicationDate', 'date', 'created_at', 'application_date'], x: 465, y: 191, size: 9.5, isDate: true },
         { field: 'नाम', valueKeys: ['आवेदक_का_नाम', 'applicantName', 'name', 'shapath_name', 'शपथ_नाम', 'applicant_name'], x: 75, y: 222, size: 10 },
         { field: 'पिता_का_नाम', valueKeys: ['पिता_का_नाम', 'fatherName', 'father_husband_name', 'father_name', 'शपथ_पिता_का_नाम'], x: 140, y: 248, size: 10 },
@@ -290,12 +290,7 @@ export async function POST(request: NextRequest) {
         textValue = formatDateToDDMMYYYY(textValue);
       }
 
-      // Format offline form number
-      if (def.field === 'ऑफलाइन_फॉर्म_नं') {
-        if (!textValue.startsWith('ऑफलाइन')) {
-          textValue = `ऑफलाइन फॉर्म नं.: ${textValue}`;
-        }
-      }
+      // Offline form number is rendered directly as value after "NGO/26/" (e.g. 99999)
 
       // Format amount
       if (def.formatAmount) {

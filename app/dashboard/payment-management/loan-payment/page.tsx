@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { APIService } from "@/lib/services";
 import { ApplicationFilters } from "@/lib/services";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   formatDate,
   formatDateForAPI,
@@ -65,7 +65,6 @@ export default function LoanPaymentListPage() {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
   const router = useRouter();
-  const { toast } = useToast();
 
   const [dateFromOpen, setDateFromOpen] = useState(false);
   const [dateToOpen, setDateToOpen] = useState(false);
@@ -100,20 +99,12 @@ export default function LoanPaymentListPage() {
         const totalItems = response.data.length;
         setTotalPages(Math.max(1, Math.ceil(totalItems / itemsPerPage)));
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to fetch loan applications",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to fetch loan applications");
         setApplications([]);
       }
     } catch (error) {
       console.error("Error fetching loan applications:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch loan applications. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch loan applications. Please try again.");
       setApplications([]);
     } finally {
       setLoading(false);

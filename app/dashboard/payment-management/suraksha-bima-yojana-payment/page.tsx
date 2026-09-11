@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDate, formatDateForAPI, formatDateForInput, parseDateFromDDMMYYYY, getCurrentUserInfo } from "@/lib/utils";
 import APIService from "@/lib/services";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { buildListFilters } from "@/lib/list-filters";
 
 interface SurakshaBimaData {
@@ -53,7 +53,6 @@ export default function SurakshaBimaYojanaPaymentListPage() {
   const [payments, setPayments] = useState<SurakshaBimaData[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState(""); // display dd-mm-yyyy
@@ -104,19 +103,11 @@ export default function SurakshaBimaYojanaPaymentListPage() {
         setTotalRecords(response.data?.length || 0);
         setError(null);
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to load Suraksha Bima data",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to load Suraksha Bima data");
       }
     } catch (error) {
       console.error("Failed to load Suraksha Bima data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load Suraksha Bima data",
-        variant: "destructive",
-      });
+      toast.error("Failed to load Suraksha Bima data");
     } finally {
       setLoading(false);
     }

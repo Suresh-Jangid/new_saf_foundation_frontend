@@ -9,7 +9,7 @@ import Link from "next/link"
 import { DataTable } from "@/components/data-table"
 import { useCRUD } from "@/hooks/use-crud"
 import { API_ENDPOINTS } from "@/lib/api"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +26,6 @@ import { Calendar } from "@/components/ui/calendar"
 import { Label } from "@/components/ui/label"
 import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, isValidDate } from "@/lib/utils"
 import * as XLSX from "xlsx"
-import { toast as sonnerToast } from "sonner"
 import { BulkUploadButton } from "@/components/bulk-upload-button"
 
 // Helper to format dates to YYYY-MM-DD
@@ -125,11 +124,7 @@ export default function SewingMachinePage() {
         await readApi(Object.keys(activeFilters).length > 0 ? activeFilters : undefined);
       } catch (error) {
         console.error("Error fetching sewing machine camps:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch sewing machine camps from server",
-          variant: "destructive",
-        });
+        toast.error("Failed to fetch sewing machine camps from server");
       }
     };
     
@@ -202,17 +197,10 @@ export default function SewingMachinePage() {
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
 
-      toast({
-        title: "PDF Generated",
-        description: "Sewing machine camp PDF has been generated and downloaded successfully.",
-      })
+      toast.success("Sewing machine camp PDF has been generated and downloaded successfully.")
     } catch (error) {
       console.error('Error generating PDF:', error)
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF. Please try again.",
-        variant: "destructive",
-      })
+      toast.error("Failed to generate PDF. Please try again.")
     }
   }
 
@@ -242,17 +230,10 @@ export default function SewingMachinePage() {
       document.body.removeChild(link)
       window.URL.revokeObjectURL(url)
 
-      toast({
-        title: "Certificate Generated",
-        description: "Certificate of appreciation has been generated and downloaded successfully.",
-      })
+      toast.success("Certificate of appreciation has been generated and downloaded successfully.")
     } catch (error) {
       console.error('Error generating certificate:', error)
-      toast({
-        title: "Error",
-        description: "Failed to generate certificate. Please try again.",
-        variant: "destructive",
-      })
+      toast.error("Failed to generate certificate. Please try again.")
     }
   }
 
@@ -263,7 +244,7 @@ export default function SewingMachinePage() {
   const handleExportExcel = () => {
     try {
       if (records.length === 0) {
-        sonnerToast.error("No data to export");
+        toast.error("No data to export");
         return;
       }
 
@@ -308,10 +289,10 @@ export default function SewingMachinePage() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      sonnerToast.success("Excel file exported successfully");
+      toast.success("Excel file exported successfully");
     } catch (error) {
       console.error("Error exporting to Excel:", error);
-      sonnerToast.error("Failed to export Excel file");
+      toast.error("Failed to export Excel file");
     }
   };
 

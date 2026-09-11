@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS, post, postUrlEncoded } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { formatBilingual } from "@/lib/translations";
 import { getCurrentUserInfo } from "@/lib/utils";
 import { formatDate, formatDateForAPI, validatePhoneNumber, parseDateFromDDMMYYYY, calculateDuration } from "@/lib/utils";
@@ -96,7 +96,6 @@ interface ApiResponse {
 
 export default function AddMarriageCongratulationPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const { schemeTypes } = useSchemeTypes();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
@@ -241,23 +240,15 @@ export default function AddMarriageCongratulationPage() {
         setApplications(applicationsData);
       } else {
         console.error("API returned error:", data);
-        toast({
-          title: "Error",
-          description: "Failed to fetch applications",
-          variant: "destructive",
-        });
+        toast.error("Failed to fetch applications");
       }
     } catch (error) {
       console.error("Error fetching applications:", error);
-      toast({
-        title: "Error",
-        description: "Error fetching applications",
-        variant: "destructive",
-      });
+      toast.error("Error fetching applications");
     } finally {
       setIsLoadingApplications(false);
     }
-  }, [toast]);
+  }, []);
 
   // Fetch marriage congratulations data when application is selected
   const fetchMarriageCongratulationsData = React.useCallback(
@@ -386,29 +377,18 @@ export default function AddMarriageCongratulationPage() {
             }));
           }
 
-          toast({
-            title: "Success",
-            description: "Form pre-filled with application data",
-          });
+          toast.success("Form pre-filled with application data");
         } else {
-          toast({
-            title: "Error",
-            description: data.message || "No application data found",
-            variant: "destructive",
-          });
+          toast.error(data.message || "No application data found");
         }
       } catch (error) {
         console.error("Error fetching application data:", error);
-        toast({
-          title: "Error",
-          description: "Error fetching application data",
-          variant: "destructive",
-        });
+        toast.error("Error fetching application data");
       } finally {
         setIsLoadingMarriageData(false);
       }
     },
-    [toast, formData.date]
+    [formData.date]
   );
 
   // Calculate totals based on current form data
@@ -479,11 +459,7 @@ export default function AddMarriageCongratulationPage() {
   const handleApplicationSelect = React.useCallback(
     (applicationId: string) => {
       if (!formData.date) {
-        toast({
-          title: "Validation Error",
-          description: "Please select a date first before selecting an application",
-          variant: "destructive",
-        });
+        toast.error("Please select a date first before selecting an application");
         return;
       }
       setSelectedApplicationId(applicationId);
@@ -491,7 +467,7 @@ export default function AddMarriageCongratulationPage() {
         fetchMarriageCongratulationsData(applicationId);
       }
     },
-    [fetchMarriageCongratulationsData, formData.date, toast]
+    [fetchMarriageCongratulationsData, formData.date]
   );
 
   // Load applications on component mount
@@ -558,21 +534,13 @@ export default function AddMarriageCongratulationPage() {
 
     // Check if date is selected
     if (!formData.date) {
-      toast({
-        title: "Validation Error",
-        description: "Please select a date first",
-        variant: "destructive",
-      });
+      toast.error("Please select a date first");
       return;
     }
 
     // Check if an application is selected
     if (!selectedApplicationId) {
-      toast({
-        title: "Validation Error",
-        description: "Please select an application first to pre-fill the form",
-        variant: "destructive",
-      });
+      toast.error("Please select an application first to pre-fill the form");
       return;
     }
 
@@ -584,29 +552,17 @@ export default function AddMarriageCongratulationPage() {
       !formData.gotra ||
       !formData.address
     ) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields. Make sure to select an application first.",
-        variant: "destructive",
-      });
+      toast.error("Please fill in all required fields. Make sure to select an application first.");
       return;
     }
 
     // Additional validation based on gender
     if (isMale(formData.gender) && !formData.fatherName) {
-      toast({
-        title: "Validation Error",
-        description: "Father's name is required for Male applicants",
-        variant: "destructive",
-      });
+      toast.error("Father's name is required for Male applicants");
       return;
     }
     if (isFemale(formData.gender) && !formData.wifeOf) {
-      toast({
-        title: "Validation Error",
-        description: "Husband's name is required for Female applicants",
-        variant: "destructive",
-      });
+      toast.error("Husband's name is required for Female applicants");
       return;
     }
 
@@ -653,14 +609,11 @@ export default function AddMarriageCongratulationPage() {
       }
     } catch (error: any) {
       console.error("Error submitting form:", error);
-      toast({
-        title: formatBilingual("common.error"),
-        description:
-          error.response?.data?.message ||
-          error.message ||
-          formatBilingual("messages.failedToSave"),
-        variant: "destructive",
-      });
+      toast.error(
+        error.response?.data?.message ||
+        error.message ||
+        formatBilingual("messages.failedToSave")
+      );
     } finally {
       setIsSubmitting(false);
     }

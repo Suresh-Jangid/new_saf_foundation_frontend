@@ -22,7 +22,7 @@ import { CalendarDays } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { mayraApplicationAPI } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, getCurrentUserInfo } from "@/lib/utils";
 import { buildListFilters } from "@/lib/list-filters";
 
@@ -51,7 +51,6 @@ export default function MayraGeneralApplicationPaymentListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const router = useRouter();
-  const { toast } = useToast();
 
   const [dateFromOpen, setDateFromOpen] = useState(false);
   const [dateToOpen, setDateToOpen] = useState(false);
@@ -75,20 +74,12 @@ export default function MayraGeneralApplicationPaymentListPage() {
       if (response.status) {
         setApplications(response.data || []);
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to fetch mayra applications",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to fetch mayra applications");
         setApplications([]);
       }
     } catch (error) {
       console.error("Error fetching mayra applications:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch mayra applications. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch mayra applications. Please try again.");
       setApplications([]);
     } finally {
       setLoading(false);

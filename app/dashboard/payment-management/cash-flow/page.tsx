@@ -40,7 +40,7 @@ import {
   AlertDialogDescription,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import APIService from "@/lib/services";
 import { PaymentManagement, PaymentFilters, PaymentListItem } from "@/lib/services";
 import { Pagination } from "@/components/ui/pagination";
@@ -58,20 +58,17 @@ interface UnifiedPaymentData {
   source: string;
 }
 
-// Get source display name helper (moved before component for use in export)
-const getSourceDisplayName = (source: string) => {
-  // Labels per the client's rename mapping (sheet #12).
-  const sourceMap: Record<string, string> = {
-    'payment_management': 'Manual Payment',
-    'applications': 'General Marriage Application',
-    'applications_male': 'General Marriage Application (Boys)',
-    'applications_female': 'General Marriage Application (Girls)',
-    'applications_installment': 'General Marriage Application Installment',
-    'application_insurance': 'Insurance Bima Application',
-    'application_insurance_installment': 'Insurance Bima Application Installment',
-    'loan_applications': 'Loan Application Payment',
-    'financial_help': 'Financial Application Payment',
-    'suraksha_bima_yojana': 'Insurance Bima Payment',
+// Map source names to clean, user-friendly labels
+const getSourceDisplayName = (source: string): string => {
+  const sourceMap: { [key: string]: string } = {
+    'general_application': 'General Marriage Application',
+    'general_application_emi': 'General Marriage Application',
+    'insurance_application': 'General Insurance Bima Application',
+    'insurance_application_emi': 'General Insurance Bima Application',
+    'suraksha_bima_yojana': 'Suraksha Bima Yojana Application',
+    'loan_application': 'Loan Application Payment',
+    'financal_help': 'Finance Help Application',
+    'financal_help_emi': 'Finance Help Application',
     'marriage_congratulations': 'General Marriage Congratulations Payment',
     'marriage_congratulations_emi': 'General Marriage Congratulations Payment',
     'mayra_registration': 'Mayra General Application',
@@ -83,7 +80,6 @@ const getSourceDisplayName = (source: string) => {
 };
 
 export default function CashFlowPage() {
-  const { toast } = useToast();
   const [payments, setPayments] = useState<UnifiedPaymentData[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -166,19 +162,11 @@ export default function CashFlowPage() {
         setTotalPages(response.pagination?.totalPages ?? 1);
         setTotalRecords(response.pagination?.totalRecords ?? unifiedData.length);
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to load payments",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to load payments");
       }
     } catch (error) {
       console.error("Failed to load payments:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load payments",
-        variant: "destructive",
-      });
+      toast.error("Failed to load payments");
     } finally {
       setLoading(false);
     }
@@ -202,11 +190,7 @@ export default function CashFlowPage() {
   const handleEdit = (payment: UnifiedPaymentData) => {
     // Only allow editing payment_management records
     if (payment.source !== 'payment_management') {
-      toast({
-        title: "Info",
-        description: "Only manual payments can be edited",
-        variant: "default",
-      });
+      toast.info("Only manual payments can be edited");
       return;
     }
     
@@ -221,11 +205,7 @@ export default function CashFlowPage() {
   const handleDelete = (payment: UnifiedPaymentData) => {
     // Only allow deleting payment_management records
     if (payment.source !== 'payment_management') {
-      toast({
-        title: "Info",
-        description: "Only manual payments can be deleted",
-        variant: "default",
-      });
+      toast.info("Only manual payments can be deleted");
       return;
     }
     
@@ -235,11 +215,7 @@ export default function CashFlowPage() {
 
   const handleUpdatePayment = async () => {
     if (!selectedPayment || !expenseAmount || !expenseNote) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
+      toast.error("Please fill in all fields");
       return;
     }
 
@@ -256,27 +232,16 @@ export default function CashFlowPage() {
         paymentData
       );
       if (response.status) {
-        toast({
-          title: "Success",
-          description: "Payment updated successfully",
-        });
+        toast.success("Payment updated successfully");
         resetEditForm();
         setEditExpenseOpen(false);
         fetchPayments(currentPage);
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to update payment",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to update payment");
       }
     } catch (error) {
       console.error("Failed to update payment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update payment",
-        variant: "destructive",
-      });
+      toast.error("Failed to update payment");
     }
   };
 
@@ -286,27 +251,16 @@ export default function CashFlowPage() {
     try {
       const response = await APIService.deletePayment(selectedPayment.id!.toString());
       if (response.status) {
-        toast({
-          title: "Success",
-          description: "Payment deleted successfully",
-        });
+        toast.success("Payment deleted successfully");
         setDeleteExpenseOpen(false);
         setSelectedPayment(null);
         fetchPayments(currentPage);
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to delete payment",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to delete payment");
       }
     } catch (error) {
       console.error("Failed to delete payment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete payment",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete payment");
     }
   };
 
@@ -342,29 +296,17 @@ export default function CashFlowPage() {
     });
     
     if (!expenseAmount || !expenseNote) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
+      toast.error("Please fill in all fields");
       return;
     }
 
     const parsedAmount = parseFloat(expenseAmount);
     if (Number.isNaN(parsedAmount)) {
-      toast({
-        title: "Error",
-        description: "Amount must be a number",
-        variant: "destructive",
-      });
+      toast.error("Amount must be a number");
       return;
     }
     if (!expenseDate || !addDateObj) {
-      toast({
-        title: "Error",
-        description: "Please pick a valid date",
-        variant: "destructive",
-      });
+      toast.error("Please pick a valid date");
       return;
     }
 
@@ -380,27 +322,16 @@ export default function CashFlowPage() {
 
       const response = await APIService.createPayment(paymentData);
       if (response.status) {
-        toast({
-          title: "Success",
-          description: "Payment added successfully",
-        });
+        toast.success("Payment added successfully");
         resetAddForm();
         setAddExpenseOpen(false);
         fetchPayments(currentPage);
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to add payment",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to add payment");
       }
     } catch (error) {
       console.error("Failed to add payment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to add payment",
-        variant: "destructive",
-      });
+      toast.error("Failed to add payment");
     }
   };
 
@@ -410,11 +341,7 @@ export default function CashFlowPage() {
       const dataToExport = payments;
       
       if (dataToExport.length === 0) {
-        toast({
-          title: "Error",
-          description: "No data to export",
-          variant: "destructive",
-        });
+        toast.error("No data to export");
         return;
       }
 
@@ -449,17 +376,10 @@ export default function CashFlowPage() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      toast({
-        title: "Success",
-        description: "Excel file exported successfully",
-      });
+      toast.success("Excel file exported successfully");
     } catch (error) {
       console.error("Error exporting to Excel:", error);
-      toast({
-        title: "Error",
-        description: "Failed to export Excel file",
-        variant: "destructive",
-      });
+      toast.error("Failed to export Excel file");
     }
   };
 

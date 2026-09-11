@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { post, postUrlEncoded, API_ENDPOINTS } from "@/lib/api";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { formatBilingual } from "@/lib/translations";
 import { getCurrentUserInfo, formatDate, formatDateForAPI, parseDateFromDDMMYYYY, MAYRA_ASSOCIATION_DURATION_HI } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard";
@@ -75,7 +75,6 @@ interface CountData {
 
 export default function AddMayraCongratulationsPage() {
   const router = useRouter();
-  const { toast } = useToast();
   const { schemeTypes } = useSchemeTypes();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingApplications, setIsLoadingApplications] = useState(false);
@@ -175,15 +174,15 @@ export default function AddMayraCongratulationsPage() {
 
         setApplications(apps.filter((app: MayraApplication) => !existingMayraIds.has(String(app.id))));
       } else {
-        toast({ title: "Error", description: "Failed to fetch applications", variant: "destructive" });
+        toast.error("Failed to fetch applications");
       }
     } catch (error) {
       console.error("Error fetching applications:", error);
-      toast({ title: "Error", description: "Error fetching applications", variant: "destructive" });
+      toast.error("Error fetching applications");
     } finally {
       setIsLoadingApplications(false);
     }
-  }, [toast]);
+  }, []);
 
   // Fetch Mayra congratulations details
   const fetchMayraCongratulationsData = React.useCallback(async (mayraId: string) => {
@@ -251,17 +250,17 @@ export default function AddMayraCongratulationsPage() {
           associatedUntil: MAYRA_ASSOCIATION_DURATION_HI,
         }));
 
-        toast({ title: "Success", description: "Form pre-filled with application data" });
+        toast.success("Form pre-filled with application data");
       } else {
-        toast({ title: "Note", description: data.message || "Could not fetch details", variant: "default" });
+        toast.info(data.message || "Could not fetch details");
       }
     } catch (error) {
       console.error("Error fetching details:", error);
-      toast({ title: "Error", description: "Failed to fetch application details", variant: "destructive" });
+      toast.error("Failed to fetch application details");
     } finally {
       setIsLoadingMayraData(false);
     }
-  }, [toast, formData.date, applications]);
+  }, [formData.date, applications]);
 
   // Recalculate totals
   const calculateTotals = React.useCallback(() => {
@@ -298,7 +297,7 @@ export default function AddMayraCongratulationsPage() {
 
   const handleApplicationSelect = (id: string) => {
     if (!formData.date) {
-      toast({ title: "Validation Error", description: "Please select a date first", variant: "destructive" });
+      toast.error("Please select a date first");
       return;
     }
     setSelectedApplicationId(id);
@@ -308,7 +307,7 @@ export default function AddMayraCongratulationsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedApplicationId) {
-      toast({ title: "Error", description: "Please select an application first", variant: "destructive" });
+      toast.error("Please select an application first");
       return;
     }
 
@@ -324,14 +323,10 @@ export default function AddMayraCongratulationsPage() {
       const { status, error, message } = response.data ?? {};
 
       if (status === true && error !== true) {
-        toast({ title: "Success", description: "Mayra congratulation record added successfully" });
+        toast.success("Mayra congratulation record added successfully");
         router.push("/dashboard/mayra-congratulations");
       } else {
-        toast({
-          title: "Error",
-          description: message || "Failed to save Mayra congratulations record",
-          variant: "destructive",
-        });
+        toast.error(message || "Failed to save Mayra congratulations record");
       }
     } catch (error: unknown) {
       const apiMessage =
@@ -341,11 +336,7 @@ export default function AddMayraCongratulationsPage() {
         typeof (error as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
           ? (error as { response: { data: { message: string } } }).response.data.message
           : undefined;
-      toast({
-        title: "Error",
-        description: apiMessage || "An error occurred while saving",
-        variant: "destructive",
-      });
+      toast.error(apiMessage || "An error occurred while saving");
     } finally {
       setIsSubmitting(false);
     }

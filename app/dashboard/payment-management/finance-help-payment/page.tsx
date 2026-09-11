@@ -20,7 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarDays } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { APIService, ApplicationFilters, FinancialHelp } from "@/lib/services";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { formatDate, parseDateFromDDMMYYYY } from "@/lib/utils";
 
 export default function FinancePaymentListPage() {
@@ -32,7 +32,6 @@ export default function FinancePaymentListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const router = useRouter();
-  const { toast } = useToast();
 
   const [dateFromOpen, setDateFromOpen] = useState(false);
   const [dateToOpen, setDateToOpen] = useState(false);
@@ -46,25 +45,17 @@ export default function FinancePaymentListPage() {
       if (response.status && response.data) {
         setApplications(response.data as FinancialHelp[]);
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to load financial help records",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to load financial help records");
         setApplications([]);
       }
     } catch (error) {
       console.error(error);
-      toast({
-        title: "Error",
-        description: "Failed to load financial help records",
-        variant: "destructive",
-      });
+      toast.error("Failed to load financial help records");
       setApplications([]);
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     fetchApplications();

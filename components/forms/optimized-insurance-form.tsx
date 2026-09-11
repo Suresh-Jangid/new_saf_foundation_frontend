@@ -4,7 +4,7 @@ import React, { memo, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { formatBilingual } from "@/lib/translations"
 import { RoleGuard } from "@/components/role-guard"
 import { RazorpayPayment } from "@/components/razorpay-payment"
@@ -36,7 +36,6 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
   description = "Add New Insurance Bima Application"
 }) => {
   const router = useRouter()
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'failed'>('pending')
   const [paymentData, setPaymentData] = useState<any>(null)
@@ -63,18 +62,14 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
         }
       } catch (error) {
         console.error('Error fetching agents:', error)
-        toast({
-          title: "Error",
-          description: "Failed to load agents",
-          variant: "destructive",
-        })
+        toast.error("Failed to load agents")
       } finally {
         setIsLoadingAgents(false)
       }
     }
 
     fetchAgents()
-  }, [toast])
+  }, [])
 
   // Update category when age changes
   React.useEffect(() => {
@@ -85,29 +80,17 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
     e.preventDefault()
 
     if (!isFormValid) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      })
+      toast.error("Please fill in all required fields")
       return
     }
 
     if (isRazorpayPaymentMode(formData.paymentMode) && paymentStatus !== 'paid') {
-      toast({
-        title: "Payment Required",
-        description: "Please complete the Razorpay payment before submitting the application",
-        variant: "destructive",
-      })
+      toast.error("Please complete the Razorpay payment before submitting the application")
       return
     }
 
     if (!formData.selectedAgentId) {
-      toast({
-        title: "Validation Error",
-        description: "कृपया कार्यकर्ता का नाम चुनें / Please select a worker",
-        variant: "destructive",
-      })
+      toast.error("कृपया कार्यकर्ता का नाम चुनें / Please select a worker")
       return
     }
 
@@ -153,10 +136,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
       const response = await APIService.createInsuranceApplication(applicationData)
 
       if (response.status) {
-        toast({
-          title: formatBilingual("common.success"),
-          description: formatBilingual("messages.applicationSubmitted"),
-        })
+        toast.success(formatBilingual("messages.applicationSubmitted"))
 
         const res = response as any
         const applicationNumber = res.applicationNumber || res.id || res.formNumber || res.form_number
@@ -181,11 +161,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
       } else {
         const errorMsg = response.message || formatBilingual("messages.failedToSave");
         if (/already|assigned|consumed|used/i.test(errorMsg)) {
-          toast({
-            title: "E-PIN Conflict",
-            description: "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।",
-            variant: "destructive",
-          });
+          toast.error("यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।");
         } else {
           throw new Error(errorMsg);
         }
@@ -193,24 +169,17 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
     } catch (error: any) {
       console.error("Error creating insurance application:", error)
       if (error?.response?.status === 409 || error?.status === 409) {
-        toast({
-          title: "E-PIN Conflict",
-          description:
-            error.response?.data?.message ||
-            "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।",
-          variant: "destructive",
-        })
+        toast.error(
+          error.response?.data?.message ||
+          "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।"
+        )
       } else {
-        toast({
-          title: formatBilingual("common.error"),
-          description: error.response?.data?.message || error.message || formatBilingual("messages.failedToSave"),
-          variant: "destructive",
-        })
+        toast.error(error.response?.data?.message || error.message || formatBilingual("messages.failedToSave"))
       }
     } finally {
       setIsSubmitting(false)
     }
-  }, [formData, isFormValid, paymentStatus, age, category, fee, toast, router])
+  }, [formData, isFormValid, paymentStatus, age, category, fee, router])
 
   const handlePaymentSuccess = useCallback((paymentData: any) => {
     setPaymentStatus('paid')
@@ -220,11 +189,8 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
       paymentMode: PAYMENT_MODE.RAZORPAY,
       paymentDate: new Date().toISOString().split('T')[0],
     })
-    toast({
-      title: "Payment Success",
-      description: "Payment completed successfully!",
-    })
-  }, [updateMultipleFields, toast])
+    toast.success("Payment completed successfully!")
+  }, [updateMultipleFields])
 
   const handlePaymentError = useCallback((error: any) => {
     setPaymentStatus('failed')

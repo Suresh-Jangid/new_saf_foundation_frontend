@@ -16,7 +16,7 @@ import {
 import { CalendarDays, CalendarIcon } from "lucide-react"
 import APIService from "@/lib/services"
 import { post } from "@/lib/api"
-import { toast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, getApplicantPhotoPath, getProxiedPhotoSrc, getRecordField, unwrapApiRecordById } from "@/lib/utils"
 import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode, GENDER_OPTIONS } from "@/lib/form-values"
 import { formatBilingual } from '@/lib/translations'
@@ -188,11 +188,7 @@ export default function EditGeneralInsuranceApplicationPage() {
         }
       } catch (error) {
         console.error('Error fetching agents:', error);
-        toast({
-          title: formatBilingual("common.error"),
-          description: "Failed to load agents",
-          variant: "destructive",
-        });
+        toast.error("Failed to load agents");
       } finally {
         setIsLoadingAgents(false);
       }
@@ -202,11 +198,7 @@ export default function EditGeneralInsuranceApplicationPage() {
         if (response.status && response.data) {
           const record = unwrapApiRecordById<any>(response.data, id)
           if (!record) {
-            toast({
-              title: formatBilingual("common.error"),
-              description: "Application not found",
-              variant: "destructive",
-            })
+            toast.error("Application not found")
             return
           }
 
@@ -295,18 +287,10 @@ export default function EditGeneralInsuranceApplicationPage() {
             setPaymentStatus("paid")
           }
         } else {
-          toast({
-            title: formatBilingual("common.error"),
-            description: response.message || "Failed to load application",
-            variant: "destructive",
-          })
+          toast.error(response.message || "Failed to load application")
         }
       } catch (error) {
-        toast({
-          title: formatBilingual("common.error"),
-          description: "Failed to load application data",
-          variant: "destructive",
-        })
+        toast.error("Failed to load application data")
       } finally {
         setInitialLoading(false)
       }
@@ -321,11 +305,7 @@ export default function EditGeneralInsuranceApplicationPage() {
     try {
       setLoading(true)
       if (!formData.selectedAgentId) {
-        toast({
-          title: formatBilingual("common.error"),
-          description: "कृपया कार्यकर्ता का नाम चुनें / Please select a worker",
-          variant: "destructive",
-        })
+        toast.error("कृपया कार्यकर्ता का नाम चुनें / Please select a worker")
         setLoading(false)
         return
       }
@@ -361,25 +341,14 @@ export default function EditGeneralInsuranceApplicationPage() {
       }
       const response = await APIService.updateInsuranceApplication(id, updateData)
       if (response.status) {
-        toast({
-          title: formatBilingual("common.success"),
-          description: "Application updated successfully",
-        })
+        toast.success("Application updated successfully")
         router.push("/dashboard/general-applications-insurance")
       } else {
-        toast({
-          title: formatBilingual("common.error"),
-          description: response.message || "Failed to update application",
-          variant: "destructive",
-        })
+        toast.error(response.message || "Failed to update application")
       }
     } catch (error) {
       console.error("Error updating application:", error)
-      toast({
-        title: formatBilingual("common.error"),
-        description: "Failed to update application",
-        variant: "destructive",
-      })
+      toast.error("Failed to update application")
     } finally {
       setLoading(false)
     }
@@ -396,21 +365,14 @@ export default function EditGeneralInsuranceApplicationPage() {
     }))
     setPaymentDateObj(new Date())
     setPaymentDateValue(formatDate(new Date()))
-    toast({
-      title: "Payment Success",
-      description: "Payment completed successfully!",
-    })
-  }, [toast])
+    toast.success("Payment completed successfully!")
+  }, [])
 
   const handlePaymentError = useCallback((error: any) => {
     setPaymentStatus('failed')
     console.error('Payment error:', error)
-    toast({
-      title: "Payment Failed",
-      description: error.message || "Payment failed. Please try again.",
-      variant: "destructive",
-    })
-  }, [toast])
+    toast.error(error.message || "Payment failed. Please try again.")
+  }, [])
 
   const paymentModeOptions = PAYMENT_MODE_OPTIONS.filter(
     (option) =>

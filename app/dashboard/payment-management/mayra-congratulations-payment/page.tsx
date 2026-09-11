@@ -22,7 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { APIService } from "@/lib/services";
 import { ApplicationFilters } from "@/lib/services";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, getCurrentUserInfo } from "@/lib/utils";
 import { buildListFilters } from "@/lib/list-filters";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -64,7 +64,6 @@ export default function MayraCongratulationsPaymentListPage() {
   const [generatingReceipt, setGeneratingReceipt] = useState<string | null>(null);
   const itemsPerPage = 10;
   const router = useRouter();
-  const { toast } = useToast();
 
   const [dateFromOpen, setDateFromOpen] = useState(false);
   const [dateToOpen, setDateToOpen] = useState(false);
@@ -92,20 +91,12 @@ export default function MayraCongratulationsPaymentListPage() {
         const totalItems = response.data.length;
         setTotalPages(Math.max(1, Math.ceil(totalItems / itemsPerPage)));
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to fetch mayra congratulations",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to fetch mayra congratulations");
         setApplications([]);
       }
     } catch (error) {
       console.error("Error fetching mayra congratulations:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch mayra congratulations. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch mayra congratulations. Please try again.");
       setApplications([]);
     } finally {
       setLoading(false);
@@ -218,17 +209,10 @@ export default function MayraCongratulationsPaymentListPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast({
-        title: "Success",
-        description: "Receipt generated successfully",
-      });
+      toast.success("Receipt generated successfully");
     } catch (error) {
       console.error("Error generating receipt:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate receipt. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to generate receipt. Please try again.");
     } finally {
       setGeneratingReceipt(null);
     }

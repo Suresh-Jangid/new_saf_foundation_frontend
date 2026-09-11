@@ -25,7 +25,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { APIService } from "@/lib/services";
 import { InsuranceApplication, ApplicationFilters } from "@/lib/services";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, getCurrentUserInfo } from "@/lib/utils";
 import { buildListFilters } from "@/lib/list-filters";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -39,7 +39,6 @@ export default function InsuranceApplicationPaymentListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const router = useRouter();
-  const { toast } = useToast();
 
   const [dateFromOpen, setDateFromOpen] = useState(false);
   const [dateToOpen, setDateToOpen] = useState(false);
@@ -85,20 +84,12 @@ export default function InsuranceApplicationPaymentListPage() {
       if (response.status && response.data) {
         setApplications(response.data);
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to fetch applications",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to fetch applications");
         setApplications([]);
       }
     } catch (error) {
       console.error("Error fetching applications:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch applications. Please try again.",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch applications. Please try again.");
       setApplications([]);
     } finally {
       setLoading(false);
@@ -166,11 +157,7 @@ export default function InsuranceApplicationPaymentListPage() {
       const dataToExport = applications;
       
       if (dataToExport.length === 0) {
-        toast({
-          title: "Error",
-          description: "No data to export",
-          variant: "destructive",
-        });
+        toast.error("No data to export");
         return;
       }
 
@@ -210,17 +197,10 @@ export default function InsuranceApplicationPaymentListPage() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      toast({
-        title: "Success",
-        description: "Excel file exported successfully",
-      });
+      toast.success("Excel file exported successfully");
     } catch (error) {
       console.error("Error exporting to Excel:", error);
-      toast({
-        title: "Error",
-        description: "Failed to export Excel file",
-        variant: "destructive",
-      });
+      toast.error("Failed to export Excel file");
     }
   };
 
@@ -230,11 +210,7 @@ export default function InsuranceApplicationPaymentListPage() {
       // First, get the complete application details
       const response = await APIService.getInsuranceApplicationById(application.id!);
       if (!response.status || !response.data) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch application details",
-          variant: "destructive",
-        });
+        toast.error("Failed to fetch application details");
         return;
       }
 
@@ -278,10 +254,7 @@ export default function InsuranceApplicationPaymentListPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      toast({
-        title: "Success",
-        description: "Payment receipt generated and downloaded successfully",
-      });
+      toast.success("Payment receipt generated and downloaded successfully");
 
       // --- WhatsApp Integration ---
       try {
@@ -289,35 +262,21 @@ export default function InsuranceApplicationPaymentListPage() {
 
         // Send Text
         await sendWhatsAppMessage(applicationData.mobile, message);
-        toast({
-          title: "Success",
-          description: "WhatsApp message sent successfully",
-        });
+        toast.success("WhatsApp message sent successfully");
 
         // Send File
         const file = new File([blob], `Payment_Receipt_${applicationData.formNumber}.pdf`, { type: "application/pdf" });
         await sendWhatsAppFile(applicationData.mobile, file, `Payment Receipt - ${applicationData.formNumber}`);
-        toast({
-          title: "Success",
-          description: "Receipt sent to WhatsApp successfully",
-        });
+        toast.success("Receipt sent to WhatsApp successfully");
 
       } catch (error) {
         console.error("WhatsApp error:", error);
-        toast({
-          title: "Warning",
-          description: "Failed to send WhatsApp message/file",
-          variant: "destructive",
-        });
+        toast.warning("Failed to send WhatsApp message/file");
       }
 
     } catch (error) {
       console.error("Failed to generate payment receipt:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate payment receipt",
-        variant: "destructive",
-      });
+      toast.error("Failed to generate payment receipt");
     }
   };
 

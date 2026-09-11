@@ -140,10 +140,16 @@ export async function POST(request: NextRequest) {
     };
 
     // ── 1. Top Header Boxes ──────────────────────────────────
-    // Membership number: Uses ONLY record.membershipNumber. Completely blank if missing/empty. Never uses formNumber, sr_no, or E-PIN.
-    const membershipNo = getField(record, 'membershipNumber');
+    // System Form Number: Displayed in upper area above the "सदस्यता क्रमांक" line.
+    const systemFormNo = getField(record, 'formNumber', 'form_number', 'systemFormNumber', 'mayraNumber');
+    // Offline Form Number: Manually entered offline physical form number, rendered in the "सदस्यता क्रमांक" box (retaining previous position).
+    const offlineFormNo = getField(record, 'offlineFormNumber', 'offline_form_number', 'offlineFormNo', 'membershipNumber');
     const appDate = formatDate(getField(record, 'applicationDate', 'application_date', 'createdAt', 'created_at', 'date'));
-    drawBounded(membershipNo, 120, 669.5, 11, 100);
+
+    // Draw System Form Number (e.g., MYR-3) above the registration box
+    drawBounded(systemFormNo, 100, 692, 10.5, 120);
+    // Draw Offline Form Number (e.g., 1259) inside the "सदस्यता क्रमांक" box
+    drawBounded(offlineFormNo, 120, 669.5, 11, 100);
     drawBounded(appDate, 462, 669.5, 11, 110);
 
     // ── 2. Applicant Section (भाणेज/भाणेजी का विवरण) ─────────
@@ -207,7 +213,7 @@ export async function POST(request: NextRequest) {
     drawBounded(address, 228, 262.5, 10, 236);
 
     const pdfBytes = await pdfDoc.save();
-    const rawSafeName = applicantName || membershipNo || record?.id || 'form';
+    const rawSafeName = applicantName || systemFormNo || offlineFormNo || record?.id || 'form';
     const safeName = String(rawSafeName).trim().replace(/[^a-zA-Z0-9_\-\u0900-\u097F]/g, '_');
 
     return new Response(Buffer.from(pdfBytes), {

@@ -70,71 +70,94 @@ async function runTests() {
     );
   });
 
-  it('5. Membership number uses ONLY record.membershipNumber (no formNumber or sr_no fallback)', () => {
-    const membershipLine = routeContent.match(/const\s+membershipNo\s*=\s*([^;]+);/);
-    assert.ok(membershipLine, 'membershipNo definition must exist in route');
+  it('5. System form number uses authoritative formNumber (e.g., MYR-3)', () => {
+    const systemLine = routeContent.match(/const\s+systemFormNo\s*=\s*([^;]+);/);
+    assert.ok(systemLine, 'systemFormNo definition must exist in route');
     assert.ok(
-      membershipLine[1].includes("'membershipNumber'") &&
-      !membershipLine[1].includes("'formNumber'") &&
-      !membershipLine[1].includes("'sr_no'") &&
-      !membershipLine[1].includes("'form_number'"),
-      'membershipNo must ONLY query membershipNumber and not formNumber/sr_no'
+      systemLine[1].includes("'formNumber'") &&
+      systemLine[1].includes("'form_number'"),
+      'systemFormNo must query formNumber'
     );
   });
 
-  it('6. Missing/empty membership number remains completely blank', () => {
+  it('6. Offline form number uses manually entered offlineFormNumber (e.g., 1259)', () => {
+    const offlineLine = routeContent.match(/const\s+offlineFormNo\s*=\s*([^;]+);/);
+    assert.ok(offlineLine, 'offlineFormNo definition must exist in route');
     assert.ok(
-      !routeContent.includes('|| "MAYRA-') && !routeContent.includes('|| "SAF-'),
-      'Must not invent default membership numbers'
+      offlineLine[1].includes("'offlineFormNumber'") &&
+      offlineLine[1].includes("'offline_form_number'"),
+      'offlineFormNo must query offlineFormNumber'
     );
   });
 
-  it('7. Aadhaar maps to Aadhaar field', () => {
+  it('7. System form number drawn in upper position (x=100, y=692)', () => {
+    assert.ok(
+      routeContent.includes('drawBounded(systemFormNo, 100, 692'),
+      'systemFormNo must be drawn at (100, 692)'
+    );
+  });
+
+  it('8. Offline form number drawn in registration box (x=120, y=669.5)', () => {
+    assert.ok(
+      routeContent.includes('drawBounded(offlineFormNo, 120, 669.5'),
+      'offlineFormNo must be drawn at (120, 669.5)'
+    );
+  });
+
+  it('9. Missing/empty offlineFormNumber leaves box blank', () => {
+    assert.ok(
+      !routeContent.includes('offlineFormNo || systemFormNo') &&
+      !routeContent.includes('offlineFormNo || "MAYRA-'),
+      'Must not fallback to systemFormNo in offline position'
+    );
+  });
+
+  it('10. Aadhaar maps to Aadhaar field', () => {
     assert.ok(
       routeContent.includes("'aadharNumber'") || routeContent.includes("'aadhar'"),
       'Aadhaar number mapped'
     );
   });
 
-  it('8. Postal PIN maps to PIN field only', () => {
+  it('11. Postal PIN maps to PIN field only', () => {
     assert.ok(
       routeContent.includes("'pinCode'") && routeContent.includes("'pincode'"),
       'Postal PIN correctly mapped'
     );
   });
 
-  it('9. E-PIN is never used as membership number', () => {
-    const membershipSection = routeContent.slice(
-      routeContent.indexOf('const membershipNo'),
-      routeContent.indexOf('drawBounded(membershipNo')
+  it('12. E-PIN is never used as form number', () => {
+    const headerSection = routeContent.slice(
+      routeContent.indexOf('const systemFormNo'),
+      routeContent.indexOf('drawBounded(appDate')
     );
-    assert.ok(!membershipSection.includes('epin'), 'Membership number must never query epin');
-    assert.ok(!membershipSection.includes('pinNumber'), 'Membership number must never query pinNumber');
+    assert.ok(!headerSection.includes('epin'), 'Form numbers must never query epin');
+    assert.ok(!headerSection.includes('pinNumber'), 'Form numbers must never query pinNumber');
   });
 
-  it('10. Applicant photo mapping and coordinates (x=485, yFromTop=166, w=88, h=106)', () => {
+  it('13. Applicant photo mapping and coordinates (x=485, yFromTop=166, w=88, h=106)', () => {
     assert.ok(routeContent.includes('applicantPhotoSource'), 'Applicant photo source picked');
     assert.ok(routeContent.includes('166, PHOTO_WIDTH, PHOTO_HEIGHT'), 'Applicant photo positioned inside box');
   });
 
-  it('11. Nominee photo mapping and coordinates (x=485, yFromTop=312, w=88, h=106)', () => {
+  it('14. Nominee photo mapping and coordinates (x=485, yFromTop=312, w=88, h=106)', () => {
     assert.ok(routeContent.includes('nomineePhotoSource'), 'Nominee photo source picked');
     assert.ok(routeContent.includes('312, PHOTO_WIDTH, PHOTO_HEIGHT'), 'Nominee photo positioned inside box');
   });
 
-  it('12. Hindi Unicode support via NotoSansDevanagari with subset: false', () => {
+  it('15. Hindi Unicode support via NotoSansDevanagari with subset: false', () => {
     assert.ok(routeContent.includes('NotoSansDevanagari'), 'Devanagari font used');
     assert.ok(routeContent.includes('subset: false'), 'Full glyph set embedded');
   });
 
-  it('13. Filename generation uses MAYRA_FORM_<safeName>.pdf pattern', () => {
+  it('16. Filename generation uses MAYRA_FORM_<safeName>.pdf pattern', () => {
     assert.ok(
       routeContent.includes('MAYRA_FORM_'),
       'Route uses MAYRA_FORM_ filename'
     );
   });
 
-  it('14. No old Mayra template remains active in fallback path', () => {
+  it('17. No old Mayra template remains active in fallback path', () => {
     const fallbackBytes = fs.readFileSync(fallbackTemplatePath);
     assert.strictEqual(
       fallbackBytes.length,
@@ -144,7 +167,7 @@ async function runTests() {
   });
 
   const pageContent = fs.readFileSync('app/dashboard/mayra-registration/page.tsx', 'utf8');
-  it('UI Generate PDF Form button calls /api/generate-mayra-pdf and downloads MAYRA_FORM_<safeName>.pdf', () => {
+  it('18. UI Generate PDF Form button calls /api/generate-mayra-pdf and downloads MAYRA_FORM_<safeName>.pdf', () => {
     assert.ok(pageContent.includes('/api/generate-mayra-pdf'), 'API call present');
     assert.ok(pageContent.includes('onGeneratePDFForm={handleGeneratePDF}'), 'Button handler present');
     assert.ok(pageContent.includes('MAYRA_FORM_'), 'Download filename matches standard');
@@ -154,9 +177,10 @@ async function runTests() {
   const fontBytes = fs.readFileSync(fontPath);
   const devanagariFont = await pdfDoc.embedFont(fontBytes, { subset: false });
 
-  // 4a. Case 1: membershipNumber present → printed
-  const mockRecordWithMem = {
-    membershipNumber: 'M-2026-089',
+  // 4a. Case 1: formNumber = MYR-3, offlineFormNumber = 1259
+  const mockRecordDual = {
+    formNumber: 'MYR-3',
+    offlineFormNumber: '1259',
     applicationDate: '15/08/2026',
     applicantName: 'कविता कुमारी',
     fatherName: 'रमेश कुमार प्रजापत',
@@ -190,76 +214,88 @@ async function runTests() {
     page.drawText(text, { x, y, size: s, font: devanagariFont, color: rgb(0, 0, 0) });
   };
 
-  // Render fields
-  drawBounded(mockRecordWithMem.membershipNumber, 120, 669.5, 11, 100);
-  drawBounded(mockRecordWithMem.applicationDate, 462, 669.5, 11, 110);
-  drawBounded(mockRecordWithMem.applicantName, 75, 597.5, 10.5, 130);
-  drawBounded(mockRecordWithMem.fatherName, 250, 597.5, 10.5, 205);
-  drawBounded(mockRecordWithMem.motherName, 95, 572.5, 10.5, 105);
-  drawBounded(mockRecordWithMem.dateOfBirth, 245, 572.5, 10, 78);
-  drawBounded(mockRecordWithMem.age, 352, 572.5, 10.5, 105);
-  drawBounded(mockRecordWithMem.gotra, 56, 545.5, 10.5, 88);
-  drawBounded(mockRecordWithMem.address, 180, 545.5, 10, 88);
-  drawBounded(mockRecordWithMem.aadharNumber, 325, 545.5, 10.5, 132);
-  drawBounded(mockRecordWithMem.nomineeName, 100, 478.0, 10.5, 138);
-  drawBounded(mockRecordWithMem.nomineeFathername, 295, 478.0, 10.5, 165);
-  drawBounded(mockRecordWithMem.nomineeGotra, 54, 449.5, 10.5, 82);
-  drawBounded(mockRecordWithMem.nomineeAddress, 172, 449.5, 10, 98);
-  drawBounded(mockRecordWithMem.nomineeMobile, 320, 449.5, 10.5, 140);
-  drawBounded(mockRecordWithMem.tehsil, 68, 421.5, 10, 62);
-  drawBounded(mockRecordWithMem.district, 160, 421.5, 10, 62);
-  drawBounded(mockRecordWithMem.state, 250, 421.5, 10, 67);
-  drawBounded(mockRecordWithMem.pinCode, 372, 421.5, 10.5, 88);
-  drawBounded(mockRecordWithMem.nomineeRelation, 115, 392.5, 10.5, 215);
-  drawBounded(mockRecordWithMem.workerName, 108, 364.0, 10.5, 162);
-  drawBounded(mockRecordWithMem.workerMobile, 315, 364.0, 10.5, 138);
-  drawBounded(mockRecordWithMem.applicantName, 46, 291.5, 10.5, 180);
-  drawBounded(mockRecordWithMem.fatherName, 280, 291.5, 10.5, 175);
-  drawBounded(mockRecordWithMem.age, 480, 291.5, 10.5, 92);
-  drawBounded(mockRecordWithMem.gotra, 58, 262.5, 10.5, 132);
-  drawBounded(mockRecordWithMem.address, 228, 262.5, 10, 236);
+  // Render fields for Case 1
+  drawBounded(mockRecordDual.formNumber, 100, 692, 10.5, 120);
+  drawBounded(mockRecordDual.offlineFormNumber, 120, 669.5, 11, 100);
+  drawBounded(mockRecordDual.applicationDate, 462, 669.5, 11, 110);
+  drawBounded(mockRecordDual.applicantName, 75, 597.5, 10.5, 130);
+  drawBounded(mockRecordDual.fatherName, 250, 597.5, 10.5, 205);
+  drawBounded(mockRecordDual.motherName, 95, 572.5, 10.5, 105);
+  drawBounded(mockRecordDual.dateOfBirth, 245, 572.5, 10, 78);
+  drawBounded(mockRecordDual.age, 352, 572.5, 10.5, 105);
+  drawBounded(mockRecordDual.gotra, 56, 545.5, 10.5, 88);
+  drawBounded(mockRecordDual.address, 180, 545.5, 10, 88);
+  drawBounded(mockRecordDual.aadharNumber, 325, 545.5, 10.5, 132);
+  drawBounded(mockRecordDual.nomineeName, 100, 478.0, 10.5, 138);
+  drawBounded(mockRecordDual.nomineeFathername, 295, 478.0, 10.5, 165);
+  drawBounded(mockRecordDual.nomineeGotra, 54, 449.5, 10.5, 82);
+  drawBounded(mockRecordDual.nomineeAddress, 172, 449.5, 10, 98);
+  drawBounded(mockRecordDual.nomineeMobile, 320, 449.5, 10.5, 140);
+  drawBounded(mockRecordDual.tehsil, 68, 421.5, 10, 62);
+  drawBounded(mockRecordDual.district, 160, 421.5, 10, 62);
+  drawBounded(mockRecordDual.state, 250, 421.5, 10, 67);
+  drawBounded(mockRecordDual.pinCode, 372, 421.5, 10.5, 88);
+  drawBounded(mockRecordDual.nomineeRelation, 115, 392.5, 10.5, 215);
+  drawBounded(mockRecordDual.workerName, 108, 364.0, 10.5, 162);
+  drawBounded(mockRecordDual.workerMobile, 315, 364.0, 10.5, 138);
+  drawBounded(mockRecordDual.applicantName, 46, 291.5, 10.5, 180);
+  drawBounded(mockRecordDual.fatherName, 280, 291.5, 10.5, 175);
+  drawBounded(mockRecordDual.age, 480, 291.5, 10.5, 92);
+  drawBounded(mockRecordDual.gotra, 58, 262.5, 10.5, 132);
+  drawBounded(mockRecordDual.address, 228, 262.5, 10, 236);
 
   const generatedBytes = await pdfDoc.save();
-  it('Generated Mayra PDF with membershipNumber is valid (>550KB)', () => {
+  it('19. Generated Mayra PDF with dual numbers is valid (>550KB)', () => {
     assert.ok(generatedBytes.length > 550000, `Serialized PDF must be > 550KB (actual: ${generatedBytes.length})`);
   });
 
-  // 4b. Case 2: membershipNumber absent → blank
-  const emptyMemDoc = await PDFDocument.load(templateBytes);
-  emptyMemDoc.registerFontkit(fontkit);
-  const emptyFont = await emptyMemDoc.embedFont(fontBytes, { subset: false });
-  const emptyPage = emptyMemDoc.getPages()[0];
-  const blankMemRecord = { ...mockRecordWithMem, membershipNumber: '' };
-  const extractedBlankMem = blankMemRecord.membershipNumber || '';
-  assert.strictEqual(extractedBlankMem, '', 'Missing membershipNumber must resolve to empty string');
-  if (extractedBlankMem) {
-    emptyPage.drawText(extractedBlankMem, { x: 120, y: 669.5, size: 11, font: emptyFont });
-  }
-  const blankMemBytes = await emptyMemDoc.save();
-  it('membershipNumber absent → blank PDF generated cleanly', () => {
-    assert.ok(blankMemBytes.length > 550000, 'Blank membership number doc must generate properly');
-  });
-
-  // 4c. Case 3: formNumber/sr_no present but membershipNumber absent → STILL BLANK
-  const recordWithFormAndSrNo = {
-    formNumber: 'FORM-99999',
-    sr_no: 'SR-12345',
+  // 4b. Case 2: Historical record with offlineFormNumber = null / empty
+  const historicalDoc = await PDFDocument.load(templateBytes);
+  historicalDoc.registerFontkit(fontkit);
+  const histFont = await historicalDoc.embedFont(fontBytes, { subset: false });
+  const histPage = historicalDoc.getPages()[0];
+  const histRecord = {
+    formNumber: 'MYR-3',
+    offlineFormNumber: null,
+    applicationDate: '15/08/2026',
     applicantName: 'सुनीता',
   };
-  const getFieldStrict = (r, key) => (r && r[key] && String(r[key]).trim()) || '';
-  const resultForFormSrNo = getFieldStrict(recordWithFormAndSrNo, 'membershipNumber');
-  it('formNumber/sr_no present but membershipNumber absent → STILL BLANK', () => {
-    assert.strictEqual(resultForFormSrNo, '', 'Must NOT fall back to formNumber or sr_no');
+
+  const getFieldHelper = (r, ...keys) => {
+    for (const k of keys) {
+      if (r?.[k] !== undefined && r?.[k] !== null && String(r[k]).trim() !== '') {
+        return String(r[k]).trim();
+      }
+    }
+    return '';
+  };
+
+  const histSystemFormNo = getFieldHelper(histRecord, 'formNumber', 'form_number');
+  const histOfflineFormNo = getFieldHelper(histRecord, 'offlineFormNumber', 'offline_form_number');
+
+  assert.strictEqual(histSystemFormNo, 'MYR-3', 'Historical record has system formNumber');
+  assert.strictEqual(histOfflineFormNo, '', 'Historical record has empty offlineFormNumber');
+
+  // Draw system number above
+  histPage.drawText(histSystemFormNo, { x: 100, y: 692, size: 10.5, font: histFont });
+  // If offline is empty, nothing drawn in box
+  if (histOfflineFormNo) {
+    histPage.drawText(histOfflineFormNo, { x: 120, y: 669.5, size: 11, font: histFont });
+  }
+
+  const histBytes = await historicalDoc.save();
+  it('20. Historical record (null offlineFormNumber) generates cleanly with blank box and MYR-3 above', () => {
+    assert.ok(histBytes.length > 550000, 'Historical doc must generate properly');
   });
 
-  // 4d. Case 4: E-PIN present → STILL NOT used
+  // 4c. Case 3: E-PIN present → STILL NOT used
   const recordWithEpin = {
     epin: 'EPIN-7VWF-U9PE-STWA',
     epinNumber: 'EPIN-7VWF-U9PE-STWA',
     pinNumber: 'EPIN-7VWF-U9PE-STWA',
   };
-  const resultForEpin = getFieldStrict(recordWithEpin, 'membershipNumber');
-  it('E-PIN present → STILL NOT used for membership number', () => {
+  const resultForEpin = getFieldHelper(recordWithEpin, 'formNumber', 'offlineFormNumber');
+  it('21. E-PIN present → NEVER used for form numbers', () => {
     assert.strictEqual(resultForEpin, '', 'Must NOT fall back to E-PIN');
   });
 

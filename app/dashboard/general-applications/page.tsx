@@ -41,6 +41,8 @@ import {
 interface GeneralApplicationRecord {
   id: string
   formNumber: string
+  offlineFormNumber?: string | null
+  offline_form_number?: string | null
   applicationDate: string
   applicantName: string
   fatherName: string
@@ -199,8 +201,14 @@ function mapApplicationRecord(item: GeneralApplicationRecord & Record<string, an
     }
   }
 
+  const offlineFormNumber =
+    item.offlineFormNumber ||
+    item.offline_form_number ||
+    "";
+
   return {
     ...item,
+    offlineFormNumber: String(offlineFormNumber || ""),
     dateOfBirth,
     age: String(computedAge),
     is_active,
@@ -355,7 +363,20 @@ export default function GeneralApplicationsPage() {
   }
 
   const columns = [
-    { key: "formNumber", label: "सदस्यता संख्या" },
+    {
+      key: "formNumber",
+      label: "सदस्यता संख्या / फॉर्म नं.",
+      render: (value: string, record: GeneralApplicationRecord) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-gray-900">{record.formNumber || value || "-"}</span>
+          {record.offlineFormNumber ? (
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              ऑफलाइन: <span className="font-medium text-foreground">{record.offlineFormNumber}</span>
+            </span>
+          ) : null}
+        </div>
+      ),
+    },
     { key: "applicationDate", label: "आवेदन तिथि" },
     { key: "applicantName", label: "आवेदक का नाम" },
     { key: "fatherName", label: "पिता का नाम" },
@@ -385,12 +406,18 @@ export default function GeneralApplicationsPage() {
   ]
 
   const searchFields: (keyof GeneralApplicationRecord)[] = [
-    "applicantName", // Only search by applicant name
+    "applicantName",
+    "formNumber",
+    "offlineFormNumber",
+    "mobile",
+    "aadharNumber",
+    "fatherName",
   ]
 
   // Map English fields to Hindi for the PDF template
   const mapToHindiFields = (record: GeneralApplicationRecord & Record<string, any>) => ({
     सदस्यता_क्रमांक: record.formNumber || record.form_number || "",
+    ऑफलाइन_फॉर्म_नं: record.offlineFormNumber || record.offline_form_number || "",
     आवेदन_दिनांक: record.applicationDate || record.application_date || "",
     आवेदक_का_नाम: record.applicantName || record.applicant_name || "",
     पिता_का_नाम: record.fatherName || record.father_name || record.father_husband_name || "",
@@ -597,6 +624,7 @@ export default function GeneralApplicationsPage() {
       // Prepare data for Excel export
       const excelData = displayRecords.map((record) => ({
         "सदस्यता संख्या": record.formNumber,
+        "ऑफलाइन फॉर्म नं.": record.offlineFormNumber || "-",
         "आवेदन तिथि": record.applicationDate,
         "आवेदक का नाम": record.applicantName,
         "पिता का नाम": record.fatherName,

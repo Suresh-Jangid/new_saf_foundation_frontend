@@ -18,12 +18,24 @@ import { get, post, buildEditFormData } from "@/lib/api"
 import { toast } from "sonner"
 import { formatDate, isValidDate, calculateAge, formatDateForAPI, formatDateForInput, parseDateFromDDMMYYYY, validatePhoneNumber, unwrapApiRecordById, getApplicantPhotoPath, getProxiedPhotoSrc } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { GENDER_OPTIONS, isMale, isFemale } from "@/lib/form-values"
 import { formatBilingual } from '@/lib/translations'
 import { useAgeCategory } from "@/hooks/use-age-category"
 
 export type GeneralApplicationFormData = {
   formNumber? : string;
+  offlineFormNumber?: string;
+  offline_form_number?: string;
   applicationDate: string;
   applicantName: string;
   fatherName: string;
@@ -59,6 +71,7 @@ export default function EditGeneralApplicationPage() {
 
   const [formData, setFormData] = useState<GeneralApplicationFormData>({
     formNumber: "",
+    offlineFormNumber: "",
     applicationDate: "",
     applicantName: "",
     fatherName: "",
@@ -84,6 +97,9 @@ export default function EditGeneralApplicationPage() {
     pendingAmount: "",
     selectedAgentId: "",
   })
+
+  const [initialOfflineFormNumber, setInitialOfflineFormNumber] = useState<string>("")
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
 
   const [applicationDateObj, setApplicationDateObj] = useState<Date | undefined>(
     formData.applicationDate ? new Date(formData.applicationDate) : undefined
@@ -219,8 +235,6 @@ export default function EditGeneralApplicationPage() {
           }
 
           // Try to match agent by explicit id fields first, then by name.
-          // The API may store the worker/agent under several possible field names,
-          // so check all common variants to avoid losing the selection on edit.
           let agentId = "";
           const explicitAgentId =
             record.selectedAgentId ??
@@ -255,8 +269,11 @@ export default function EditGeneralApplicationPage() {
             setAgents([...fetchedAgents] as any);
           }
 
+          const offNo = record.offlineFormNumber || record.offline_form_number || "";
+
           setFormData({
             formNumber: record.formNumber || "",
+            offlineFormNumber: offNo,
             applicationDate: record.applicationDate || "",
             applicantName: record.applicantName || "",
             fatherName: record.fatherName || "",
@@ -282,6 +299,8 @@ export default function EditGeneralApplicationPage() {
             pendingAmount: record.pendingAmount || "",
             selectedAgentId: agentId,
           });
+
+          setInitialOfflineFormNumber(offNo);
 
           // Set existing photo URL if available
           const photoPath = getApplicantPhotoPath(record);
@@ -316,7 +335,6 @@ export default function EditGeneralApplicationPage() {
 
           // Set category and fee based on loaded data
           setCategory(record.category || "");
-          // Age calculation will be handled by the useEffect that depends on formData.gender and formData.dateOfBirth
         } else {
           toast.error("Application not found");
           router.push("/dashboard/general-applications");
@@ -333,33 +351,50 @@ export default function EditGeneralApplicationPage() {
     fetchAllData();
   }, [id, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validateForm = (): boolean => {
+    const mobileDigits = (formData.mobile || '').replace(/\D/g, '')
+    const aadharDigits = (formData.aadharNumber || '').replace(/\D/g, '')
+
+    if (!validatePhoneNumber(mobileDigits)) {
+      toast.error('कृपया एक वैध 10 अंकों का मोबाइल नंबर दर्ज करें / Enter a valid 10-digit mobile number')
+      return false
+    }
+    if (aadharDigits.length !== 12) {
+      toast.error('कृपया 12 अंकों का आधार नंबर दर्ज करें / Enter a 12-digit Aadhaar number')
+      return false
+    }
+    if (!formData.selectedAgentId) {
+      toast.error('कृपया कार्यकर्ता का नाम चुनें / Please select a worker')
+      return false
+    }
+    return true
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!validateForm()) return
+
+    const currentOffline = (formData.offlineFormNumber || '').trim()
+    const initialOffline = (initialOfflineFormNumber || '').trim()
+
+    if (currentOffline && currentOffline !== initialOffline) {
+      setConfirmDialogOpen(true)
+    } else {
+      executeSubmit()
+    }
+  }
+
+  const executeSubmit = async () => {
+    setConfirmDialogOpen(false)
     setIsLoading(true)
 
     try {
-      // Validate and normalize numeric fields
       const mobileDigits = (formData.mobile || '').replace(/\D/g, '')
       const aadharDigits = (formData.aadharNumber || '').replace(/\D/g, '')
 
-      if (!validatePhoneNumber(mobileDigits)) {
-        toast.error('कृपया एक वैध 10 अंकों का मोबाइल नंबर दर्ज करें / Enter a valid 10-digit mobile number')
-        setIsLoading(false)
-        return
-      }
-      if (aadharDigits.length !== 12) {
-        toast.error('कृपया 12 अंकों का आधार नंबर दर्ज करें / Enter a 12-digit Aadhaar number')
-        setIsLoading(false)
-        return
-      }
-      if (!formData.selectedAgentId) {
-        toast.error('कृपया कार्यकर्ता का नाम चुनें / Please select a worker')
-        setIsLoading(false)
-        return
-      }
-
       const apiFormData = buildEditFormData(id, {
         applicationDate: formatDateForAPI(applicationDateObj),
+        offlineFormNumber: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : "",
         applicantName: formData.applicantName,
         fatherName: formData.fatherName,
         motherName: formData.motherName,
@@ -431,8 +466,43 @@ export default function EditGeneralApplicationPage() {
           {/* Form Content */}
           <div className="px-6 py-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Application and Birth Date Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Identifiers, Application and Birth Date Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg border">
+                <div>
+                  <Label htmlFor="formNumber">आवेदन क्र. / Form No. (System)</Label>
+                  <Input
+                    id="formNumber"
+                    value={formData.formNumber || "-"}
+                    disabled
+                    readOnly
+                    className="bg-muted font-semibold text-gray-800 cursor-not-allowed"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    सिस्टम द्वारा जनरेटेड (संपादन योग्य नहीं)
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="offlineFormNumber">ऑफलाइन फॉर्म नं. / Offline Form No.</Label>
+                  <Input
+                    id="offlineFormNumber"
+                    name="offlineFormNumber"
+                    value={formData.offlineFormNumber || ""}
+                    placeholder="उदा. 1259"
+                    maxLength={50}
+                    className="bg-background font-medium"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        offlineFormNumber: e.target.value,
+                      }))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    भौतिक फॉर्म संख्या / Physical offline form number
+                  </p>
+                </div>
+
                 <div>
                   <Label htmlFor="applicationDate">आवेदन तिथि / Application Date</Label>
                   <div className="relative flex gap-2">
@@ -862,6 +932,26 @@ export default function EditGeneralApplicationPage() {
             </form>
           </div>
         </div>
+
+        {/* Human Error Protection Confirmation Dialog */}
+        <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>फॉर्म संख्या पुष्टि / Confirm Offline Form Number</AlertDialogTitle>
+              <AlertDialogDescription className="text-base text-gray-800 font-medium pt-2">
+                ऑफलाइन फॉर्म नं. <span className="font-bold text-primary">{formData.offlineFormNumber ? formData.offlineFormNumber.trim() : ""}</span> सही है?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConfirmDialogOpen(false)}>
+                रद्द करें / Edit
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={executeSubmit} disabled={isLoading}>
+                {isLoading ? "Saving..." : "हाँ, सही है / Confirm & Save"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </RoleGuard>
   )

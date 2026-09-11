@@ -59,6 +59,7 @@ export const translations = {
   // Form fields
   formFields: {
     formNumber: { en: "Form Number", hi: "फॉर्म नंबर" },
+    offlineFormNumber: { en: "Offline Form No.", hi: "ऑफलाइन फॉर्म नं." },
     applicationDate: { en: "Application Date", hi: "आवेदन तिथि" },
     applicantName: { en: "Applicant Name", hi: "आवेदक का नाम" },
     fatherName: { en: "Father's Name", hi: "पिता का नाम" },

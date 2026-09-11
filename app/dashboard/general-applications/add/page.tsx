@@ -21,6 +21,16 @@ import { formatBilingual } from '@/lib/translations'
 import { formatDate, isValidDate, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
 import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode, GENDER_OPTIONS, isMale, isFemale } from "@/lib/form-values";
 import { RoleGuard } from "@/components/role-guard"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { RazorpayPayment } from "@/components/razorpay-payment"
 import { useAgeCategory } from "@/hooks/use-age-category"
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
@@ -33,6 +43,7 @@ export default function AddGeneralApplicationPage() {
 
   const [formData, setFormData] = useState<{
     applicationDate: string;
+    offlineFormNumber: string;
     applicantName: string;
     fatherName: string;
     motherName: string;
@@ -61,6 +72,7 @@ export default function AddGeneralApplicationPage() {
   }>({
     // Auto-fill today's date on the add form (same behaviour as Mayra registration)
     applicationDate: formatDate(new Date()),
+    offlineFormNumber: "",
     applicantName: "",
     fatherName: "",
     motherName: "",
@@ -88,6 +100,8 @@ export default function AddGeneralApplicationPage() {
     epinNumber: ""
   })
 
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+
   // Helper function to convert dd-mm-yyyy to yyyymmdd format
   const convertToYYYYMMDD = (dateString: string): string => {
     if (!dateString) return "";
@@ -101,53 +115,66 @@ export default function AddGeneralApplicationPage() {
     return `${year}-${month}-${day}`;
   };
 
+  const validateForm = (): boolean => {
+    const mobileDigits = (formData.mobile || '').replace(/\D/g, '')
+    const aadharDigits = (formData.aadharNumber || '').replace(/\D/g, '')
 
+    if (!validatePhoneNumber(mobileDigits)) {
+      toast.error('कृपया एक वैध 10 अंकों का मोबाइल नंबर दर्ज करें / Enter a valid 10-digit mobile number')
+      return false
+    }
+    if (aadharDigits.length !== 12) {
+      toast.error('कृपया 12 अंकों का आधार नंबर दर्ज करें / Enter a 12-digit Aadhaar number')
+      return false
+    }
+    if (!formData.selectedAgentId) {
+      toast.error('कृपया कार्यकर्ता का नाम चुनें / Please select a worker')
+      return false
+    }
 
+    // Validate Razorpay payment completion
+    if (isRazorpayPaymentMode(formData.paymentMode) && paymentStatus !== 'paid') {
+      toast.error('कृपया ऑनलाइन भुगतान पूरा करें / Please complete the online payment to proceed')
+      return false
+    }
 
+    return true
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!validateForm()) return
+
+    const trimmedOffline = formData.offlineFormNumber ? formData.offlineFormNumber.trim() : ""
+    if (trimmedOffline) {
+      setConfirmDialogOpen(true)
+    } else {
+      executeSubmit()
+    }
+  }
+
+  const executeSubmit = async () => {
+    setConfirmDialogOpen(false)
     setIsLoading(true)
 
     // Debug: Log the current form data before submission
     console.log("Current form data before submission:", {
       nomineeName: formData.nomineeName,
       nomineeRelation: formData.nomineeRelation,
-      selectedAgentId: formData.selectedAgentId
+      selectedAgentId: formData.selectedAgentId,
+      offlineFormNumber: formData.offlineFormNumber,
     })
 
     try {
-      // Validate and normalize numeric fields
       const mobileDigits = (formData.mobile || '').replace(/\D/g, '')
       const aadharDigits = (formData.aadharNumber || '').replace(/\D/g, '')
 
-      if (!validatePhoneNumber(mobileDigits)) {
-        toast.error('कृपया एक वैध 10 अंकों का मोबाइल नंबर दर्ज करें / Enter a valid 10-digit mobile number')
-        setIsLoading(false)
-        return
-      }
-      if (aadharDigits.length !== 12) {
-        toast.error('कृपया 12 अंकों का आधार नंबर दर्ज करें / Enter a 12-digit Aadhaar number')
-        setIsLoading(false)
-        return
-      }
-      if (!formData.selectedAgentId) {
-        toast.error('कृपया कार्यकर्ता का नाम चुनें / Please select a worker')
-        setIsLoading(false)
-        return
-      }
-
-      // Validate Razorpay payment completion
-      if (isRazorpayPaymentMode(formData.paymentMode) && paymentStatus !== 'paid') {
-        toast.error('कृपया ऑनलाइन भुगतान पूरा करें / Please complete the online payment to proceed')
-        setIsLoading(false)
-        return
-      }
-
       const apiFormData = new FormData()
 
-
       apiFormData.append("applicationDate", convertToYYYYMMDD(formData.applicationDate))
+      if (formData.offlineFormNumber && formData.offlineFormNumber.trim()) {
+        apiFormData.append("offlineFormNumber", formData.offlineFormNumber.trim())
+      }
       apiFormData.append("applicantName", formData.applicantName)
       apiFormData.append("fatherName", formData.fatherName)
       apiFormData.append("motherName", formData.motherName)
@@ -441,7 +468,7 @@ export default function AddGeneralApplicationPage() {
           <div className="px-6 py-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Application and Birth Date Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="applicationDate">आवेदन तिथि / Application Date</Label>
                   <div className="relative flex gap-2">
@@ -516,6 +543,27 @@ export default function AddGeneralApplicationPage() {
                       </PopoverContent>
                     </Popover>
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="offlineFormNumber">ऑफलाइन फॉर्म नं. / Offline Form No.</Label>
+                  <Input
+                    id="offlineFormNumber"
+                    name="offlineFormNumber"
+                    value={formData.offlineFormNumber}
+                    placeholder="उदा. 1259"
+                    maxLength={50}
+                    className="bg-background"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        offlineFormNumber: e.target.value,
+                      }))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    भौतिक फॉर्म नंबर (वैकल्पिक) / Physical form number
+                  </p>
                 </div>
 
                 <div>
@@ -1072,6 +1120,26 @@ export default function AddGeneralApplicationPage() {
             </form>
           </div>
         </div>
+
+        {/* Human Error Protection Confirmation Dialog */}
+        <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>फॉर्म संख्या पुष्टि / Confirm Offline Form Number</AlertDialogTitle>
+              <AlertDialogDescription className="text-base text-gray-800 font-medium pt-2">
+                ऑफलाइन फॉर्म नं. <span className="font-bold text-primary">{formData.offlineFormNumber.trim()}</span> सही है?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConfirmDialogOpen(false)}>
+                रद्द करें / Edit
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={executeSubmit} disabled={isLoading}>
+                {isLoading ? "Saving..." : "हाँ, सही है / Confirm & Save"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </RoleGuard>
   )

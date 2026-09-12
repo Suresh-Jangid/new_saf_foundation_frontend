@@ -207,6 +207,10 @@ export default function AddDhundhotsavPage() {
       toast.error("कृपया पिता का नाम दर्ज करें / Father Name is required");
       return;
     }
+    if (!formData.dateOfBirth) {
+      toast.error("कृपया जन्म तिथि दर्ज करें / Date of Birth is required");
+      return;
+    }
     if (!formData.gotra.trim()) {
       toast.error("कृपया गोत्र दर्ज करें / Gotra is required");
       return;
@@ -215,7 +219,7 @@ export default function AddDhundhotsavPage() {
       toast.error("कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें / Enter valid 10-digit mobile number");
       return;
     }
-    if (formData.aadharNumber.trim() && formData.aadharNumber.replace(/\D/g, "").length !== 12) {
+    if (!formData.aadharNumber.trim() || formData.aadharNumber.replace(/\D/g, "").length !== 12) {
       toast.error("आधार कार्ड नंबर 12 अंकों का होना चाहिए / Aadhaar must be 12 digits");
       return;
     }
@@ -233,6 +237,12 @@ export default function AddDhundhotsavPage() {
     }
     if (!formData.pinCode.trim() || formData.pinCode.replace(/\D/g, "").length !== 6) {
       toast.error("कृपया 6 अंकों का वैध पिन कोड दर्ज करें / Enter valid 6-digit PIN code");
+      return;
+    }
+
+    const parsedPayment = Number(formData.paymentAmount) || 0;
+    if (parsedPayment > 0 && parsedPayment !== 300) {
+      toast.error("ढूंढोत्सव किश्त राशि केवल ₹300 हो सकती है / Dhundhotsav installment amount must be ₹300");
       return;
     }
 
@@ -269,8 +279,8 @@ export default function AddDhundhotsavPage() {
         pool: "MALE_POOL",
         membershipFee: 5100,
         totalAmount: 5100,
-        paymentAmount: Number(formData.paymentAmount) || 0,
-        paymentMode: formData.paymentMode,
+        paymentAmount: parsedPayment === 300 ? 300 : undefined,
+        paymentMode: parsedPayment === 300 ? formData.paymentMode : undefined,
         selectedAgentId: formData.selectedAgentId || undefined,
         agentId: formData.selectedAgentId || undefined,
         epinCode: formData.epinCode.trim() || undefined,
@@ -305,6 +315,11 @@ export default function AddDhundhotsavPage() {
               "समान आधार या मोबाइल नंबर से सक्रिय पंजीकरण पहले से मौजूद है या E-PIN conflict (409 Conflict)"
           );
         }
+      } else if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+        const errorDetails = err.response.data.errors
+          .map((e: any) => `${e.field ? e.field.replace(/^body\./, "") + ": " : ""}${e.message}`)
+          .join(", ");
+        toast.error(`सत्यापन त्रुटि (Validation Error): ${errorDetails}`);
       } else {
         toast.error(
           err.response?.data?.message ||
@@ -493,12 +508,13 @@ export default function AddDhundhotsavPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="dateOfBirth">जन्म तिथि / Date of Birth</Label>
+                  <Label htmlFor="dateOfBirth">जन्म तिथि / Date of Birth <span className="text-destructive">*</span></Label>
                   <Input
                     id="dateOfBirth"
                     type="date"
                     value={formData.dateOfBirth}
                     onChange={handleDobChange}
+                    required
                     className="mt-1"
                   />
                 </div>

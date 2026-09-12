@@ -287,7 +287,7 @@ export const DhundhotsavService = {
     const trimmed = (epinCode || "").trim();
     const response = await api.post<ApiResponse<any>>(
       "/v1/dhundhotsav/verify-epin",
-      { epinCode: trimmed, pinNumber: trimmed },
+      { pinCode: trimmed, epinCode: trimmed, pinNumber: trimmed },
       { headers }
     );
     return response.data;

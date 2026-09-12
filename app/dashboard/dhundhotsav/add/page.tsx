@@ -5,26 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Gift,
-  ArrowLeft,
-  Calendar,
-  User,
-  MapPin,
-  Shield,
-  CreditCard,
-  KeyRound,
+  CalendarDays,
   Upload,
-  CheckCircle2,
-  AlertCircle,
   Loader2,
-  Users,
-  DollarSign,
-  Heart,
 } from "lucide-react";
 import { RoleGuard } from "@/components/role-guard";
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier";
@@ -35,6 +22,7 @@ import {
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
+import { formatDate } from "@/lib/utils";
 
 export default function AddDhundhotsavPage() {
   const router = useRouter();
@@ -134,7 +122,7 @@ export default function AddDhundhotsavPage() {
           if (res && res.data) {
             setAgents(
               res.data.map((ag: any) => ({
-                id: ag.id,
+                id: String(ag.id || ag.user_id),
                 name: ag.applicantName || ag.name || "Agent",
                 mobile: ag.mobileNumber || ag.mobile || "",
               }))
@@ -331,239 +319,107 @@ export default function AddDhundhotsavPage() {
 
   return (
     <RoleGuard requiredModule="dhundhotsav" requiredAction="create">
-      <div className="space-y-6 p-4 md:p-6 pb-16 max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border/60 pb-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push("/dashboard/dhundhotsav")}
-              className="h-8 w-8 p-0"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <span>ढूंढोत्सव योजना पंजीकरण फॉर्म</span>
-                <Badge className="bg-amber-500/10 text-amber-700 border-amber-300">
-                  Fixed Fee ₹5,100
-                </Badge>
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Dhundhotsav Registration Application — Scheme Type: DHUNDHOTSAV | Pool: MALE_POOL | Installment: ₹300
-              </p>
+      <div className="min-h-screen bg-white">
+        <div className="w-full">
+          {/* Header Section matching General Marriage Add Form */}
+          <div className="border-b border-gray-200 bg-white px-6 py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => router.push("/dashboard/dhundhotsav")}
+                  disabled={isLoading}
+                  className="p-0 h-auto text-primary"
+                >
+                  ← वापस जाएं / Go Back
+                </Button>
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+                    ढूंढोत्सव योजना पंजीकरण जोड़ें
+                  </h1>
+                  <Badge variant="outline" className="bg-muted/50 text-foreground border-border text-xs">
+                    Fixed Fee: ₹5,100
+                  </Badge>
+                </div>
+                <p className="text-sm text-gray-600 mt-1">
+                  Dhundhotsav Registration Application — Scheme Type: DHUNDHOTSAV | Pool: MALE_POOL | Installment: ₹300
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Scheme Highlights Banner */}
-        <Card className="border-amber-200 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 shadow-sm">
-          <CardContent className="p-4 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-amber-600 text-white">
-                <Gift className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-amber-900 dark:text-amber-200">
-                  ढूंढोत्सव योजना नियम एवं अनुदान (Dhundhotsav Rules)
-                </div>
-                <div className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                  सदस्यता अनुदान शुल्क: <strong>₹5,100 (नियत)</strong> • एकल लेजर किश्त: <strong>₹300 (नियत)</strong>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="bg-white/80 dark:bg-black/40 text-amber-700 dark:text-amber-300 border-amber-300">
-                Pool: MALE_POOL
-              </Badge>
-              <Badge variant="outline" className="bg-white/80 dark:bg-black/40 text-amber-700 dark:text-amber-300 border-amber-300">
-                No Age Slab
-              </Badge>
-              <Badge variant="outline" className="bg-white/80 dark:bg-black/40 text-amber-700 dark:text-amber-300 border-amber-300">
-                Single Ledger (₹300)
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Main Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Section 1: Applicant Information */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 px-6 py-4 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <User className="h-4 w-4 text-amber-600" />
-                <span>1. आवेदक का व्यक्तिगत विवरण / Applicant Details</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Application Date */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="applicationDate" className="text-xs font-semibold">
-                    आवेदन दिनांक / Application Date <span className="text-destructive">*</span>
-                  </Label>
+          {/* Form Content */}
+          <div className="px-6 py-8 max-w-7xl">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Application, Dhundh Date & Child Name Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="applicationDate">आवेदन तिथि / Application Date <span className="text-destructive">*</span></Label>
                   <Input
                     id="applicationDate"
                     type="date"
                     value={formData.applicationDate}
                     onChange={(e) => setFormData({ ...formData, applicationDate: e.target.value })}
                     required
-                    className="text-sm"
+                    className="bg-background mt-1"
                   />
                 </div>
 
-                {/* Dhundh Date */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="dhundhDate" className="text-xs font-semibold">
-                    ढूंढ दिनांक / Dhundh Date (Optional)
-                  </Label>
+                <div>
+                  <Label htmlFor="dhundhDate">ढूंढ दिनांक / Dhundh Date</Label>
                   <Input
                     id="dhundhDate"
                     type="date"
                     value={formData.dhundhDate}
                     onChange={(e) => setFormData({ ...formData, dhundhDate: e.target.value })}
-                    className="text-sm"
+                    className="bg-background mt-1"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ऐच्छिक / Optional
+                  </p>
                 </div>
 
-                {/* Child Name */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="childName" className="text-xs font-semibold">
-                    बालक/बच्चे का नाम / Child Name (Optional)
-                  </Label>
+                <div>
+                  <Label htmlFor="childName">बालक/बच्चे का नाम / Child Name</Label>
                   <Input
                     id="childName"
-                    placeholder="बच्चे का नाम..."
                     value={formData.childName}
                     onChange={(e) => setFormData({ ...formData, childName: e.target.value })}
-                    className="text-sm"
+                    placeholder="बच्चे का नाम दर्ज करें"
+                    className="bg-background mt-1"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ऐच्छिक / Optional
+                  </p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Applicant Name */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="applicantName" className="text-xs font-semibold">
-                    आवेदक का नाम / Applicant Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="applicantName"
-                    placeholder="उदा. रमेश कुमार"
-                    value={formData.applicantName}
-                    onChange={(e) => setFormData({ ...formData, applicantName: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Father Name */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="fatherName" className="text-xs font-semibold">
-                    पिता का नाम / Father Name <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="fatherName"
-                    placeholder="उदा. रामेश्वर लाल"
-                    value={formData.fatherName}
-                    onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Husband / Guardian Name */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="husbandName" className="text-xs font-semibold">
-                    पति / अभिभावक का नाम (Optional)
-                  </Label>
-                  <Input
-                    id="husbandName"
-                    placeholder="अभिभावक का नाम..."
-                    value={formData.husbandName}
-                    onChange={(e) => setFormData({ ...formData, husbandName: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Mother Name */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="motherName" className="text-xs font-semibold">
-                    माता का नाम / Mother Name (Optional)
-                  </Label>
-                  <Input
-                    id="motherName"
-                    placeholder="माता का नाम..."
-                    value={formData.motherName}
-                    onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Date of Birth */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="dateOfBirth" className="text-xs font-semibold">
-                    जन्म दिनांक / Date of Birth (Optional)
-                  </Label>
-                  <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={handleDobChange}
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Age (No pricing slab) */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="age" className="text-xs font-semibold">
-                    आयु / Age (Years)
-                  </Label>
-                  <Input
-                    id="age"
-                    type="number"
-                    placeholder="उदा. 25"
-                    value={formData.age}
-                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* Gender */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="gender" className="text-xs font-semibold">
-                    लिंग / Gender <span className="text-destructive">*</span>
-                  </Label>
+              {/* Gender, Category, and Fee Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="gender">लिंग / Gender <span className="text-destructive">*</span></Label>
                   <select
                     id="gender"
+                    className="w-full border rounded px-3 py-2 mt-1 bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     value={formData.gender}
                     onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
                     required
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="Male">पुरुष (Male - Default)</option>
                     <option value="Female">महिला (Female)</option>
                     <option value="Other">अन्य (Other)</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Caste / Social Category */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="category" className="text-xs font-semibold">
-                    वर्ग / Category <span className="text-destructive">*</span>
-                  </Label>
+                <div>
+                  <Label htmlFor="category">वर्ग / Category <span className="text-destructive">*</span></Label>
                   <select
                     id="category"
+                    className="w-full border rounded px-3 py-2 mt-1 bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
                     required
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="A">Category A</option>
                     <option value="B">Category B</option>
@@ -574,394 +430,412 @@ export default function AddDhundhotsavPage() {
                   </select>
                 </div>
 
-                {/* Gotra */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="gotra" className="text-xs font-semibold">
-                    गोत्र / Gotra <span className="text-destructive">*</span>
-                  </Label>
+                <div>
+                  <Label htmlFor="fee">सदस्यता अनुदान शुल्क / Grant Fee</Label>
                   <Input
-                    id="gotra"
-                    placeholder="उदा. जांगिड़ / शर्मा"
-                    value={formData.gotra}
-                    onChange={(e) => setFormData({ ...formData, gotra: e.target.value })}
-                    required
-                    className="text-sm"
+                    id="fee"
+                    type="text"
+                    value="₹5,100 (नियत अनुदान राशि)"
+                    readOnly
+                    className="bg-muted font-bold text-foreground mt-1"
                   />
                 </div>
+              </div>
 
-                {/* Mobile */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="mobile" className="text-xs font-semibold">
-                    मोबाइल नंबर / Mobile <span className="text-destructive">*</span>
-                  </Label>
+              {/* Personal Information Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="applicantName">आवेदक का नाम / Applicant Name <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="applicantName"
+                    value={formData.applicantName}
+                    onChange={(e) => setFormData({ ...formData, applicantName: e.target.value })}
+                    placeholder="आवेदक का नाम दर्ज करें"
+                    required
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="fatherName">पिता का नाम / Father's Name <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="fatherName"
+                    value={formData.fatherName}
+                    onChange={(e) => setFormData({ ...formData, fatherName: e.target.value })}
+                    placeholder="पिता का नाम दर्ज करें"
+                    required
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="motherName">माता का नाम / Mother's Name</Label>
+                  <Input
+                    id="motherName"
+                    value={formData.motherName}
+                    onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
+                    placeholder="माता का नाम दर्ज करें"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="husbandName">पति / अभिभावक का नाम / Husband/Guardian Name</Label>
+                  <Input
+                    id="husbandName"
+                    value={formData.husbandName}
+                    onChange={(e) => setFormData({ ...formData, husbandName: e.target.value })}
+                    placeholder="अभिभावक का नाम दर्ज करें"
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="dateOfBirth">जन्म तिथि / Date of Birth</Label>
+                  <Input
+                    id="dateOfBirth"
+                    type="date"
+                    value={formData.dateOfBirth}
+                    onChange={handleDobChange}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="age">आयु / Age</Label>
+                  <Input
+                    id="age"
+                    type="number"
+                    value={formData.age}
+                    onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                    placeholder="आयु दर्ज करें"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="gotra">गोत्र / Gotra <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="gotra"
+                    value={formData.gotra}
+                    onChange={(e) => setFormData({ ...formData, gotra: e.target.value })}
+                    placeholder="गोत्र दर्ज करें"
+                    required
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="aadharNumber">आधार संख्या / Aadhaar Number <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="aadharNumber"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={12}
+                    value={formData.aadharNumber}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
+                      setFormData({ ...formData, aadharNumber: digits });
+                    }}
+                    placeholder="12 अंकों का आधार संख्या दर्ज करें"
+                    required
+                    className="font-mono mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="mobile">मोबाइल नंबर / Mobile Number <span className="text-destructive">*</span></Label>
                   <Input
                     id="mobile"
                     type="tel"
+                    inputMode="numeric"
                     maxLength={10}
-                    placeholder="10 अंकों का मोबाइल"
                     value={formData.mobile}
-                    onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      setFormData({ ...formData, mobile: digits });
+                    }}
+                    placeholder="10 अंकों का मोबाइल नंबर दर्ज करें"
                     required
-                    className="text-sm"
+                    className="mt-1"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Aadhaar Number */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="aadharNumber" className="text-xs font-semibold">
-                    आधार नंबर / Aadhaar Number <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="aadharNumber"
-                    maxLength={12}
-                    placeholder="12 अंकों का आधार नंबर"
-                    value={formData.aadharNumber}
-                    onChange={(e) => setFormData({ ...formData, aadharNumber: e.target.value })}
-                    required
-                    className="text-sm font-mono"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 2: Residential Details */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 px-6 py-4 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-amber-600" />
-                <span>2. निवास एवं पता विवरण / Address Details</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="address" className="text-xs font-semibold">
-                  स्थाई पता / Full Residential Address <span className="text-destructive">*</span>
-                </Label>
+              {/* Full Address Section */}
+              <div>
+                <Label htmlFor="address">पूरा पता / Full Residential Address <span className="text-destructive">*</span></Label>
                 <Textarea
                   id="address"
-                  placeholder="मकान संख्या, गली/मोहल्ला, ग्राम..."
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="मकान संख्या, गली/मोहल्ला, ग्राम..."
+                  rows={3}
                   required
-                  rows={2}
-                  className="text-sm"
+                  className="mt-1"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Tehsil */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="tehsil" className="text-xs font-semibold">
-                    तहसील / Tehsil <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="tehsil"
-                    placeholder="उदा. सांगानेर"
-                    value={formData.tehsil}
-                    onChange={(e) => setFormData({ ...formData, tehsil: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* District */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="district" className="text-xs font-semibold">
-                    जिला / District <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="district"
-                    placeholder="उदा. जयपुर"
-                    value={formData.district}
-                    onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* PIN Code */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="pinCode" className="text-xs font-semibold">
-                    पिन कोड / PIN Code <span className="text-destructive">*</span>
-                  </Label>
+              {/* Address Details Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="pinCode">पिन कोड / PIN Code <span className="text-destructive">*</span></Label>
                   <Input
                     id="pinCode"
+                    type="tel"
+                    inputMode="numeric"
                     maxLength={6}
-                    placeholder="6 अंकों का पिन कोड"
                     value={formData.pinCode}
-                    onChange={(e) => setFormData({ ...formData, pinCode: e.target.value })}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      setFormData({ ...formData, pinCode: digits });
+                    }}
+                    placeholder="पिन कोड दर्ज करें"
                     required
-                    className="text-sm font-mono"
+                    className="font-mono mt-1"
                   />
                 </div>
-
-                {/* State */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="state" className="text-xs font-semibold">
-                    राज्य / State <span className="text-destructive">*</span>
-                  </Label>
+                <div>
+                  <Label htmlFor="tehsil">तहसील / Tehsil <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="tehsil"
+                    value={formData.tehsil}
+                    onChange={(e) => setFormData({ ...formData, tehsil: e.target.value })}
+                    placeholder="तहसील दर्ज करें"
+                    required
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="district">जिला / District <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="district"
+                    value={formData.district}
+                    onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                    placeholder="जिला दर्ज करें"
+                    required
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="state">राज्य / State <span className="text-destructive">*</span></Label>
                   <Input
                     id="state"
                     value={formData.state}
                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    placeholder="राज्य दर्ज करें"
                     required
-                    className="text-sm"
+                    className="mt-1"
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Section 3: Nominee Details */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 px-6 py-4 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Users className="h-4 w-4 text-amber-600" />
-                <span>3. वारिसदार / नॉमिनी विवरण / Nominee Details (Optional)</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="nomineeName" className="text-xs font-semibold">
-                    नॉमिनी का नाम / Nominee Name
-                  </Label>
+              {/* Nominee Information Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="nomineeName">नॉमिनी का नाम / Nominee Name</Label>
                   <Input
                     id="nomineeName"
-                    placeholder="नॉमिनी का नाम..."
                     value={formData.nomineeName}
                     onChange={(e) => setFormData({ ...formData, nomineeName: e.target.value })}
-                    className="text-sm"
+                    placeholder="नॉमिनी का नाम दर्ज करें"
+                    className="mt-1"
                   />
                 </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="nomineeRelation" className="text-xs font-semibold">
-                    संबंध / Relationship
-                  </Label>
+                <div>
+                  <Label htmlFor="nomineeRelation">नामित व्यक्ति से संबंध / Nominee Relation</Label>
                   <Input
                     id="nomineeRelation"
-                    placeholder="उदा. पत्नी / पिता / भाई"
                     value={formData.nomineeRelation}
                     onChange={(e) => setFormData({ ...formData, nomineeRelation: e.target.value })}
-                    className="text-sm"
+                    placeholder="संबंध दर्ज करें (उदा. पत्नी/माता)"
+                    className="mt-1"
                   />
                 </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="nomineeMobile" className="text-xs font-semibold">
-                    नॉमिनी मोबाइल / Nominee Mobile
-                  </Label>
+                <div>
+                  <Label htmlFor="nomineeMobile">नॉमिनी मोबाइल / Nominee Mobile</Label>
                   <Input
                     id="nomineeMobile"
+                    type="tel"
+                    inputMode="numeric"
                     maxLength={10}
-                    placeholder="10 अंकों का मोबाइल"
                     value={formData.nomineeMobile}
-                    onChange={(e) => setFormData({ ...formData, nomineeMobile: e.target.value })}
-                    className="text-sm"
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      setFormData({ ...formData, nomineeMobile: digits });
+                    }}
+                    placeholder="नॉमिनी मोबाइल नंबर"
+                    className="mt-1"
                   />
                 </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="nomineeAadhar" className="text-xs font-semibold">
-                    नॉमिनी आधार / Nominee Aadhaar
-                  </Label>
+                <div>
+                  <Label htmlFor="nomineeAadhar">नॉमिनी आधार / Nominee Aadhaar</Label>
                   <Input
                     id="nomineeAadhar"
+                    type="tel"
+                    inputMode="numeric"
                     maxLength={12}
-                    placeholder="12 अंकों का आधार"
                     value={formData.nomineeAadhar}
-                    onChange={(e) => setFormData({ ...formData, nomineeAadhar: e.target.value })}
-                    className="text-sm font-mono"
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
+                      setFormData({ ...formData, nomineeAadhar: digits });
+                    }}
+                    placeholder="12 अंकों का आधार"
+                    className="font-mono mt-1"
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Section 4: Photo and Documents */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 px-6 py-4 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Upload className="h-4 w-4 text-amber-600" />
-                <span>4. फोटो एवं दस्तावेज़ / Photo & Documents (Optional)</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Photo Upload */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">
-                    पासपोर्ट फोटो / Passport Photo (&lt; 2MB)
-                  </Label>
-                  <div className="flex items-center gap-4">
-                    {photoPreview ? (
-                      <img
-                        src={photoPreview}
-                        alt="Preview"
-                        className="h-20 w-20 rounded-lg object-cover border border-border"
-                      />
-                    ) : (
-                      <div className="h-20 w-20 rounded-lg bg-muted border border-dashed border-border flex items-center justify-center text-muted-foreground text-xs">
-                        No Photo
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoUpload}
-                        className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-amber-50 file:text-amber-700"
-                      />
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        JPG, PNG, WebP supported
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Supporting Document */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">
-                    सहायक दस्तावेज़ / Supporting Document / Affidavit (&lt; 5MB)
-                  </Label>
-                  <Input
-                    type="file"
-                    accept=".pdf,image/*"
-                    onChange={handleDocumentUpload}
-                    className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-amber-50 file:text-amber-700"
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    PDF, JPG, PNG supported
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 5: E-PIN & Financials */}
-          <Card className="border-border/60 shadow-sm">
-            <CardHeader className="bg-muted/30 px-6 py-4 border-b border-border/60">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-amber-600" />
-                <span>5. ई-पिन एवं वित्तीय विवरण / E-PIN & Financial Details</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-6">
-              {/* E-PIN Input Verifier */}
-              <div className="max-w-md">
-                <EpinInputVerifier
-                  value={formData.epinCode}
-                  onChange={(val) => setFormData({ ...formData, epinCode: val })}
-                  onVerified={handleEpinVerified}
-                  agentId={formData.selectedAgentId || undefined}
-                />
-              </div>
-
-              {/* Fixed Membership Fee & Scheme Installment Display */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-border/60">
-                {/* Fixed Membership Fee */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">
-                    सदस्यता अनुदान शुल्क / Membership Fee
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      value="₹5,100 (नियत अनुदान राशि)"
-                      readOnly
-                      className="bg-muted font-bold text-amber-600 dark:text-amber-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Scheme Installment (Single Ledger ₹300 Fixed) */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">
-                    किश्त योजना राशि / Scheme Installment
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      value="₹300 (एकल लेजर किश्त)"
-                      readOnly
-                      className="bg-muted font-bold text-emerald-600 dark:text-emerald-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Payment Mode */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="paymentMode" className="text-xs font-semibold">
-                    भुगतान माध्यम / Payment Mode
-                  </Label>
-                  <select
-                    id="paymentMode"
-                    value={formData.paymentMode}
-                    onChange={(e) =>
-                      setFormData({ ...formData, paymentMode: e.target.value as any })
-                    }
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="CASH">नकद (Cash)</option>
-                    <option value="ONLINE">ऑनलाइन (Online)</option>
-                    <option value="BANK_TRANSFER">बैंक ट्रांसफर (Bank Transfer)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Admin Agent Selector */}
+              {/* Worker / Agent Information Section (if Admin) */}
               {isAdmin() && (
-                <div className="space-y-1.5 max-w-md pt-2">
-                  <Label htmlFor="agentSelect" className="text-xs font-semibold">
-                    एजेंट का चयन करें / Assign Agent (Admin Only)
-                  </Label>
+                <div>
+                  <Label htmlFor="selectedAgentId">कार्यकर्ता का नाम / Worker Name (Admin Only)</Label>
                   <select
-                    id="agentSelect"
+                    id="selectedAgentId"
+                    className="w-full border rounded px-3 py-2 mt-1 bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     value={formData.selectedAgentId}
                     onChange={(e) => setFormData({ ...formData, selectedAgentId: e.target.value })}
                     disabled={loadingAgents}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
-                    <option value="">-- स्वयं (Admin / No Specific Agent) --</option>
-                    {agents.map((ag) => (
-                      <option key={ag.id} value={ag.id}>
-                        {ag.name} ({ag.mobile})
+                    <option value="">-- स्वयं / Self (No Specific Worker) --</option>
+                    {agents.map((agent) => (
+                      <option key={agent.id} value={agent.id}>
+                        {agent.name} {agent.mobile ? `(${agent.mobile})` : ""}
                       </option>
                     ))}
                   </select>
+                  {loadingAgents && (
+                    <p className="text-xs text-muted-foreground mt-1">कार्यकर्ता सूची लोड हो रही है...</p>
+                  )}
                 </div>
               )}
-            </CardContent>
-          </Card>
 
-          {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/60">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/dashboard/dhundhotsav")}
-              disabled={isLoading}
-            >
-              रद्द करें / Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-amber-600 hover:bg-amber-700 text-white min-w-[160px]"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  सहेज रहे हैं...
-                </>
-              ) : (
-                "पंजीकरण जमा करें / Submit"
-              )}
-            </Button>
+              {/* Photo & Document Upload Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="passportPhoto">पासपोर्ट साइज रंगीन फोटो / Passport Photo (&lt; 2MB)</Label>
+                  <Input
+                    id="passportPhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="mt-1 text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted"
+                  />
+                  {photoPreview && (
+                    <img
+                      src={photoPreview}
+                      alt="पासपोर्ट फोटो प्रीव्यू"
+                      className="mt-2 h-24 w-24 object-cover rounded border"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="documentUpload">सहायक दस्तावेज़ / Supporting Document / Affidavit (&lt; 5MB)</Label>
+                  <Input
+                    id="documentUpload"
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={handleDocumentUpload}
+                    className="mt-1 text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    PDF, JPG, PNG समर्थित
+                  </p>
+                </div>
+              </div>
+
+              {/* Payment & E-PIN Details Section */}
+              <div className="mt-8 space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                  वित्तीय एवं भुगतान विवरण / Financial & Payment Details
+                </h2>
+
+                {/* E-PIN Voucher Verification */}
+                <div className="p-4 bg-muted/20 border rounded-lg">
+                  <EpinInputVerifier
+                    value={formData.epinCode}
+                    onChange={(epinVal) => setFormData({ ...formData, epinCode: epinVal })}
+                    onVerified={handleEpinVerified}
+                    agentId={formData.selectedAgentId || undefined}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="paymentAmount">भुगतान राशि / Payment Amount (₹)</Label>
+                    <Input
+                      id="paymentAmount"
+                      type="number"
+                      value={formData.paymentAmount}
+                      onChange={(e) => setFormData({ ...formData, paymentAmount: e.target.value })}
+                      placeholder="उदा. 0 या 300"
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      किश्त राशि: <strong>₹300</strong> नियत
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="paymentMode">भुगतान माध्यम / Payment Mode</Label>
+                    <select
+                      id="paymentMode"
+                      className="w-full border rounded px-3 py-2 mt-1 bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      value={formData.paymentMode}
+                      onChange={(e) =>
+                        setFormData({ ...formData, paymentMode: e.target.value as any })
+                      }
+                    >
+                      <option value="CASH">नकद (Cash)</option>
+                      <option value="ONLINE">ऑनलाइन (Online / UPI)</option>
+                      <option value="BANK_TRANSFER">बैंक ट्रांसफर (Bank Transfer)</option>
+                      <option value="RAZORPAY">Razorpay Gateway</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="schemeInstallment">एकल लेजर किश्त / Installment</Label>
+                    <Input
+                      id="schemeInstallment"
+                      value="₹300 (Single Ledger)"
+                      readOnly
+                      className="bg-muted font-bold text-emerald-600 mt-1"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons matching General Marriage Add Form */}
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push("/dashboard/dhundhotsav")}
+                  disabled={isLoading}
+                  className="w-full sm:w-auto"
+                >
+                  रद्द करें / Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full sm:w-auto"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      सहेज रहे हैं...
+                    </>
+                  ) : (
+                    "आवेदन बनाएं / Create Application"
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     </RoleGuard>
   );

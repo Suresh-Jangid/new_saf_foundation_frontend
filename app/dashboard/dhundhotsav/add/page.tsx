@@ -350,7 +350,7 @@ export default function AddDhundhotsavPage() {
           </div>
 
           {/* Form Content */}
-          <div className="px-6 py-8 max-w-7xl">
+          <div className="px-6 py-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Application, Dhundh Date & Child Name Section */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

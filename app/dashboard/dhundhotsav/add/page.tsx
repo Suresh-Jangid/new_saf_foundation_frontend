@@ -247,6 +247,18 @@ export default function AddDhundhotsavPage() {
       return;
     }
 
+    // E-PIN Validation (Compulsory for Dhundhotsav)
+    const trimmedEpin = formData.epinCode.trim();
+    if (!trimmedEpin) {
+      toast.error("E-PIN आवश्यक है / E-PIN is required for Dhundhotsav Registration");
+      return;
+    }
+
+    if (!epinVerified || !epinVerified.valid) {
+      toast.error("कृपया पहले E-PIN सत्यापित करें / Please verify E-PIN first");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -284,8 +296,8 @@ export default function AddDhundhotsavPage() {
         paymentMode: formData.paymentMode,
         selectedAgentId: formData.selectedAgentId || undefined,
         agentId: formData.selectedAgentId || undefined,
-        epinCode: formData.epinCode.trim() || undefined,
-        pinNumber: formData.epinCode.trim() || undefined,
+        epinCode: trimmedEpin,
+        pinNumber: trimmedEpin,
       };
 
       const res = await DhundhotsavService.createRegistration(payload);
@@ -769,13 +781,19 @@ export default function AddDhundhotsavPage() {
                   वित्तीय एवं भुगतान विवरण / Financial & Payment Details
                 </h2>
 
-                {/* E-PIN Voucher Verification */}
+                {/* E-PIN Voucher Verification (Mandatory) */}
                 <div className="p-4 bg-muted/20 border rounded-lg">
                   <EpinInputVerifier
                     value={formData.epinCode}
-                    onChange={(epinVal) => setFormData({ ...formData, epinCode: epinVal })}
+                    onChange={(epinVal) => {
+                      setFormData({ ...formData, epinCode: epinVal });
+                      if (epinVerified) {
+                        setEpinVerified(null);
+                      }
+                    }}
                     onVerified={handleEpinVerified}
                     agentId={formData.selectedAgentId || undefined}
+                    required={true}
                   />
                 </div>
 

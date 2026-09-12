@@ -107,17 +107,17 @@ async function runTests() {
     );
   });
 
-  it('10. System form number drawn in upper position (x=95, y=680)', () => {
+  it('10. System form number drawn in upper position (x=140, y=642)', () => {
     assert.ok(
-      routeContent.includes('drawBounded(systemFormNo, 95, 680'),
-      'systemFormNo must be drawn at (95, 680)'
+      routeContent.includes('drawBounded(systemFormNo, 140, 642'),
+      'systemFormNo must be drawn at (140, 642)'
     );
   });
 
-  it('11. Offline form number drawn after क्रमांक : NGO/26/ (x=142, y=627)', () => {
+  it('11. Offline form number drawn after क्रमांक : NGO/26/ (x=138, y=622.5)', () => {
     assert.ok(
-      routeContent.includes('drawBounded(offlineFormNo, 142, 627'),
-      'offlineFormNo must be drawn at (142, 627)'
+      routeContent.includes('drawBounded(offlineFormNo, 138, 622.5'),
+      'offlineFormNo must be drawn at (138, 622.5)'
     );
   });
 
@@ -153,10 +153,10 @@ async function runTests() {
     assert.ok(routeContent.includes('paymentRef') || routeContent.includes('transactionId'), 'paymentRef mapped');
   });
 
-  it('17. Applicant photo box coordinates (x=488, yFromTop=189, w=62, h=104)', () => {
-    assert.ok(routeContent.includes('PHOTO_X = 488') || routeContent.includes('488'), 'Photo X coordinate');
-    assert.ok(routeContent.includes('PHOTO_WIDTH = 62') || routeContent.includes('62'), 'Photo width');
-    assert.ok(routeContent.includes('PHOTO_HEIGHT = 104') || routeContent.includes('104'), 'Photo height');
+  it('17. Applicant photo box coordinates (x=468, yFromTop=197, w=93, h=120)', () => {
+    assert.ok(routeContent.includes('PHOTO_X = 468') || routeContent.includes('468'), 'Photo X coordinate');
+    assert.ok(routeContent.includes('PHOTO_WIDTH = 93') || routeContent.includes('93'), 'Photo width');
+    assert.ok(routeContent.includes('PHOTO_HEIGHT = 120') || routeContent.includes('120'), 'Photo height');
   });
 
   it('18. Hindi Unicode support via NotoSansDevanagari with subset: false', () => {
@@ -223,10 +223,10 @@ async function runTests() {
       const imgBytes = Buffer.from(base64Data, 'base64');
       const embeddedImg = await doc.embedPng(imgBytes);
       firstPage.drawImage(embeddedImg, {
-        x: 488,
-        y: pageHeight - 189 - 104,
-        width: 62,
-        height: 104
+        x: 468,
+        y: pageHeight - 197 - 120,
+        width: 93,
+        height: 120
       });
     }
 
@@ -244,32 +244,32 @@ async function runTests() {
       firstPage.drawText(str, { x, y, size: s, font });
     };
 
-    drawBounded(data.formNumber, 95, 680, 11, 100);
-    drawBounded(data.offlineFormNumber, 142, 627, 10.5, 90);
-    drawBounded(data.applicationDate, 490, 627, 10.5, 90);
-    drawBounded(data.applicantName, 75, 603, 10, 395);
-    drawBounded(data.fatherName, 125, 582, 10, 345);
-    drawBounded(data.dateOfBirth, 110, 561, 10, 105);
-    drawBounded(data.gender, 255, 561, 10, 60);
-    drawBounded(data.education, 355, 561, 10, 110);
-    drawBounded(data.aadharNumber, 150, 540, 10, 320);
-    drawBounded(data.address, 75, 519, 10, 395);
-    drawBounded(data.district, 75, 498, 10, 140);
-    drawBounded(data.state, 260, 498, 10, 105);
-    drawBounded(data.mobile, 420, 498, 10, 125);
-    drawBounded(data.nomineeName, 125, 477, 10, 230);
-    drawBounded(data.nomineeRelation, 410, 477, 10, 135);
-    drawBounded(data.nomineeAadhar, 150, 456, 10, 140);
-    drawBounded(data.nomineeMobile, 325, 456, 10, 95);
-    drawBounded(data.workerName, 500, 456, 10, 135);
-    drawBounded(data.paymentAmount, 75, 435, 10, 115);
-    drawBounded(data.transactionId, 335, 435, 9.5, 145);
-    drawBounded(data.seniorWorkerName, 510, 435, 9.5, 125);
-    drawBounded(data.applicantName, 65, 346, 9.5, 185);
-    drawBounded(data.fatherName, 350, 346, 9.5, 140);
-    drawBounded(data.age, 525, 346, 9.5, 30);
-    drawBounded(data.gotra, 580, 346, 9.5, 45);
-    drawBounded(data.address, 85, 325, 9.5, 200);
+    drawBounded(data.formNumber, 140, 642, 11, 85);
+    drawBounded(data.offlineFormNumber, 138, 622.5, 10.5, 270);
+    drawBounded(data.applicationDate, 452, 622.5, 10.5, 110);
+    drawBounded(data.applicantName, 72, 595.0, 10.5, 390);
+    drawBounded(data.fatherName, 128, 567.3, 10, 335);
+    drawBounded(data.dateOfBirth, 100, 539.5, 10, 78);
+    drawBounded(data.gender, 208, 539.5, 10, 62);
+    drawBounded(data.education, 304, 539.5, 10, 155);
+    drawBounded(data.aadharNumber, 140, 511.8, 10.5, 320);
+    drawBounded(data.address, 70, 484.0, 10, 390);
+    drawBounded(data.district, 74, 456.5, 10, 92);
+    drawBounded(data.state, 198, 456.5, 10, 104);
+    drawBounded(data.mobile, 340, 456.5, 10, 120);
+    drawBounded(data.nomineeName, 114, 428.8, 10, 188);
+    drawBounded(data.nomineeRelation, 346, 428.8, 10, 215);
+    drawBounded(data.nomineeAadhar, 138, 401.0, 10, 122);
+    drawBounded(data.nomineeMobile, 284, 401.0, 10, 124);
+    drawBounded(data.workerName, 478, 401.0, 10, 86);
+    drawBounded(data.paymentAmount, 68, 373.2, 10, 54);
+    drawBounded(data.transactionId, 254, 373.2, 9.5, 118);
+    drawBounded(data.seniorWorkerName, 474, 373.2, 9.5, 90);
+    drawBounded(data.applicantName, 55, 238.8, 9.5, 134);
+    drawBounded(data.fatherName, 290, 238.8, 9.5, 114);
+    drawBounded(data.age, 428, 238.8, 9.5, 52);
+    drawBounded(data.gotra, 508, 238.8, 9.5, 54);
+    drawBounded(data.address, 78, 204.6, 9.5, 110);
 
     return await doc.save();
   }

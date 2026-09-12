@@ -69,11 +69,11 @@ export async function POST(request: NextRequest) {
     const firstPage = pdfDoc.getPages()[0];
     const pageHeight = firstPage.getSize().height;
 
-    // Photo Box: x = 488, yFromTop = 189 (y = 499), width = 62, height = 104
-    const PHOTO_X = 488;
-    const PHOTO_Y_TOP = 189;
-    const PHOTO_WIDTH = 62;
-    const PHOTO_HEIGHT = 104;
+    // Photo Box: x = 468, yFromTop = 197 (y = 474), width = 93, height = 120
+    const PHOTO_X = 468;
+    const PHOTO_Y_TOP = 197;
+    const PHOTO_WIDTH = 93;
+    const PHOTO_HEIGHT = 120;
 
     if (applicantPhotoSource) {
       await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, PHOTO_X, PHOTO_Y_TOP, PHOTO_WIDTH, PHOTO_HEIGHT);
@@ -120,18 +120,18 @@ export async function POST(request: NextRequest) {
     };
 
     // ── 1. Header Numbers & Date ────────────────────────────────
-    // System Form Number: S-### in upper header area
+    // System Form Number: S-### in upper header area (above offline number 1259)
     const systemFormNo = getField(record, 'formNumber', 'form_number', 'systemFormNumber', 'insuranceNumber');
     // Offline Form Number: after क्रमांक : NGO/26/
     const offlineFormNo = getField(record, 'offlineFormNumber', 'offline_form_number', 'offlineFormNo', 'membershipNumber');
     const appDate = formatDate(getField(record, 'applicationDate', 'application_date', 'createdAt', 'created_at', 'date'));
 
     // S-* System Form Number
-    drawBounded(systemFormNo, 95, 680, 11, 100);
+    drawBounded(systemFormNo, 140, 642, 11, 85);
     // Offline Form Number (only if present, blank if null)
-    drawBounded(offlineFormNo, 142, 627, 10.5, 90);
+    drawBounded(offlineFormNo, 138, 622.5, 10.5, 270);
     // Application Date
-    drawBounded(appDate, 490, 627, 10.5, 90);
+    drawBounded(appDate, 452, 622.5, 10.5, 110);
 
     // ── 2. Applicant Section ────────────────────────────────────
     const applicantName = getField(record, 'applicantName', 'applicant_name', 'name');
@@ -146,16 +146,16 @@ export async function POST(request: NextRequest) {
     const state = getField(record, 'state', 'राज्य') || 'Rajasthan';
     const mobile = getField(record, 'mobile', 'phone', 'contact', 'मोबाइल');
 
-    drawBounded(applicantName, 75, 603, 10, 395);
-    drawBounded(fatherOrHusband, 125, 582, 10, 345);
-    drawBounded(dob, 110, 561, 10, 105);
-    drawBounded(gender, 255, 561, 10, 60);
-    drawBounded(education, 355, 561, 10, 110);
-    drawBounded(aadhaar, 150, 540, 10, 320);
-    drawBounded(address, 75, 519, 10, 395);
-    drawBounded(district, 75, 498, 10, 140);
-    drawBounded(state, 260, 498, 10, 105);
-    drawBounded(mobile, 420, 498, 10, 125);
+    drawBounded(applicantName, 72, 595.0, 10.5, 390);
+    drawBounded(fatherOrHusband, 128, 567.3, 10, 335);
+    drawBounded(dob, 100, 539.5, 10, 78);
+    drawBounded(gender, 208, 539.5, 10, 62);
+    drawBounded(education, 304, 539.5, 10, 155);
+    drawBounded(aadhaar, 140, 511.8, 10.5, 320);
+    drawBounded(address, 70, 484.0, 10, 390);
+    drawBounded(district, 74, 456.5, 10, 92);
+    drawBounded(state, 198, 456.5, 10, 104);
+    drawBounded(mobile, 340, 456.5, 10, 120);
 
     // ── 3. Nominee & Worker Section ─────────────────────────────
     const nomineeName = getField(record, 'nomineeName', 'nominee_name');
@@ -167,24 +167,24 @@ export async function POST(request: NextRequest) {
     const paymentRef = getField(record, 'transactionId', 'transaction_id', 'utr', 'utrNo', 'utr_no', 'paymentRef', 'payment_ref', 'referenceNo', 'paymentMode', 'payment_mode');
     const seniorWorkerName = getField(record, 'seniorWorkerName', 'senior_worker_name', 'seniorName', 'senior_name', 'seniorWorker', 'senior');
 
-    drawBounded(nomineeName, 125, 477, 10, 230);
-    drawBounded(nomineeRelation, 410, 477, 10, 135);
-    drawBounded(nomineeAadhaar, 150, 456, 10, 140);
-    drawBounded(nomineeMobile, 325, 456, 10, 95);
-    drawBounded(workerName, 500, 456, 10, 135);
-    drawBounded(amount, 75, 435, 10, 115);
-    drawBounded(paymentRef, 335, 435, 9.5, 145);
-    drawBounded(seniorWorkerName, 510, 435, 9.5, 125);
+    drawBounded(nomineeName, 114, 428.8, 10, 188);
+    drawBounded(nomineeRelation, 346, 428.8, 10, 215);
+    drawBounded(nomineeAadhaar, 138, 401.0, 10, 122);
+    drawBounded(nomineeMobile, 284, 401.0, 10, 124);
+    drawBounded(workerName, 478, 401.0, 10, 86);
+    drawBounded(amount, 68, 373.2, 10, 54);
+    drawBounded(paymentRef, 254, 373.2, 9.5, 118);
+    drawBounded(seniorWorkerName, 474, 373.2, 9.5, 90);
 
     // ── 4. Oath Section (शपथ - पत्र) ─────────────────────────
     const age = getField(record, 'age', 'computedAge', 'computed_age', 'उम्र');
     const gotra = getField(record, 'gotra', 'गोत्र');
 
-    drawBounded(applicantName, 65, 346, 9.5, 185);
-    drawBounded(fatherOrHusband, 350, 346, 9.5, 140);
-    drawBounded(age, 525, 346, 9.5, 30);
-    drawBounded(gotra, 580, 346, 9.5, 45);
-    drawBounded(address, 85, 325, 9.5, 200);
+    drawBounded(applicantName, 55, 238.8, 9.5, 134);
+    drawBounded(fatherOrHusband, 290, 238.8, 9.5, 114);
+    drawBounded(age, 428, 238.8, 9.5, 52);
+    drawBounded(gotra, 508, 238.8, 9.5, 54);
+    drawBounded(address, 78, 204.6, 9.5, 110);
 
     const pdfBytes = await pdfDoc.save();
     const rawSafeName = applicantName || systemFormNo || offlineFormNo || record?.id || 'form';

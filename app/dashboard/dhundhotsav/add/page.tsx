@@ -12,6 +12,7 @@ import {
   CalendarDays,
   Upload,
   Loader2,
+  Info,
 } from "lucide-react";
 import { RoleGuard } from "@/components/role-guard";
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier";
@@ -89,7 +90,7 @@ export default function AddDhundhotsavPage() {
     schemeType: "DHUNDHOTSAV",
     pool: "MALE_POOL",
     membershipFee: 5100,
-    paymentAmount: "0",
+    paymentAmount: "5100",
     paymentMode: "CASH",
     selectedAgentId: "",
     epinCode: "",
@@ -240,9 +241,9 @@ export default function AddDhundhotsavPage() {
       return;
     }
 
-    const parsedPayment = Number(formData.paymentAmount) || 0;
-    if (parsedPayment > 0 && parsedPayment !== 300) {
-      toast.error("ढूंढोत्सव किश्त राशि केवल ₹300 हो सकती है / Dhundhotsav installment amount must be ₹300");
+    const parsedPayment = Number(formData.paymentAmount);
+    if (isNaN(parsedPayment) || parsedPayment < 0) {
+      toast.error("कृपया वैध भुगतान राशि दर्ज करें / Enter valid payment amount");
       return;
     }
 
@@ -279,8 +280,8 @@ export default function AddDhundhotsavPage() {
         pool: "MALE_POOL",
         membershipFee: 5100,
         totalAmount: 5100,
-        paymentAmount: parsedPayment === 300 ? 300 : undefined,
-        paymentMode: parsedPayment === 300 ? formData.paymentMode : undefined,
+        paymentAmount: parsedPayment > 0 ? parsedPayment : 5100,
+        paymentMode: formData.paymentMode,
         selectedAgentId: formData.selectedAgentId || undefined,
         agentId: formData.selectedAgentId || undefined,
         epinCode: formData.epinCode.trim() || undefined,
@@ -780,17 +781,30 @@ export default function AddDhundhotsavPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
+                    <Label htmlFor="membershipFee">नियत सदस्यता शुल्क / Entry Fee</Label>
+                    <Input
+                      id="membershipFee"
+                      value="₹5,100 (Fixed Entry Fee)"
+                      readOnly
+                      className="bg-muted font-bold text-foreground mt-1"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      नियत सदस्यता शुल्क: <strong>₹5,100</strong>
+                    </p>
+                  </div>
+
+                  <div>
                     <Label htmlFor="paymentAmount">भुगतान राशि / Payment Amount (₹)</Label>
                     <Input
                       id="paymentAmount"
                       type="number"
                       value={formData.paymentAmount}
                       onChange={(e) => setFormData({ ...formData, paymentAmount: e.target.value })}
-                      placeholder="उदा. 0 या 300"
-                      className="mt-1"
+                      placeholder="5100"
+                      className="mt-1 font-semibold"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                      किश्त राशि: <strong>₹300</strong> नियत
+                      पंजीकरण प्रवेश शुल्क: <strong>₹5,100</strong>
                     </p>
                   </div>
 
@@ -810,15 +824,16 @@ export default function AddDhundhotsavPage() {
                       <option value="RAZORPAY">Razorpay Gateway</option>
                     </select>
                   </div>
+                </div>
 
+                {/* Informational note for future Dhundh contribution */}
+                <div className="bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-3 flex items-start gap-2.5 text-xs text-blue-900 dark:text-blue-200">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
                   <div>
-                    <Label htmlFor="schemeInstallment">एकल लेजर किश्त / Installment</Label>
-                    <Input
-                      id="schemeInstallment"
-                      value="₹300 (Single Ledger)"
-                      readOnly
-                      className="bg-muted font-bold text-emerald-600 mt-1"
-                    />
+                    <p className="font-semibold">महत्वपूर्ण सूचना / Note:</p>
+                    <p>
+                      धुंध आयोजन के समय प्रति सदस्य ₹300 अंशदान देय होगा। / ₹300 per-member contribution will be collected during the Dhundh event.
+                    </p>
                   </div>
                 </div>
               </div>

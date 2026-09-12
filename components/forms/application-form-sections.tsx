@@ -34,7 +34,21 @@ export const PersonalInfoSection = memo<FormSectionProps>(({
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Personal Information</h3>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <InputField
+            id="offlineFormNumber"
+            label="ऑफलाइन फॉर्म नं. / Offline Form No."
+            placeholder="उदा. 1259"
+            value={formData.offlineFormNumber || ""}
+            onChange={(value) => updateField("offlineFormNumber", value)}
+            maxLength={50}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            भौतिक फॉर्म नंबर (वैकल्पिक) / Physical form number
+          </p>
+        </div>
+
         <DatePickerField
           id="applicationDate"
           label={formatBilingual("formFields.applicationDate")}

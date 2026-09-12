@@ -26,6 +26,17 @@ import { EpinService } from "@/lib/epin-service"
 
 import { post, API_ENDPOINTS } from "@/lib/api"
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
 interface OptimizedInsuranceFormProps {
   title?: string
   description?: string
@@ -37,6 +48,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
 }) => {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'failed'>('pending')
   const [paymentData, setPaymentData] = useState<any>(null)
 
@@ -76,29 +88,14 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
     updateField("category", category)
   }, [category, updateField])
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!isFormValid) {
-      toast.error("Please fill in all required fields")
-      return
-    }
-
-    if (isRazorpayPaymentMode(formData.paymentMode) && paymentStatus !== 'paid') {
-      toast.error("Please complete the Razorpay payment before submitting the application")
-      return
-    }
-
-    if (!formData.selectedAgentId) {
-      toast.error("कृपया कार्यकर्ता का नाम चुनें / Please select a worker")
-      return
-    }
-
+  const executeSubmit = useCallback(async () => {
+    setConfirmDialogOpen(false)
     setIsSubmitting(true)
 
     try {
       const applicationData = {
         applicationDate: formData.applicationDate,
+        offlineFormNumber: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : undefined,
         applicantName: formData.applicantName,
         fatherName: formData.fatherName,
         wifeName: formData.wifeName,
@@ -171,7 +168,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
       if (error?.response?.status === 409 || error?.status === 409) {
         toast.error(
           error.response?.data?.message ||
-          "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।"
+          "यह ऑफलाइन फॉर्म नंबर या E-PIN पहले ही उपयोग में है। कृपया पुनः जाँच करें।"
         )
       } else {
         toast.error(error.response?.data?.message || error.message || formatBilingual("messages.failedToSave"))
@@ -179,7 +176,33 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
     } finally {
       setIsSubmitting(false)
     }
-  }, [formData, isFormValid, paymentStatus, age, category, fee, router])
+  }, [formData, age, category, fee, router])
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!isFormValid) {
+      toast.error("Please fill in all required fields")
+      return
+    }
+
+    if (isRazorpayPaymentMode(formData.paymentMode) && paymentStatus !== 'paid') {
+      toast.error("Please complete the Razorpay payment before submitting the application")
+      return
+    }
+
+    if (!formData.selectedAgentId) {
+      toast.error("कृपया कार्यकर्ता का नाम चुनें / Please select a worker")
+      return
+    }
+
+    const trimmedOffline = formData.offlineFormNumber ? formData.offlineFormNumber.trim() : ""
+    if (trimmedOffline) {
+      setConfirmDialogOpen(true)
+    } else {
+      executeSubmit()
+    }
+  }, [formData, isFormValid, paymentStatus, executeSubmit])
 
   const handlePaymentSuccess = useCallback((paymentData: any) => {
     setPaymentStatus('paid')
@@ -366,6 +389,31 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
             </form>
           </CardContent>
         </Card>
+
+        {/* Confirmation Dialog for Offline Form Number */}
+        <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>फॉर्म संख्या पुष्टि / Confirm Offline Form Number</AlertDialogTitle>
+              <AlertDialogDescription>
+                ऑफलाइन फॉर्म नं. <span className="font-bold text-primary">{(formData.offlineFormNumber || "").trim()}</span> सही है?
+                <br />
+                <span className="text-xs text-muted-foreground">
+                  Is this offline form number correct? Click Confirm to save.
+                </span>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>रद्द करें / Edit</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={executeSubmit}
+                className="bg-primary hover:bg-primary/90"
+              >
+                हाँ, सही है / Confirm & Save
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </RoleGuard>
   )

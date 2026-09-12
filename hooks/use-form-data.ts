@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from "react"
 
 export interface FormData {
   applicationDate: string
+  offlineFormNumber?: string
   applicantName: string
   fatherName: string
   wifeName: string
@@ -32,6 +33,7 @@ export interface FormData {
 
 const initialFormData: FormData = {
   applicationDate: "",
+  offlineFormNumber: "",
   applicantName: "",
   fatherName: "",
   wifeName: "",

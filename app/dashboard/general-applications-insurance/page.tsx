@@ -60,6 +60,8 @@ function formatExcelDate(val: any): string {
 interface GeneralInsuranceApplicationRecord {
   id: string
   formNumber: string
+  offlineFormNumber?: string | null
+  offline_form_number?: string | null
   applicationDate: string
   applicantName: string
   fatherName: string
@@ -146,10 +148,13 @@ export default function GeneralInsuranceApplicationsPage() {
         const transformedData = response.data.map((item: any) => {
           const dateOfBirth = item.date_of_birth || item.dateOfBirth
           const computedAge = item.age ?? (dateOfBirth ? calculateAge(dateOfBirth) : null)
+          const offlineFormNumber = item.offline_form_number || item.offlineFormNumber || ""
 
           return {
           id: item.id || item.insurance_id,
           formNumber: item.form_number || item.formNumber,
+          offlineFormNumber,
+          offline_form_number: offlineFormNumber,
           applicationDate: item.application_date || item.applicationDate,
           applicantName: item.applicant_name || item.applicantName,
           fatherName: item.father_name || item.fatherName,
@@ -283,7 +288,20 @@ export default function GeneralInsuranceApplicationsPage() {
 
 
   const columns = [
-    { key: "formNumber", label: "सदस्यता संख्या" },
+    {
+      key: "formNumber",
+      label: "सदस्यता संख्या",
+      render: (_value: string, record: GeneralInsuranceApplicationRecord) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-foreground">{record.formNumber}</span>
+          {(record.offlineFormNumber || record.offline_form_number) ? (
+            <div className="text-xs text-muted-foreground mt-0.5 whitespace-nowrap">
+              ऑफलाइन: <span className="font-medium text-foreground">{record.offlineFormNumber || record.offline_form_number}</span>
+            </div>
+          ) : null}
+        </div>
+      ),
+    },
     { key: "applicationDate", label: "आवेदन तिथि" },
     { key: "applicantName", label: "आवेदक का नाम" },
     { key: "fatherName", label: "पिता का नाम / पति का नाम", render: (_value: string, record: GeneralInsuranceApplicationRecord) => (record.fatherName || record.wifeName || "") },
@@ -314,6 +332,7 @@ export default function GeneralInsuranceApplicationsPage() {
 
   const searchFields: (keyof GeneralInsuranceApplicationRecord)[] = [
     "formNumber",
+    "offlineFormNumber",
     "applicantName",
     "fatherName",
     "mobile",
@@ -459,6 +478,7 @@ export default function GeneralInsuranceApplicationsPage() {
       // Prepare data for Excel export
       const excelData = records.map((record) => ({
         "सदस्यता संख्या": record.formNumber,
+        "ऑफलाइन फॉर्म नं.": record.offlineFormNumber || record.offline_form_number || "-",
         "आवेदन तिथि": record.applicationDate,
         "आवेदक का नाम": record.applicantName,
         "पिता का नाम / पति का नाम": record.fatherName || record.wifeName || "",
@@ -512,7 +532,7 @@ export default function GeneralInsuranceApplicationsPage() {
   };
 
   const importHeaders = [
-    "आवेदन तिथि", "आवेदक का नाम", "पिता का नाम / पति का नाम", "पत्नी का नाम", "माता का नाम",
+    "आवेदन तिथि", "ऑफलाइन फॉर्म नं.", "आवेदक का नाम", "पिता का नाम / पति का नाम", "पत्नी का नाम", "माता का नाम",
     "जन्म तिथि", "आधार संख्या", "गोत्र", "आयु", "लिंग", "श्रेणी", "मोबाइल",
     "गांव", "पिन कोड", "तहसील", "जिला", "राज्य", "नामिनी का नाम",
     "नामिनी का सम्बन्ध", "कार्यकर्ता का नाम", "कार्यकर्ता का मोबाइल", "कुल राशि",
@@ -522,6 +542,7 @@ export default function GeneralInsuranceApplicationsPage() {
   const importSampleRows = [
     {
       "आवेदन तिथि": "12-07-2026",
+      "ऑफलाइन फॉर्म नं.": "1259",
       "आवेदक का नाम": "रमेश प्रजापति",
       "पिता का नाम / पति का नाम": "सज्जन प्रजापति",
       "पत्नी का नाम": "कविता प्रजापति",
@@ -549,6 +570,7 @@ export default function GeneralInsuranceApplicationsPage() {
     },
     {
       "आवेदन तिथि": "12-07-2026",
+      "ऑफलाइन फॉर्म नं.": "1260",
       "आवेदक का नाम": "कविता प्रजापति",
       "पिता का नाम / पति का नाम": "रमेश प्रजापति",
       "पत्नी का नाम": "",
@@ -591,9 +613,11 @@ export default function GeneralInsuranceApplicationsPage() {
 
     const fatherName = isMale ? rawFatherOrHusband : "";
     const wifeName = isMale ? rawWife : rawFatherOrHusband;
+    const offlineFormNumber = String(row["ऑफलाइन फॉर्म नं."] || row["offlineFormNumber"] || "").trim() || undefined;
 
     const payload = {
       applicationDate: formatExcelDate(row["आवेदन तिथि"]),
+      offlineFormNumber,
       applicantName: String(row["आवेदक का नाम"] || "").trim(),
       fatherName,
       wifeName,
@@ -654,6 +678,7 @@ export default function GeneralInsuranceApplicationsPage() {
           editUrlPattern="/dashboard/general-applications-insurance/edit/[id]"
           searchFields={[
             "formNumber",
+            "offlineFormNumber",
             "applicantName",
             "fatherName",
             "motherName",

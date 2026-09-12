@@ -68,6 +68,8 @@ export interface InsuranceApplication {
   sr_no? :string;
   id?: string;
   formNumber?: string;
+  offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
   applicationDate: string;
   applicantName: string;
   fatherName: string;

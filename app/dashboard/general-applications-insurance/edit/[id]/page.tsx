@@ -23,8 +23,20 @@ import { formatBilingual } from '@/lib/translations'
 import { RazorpayPayment } from "@/components/razorpay-payment"
 import { useAgeCategory } from "@/hooks/use-age-category"
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
 export type GeneralApplicationFormData = {
- formNumber?:string;
+  formNumber?: string;
+  offlineFormNumber?: string;
   applicationDate: string;
   applicantName: string;
   fatherName: string;
@@ -78,8 +90,12 @@ export default function EditGeneralInsuranceApplicationPage() {
   const params = useParams()
   const id = params?.id as string
 
+  const [initialOfflineFormNumber, setInitialOfflineFormNumber] = useState<string>("")
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+
   const [formData, setFormData] = useState<GeneralApplicationFormData>({
-    formNumber:"",
+    formNumber: "",
+    offlineFormNumber: "",
     applicationDate: "",
     applicantName: "",
     fatherName: "",
@@ -239,8 +255,12 @@ export default function EditGeneralInsuranceApplicationPage() {
             wifeNameVal = fatherNameVal;
           }
 
+          const offNo = getRecordField(record, "offlineFormNumber", "offline_form_number", "offlineFormNo") || ""
+          setInitialOfflineFormNumber(offNo)
+
           setFormData({
             formNumber: getRecordField(record, "formNumber", "form_number"),
+            offlineFormNumber: offNo,
             applicationDate,
             applicantName: getRecordField(record, "applicantName", "applicant_name"),
             fatherName: gender === "Female" ? "" : fatherNameVal,
@@ -299,9 +319,8 @@ export default function EditGeneralInsuranceApplicationPage() {
     loadData()
   }, [id])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
+  const executeSubmit = async () => {
+    setConfirmDialogOpen(false)
     try {
       setLoading(true)
       if (!formData.selectedAgentId) {
@@ -315,6 +334,7 @@ export default function EditGeneralInsuranceApplicationPage() {
 
       const updateData = {
         applicationDate: formatDateForAPI(applicationDateObj),
+        offlineFormNumber: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : "",
         applicantName: formData.applicantName,
         fatherName: formData.fatherName,
         wifeName: formData.wifeName,
@@ -346,11 +366,36 @@ export default function EditGeneralInsuranceApplicationPage() {
       } else {
         toast.error(response.message || "Failed to update application")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating application:", error)
-      toast.error("Failed to update application")
+      if (error?.response?.status === 409 || error?.status === 409) {
+        toast.error(
+          error.response?.data?.message ||
+          "यह ऑफलाइन फॉर्म नंबर पहले ही किसी अन्य रिकॉर्ड में उपयोग में है। कृपया दूसरा नंबर चुनें।"
+        )
+      } else {
+        toast.error(error.response?.data?.message || error.message || "Failed to update application")
+      }
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!formData.selectedAgentId) {
+      toast.error("कृपया कार्यकर्ता का नाम चुनें / Please select a worker")
+      return
+    }
+
+    const currentOffline = (formData.offlineFormNumber || "").trim()
+    const initialOffline = (initialOfflineFormNumber || "").trim()
+
+    if (currentOffline !== initialOffline) {
+      setConfirmDialogOpen(true)
+    } else {
+      executeSubmit()
     }
   }
 
@@ -414,6 +459,44 @@ export default function EditGeneralInsuranceApplicationPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* System Form Number and Offline Form Number */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-muted/30 p-4 rounded-lg border">
+              <div>
+                <Label htmlFor="formNumber">सिस्टम फॉर्म नं. / System Form No.</Label>
+                <Input
+                  id="formNumber"
+                  value={formData.formNumber || "-"}
+                  disabled
+                  readOnly
+                  className="bg-muted font-semibold text-gray-800 cursor-not-allowed mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  सिस्टम द्वारा जनरेटेड (संपादन योग्य नहीं)
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="offlineFormNumber">ऑफलाइन फॉर्म नं. / Offline Form No.</Label>
+                <Input
+                  id="offlineFormNumber"
+                  name="offlineFormNumber"
+                  value={formData.offlineFormNumber || ""}
+                  placeholder="उदा. 1259"
+                  maxLength={50}
+                  className="bg-background font-medium mt-1"
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      offlineFormNumber: e.target.value,
+                    }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  भौतिक फॉर्म संख्या (वैकल्पिक) / Physical offline form number
+                </p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3  gap-4">
 
               <div>
@@ -887,6 +970,43 @@ export default function EditGeneralInsuranceApplicationPage() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog for Offline Form Number changes */}
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>फॉर्म संख्या पुष्टि / Confirm Offline Form Number</AlertDialogTitle>
+            <AlertDialogDescription>
+              {formData.offlineFormNumber?.trim() ? (
+                <>
+                  ऑफलाइन फॉर्म नं. <span className="font-bold text-primary">{(formData.offlineFormNumber || "").trim()}</span> सही है?
+                  <br />
+                  <span className="text-xs text-muted-foreground">
+                    Is this offline form number correct? Click Confirm to save.
+                  </span>
+                </>
+              ) : (
+                <>
+                  क्या आप ऑफलाइन फॉर्म नंबर हटाना चाहते हैं?
+                  <br />
+                  <span className="text-xs text-muted-foreground">
+                    Are you sure you want to remove the offline form number? Click Confirm to proceed.
+                  </span>
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>रद्द करें / Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={executeSubmit}
+              className="bg-primary hover:bg-primary/90"
+            >
+              हाँ, सही है / Confirm & Save
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

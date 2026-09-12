@@ -1,40 +1,56 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  CalendarDays,
   Upload,
   Loader2,
   Info,
+  KeyRound,
+  ArrowLeft,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { RoleGuard } from "@/components/role-guard";
-import { EpinInputVerifier } from "@/components/forms/epin-input-verifier";
 import {
   DhundhotsavService,
-  CreateDhundhotsavPayload,
+  UpdateDhundhotsavPayload,
+  DhundhotsavRegistration,
 } from "@/lib/dhundhotsav-service";
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
-import { EpinValidationResponse } from "@/lib/config-types";
-import { formatDate } from "@/lib/utils";
 
-export default function AddDhundhotsavPage() {
+export default function EditDhundhotsavPage() {
+  const params = useParams();
   const router = useRouter();
+  const id = String(params?.id || "");
+
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [initialOfflineFormNumber, setInitialOfflineFormNumber] = useState<string>("");
   const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile: string }>>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState<{
-    applicationDate: string;
+    formNumber: string;
     offlineFormNumber: string;
+    applicationDate: string;
     dhundhDate: string;
     childName: string;
     applicantName: string;
@@ -60,13 +76,12 @@ export default function AddDhundhotsavPage() {
     schemeType: "DHUNDHOTSAV";
     pool: "MALE_POOL";
     membershipFee: number;
-    paymentAmount: string;
-    paymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER";
     selectedAgentId: string;
     epinCode: string;
   }>({
-    applicationDate: new Date().toISOString().split("T")[0],
+    formNumber: "",
     offlineFormNumber: "",
+    applicationDate: "",
     dhundhDate: "",
     childName: "",
     applicantName: "",
@@ -87,13 +102,11 @@ export default function AddDhundhotsavPage() {
     nomineeRelation: "",
     nomineeMobile: "",
     nomineeAadhar: "",
-    gender: "Male", // Default: Male (MALE_POOL)
+    gender: "Male",
     category: "A",
     schemeType: "DHUNDHOTSAV",
     pool: "MALE_POOL",
     membershipFee: 5100,
-    paymentAmount: "5100",
-    paymentMode: "CASH",
     selectedAgentId: "",
     epinCode: "",
   });
@@ -103,17 +116,73 @@ export default function AddDhundhotsavPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [documentBase64, setDocumentBase64] = useState<string | null>(null);
 
-  // E-PIN Validation State
-  const [epinVerified, setEpinVerified] = useState<EpinValidationResponse | null>(null);
+  // Load Record Data
+  const loadRecord = useCallback(async () => {
+    if (!id) return;
+    setIsFetching(true);
+    try {
+      const res = await DhundhotsavService.getRegistrationById(id);
+      if (res && res.data) {
+        const reg = res.data;
+        const offNo = reg.offlineFormNumber || "";
+        setInitialOfflineFormNumber(offNo);
 
-  const handleEpinVerified = (result: EpinValidationResponse | null) => {
-    setEpinVerified(result);
-    if (result && result.valid && result.schemeAmount) {
-      toast.success(
-        `E-PIN Validated: ₹${result.schemeAmount.toLocaleString("hi-IN")} voucher applied / ई-पिन मान्य है`
-      );
+        // Format dates safely
+        const appDate = reg.applicationDate ? reg.applicationDate.split("T")[0] : "";
+        const dhDate = reg.dhundhDate ? reg.dhundhDate.split("T")[0] : "";
+        const dob = reg.dateOfBirth ? reg.dateOfBirth.split("T")[0] : "";
+
+        setFormData({
+          formNumber: reg.formNumber || "",
+          offlineFormNumber: offNo,
+          applicationDate: appDate,
+          dhundhDate: dhDate,
+          childName: reg.childName || "",
+          applicantName: reg.applicantName || "",
+          fatherName: reg.fatherName || "",
+          husbandName: reg.husbandName || "",
+          motherName: reg.motherName || "",
+          dateOfBirth: dob,
+          age: reg.age ? String(reg.age) : "",
+          aadharNumber: reg.aadharNumber || "",
+          gotra: reg.gotra || "",
+          mobile: reg.mobile || "",
+          address: reg.address || "",
+          pinCode: reg.pinCode || "",
+          tehsil: reg.tehsil || "",
+          district: reg.district || "",
+          state: reg.state || "Rajasthan",
+          nomineeName: reg.nomineeName || "",
+          nomineeRelation: reg.nomineeRelation || "",
+          nomineeMobile: reg.nomineeMobile || "",
+          nomineeAadhar: reg.nomineeAadhar || "",
+          gender: (reg.gender as any) || "Male",
+          category: (reg.category as any) || "A",
+          schemeType: "DHUNDHOTSAV",
+          pool: "MALE_POOL",
+          membershipFee: 5100,
+          selectedAgentId: reg.addedById || "",
+          epinCode: reg.epinCode || "",
+        });
+
+        if (reg.passportPhotoUrl) {
+          setPhotoPreview(reg.passportPhotoUrl);
+        }
+      } else {
+        toast.error("पंजीकरण विवरण नहीं मिला / Registration details not found");
+        router.push("/dashboard/dhundhotsav");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "विवरण लोड करने में विफल / Failed to load details");
+      router.push("/dashboard/dhundhotsav");
+    } finally {
+      setIsFetching(false);
     }
-  };
+  }, [id, router]);
+
+  useEffect(() => {
+    loadRecord();
+  }, [loadRecord]);
 
   // Load agents if Admin
   useEffect(() => {
@@ -197,85 +266,80 @@ export default function AddDhundhotsavPage() {
     reader.readAsDataURL(file);
   };
 
-  // Form Submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Client-side validations
+  // Form Submission Validation
+  const validateForm = (): boolean => {
     if (!formData.applicantName.trim()) {
       toast.error("कृपया आवेदक का नाम दर्ज करें / Applicant Name is required");
-      return;
+      return false;
     }
     if (!formData.fatherName.trim()) {
       toast.error("कृपया पिता का नाम दर्ज करें / Father Name is required");
-      return;
+      return false;
     }
     if (!formData.dateOfBirth) {
       toast.error("कृपया जन्म तिथि दर्ज करें / Date of Birth is required");
-      return;
+      return false;
     }
     if (!formData.gotra.trim()) {
       toast.error("कृपया गोत्र दर्ज करें / Gotra is required");
-      return;
+      return false;
     }
     if (!formData.mobile.trim() || formData.mobile.replace(/\D/g, "").length !== 10) {
       toast.error("कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें / Enter valid 10-digit mobile number");
-      return;
+      return false;
     }
     if (!formData.aadharNumber.trim() || formData.aadharNumber.replace(/\D/g, "").length !== 12) {
       toast.error("आधार कार्ड नंबर 12 अंकों का होना चाहिए / Aadhaar must be 12 digits");
-      return;
+      return false;
     }
     if (!formData.address.trim()) {
       toast.error("कृपया पूरा पता दर्ज करें / Address is required");
-      return;
+      return false;
     }
     if (!formData.district.trim()) {
       toast.error("कृपया जिला दर्ज करें / District is required");
-      return;
+      return false;
     }
     if (!formData.tehsil.trim()) {
       toast.error("कृपया तहसील दर्ज करें / Tehsil is required");
-      return;
+      return false;
     }
     if (!formData.pinCode.trim() || formData.pinCode.replace(/\D/g, "").length !== 6) {
       toast.error("कृपया 6 अंकों का वैध पिन कोड दर्ज करें / Enter valid 6-digit PIN code");
-      return;
+      return false;
     }
+    return true;
+  };
 
-    const parsedPayment = Number(formData.paymentAmount);
-    if (isNaN(parsedPayment) || parsedPayment < 0) {
-      toast.error("कृपया वैध भुगतान राशि दर्ज करें / Enter valid payment amount");
-      return;
+  // Handle Form Submit with Offline Form Number Confirmation Check
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const currentOffline = (formData.offlineFormNumber || "").trim();
+    const initialOffline = (initialOfflineFormNumber || "").trim();
+
+    // Check if offline form number changed meaningfully
+    if (currentOffline !== initialOffline) {
+      setConfirmDialogOpen(true);
+    } else {
+      executeSubmit();
     }
+  };
 
-    // E-PIN Validation (Compulsory for Dhundhotsav)
-    const trimmedEpin = formData.epinCode.trim();
-    if (!trimmedEpin) {
-      toast.error("E-PIN आवश्यक है / E-PIN is required for Dhundhotsav Registration");
-      return;
-    }
-
-    if (!epinVerified || !epinVerified.valid) {
-      toast.error("कृपया पहले E-PIN सत्यापित करें / Please verify E-PIN first");
-      return;
-    }
-
+  const executeSubmit = async () => {
+    setConfirmDialogOpen(false);
     setIsLoading(true);
 
     try {
-      const payload: CreateDhundhotsavPayload = {
-        applicationDate: formData.applicationDate,
-        offlineFormNumber: formData.offlineFormNumber.trim() || undefined,
-        dhundhDate: formData.dhundhDate || undefined,
-        childName: formData.childName.trim() || undefined,
+      const payload: UpdateDhundhotsavPayload = {
+        offlineFormNumber: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : "",
         applicantName: formData.applicantName.trim(),
         fatherName: formData.fatherName.trim(),
-        husbandName: formData.husbandName.trim() || undefined,
-        motherName: formData.motherName.trim() || undefined,
-        dateOfBirth: formData.dateOfBirth || undefined,
-        age: formData.age ? Number(formData.age) : undefined,
-        aadharNumber: formData.aadharNumber.replace(/\D/g, ""),
+        husbandName: formData.husbandName.trim() || null,
+        motherName: formData.motherName.trim() || null,
+        dateOfBirth: formData.dateOfBirth || null,
+        age: formData.age ? Number(formData.age) : null,
         gotra: formData.gotra.trim(),
         mobile: formData.mobile.replace(/\D/g, ""),
         address: formData.address.trim(),
@@ -283,55 +347,29 @@ export default function AddDhundhotsavPage() {
         tehsil: formData.tehsil.trim(),
         district: formData.district.trim(),
         state: formData.state.trim() || "Rajasthan",
-        nomineeName: formData.nomineeName.trim() || undefined,
-        nomineeRelation: formData.nomineeRelation.trim() || undefined,
-        nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || undefined,
-        nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || undefined,
+        childName: formData.childName.trim() || null,
+        dhundhDate: formData.dhundhDate || null,
+        nomineeName: formData.nomineeName.trim() || null,
+        nomineeRelation: formData.nomineeRelation.trim() || null,
+        nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || null,
+        nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || null,
         passportPhotoUrl: passportPhotoBase64 || undefined,
         documentUrl: documentBase64 || undefined,
         gender: formData.gender,
         category: formData.category,
-        schemeType: "DHUNDHOTSAV",
-        pool: "MALE_POOL",
-        membershipFee: 5100,
-        totalAmount: 5100,
-        paymentAmount: parsedPayment > 0 ? parsedPayment : 5100,
-        paymentMode: formData.paymentMode,
-        selectedAgentId: formData.selectedAgentId || undefined,
-        agentId: formData.selectedAgentId || undefined,
-        epinCode: trimmedEpin,
-        pinNumber: trimmedEpin,
       };
 
-      const res = await DhundhotsavService.createRegistration(payload);
+      const res = await DhundhotsavService.updateRegistration(id, payload);
 
       if (res && res.success !== false) {
-        toast.success(
-          `ढूंढोत्सव पंजीकरण सफलतापूर्वक संपन्न हुआ! फॉर्म नं: ${res.data?.formNumber || "DH-XXXX"}`
-        );
+        toast.success("ढूंढोत्सव विवरण सफलतापूर्वक अपडेट किया गया / Details updated successfully");
         router.push("/dashboard/dhundhotsav");
       } else {
-        const errorMsg = res.message || "पंजीकरण में त्रुटि / Failed to create registration";
-        if (/already|assigned|consumed|used/i.test(errorMsg)) {
-          toast.error("यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।");
-        } else {
-          toast.error(errorMsg);
-        }
+        toast.error(res.message || "विवरण अपडेट करने में विफल / Failed to update details");
       }
     } catch (err: any) {
-      console.error("Submission error:", err);
-      // Handle 409 Conflict cleanly
-      if (err.response?.status === 409 || err.status === 409) {
-        const msg = err.response?.data?.message || "";
-        if (/epin|pin|voucher/i.test(msg)) {
-          toast.error("यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।");
-        } else {
-          toast.error(
-            msg ||
-              "समान आधार या मोबाइल नंबर से सक्रिय पंजीकरण पहले से मौजूद है या E-PIN conflict (409 Conflict)"
-          );
-        }
-      } else if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
+      console.error("Update error:", err);
+      if (err.response?.data?.errors && Array.isArray(err.response.data.errors)) {
         const errorDetails = err.response.data.errors
           .map((e: any) => `${e.field ? e.field.replace(/^body\./, "") + ": " : ""}${e.message}`)
           .join(", ");
@@ -340,7 +378,7 @@ export default function AddDhundhotsavPage() {
         toast.error(
           err.response?.data?.message ||
             err.message ||
-            "पंजीकरण सहेजने में विफल / Failed to save registration"
+            "विवरण अपडेट करने में विफल / Failed to update details"
         );
       }
     } finally {
@@ -348,11 +386,20 @@ export default function AddDhundhotsavPage() {
     }
   };
 
+  if (isFetching) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground">विवरण लोड हो रहा है / Loading details...</p>
+      </div>
+    );
+  }
+
   return (
     <RoleGuard requiredModule="dhundhotsav" requiredAction="create">
       <div className="min-h-screen bg-white">
         <div className="w-full">
-          {/* Header Section matching General Marriage Add Form */}
+          {/* Header Section matching General Marriage Form */}
           <div className="border-b border-gray-200 bg-white px-6 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
@@ -367,14 +414,17 @@ export default function AddDhundhotsavPage() {
                 </Button>
                 <div className="flex flex-wrap items-center gap-2 mt-2">
                   <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
-                    ढूंढोत्सव योजना पंजीकरण जोड़ें
+                    ढूंढोत्सव योजना पंजीकरण संपादित करें
                   </h1>
                   <Badge variant="outline" className="bg-muted/50 text-foreground border-border text-xs">
                     Fixed Fee: ₹5,100
                   </Badge>
+                  <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300 font-mono text-xs">
+                    {formData.formNumber}
+                  </Badge>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">
-                  Dhundhotsav Registration Application — Scheme Type: DHUNDHOTSAV | Pool: MALE_POOL | Installment: ₹300
+                  Dhundhotsav Registration Edit — Scheme Type: DHUNDHOTSAV | Pool: MALE_POOL | Installment: ₹300
                 </p>
               </div>
             </div>
@@ -383,18 +433,20 @@ export default function AddDhundhotsavPage() {
           {/* Form Content */}
           <div className="px-6 py-8">
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Application Details Section */}
+              {/* Application Details Section with System & Offline Form Numbers */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg border">
                 <div>
-                  <Label htmlFor="applicationDate">आवेदन दिनांक / Application Date <span className="text-destructive">*</span></Label>
+                  <Label htmlFor="formNumber">आवेदन क्र. / Form No. (System)</Label>
                   <Input
-                    id="applicationDate"
-                    type="date"
-                    value={formData.applicationDate}
-                    onChange={(e) => setFormData({ ...formData, applicationDate: e.target.value })}
-                    required
-                    className="bg-background mt-1"
+                    id="formNumber"
+                    value={formData.formNumber || "-"}
+                    disabled
+                    readOnly
+                    className="bg-muted font-semibold text-gray-800 cursor-not-allowed mt-1"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    सिस्टम द्वारा जनरेटेड (संपादन योग्य नहीं)
+                  </p>
                 </div>
 
                 <div>
@@ -405,7 +457,7 @@ export default function AddDhundhotsavPage() {
                     value={formData.offlineFormNumber}
                     placeholder="उदा. 1259"
                     maxLength={50}
-                    className="bg-background mt-1"
+                    className="bg-background mt-1 font-medium"
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
@@ -416,6 +468,18 @@ export default function AddDhundhotsavPage() {
                   <p className="text-xs text-muted-foreground mt-1">
                     भौतिक फॉर्म नंबर (वैकल्पिक) / Physical form number
                   </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="applicationDate">आवेदन दिनांक / Application Date <span className="text-destructive">*</span></Label>
+                  <Input
+                    id="applicationDate"
+                    type="date"
+                    value={formData.applicationDate}
+                    onChange={(e) => setFormData({ ...formData, applicationDate: e.target.value })}
+                    required
+                    className="bg-background mt-1"
+                  />
                 </div>
 
                 <div>
@@ -431,7 +495,10 @@ export default function AddDhundhotsavPage() {
                     ऐच्छिक / Optional
                   </p>
                 </div>
+              </div>
 
+              {/* Child Name, Gender, Category, and Fee Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="childName">बालक/बच्चे का नाम / Child Name</Label>
                   <Input
@@ -445,10 +512,7 @@ export default function AddDhundhotsavPage() {
                     ऐच्छिक / Optional
                   </p>
                 </div>
-              </div>
 
-              {/* Gender, Category, and Fee Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="gender">लिंग / Gender <span className="text-destructive">*</span></Label>
                   <select
@@ -522,22 +586,22 @@ export default function AddDhundhotsavPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
+                  <Label htmlFor="husbandName">पति/अभिभावक का नाम / Husband / Guardian Name</Label>
+                  <Input
+                    id="husbandName"
+                    value={formData.husbandName}
+                    onChange={(e) => setFormData({ ...formData, husbandName: e.target.value })}
+                    placeholder="पति या अभिभावक का नाम दर्ज करें"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
                   <Label htmlFor="motherName">माता का नाम / Mother's Name</Label>
                   <Input
                     id="motherName"
                     value={formData.motherName}
                     onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
                     placeholder="माता का नाम दर्ज करें"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="husbandName">पति / अभिभावक का नाम / Husband/Guardian Name</Label>
-                  <Input
-                    id="husbandName"
-                    value={formData.husbandName}
-                    onChange={(e) => setFormData({ ...formData, husbandName: e.target.value })}
-                    placeholder="अभिभावक का नाम दर्ज करें"
                     className="mt-1"
                   />
                 </div>
@@ -684,72 +748,85 @@ export default function AddDhundhotsavPage() {
                 </div>
               </div>
 
-              {/* Nominee Information Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="nomineeName">नॉमिनी का नाम / Nominee Name</Label>
-                  <Input
-                    id="nomineeName"
-                    value={formData.nomineeName}
-                    onChange={(e) => setFormData({ ...formData, nomineeName: e.target.value })}
-                    placeholder="नॉमिनी का नाम दर्ज करें"
-                    className="mt-1"
-                  />
+              {/* Nominee Details Section */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                  नामांकित व्यक्ति का विवरण / Nominee Details (वैकल्पिक)
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="nomineeName">नामांकित व्यक्ति का नाम / Nominee Name</Label>
+                    <Input
+                      id="nomineeName"
+                      value={formData.nomineeName}
+                      onChange={(e) => setFormData({ ...formData, nomineeName: e.target.value })}
+                      placeholder="नामांकित का नाम दर्ज करें"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="nomineeRelation">संबंध / Relationship with Nominee</Label>
+                    <Input
+                      id="nomineeRelation"
+                      value={formData.nomineeRelation}
+                      onChange={(e) =>
+                        setFormData({ ...formData, nomineeRelation: e.target.value })
+                      }
+                      placeholder="उदा. माता, पिता, भाई..."
+                      className="mt-1"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="nomineeRelation">नामित व्यक्ति से संबंध / Nominee Relation</Label>
-                  <Input
-                    id="nomineeRelation"
-                    value={formData.nomineeRelation}
-                    onChange={(e) => setFormData({ ...formData, nomineeRelation: e.target.value })}
-                    placeholder="संबंध दर्ज करें (उदा. पत्नी/माता)"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="nomineeMobile">नॉमिनी मोबाइल / Nominee Mobile</Label>
-                  <Input
-                    id="nomineeMobile"
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={10}
-                    value={formData.nomineeMobile}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
-                      setFormData({ ...formData, nomineeMobile: digits });
-                    }}
-                    placeholder="नॉमिनी मोबाइल नंबर"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="nomineeAadhar">नॉमिनी आधार / Nominee Aadhaar</Label>
-                  <Input
-                    id="nomineeAadhar"
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={12}
-                    value={formData.nomineeAadhar}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
-                      setFormData({ ...formData, nomineeAadhar: digits });
-                    }}
-                    placeholder="12 अंकों का आधार"
-                    className="font-mono mt-1"
-                  />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="nomineeMobile">नामांकित मोबाइल नंबर / Nominee Mobile</Label>
+                    <Input
+                      id="nomineeMobile"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
+                      value={formData.nomineeMobile}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        setFormData({ ...formData, nomineeMobile: digits });
+                      }}
+                      placeholder="10 अंकों का मोबाइल नंबर"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="nomineeAadhar">नामांकित आधार संख्या / Nominee Aadhaar</Label>
+                    <Input
+                      id="nomineeAadhar"
+                      type="tel"
+                      inputMode="numeric"
+                      maxLength={12}
+                      value={formData.nomineeAadhar}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
+                        setFormData({ ...formData, nomineeAadhar: digits });
+                      }}
+                      placeholder="12 अंकों का आधार नंबर"
+                      className="font-mono mt-1"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Worker / Agent Information Section (if Admin) */}
+              {/* Worker / Agent Selection (Admin Only) */}
               {isAdmin() && (
                 <div>
-                  <Label htmlFor="selectedAgentId">कार्यकर्ता का नाम / Worker Name (Admin Only)</Label>
+                  <Label htmlFor="selectedAgentId">
+                    कार्यकर्ता चुनें / Select Worker / Agent (वैकल्पिक)
+                  </Label>
                   <select
                     id="selectedAgentId"
                     className="w-full border rounded px-3 py-2 mt-1 bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     value={formData.selectedAgentId}
-                    onChange={(e) => setFormData({ ...formData, selectedAgentId: e.target.value })}
-                    disabled={loadingAgents}
+                    onChange={(e) =>
+                      setFormData({ ...formData, selectedAgentId: e.target.value })
+                    }
                   >
                     <option value="">-- स्वयं / Self (No Specific Worker) --</option>
                     {agents.map((agent) => (
@@ -799,73 +876,39 @@ export default function AddDhundhotsavPage() {
                 </div>
               </div>
 
-              {/* Payment & E-PIN Details Section */}
+              {/* Financial & E-PIN Information (Read-Only on Edit) */}
               <div className="mt-8 space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                  वित्तीय एवं भुगतान विवरण / Financial & Payment Details
+                  वित्तीय विवरण / Financial Information
                 </h2>
 
-                {/* E-PIN Voucher Verification (Mandatory) */}
-                <div className="p-4 bg-muted/20 border rounded-lg">
-                  <EpinInputVerifier
-                    value={formData.epinCode}
-                    onChange={(epinVal) => {
-                      setFormData({ ...formData, epinCode: epinVal });
-                      if (epinVerified) {
-                        setEpinVerified(null);
-                      }
-                    }}
-                    onVerified={handleEpinVerified}
-                    agentId={formData.selectedAgentId || undefined}
-                    required={true}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="membershipFee">नियत सदस्यता शुल्क / Entry Fee</Label>
+                    <Label htmlFor="editFee">नियत सदस्यता शुल्क / Entry Fee</Label>
                     <Input
-                      id="membershipFee"
+                      id="editFee"
                       value="₹5,100 (Fixed Entry Fee)"
                       readOnly
                       className="bg-muted font-bold text-foreground mt-1"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      नियत सदस्यता शुल्क: <strong>₹5,100</strong>
-                    </p>
                   </div>
 
-                  <div>
-                    <Label htmlFor="paymentAmount">भुगतान राशि / Payment Amount (₹)</Label>
-                    <Input
-                      id="paymentAmount"
-                      type="number"
-                      value={formData.paymentAmount}
-                      onChange={(e) => setFormData({ ...formData, paymentAmount: e.target.value })}
-                      placeholder="5100"
-                      className="mt-1 font-semibold"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      पंजीकरण प्रवेश शुल्क: <strong>₹5,100</strong>
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="paymentMode">भुगतान माध्यम / Payment Mode</Label>
-                    <select
-                      id="paymentMode"
-                      className="w-full border rounded px-3 py-2 mt-1 bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                      value={formData.paymentMode}
-                      onChange={(e) =>
-                        setFormData({ ...formData, paymentMode: e.target.value as any })
-                      }
-                    >
-                      <option value="CASH">नकद (Cash)</option>
-                      <option value="ONLINE">ऑनलाइन (Online / UPI)</option>
-                      <option value="BANK_TRANSFER">बैंक ट्रांसफर (Bank Transfer)</option>
-                      <option value="RAZORPAY">Razorpay Gateway</option>
-                    </select>
-                  </div>
+                  {formData.epinCode && (
+                    <div>
+                      <Label htmlFor="editEpin">ई-पिन वाउचर कोड / E-PIN Voucher</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Input
+                          id="editEpin"
+                          value={formData.epinCode}
+                          readOnly
+                          className="bg-muted font-mono font-semibold text-foreground"
+                        />
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-300 shrink-0">
+                          <KeyRound className="h-3.5 w-3.5 mr-1" /> लागू / Applied
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Informational note for future Dhundh contribution */}
@@ -880,7 +923,7 @@ export default function AddDhundhotsavPage() {
                 </div>
               </div>
 
-              {/* Action Buttons matching General Marriage Add Form */}
+              {/* Action Buttons matching General Marriage Edit Form */}
               <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
                 <Button
                   type="button"
@@ -894,21 +937,41 @@ export default function AddDhundhotsavPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      सहेज रहे हैं...
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      सहेज रहे हैं / Saving...
                     </>
                   ) : (
-                    "आवेदन बनाएं / Create Application"
+                    "ढूंढोत्सव विवरण अपडेट करें / Update Details"
                   )}
                 </Button>
               </div>
             </form>
           </div>
         </div>
+
+        {/* Human Error Protection Confirmation Dialog */}
+        <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>फॉर्म संख्या पुष्टि / Confirm Offline Form Number</AlertDialogTitle>
+              <AlertDialogDescription className="text-base text-gray-800 font-medium pt-2">
+                ऑफलाइन फॉर्म नं. <span className="font-bold text-primary">{formData.offlineFormNumber ? formData.offlineFormNumber.trim() : ""}</span> सही है?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConfirmDialogOpen(false)}>
+                रद्द करें / Edit
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={executeSubmit} disabled={isLoading}>
+                {isLoading ? "Saving..." : "हाँ, सही है / Confirm & Save"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </RoleGuard>
   );

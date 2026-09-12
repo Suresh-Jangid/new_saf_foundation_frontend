@@ -35,6 +35,7 @@ import {
   DollarSign,
   Heart,
   Plus,
+  Edit,
 } from "lucide-react";
 import { RoleGuard } from "@/components/role-guard";
 import {
@@ -169,6 +170,11 @@ export default function DhundhotsavDetailsPage() {
                 <span className="font-mono text-base font-bold text-amber-600">
                   {record.formNumber}
                 </span>
+                {record.offlineFormNumber && (
+                  <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs font-sans">
+                    ऑफलाइन: {record.offlineFormNumber}
+                  </Badge>
+                )}
                 <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-300">
                   DHUNDHOTSAV
                 </Badge>
@@ -188,6 +194,16 @@ export default function DhundhotsavDetailsPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/dashboard/dhundhotsav/edit/${record.id}`)}
+              className="gap-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-200"
+            >
+              <Edit className="h-4 w-4" />
+              <span>संपादित करें / Edit</span>
+            </Button>
+
             <Button
               variant="outline"
               size="sm"

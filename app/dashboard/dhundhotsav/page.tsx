@@ -31,6 +31,7 @@ import {
   RefreshCw,
   Search,
   Eye,
+  Edit,
   Trash2,
   Receipt,
   KeyRound,
@@ -500,6 +501,16 @@ export default function DhundhotsavListPage() {
                                 className="h-8 w-8 p-0"
                               >
                                 <Eye className="h-4 w-4" />
+                              </Button>
+
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => router.push(`/dashboard/dhundhotsav/edit/${reg.id}`)}
+                                title="संपादित करें / Edit"
+                                className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-200"
+                              >
+                                <Edit className="h-4 w-4" />
                               </Button>
 
                               <Button

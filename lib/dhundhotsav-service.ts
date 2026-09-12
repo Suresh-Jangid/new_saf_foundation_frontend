@@ -16,6 +16,7 @@ export interface DhundhotsavInstallment {
 export interface DhundhotsavRegistration {
   id: string;
   formNumber: string;
+  offlineFormNumber?: string | null;
   applicationDate: string;
   applicantName: string;
   fatherName: string;
@@ -65,6 +66,7 @@ export interface DhundhotsavRegistration {
 
 export interface CreateDhundhotsavPayload {
   applicationDate: string;
+  offlineFormNumber?: string | null;
   applicantName: string;
   fatherName: string;
   husbandName?: string | null;
@@ -104,6 +106,7 @@ export interface CreateDhundhotsavPayload {
 }
 
 export interface UpdateDhundhotsavPayload {
+  offlineFormNumber?: string | null;
   applicantName?: string;
   fatherName?: string;
   husbandName?: string | null;

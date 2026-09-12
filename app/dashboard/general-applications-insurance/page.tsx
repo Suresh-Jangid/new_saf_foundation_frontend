@@ -397,8 +397,10 @@ export default function GeneralInsuranceApplicationsPage() {
       const imageData = await processImageData(record.passportPhoto);
 
       // Prepare data for PDF generation
-      const pdfData :any = {
+      const pdfData: any = {
+        ...record,
         formNumber: record.formNumber,
+        offlineFormNumber: (record as any).offlineFormNumber || (record as any).offline_form_number || "",
         applicationDate: record.applicationDate,
         applicantName: record.applicantName,
         fatherName: record.fatherName || record.wifeName || "",
@@ -420,9 +422,8 @@ export default function GeneralInsuranceApplicationsPage() {
         affidavit: record.affidavit,
         gender: record.gender,
         category: record.category,
-        age :record.age
+        age: record.age,
       };
-console.log("hrllll",pdfData);
 
       // Generate PDF using the service
       const pdfBlob = await APIService.generateInsurancePDF(pdfData, imageData || undefined);

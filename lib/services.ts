@@ -283,6 +283,49 @@ export interface SurakshaBimaYojana {
   remark: string;
 }
 
+export interface MayraApplication {
+  id?: string | number;
+  sr_no?: string;
+  formNumber: string;
+  offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
+  applicationDate: string;
+  applicantName: string;
+  fatherName: string;
+  motherName: string;
+  dateOfBirth: string;
+  age: string | number;
+  gotra: string;
+  address: string;
+  aadharNumber: string;
+  mobile: string;
+  nomineeName: string;
+  nomineeFathername?: string;
+  nomineeHusbandName?: string;
+  nomineeGotra?: string;
+  nomineeAddress?: string;
+  nomineeRelation: string;
+  nomineeMobile?: string;
+  pinCode?: string;
+  tehsil?: string;
+  district?: string;
+  state?: string;
+  affidavit?: string;
+  category?: string;
+  gender: string;
+  totalAmount?: number | string;
+  paymentAmount?: number | string;
+  pendingAmount?: number | string;
+  paymentMode?: string;
+  paymentDate?: string;
+  workerName?: string;
+  workerMobile?: string;
+  passportPhoto?: File | string | null;
+  nomineePassportPhoto?: File | string | null;
+  nomineePhoto?: string;
+  is_active?: number;
+}
+
 export interface MayraCongratulations {
   id?: string;
   date: string;

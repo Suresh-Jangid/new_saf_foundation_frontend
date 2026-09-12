@@ -19,6 +19,16 @@ import { formatDate, parseDateFromDDMMYYYY, validatePhoneNumber, getApplicantPho
 import { normalizePaymentModeInput, PAYMENT_MODE_OPTIONS, GENDER_OPTIONS } from "@/lib/form-values"
 import { RoleGuard } from "@/components/role-guard"
 import { useAgeCategory } from "@/hooks/use-age-category"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const normalizeNomineeRelation = (relation?: string): string => {
   const r = (relation || "").trim()
@@ -35,10 +45,13 @@ export default function EditMayraRegistrationPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(true)
   const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile?: string }>>([])
+  const [initialOfflineFormNumber, setInitialOfflineFormNumber] = useState<string>("")
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
 
   const [formData, setFormData] = useState({
     applicationDate: "",
     formNumber: "",
+    offlineFormNumber: "",
     applicantName: "",
     parentName: "",
     motherName: "",
@@ -126,9 +139,21 @@ export default function EditMayraRegistrationPage() {
               setAgents([...fetchedAgents]);
             }
 
+            const offNo = String(
+              getRecordField(
+                record,
+                "offlineFormNumber",
+                "offline_form_number",
+                "offlineFormNo",
+                "membershipNumber"
+              ) || ""
+            )
+            setInitialOfflineFormNumber(offNo)
+
             setFormData({
               applicationDate: formatDate(String(record.applicationDate || "")),
-              formNumber: getRecordField(record, "formNumber", "form_number", "sr_no"),
+              formNumber: getRecordField(record, "formNumber", "form_number", "sr_no") || "",
+              offlineFormNumber: offNo,
               applicantName: getRecordField(record, "applicantName", "applicant_name"),
               parentName: getRecordField(record, "fatherName", "father_name", "parentName", "parent_name"),
               motherName: getRecordField(record, "motherName", "mother_name"),
@@ -237,29 +262,47 @@ export default function EditMayraRegistrationPage() {
     }
   }, [formData.dateOfBirth, calculatedAge, calculatedCategory, calculatedFee])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validateForm = () => {
+    const aadharDigits = formData.aadharNumber.replace(/\D/g, '')
+    if (aadharDigits.length !== 12) {
+      toast.error('कृपया 12 अंकों का आधार नंबर दर्ज करें')
+      return false
+    }
+
+    if (!validatePhoneNumber(formData.nomineeMobile)) {
+      toast.error('कृपया एक वैध 10 अंकों का मोबाइल नंबर दर्ज करें')
+      return false
+    }
+
+    return true
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!validateForm()) return
+
+    const currentOffline = (formData.offlineFormNumber || '').trim()
+    const initialOffline = (initialOfflineFormNumber || '').trim()
+
+    if (currentOffline && currentOffline !== initialOffline) {
+      setConfirmDialogOpen(true)
+    } else {
+      executeSubmit()
+    }
+  }
+
+  const executeSubmit = async () => {
+    setConfirmDialogOpen(false)
     setIsLoading(true)
 
     try {
       const aadharDigits = formData.aadharNumber.replace(/\D/g, '')
-      if (aadharDigits.length !== 12) {
-        toast.error('कृपया 12 अंकों का आधार नंबर दर्ज करें')
-        setIsLoading(false)
-        return
-      }
-
-      if (!validatePhoneNumber(formData.nomineeMobile)) {
-        toast.error('कृपया एक वैध 10 अंकों का मोबाइल नंबर दर्ज करें')
-        setIsLoading(false)
-        return
-      }
-
       const nomineeMobile = formData.nomineeMobile.replace(/\D/g, "")
       const selectedAgent = agents.find((a) => a.id.toString() === formData.selectedAgentId)
 
       const apiFormData = buildEditFormData(id as string, {
         applicationDate: convertToYYYYMMDD(formData.applicationDate),
+        offlineFormNumber: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : "",
         applicantName: formData.applicantName,
         fatherName: formData.parentName,
         motherName: formData.motherName,
@@ -305,7 +348,7 @@ export default function EditMayraRegistrationPage() {
       }
     } catch (error: any) {
       console.error("Error updating registration:", error)
-      toast.error(error.response?.data?.message || "Failed to update registration")
+      toast.error(error.response?.data?.message || error.message || "Failed to update registration")
     } finally {
       setIsLoading(false)
     }
@@ -379,16 +422,43 @@ export default function EditMayraRegistrationPage() {
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">भाणेज/भाणजी का विवरण (Applicant Details)</h2>
 
-                {/* Row 1: Form No + same order as add (Date, Name, Gender) */}
+                {/* Row 1: System Form No, Offline Form No, Date, Name */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <Label>फॉर्म नं. / Form No.</Label>
+                    <Label htmlFor="formNumber">आवेदन क्र. / Form No. (System)</Label>
                     <Input
+                      id="formNumber"
+                      value={formData.formNumber || "-"}
+                      disabled
                       readOnly
-                      className="bg-gray-50 mt-1"
-                      value={formData.formNumber}
+                      className="bg-muted font-semibold text-gray-800 cursor-not-allowed mt-1"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      सिस्टम द्वारा जनरेटेड (संपादन योग्य नहीं)
+                    </p>
                   </div>
+
+                  <div>
+                    <Label htmlFor="offlineFormNumber">ऑफलाइन फॉर्म नं. / Offline Form No.</Label>
+                    <Input
+                      id="offlineFormNumber"
+                      name="offlineFormNumber"
+                      value={formData.offlineFormNumber || ""}
+                      placeholder="उदा. 1259"
+                      maxLength={50}
+                      className="bg-background font-medium mt-1"
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          offlineFormNumber: e.target.value,
+                        }))
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      भौतिक फॉर्म संख्या / Physical offline form number
+                    </p>
+                  </div>
+
                   <div>
                     <Label>आवेदन तिथि / Date</Label>
                     <div className="relative mt-1">
@@ -423,10 +493,14 @@ export default function EditMayraRegistrationPage() {
                       required
                       placeholder="नाम"
                       value={formData.applicantName}
+                      className="mt-1"
                       onChange={e => setFormData(prev => ({ ...prev, applicantName: e.target.value }))}
                     />
                   </div>
+                </div>
 
+                {/* Row 2: Gender, Parent Name, Mother Name, DOB */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <Label>लिंग / Gender</Label>
                     <select
@@ -445,16 +519,14 @@ export default function EditMayraRegistrationPage() {
                       ))}
                     </select>
                   </div>
-                </div>
 
-                {/* Row 2: Father + same order as add (Mother, DOB, Age, Category, Fee, Gotra, Aadhar) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <Label>पुत्र/पुत्री (Son/Daughter of)</Label>
                     <Input
                       required
                       placeholder="पिता का नाम"
                       value={formData.parentName}
+                      className="mt-1"
                       onChange={e => setFormData(prev => ({ ...prev, parentName: e.target.value }))}
                     />
                   </div>
@@ -464,6 +536,7 @@ export default function EditMayraRegistrationPage() {
                       required
                       placeholder="माता का नाम"
                       value={formData.motherName}
+                      className="mt-1"
                       onChange={e => setFormData(prev => ({ ...prev, motherName: e.target.value }))}
                     />
                   </div>
@@ -498,12 +571,15 @@ export default function EditMayraRegistrationPage() {
                       </Popover>
                     </div>
                   </div>
+                </div>
 
+                {/* Row 3: Age, Category, Fee, Gotra */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <Label>उम्र / Age</Label>
                     <Input
                       readOnly
-                      className="bg-gray-50"
+                      className="bg-gray-50 mt-1"
                       value={formData.age}
                     />
                   </div>
@@ -513,7 +589,7 @@ export default function EditMayraRegistrationPage() {
                     <Input
                       readOnly
                       placeholder="Category"
-                      className="bg-gray-50"
+                      className="bg-gray-50 mt-1"
                       value={formData.category}
                     />
                   </div>
@@ -523,7 +599,7 @@ export default function EditMayraRegistrationPage() {
                     <Input
                       readOnly
                       placeholder="Fee"
-                      className="bg-gray-50"
+                      className="bg-gray-50 mt-1"
                       value={formData.fee}
                     />
                   </div>
@@ -534,10 +610,14 @@ export default function EditMayraRegistrationPage() {
                       required
                       placeholder="गोत्र"
                       value={formData.gotra}
+                      className="mt-1"
                       onChange={e => setFormData(prev => ({ ...prev, gotra: e.target.value }))}
                     />
                   </div>
+                </div>
 
+                {/* Row 4: Aadhar */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <Label>आधार नं. (Aadhar No.)</Label>
                     <Input
@@ -545,6 +625,7 @@ export default function EditMayraRegistrationPage() {
                       maxLength={12}
                       placeholder="12 digit Aadhar"
                       value={formData.aadharNumber}
+                      className="mt-1"
                       onChange={e => setFormData(prev => ({ ...prev, aadharNumber: e.target.value.replace(/\D/g, '') }))}
                     />
                   </div>
@@ -805,6 +886,26 @@ export default function EditMayraRegistrationPage() {
             </form>
           </div>
         </div>
+
+        {/* Human Error Protection Confirmation Dialog */}
+        <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>फॉर्म संख्या पुष्टि / Confirm Offline Form Number</AlertDialogTitle>
+              <AlertDialogDescription className="text-base text-gray-800 font-medium pt-2">
+                ऑफलाइन फॉर्म नं. <span className="font-bold text-primary">{(formData.offlineFormNumber || "").trim()}</span> सही है?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConfirmDialogOpen(false)}>
+                रद्द करें / Edit
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={executeSubmit} disabled={isLoading}>
+                {isLoading ? "Saving..." : "हाँ, सही है / Confirm & Save"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </RoleGuard>
   )

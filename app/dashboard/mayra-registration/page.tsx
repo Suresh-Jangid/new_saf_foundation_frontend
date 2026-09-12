@@ -59,6 +59,8 @@ interface MayraRegistrationRecord {
   id: string
   createdAt: string
   formNumber: string
+  offlineFormNumber?: string | null
+  offline_form_number?: string | null
   applicationDate: string
   applicantName: string
   fatherName: string
@@ -285,6 +287,7 @@ export default function MayraRegistrationPage() {
       const excelData = records.map((record) => ({
         "आवेदन तिथि": record.applicationDate,
         "फॉर्म संख्या": record.formNumber,
+        "ऑफलाइन फॉर्म नं.": record.offlineFormNumber || record.offline_form_number || "-",
         "नाम": record.applicantName,
         "पिता का नाम": record.fatherName,
         "माता का नाम": record.motherName,
@@ -441,6 +444,7 @@ export default function MayraRegistrationPage() {
       workerMobile: String(row["कार्यकर्ता मोबाइल"] || "").trim(),
       paymentMode: String(row["भुगतान का माध्यम"] || "Cash").trim(),
       paymentDate: formatExcelDate(row["भुगतान की तिथि"]),
+      offlineFormNumber: String(row["ऑफलाइन फॉर्म नं."] || row["offlineFormNumber"] || "").trim() || undefined,
     };
 
     const res = await createApi(payload);
@@ -451,7 +455,20 @@ export default function MayraRegistrationPage() {
   };
 
   const columns = [
-    { key: "formNumber", label: "फॉर्म संख्या" },
+    {
+      key: "formNumber",
+      label: "फॉर्म संख्या",
+      render: (value: string, record: MayraRegistrationRecord) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-gray-900">{record.formNumber || value || "-"}</span>
+          {(record.offlineFormNumber || record.offline_form_number) ? (
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              ऑफलाइन: <span className="font-medium text-foreground">{record.offlineFormNumber || record.offline_form_number}</span>
+            </span>
+          ) : null}
+        </div>
+      ),
+    },
     { key: "applicationDate", label: "आवेदन तिथि" },
     { key: "applicantName", label: "नाम" },
     { key: "fatherName", label: "पिता का नाम" },
@@ -497,7 +514,7 @@ export default function MayraRegistrationPage() {
           editUrlPattern="/dashboard/mayra-registration/edit/[id]"
           onGenerateBond={handleGenerateBond}
           onGeneratePDFForm={handleGeneratePDF}
-          searchFields={["applicantName", "mobile", "aadharNumber"]}
+          searchFields={["applicantName", "mobile", "aadharNumber", "formNumber", "offlineFormNumber"] as any}
           itemsPerPage={10}
           showGenderFilter={true}
           genderField="gender"

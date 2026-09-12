@@ -27,23 +27,15 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Gift,
   Plus,
   RefreshCw,
   Search,
   Eye,
   Trash2,
   Receipt,
-  User,
-  Calendar,
-  MapPin,
-  CreditCard,
   KeyRound,
-  FileText,
-  DollarSign,
   ChevronLeft,
   ChevronRight,
-  Filter,
 } from "lucide-react";
 import { RoleGuard } from "@/components/role-guard";
 import {
@@ -208,194 +200,135 @@ export default function DhundhotsavListPage() {
 
   return (
     <RoleGuard requiredModule="dhundhotsav" requiredAction="view">
-      <div className="space-y-6 p-4 md:p-6 pb-12 max-w-7xl mx-auto">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border/60 pb-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                <Gift className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-                  ढूंढोत्सव योजना पंजीकरण
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Dhundhotsav Registration Application — Fixed Grant ₹5,100 | Single ₹300 Ledger
-                </p>
-              </div>
-            </div>
+      <div className="p-4 md:p-6 relative">
+        {/* Header matching General Marriage Applications */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900">ढूंढोत्सव योजना पंजीकरण</h1>
+            <p className="text-sm text-gray-600">Dhundhotsav Registration Application</p>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <Button
               variant="outline"
               size="sm"
               onClick={() => fetchRegistrations()}
               disabled={isLoading}
-              className="gap-1.5"
+              className="flex items-center gap-2"
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-              <span>रिफ्रेश / Refresh</span>
+              <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">रिफ्रेश / Refresh</span>
             </Button>
 
             <Button
               size="sm"
               onClick={() => router.push("/dashboard/dhundhotsav/add")}
-              className="gap-1.5 bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
+              className="flex items-center gap-2"
             >
-              <Plus className="h-4 w-4" />
-              <span>नया आवेदन / New Registration</span>
+              <Plus className="w-4 h-4" />
+              <span>+ नया आवेदन / New Registration</span>
             </Button>
           </div>
         </div>
 
-        {/* Single-Ledger Financial Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Card 1: Total Applications */}
-          <Card className="border-border/60 shadow-sm bg-card hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                कुल पंजीकरण / Total Applications
-              </CardTitle>
-              <FileText className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {summary.totalRecords.toLocaleString("hi-IN")}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                सक्रिय ढूंढोत्सव आवेदन / Active records
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Card 2: Fixed Membership Fee */}
-          <Card className="border-border/60 shadow-sm bg-card hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                सदस्यता शुल्क / Grant Fee
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                ₹5,100
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                स्थिर अनुदान राशि (Fixed Non-Age-Based)
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Card 3: ₹300 Ledger Total Paid */}
-          <Card className="border-border/60 shadow-sm bg-card hover:shadow-md transition-shadow border-l-4 border-l-emerald-500">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                कुल जमा / Total Paid
-              </CardTitle>
-              <Receipt className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                ₹{summary.totalPaid.toLocaleString("hi-IN")}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                ₹300 किश्तों से कुल प्राप्त राशि
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Card 4: ₹300 Ledger Total Pending */}
-          <Card className="border-border/60 shadow-sm bg-card hover:shadow-md transition-shadow border-l-4 border-l-rose-500">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                कुल शेष / Total Pending
-              </CardTitle>
-              <CreditCard className="h-4 w-4 text-rose-600 dark:text-rose-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-                ₹{summary.totalPending.toLocaleString("hi-IN")}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                ढूंढोत्सव एकल लेजर शेष राशि
-              </p>
-            </CardContent>
-          </Card>
+        {/* Compact Financial Summary Strip (replaces large bulky cards) */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs sm:text-sm bg-muted/40 px-4 py-2.5 rounded-lg border border-border/60 text-muted-foreground mb-6">
+          <span>
+            कुल पंजीकरण / Total:{" "}
+            <strong className="text-foreground font-semibold">
+              {summary.totalRecords.toLocaleString("hi-IN")}
+            </strong>
+          </span>
+          <span className="hidden sm:inline text-border">|</span>
+          <span>
+            अनुदान राशि / Grant Fee:{" "}
+            <strong className="text-foreground font-semibold">₹5,100</strong>
+          </span>
+          <span className="hidden sm:inline text-border">|</span>
+          <span>
+            कुल जमा / Paid:{" "}
+            <strong className="text-emerald-600 font-semibold">
+              ₹{summary.totalPaid.toLocaleString("hi-IN")}
+            </strong>
+          </span>
+          <span className="hidden sm:inline text-border">|</span>
+          <span>
+            कुल शेष / Pending:{" "}
+            <strong className="text-rose-600 font-semibold">
+              ₹{summary.totalPending.toLocaleString("hi-IN")}
+            </strong>
+          </span>
         </div>
 
-        {/* Search & Filters */}
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="p-4 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {/* Search Box */}
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="नाम / पिता / मोबाइल / आधार / फॉर्म नं..."
-                  value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setPage(1);
-                  }}
-                  className="pl-9 text-sm"
-                />
-              </div>
-
-              {/* Caste/Category Filter */}
-              <div>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => {
-                    setSelectedCategory(e.target.value);
-                    setPage(1);
-                  }}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="ALL">सभी वर्ग / All Categories (A-F)</option>
-                  <option value="A">Category A</option>
-                  <option value="B">Category B</option>
-                  <option value="C">Category C</option>
-                  <option value="D">Category D</option>
-                  <option value="E">Category E</option>
-                  <option value="F">Category F</option>
-                </select>
-              </div>
-
-              {/* District Filter */}
-              <div>
-                <select
-                  value={selectedDistrict}
-                  onChange={(e) => {
-                    setSelectedDistrict(e.target.value);
-                    setPage(1);
-                  }}
-                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="ALL">सभी जिले / All Districts</option>
-                  <option value="Jaipur">जयपुर (Jaipur)</option>
-                  <option value="Jodhpur">जोधपुर (Jodhpur)</option>
-                  <option value="Kota">कोटा (Kota)</option>
-                  <option value="Bikaner">बीकानेर (Bikaner)</option>
-                  <option value="Ajmer">अजमेर (Ajmer)</option>
-                  <option value="Udaipur">उदयपुर (Udaipur)</option>
-                  <option value="Sikar">सीकर (Sikar)</option>
-                  <option value="Nagaur">नागौर (Nagaur)</option>
-                  <option value="Pali">पाली (Pali)</option>
-                  <option value="Alwar">अलवर (Alwar)</option>
-                </select>
-              </div>
+        {/* Search / Filter Toolbar */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 w-full">
+            {/* Search Box */}
+            <div className="relative w-full sm:w-80">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input
+                placeholder="नाम / पिता / मोबाइल / आधार / फॉर्म नं..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-9 text-sm"
+              />
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Registrations List Table */}
-        <Card className="border-border/60 shadow-sm overflow-hidden">
+            {/* Category Filter */}
+            <div className="w-full sm:w-56">
+              <select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="ALL">सभी वर्ग / All Categories (A-F)</option>
+                <option value="A">Category A</option>
+                <option value="B">Category B</option>
+                <option value="C">Category C</option>
+                <option value="D">Category D</option>
+                <option value="E">Category E</option>
+                <option value="F">Category F</option>
+              </select>
+            </div>
+
+            {/* District Filter */}
+            <div className="w-full sm:w-56">
+              <select
+                value={selectedDistrict}
+                onChange={(e) => {
+                  setSelectedDistrict(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="ALL">सभी जिले / All Districts</option>
+                <option value="Jaipur">जयपुर (Jaipur)</option>
+                <option value="Jodhpur">जोधपुर (Jodhpur)</option>
+                <option value="Kota">कोटा (Kota)</option>
+                <option value="Bikaner">बीकानेर (Bikaner)</option>
+                <option value="Ajmer">अजमेर (Ajmer)</option>
+                <option value="Udaipur">उदयपुर (Udaipur)</option>
+                <option value="Sikar">सीकर (Sikar)</option>
+                <option value="Nagaur">नागौर (Nagaur)</option>
+                <option value="Pali">पाली (Pali)</option>
+                <option value="Alwar">अलवर (Alwar)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Registered Applications Section Table Container */}
+        <Card className="border border-border/80 shadow-sm overflow-hidden bg-card">
           <CardHeader className="bg-muted/30 px-6 py-4 border-b border-border/60">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <CardTitle className="text-base font-semibold">
+                <CardTitle className="text-base md:text-lg font-semibold text-gray-900">
                   ढूंढोत्सव पंजीकरण सूची / Registered Applications
                 </CardTitle>
                 <CardDescription className="text-xs text-muted-foreground mt-0.5">
@@ -403,10 +336,10 @@ export default function DhundhotsavListPage() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-300">
+                <Badge variant="outline" className="text-xs bg-muted/50 text-foreground border-border">
                   Pool: MALE_POOL
                 </Badge>
-                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-300">
+                <Badge variant="outline" className="text-xs bg-muted/50 text-foreground border-border">
                   Scheme: DHUNDHOTSAV
                 </Badge>
               </div>
@@ -415,29 +348,28 @@ export default function DhundhotsavListPage() {
 
           <CardContent className="p-0">
             {isLoading ? (
-              <div className="min-h-[280px] flex flex-col items-center justify-center gap-2 p-8">
-                <RefreshCw className="h-7 w-7 animate-spin text-amber-600" />
+              <div className="min-h-[260px] flex flex-col items-center justify-center gap-2 p-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-primary" />
                 <span className="text-sm text-muted-foreground">
                   डेटा लोड हो रहा है... / Loading registrations...
                 </span>
               </div>
             ) : registrations.length === 0 ? (
-              <div className="min-h-[280px] flex flex-col items-center justify-center gap-3 p-8 text-center">
-                <div className="p-3 rounded-full bg-muted text-muted-foreground">
-                  <Gift className="h-8 w-8" />
-                </div>
+              <div className="min-h-[260px] flex flex-col items-center justify-center gap-3 p-8 text-center">
                 <div className="space-y-1">
-                  <h3 className="font-semibold text-base">कोई आवेदन नहीं मिला / No Records Found</h3>
+                  <h3 className="font-semibold text-base text-gray-900">
+                    कोई आवेदन नहीं मिला / No Records Found
+                  </h3>
                   <p className="text-xs text-muted-foreground max-w-sm">
-                    वर्तमान खोज या फ़िल्टर के साथ कोई ढूंढोत्सव रिकॉर्ड उपलब्ध नहीं है।
+                    वर्तमान चयन या फ़िल्टर से कोई रिकॉर्ड उपलब्ध नहीं है।
                   </p>
                 </div>
                 <Button
                   size="sm"
                   onClick={() => router.push("/dashboard/dhundhotsav/add")}
-                  className="mt-2 bg-amber-600 hover:bg-amber-700 text-white"
+                  className="mt-2"
                 >
-                  <Plus className="h-4 w-4 mr-1.5" /> नया पंजीकरण करें / Add Registration
+                  <Plus className="h-4 w-4 mr-1.5" /> + नया पंजीकरण करें / Add Registration
                 </Button>
               </div>
             ) : (
@@ -445,126 +377,161 @@ export default function DhundhotsavListPage() {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-muted/50 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/60">
                     <tr>
-                      <th className="px-4 py-3">फॉर्म नं / Form No</th>
-                      <th className="px-4 py-3">आवेदक / Applicant</th>
+                      <th className="px-4 py-3">सदस्यता / फॉर्म नं.</th>
                       <th className="px-4 py-3">आवेदन दिनांक</th>
+                      <th className="px-4 py-3">आवेदक का नाम</th>
+                      <th className="px-4 py-3">जन्म तिथि / आयु</th>
+                      <th className="px-4 py-3">आधार संख्या</th>
+                      <th className="px-4 py-3">वर्ग</th>
+                      <th className="px-4 py-3">मोबाइल</th>
                       <th className="px-4 py-3">स्थान / Location</th>
-                      <th className="px-4 py-3">सदस्यता शुल्क</th>
-                      <th className="px-4 py-3">₹300 लेजर स्थिति</th>
+                      <th className="px-4 py-3">लेजर स्थिति</th>
                       <th className="px-4 py-3 text-right">कार्य / Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
-                    {registrations.map((reg) => (
-                      <tr
-                        key={reg.id}
-                        className="hover:bg-muted/30 transition-colors"
-                      >
-                        {/* Form Number */}
-                        <td className="px-4 py-3.5 font-mono text-xs font-medium text-foreground whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-amber-600 font-semibold">{reg.formNumber}</span>
-                            {reg.epinCode && (
-                              <span title={`E-PIN: ${reg.epinCode}`}>
-                                <KeyRound className="h-3.5 w-3.5 text-emerald-600 inline" />
-                              </span>
-                            )}
-                          </div>
-                        </td>
+                    {registrations.map((reg) => {
+                      const offlineNo =
+                        (reg as any).offlineFormNumber ||
+                        (reg as any).offline_form_number ||
+                        null;
 
-                        {/* Applicant Name & Details */}
-                        <td className="px-4 py-3.5 whitespace-nowrap">
-                          <div className="font-medium text-foreground">
-                            {reg.applicantName}
-                          </div>
-                          <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
-                            <span>पिता/पति: {reg.fatherName || reg.husbandName || "-"}</span>
-                            <span>•</span>
-                            <span>{reg.mobile}</span>
-                            {reg.gotra && (
-                              <>
-                                <span>•</span>
-                                <span>गोत्र: {reg.gotra}</span>
-                              </>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Application Date */}
-                        <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
-                          <div>{formatDate(reg.applicationDate)}</div>
-                          {reg.dhundhDate && (
-                            <div className="text-[11px] opacity-75 mt-0.5">
-                              ढूंढ: {formatDate(reg.dhundhDate)}
+                      return (
+                        <tr
+                          key={reg.id}
+                          className="hover:bg-muted/30 transition-colors"
+                        >
+                          {/* Form Number */}
+                          <td className="px-4 py-3.5 font-mono text-xs font-medium text-foreground whitespace-nowrap">
+                            <div className="flex flex-col gap-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-semibold text-primary">{reg.formNumber}</span>
+                                {reg.epinCode && (
+                                  <span title={`E-PIN: ${reg.epinCode}`}>
+                                    <KeyRound className="h-3.5 w-3.5 text-emerald-600 inline" />
+                                  </span>
+                                )}
+                              </div>
+                              {offlineNo && (
+                                <span className="text-[11px] text-muted-foreground font-sans">
+                                  ऑफलाइन: {offlineNo}
+                                </span>
+                              )}
                             </div>
-                          )}
-                        </td>
+                          </td>
 
-                        {/* Location */}
-                        <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
-                          <div>{reg.tehsil}, {reg.district}</div>
-                          <div className="text-[11px] opacity-75">{reg.state} - {reg.pinCode}</div>
-                        </td>
+                          {/* Application Date */}
+                          <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
+                            <div>{formatDate(reg.applicationDate)}</div>
+                            {reg.dhundhDate && (
+                              <div className="text-[11px] opacity-75 mt-0.5">
+                                ढूंढ: {formatDate(reg.dhundhDate)}
+                              </div>
+                            )}
+                          </td>
 
-                        {/* Fixed Fee */}
-                        <td className="px-4 py-3.5 whitespace-nowrap">
-                          <Badge variant="outline" className="font-semibold text-amber-600 border-amber-300 bg-amber-50/30">
-                            ₹5,100
-                          </Badge>
-                        </td>
+                          {/* Applicant Name & Details */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <div className="font-medium text-foreground">
+                              {reg.applicantName}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                              <span>पिता: {reg.fatherName || reg.husbandName || "-"}</span>
+                              {reg.gotra && (
+                                <>
+                                  <span>•</span>
+                                  <span>गोत्र: {reg.gotra}</span>
+                                </>
+                              )}
+                            </div>
+                          </td>
 
-                        {/* Single ₹300 Ledger Status */}
-                        <td className="px-4 py-3.5 text-xs whitespace-nowrap">
-                          <div className="text-emerald-600 font-medium">
-                            जमा: ₹{(Number(reg.paidAmount) || 0).toLocaleString("hi-IN")}
-                          </div>
-                          <div className="text-rose-600 text-[11px]">
-                            शेष: ₹{(Number(reg.pendingAmount) || 0).toLocaleString("hi-IN")}
-                          </div>
-                        </td>
+                          {/* DOB / Age */}
+                          <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
+                            <div>{reg.dateOfBirth ? formatDate(reg.dateOfBirth) : "-"}</div>
+                            {reg.age ? (
+                              <div className="text-[11px] text-foreground font-medium mt-0.5">
+                                {reg.age} वर्ष
+                              </div>
+                            ) : null}
+                          </td>
 
-                        {/* Actions */}
-                        <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => router.push(`/dashboard/dhundhotsav/${reg.id}`)}
-                              title="विवरण देखें / View Details"
-                              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                          {/* Aadhaar */}
+                          <td className="px-4 py-3.5 font-mono text-xs text-muted-foreground whitespace-nowrap">
+                            {reg.aadharNumber || "-"}
+                          </td>
 
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openInstallmentModal(reg)}
-                              title="किश्त दर्ज करें / Add ₹300 Installment"
-                              className="h-8 px-2.5 text-xs gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-300"
-                            >
-                              <Receipt className="h-3.5 w-3.5" />
-                              <span>₹300 किश्त</span>
-                            </Button>
+                          {/* Category */}
+                          <td className="px-4 py-3.5 whitespace-nowrap">
+                            <Badge variant="outline" className="text-xs">
+                              Category {reg.category || "-"}
+                            </Badge>
+                          </td>
 
-                            {isAdmin() && (
+                          {/* Mobile */}
+                          <td className="px-4 py-3.5 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                            {reg.mobile}
+                          </td>
+
+                          {/* Location */}
+                          <td className="px-4 py-3.5 text-xs text-muted-foreground whitespace-nowrap">
+                            <div>{reg.tehsil || reg.address || "-"}, {reg.district}</div>
+                            <div className="text-[11px] opacity-75">{reg.state} {reg.pinCode ? `- ${reg.pinCode}` : ""}</div>
+                          </td>
+
+                          {/* Single ₹300 Ledger Status */}
+                          <td className="px-4 py-3.5 text-xs whitespace-nowrap">
+                            <div className="text-emerald-600 font-medium">
+                              जमा: ₹{(Number(reg.paidAmount) || 0).toLocaleString("hi-IN")}
+                            </div>
+                            <div className="text-rose-600 text-[11px]">
+                              शेष: ₹{(Number(reg.pendingAmount) || 0).toLocaleString("hi-IN")}
+                            </div>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1">
                               <Button
                                 size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setRecordToDelete(reg.id);
-                                  setIsDeleteModalOpen(true);
-                                }}
-                                title="हटाएं / Delete"
-                                className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                                variant="outline"
+                                onClick={() => router.push(`/dashboard/dhundhotsav/${reg.id}`)}
+                                title="विवरण देखें / View Details"
+                                className="h-8 w-8 p-0"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Eye className="h-4 w-4" />
                               </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openInstallmentModal(reg)}
+                                title="किश्त दर्ज करें / Add ₹300 Installment"
+                                className="h-8 px-2.5 text-xs gap-1 text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300"
+                              >
+                                <Receipt className="h-3.5 w-3.5" />
+                                <span>₹300 किश्त</span>
+                              </Button>
+
+                              {isAdmin() && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setRecordToDelete(reg.id);
+                                    setIsDeleteModalOpen(true);
+                                  }}
+                                  title="हटाएं / Delete"
+                                  className="h-8 w-8 p-0 text-rose-500 hover:text-rose-700 hover:bg-rose-50 border-rose-200"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -606,7 +573,7 @@ export default function DhundhotsavListPage() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-lg">
-                <Receipt className="h-5 w-5 text-amber-600" />
+                <Receipt className="h-5 w-5 text-emerald-600" />
                 <span>ढूंढोत्सव किश्त भुगतान दर्ज करें (₹300)</span>
               </DialogTitle>
               <DialogDescription className="text-xs">
@@ -709,7 +676,6 @@ export default function DhundhotsavListPage() {
                   type="submit"
                   size="sm"
                   disabled={isSubmittingInstallment}
-                  className="bg-amber-600 hover:bg-amber-700 text-white"
                 >
                   {isSubmittingInstallment ? "सहेज रहे हैं..." : "₹300 किश्त दर्ज करें / Submit"}
                 </Button>

@@ -459,9 +459,6 @@ export default function GeneralApplicationsPage() {
       record.added_code ||
       record.addedBy?.agentCode ||
       record.addedBy?.code ||
-      record.addedby_id ||
-      record.addedById ||
-      record.selectedAgentId ||
       "",
     राशि:
       record.totalAmount ||
@@ -474,13 +471,10 @@ export default function GeneralApplicationsPage() {
     भुगतान_विवरण:
       record.paymentModeRef ||
       record.paymentRef ||
-      record.payment_mode ||
       record.paymentMode ||
-      record.utr_no ||
+      record.payment_mode ||
       record.utrNo ||
-      record.transaction_id ||
-      record.transactionId ||
-      record.razorpay_payment_id ||
+      record.utr_no ||
       "",
     सीनियर_कोड:
       record.seniorCode ||
@@ -491,7 +485,7 @@ export default function GeneralApplicationsPage() {
       record.senior_agent_code ||
       "",
     शपथ_नाम: record.applicantName || record.applicant_name || "",
-    शपथ_पिता_का_नाम: record.fatherName || record.father_name || record.father_husband_name || "",
+    शपथ_पिता_का_नाम: record.fatherName || record.father_name || record.father_husband_name || record.husbandName || "",
     शपथ_गोत्र: record.gotra || "",
     शपथ_पता: record.address || "",
   });

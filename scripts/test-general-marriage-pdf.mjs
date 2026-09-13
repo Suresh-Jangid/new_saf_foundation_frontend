@@ -61,6 +61,20 @@ async function runTests() {
     assert.ok(pageContent.includes('सीनियर_कोड:'), 'Must map seniorCode');
   });
 
+  it('GeneralApplicationsPage and route do NOT map raw database UUIDs or ObjectIDs to workerCode', () => {
+    assert.ok(!routeContent.includes("'addedby_id'"), 'Route valueKeys must not include addedby_id');
+    assert.ok(!routeContent.includes("'addedById'"), 'Route valueKeys must not include addedById');
+    assert.ok(!routeContent.includes("'selectedAgentId'"), 'Route valueKeys must not include selectedAgentId');
+    
+    // Extract mapToHindiFields block from pageContent
+    const mapMatch = pageContent.match(/const mapToHindiFields = [\s\S]*?\n  \};/);
+    assert.ok(mapMatch, 'mapToHindiFields must be defined');
+    const mapBlock = mapMatch[0];
+    assert.ok(!mapBlock.includes('addedby_id'), 'mapToHindiFields must not use addedby_id for worker code');
+    assert.ok(!mapBlock.includes('addedById'), 'mapToHindiFields must not use addedById for worker code');
+    assert.ok(!mapBlock.includes('selectedAgentId'), 'mapToHindiFields must not use selectedAgentId for worker code');
+  });
+
   it('fill-pdf-form route supports comprehensive valueKeys for all required fields', () => {
     assert.ok(routeContent.includes("'offlineFormNumber'"), 'route must include offlineFormNumber');
     assert.ok(routeContent.includes("'nomineeAadhar'"), 'route must include nomineeAadhar');
@@ -76,68 +90,130 @@ async function runTests() {
     assert.ok(routeContent.includes('maxW'), 'route must implement maxW auto scaling');
   });
 
-  console.log('\n3. Dual Number & Historical PDF Generation Simulation...');
+  console.log('\n3. Dual Number & Multi-Scenario PDF Generation Verification...');
   const existingPdfBytes = fs.readFileSync(templatePath);
   const fontBytes = fs.readFileSync(fontPath);
 
-  const sampleDualRecord = {
-    id: "test-gen-dual-001",
-    formNumber: "M-021",
-    offlineFormNumber: "1269",
-    applicationDate: "2026-09-13",
-    applicantName: "सुनीता पुरबिया",
-    fatherName: "रमेश पुरबिया",
-    dateOfBirth: "1998-05-15",
-    aadharNumber: "8901 2345 6789",
-    gender: "Female",
-    education: "स्नातक (B.A.)",
-    mobile: "9876543210",
-    address: "वार्ड नं. 4, समदड़ी, जिला - बालोतरा (राज.)",
-    district: "बालोतरा",
-    state: "राजस्थान",
-    nomineeName: "महेन्द्र पुरबिया",
-    nomineeRelation: "भाई",
-    nomineeAadhar: "1234 5678 9012",
-    nomineeMobile: "9876543211",
-    workerCode: "AGT-042",
-    amount: "25000",
-    paymentModeRef: "UPI / UTR: 423984729834",
-    seniorCode: "SNR-005",
-  };
+  // Define 4 test cases
+  const testCases = [
+    {
+      id: 'case_1_normal_complete',
+      desc: 'Case 1: Normal Complete Record (Dual Number M-021 + 1269)',
+      data: {
+        formNumber: 'M-021',
+        offlineFormNumber: '1269',
+        applicationDate: '2026-09-12',
+        applicantName: 'सुनीता पुरबिया',
+        fatherName: 'रमेश पुरबिया',
+        dateOfBirth: '1998-05-15',
+        aadharNumber: '8904 5678 9012',
+        gender: 'Female',
+        education: 'स्नातक (B.A.)',
+        mobile: '9876543210',
+        address: 'वार्ड नं. 4, समदड़ी, जिला - बालोतरा (राज.)',
+        district: 'बालोतरा',
+        state: 'राजस्थान',
+        nomineeName: 'महेन्द्र पुरबिया',
+        nomineeRelation: 'भाई',
+        nomineeAadhar: '1234 5678 9012',
+        nomineeMobile: '9876543211',
+        workerCode: 'AG-104',
+        amount: '25000',
+        paymentModeRef: 'UPI / UTR: 423984729834',
+        seniorCode: 'SNR-005',
+      },
+    },
+    {
+      id: 'case_2_historical_no_offline',
+      desc: 'Case 2: Historical Record with No Offline Number (SAF-104)',
+      data: {
+        formNumber: 'SAF-104',
+        offlineFormNumber: null,
+        applicationDate: '2026-08-20',
+        applicantName: 'विकास चौधरी',
+        fatherName: 'सुरेश चौधरी',
+        dateOfBirth: '1995-10-12',
+        aadharNumber: '4567 8901 2345',
+        gender: 'Male',
+        education: '12वीं पास',
+        mobile: '9414012345',
+        address: 'गांव - सिवाना, तहसील - समदड़ी, जिला - बालोतरा (राज.)',
+        district: 'बालोतरा',
+        state: 'राजस्थान',
+        nomineeName: 'कौशल्या देवी',
+        nomineeRelation: 'माता',
+        nomineeAadhar: '6789 0123 4567',
+        nomineeMobile: '9414054321',
+        workerCode: 'AG-018',
+        amount: '21000',
+        paymentModeRef: 'Cash / नकद',
+        seniorCode: 'SNR-002',
+      },
+    },
+    {
+      id: 'case_3_long_text',
+      desc: 'Case 3: Long Text (Long Name & Extended Multi-Line Address)',
+      data: {
+        formNumber: 'M-099',
+        offlineFormNumber: '54321',
+        applicationDate: '2026-09-01',
+        applicantName: 'श्रीमती पद्मावती देवी कुमारी पुरबिया धर्मपत्नी श्री कल्याणमल जी',
+        fatherName: 'श्री कल्याणमल जी पुरबिया निवासी सिवाना समदड़ी',
+        dateOfBirth: '1990-01-01',
+        aadharNumber: '9999 8888 7777',
+        gender: 'Female',
+        education: 'परास्नातक (M.A. Hindi Literature)',
+        mobile: '9829012345',
+        address: 'मकान संख्या 142/B, मुख्य बाजार के पीछे, रेलवे स्टेशन रोड, समदड़ी, जिला - बालोतरा, राजस्थान - 344021',
+        district: 'बालोतरा',
+        state: 'राजस्थान',
+        nomineeName: 'कल्याणमल पुरबिया',
+        nomineeRelation: 'पति',
+        nomineeAadhar: '1111 2222 3333',
+        nomineeMobile: '9829099999',
+        workerCode: 'AG-999',
+        amount: '51000',
+        paymentModeRef: 'NEFT/RTGS: PUNB00987654321',
+        seniorCode: 'SNR-999',
+      },
+    },
+    {
+      id: 'case_4_missing_optional',
+      desc: 'Case 4: Missing Optional Nominee and Payment Ref Fields',
+      data: {
+        formNumber: 'M-101',
+        offlineFormNumber: '2001',
+        applicationDate: '2026-09-10',
+        applicantName: 'राकेश कुमार',
+        fatherName: 'हनुमान राम',
+        dateOfBirth: '2000-03-25',
+        aadharNumber: '7777 6666 5555',
+        gender: 'Male',
+        education: '10वीं',
+        mobile: '9123456780',
+        address: 'समदड़ी',
+        district: 'बालोतरा',
+        state: 'राजस्थान',
+        nomineeName: '',
+        nomineeRelation: '',
+        nomineeAadhar: '',
+        nomineeMobile: '',
+        workerCode: '',
+        amount: '25000',
+        paymentModeRef: '',
+        seniorCode: '',
+      },
+    },
+  ];
 
-  const sampleHistoricalRecord = {
-    id: "test-gen-hist-002",
-    formNumber: "SAF-104",
-    offlineFormNumber: null,
-    applicationDate: "2026-08-20",
-    applicantName: "विकास चौधरी",
-    fatherName: "सुरेश चौधरी",
-    dateOfBirth: "1995-10-12",
-    aadharNumber: "4567 8901 2345",
-    gender: "Male",
-    education: "12वीं पास",
-    mobile: "9414012345",
-    address: "गांव - सिवाना, तहसील - समदड़ी, जिला - बालोतरा (राज.)",
-    district: "बालोतरा",
-    state: "राजस्थान",
-    nomineeName: "कौशल्या देवी",
-    nomineeRelation: "माता",
-    nomineeAadhar: "6789 0123 4567",
-    nomineeMobile: "9414054321",
-    workerCode: "AGT-018",
-    amount: "21000",
-    paymentModeRef: "Cash / नकद",
-    seniorCode: "SNR-002",
-  };
-
-  async function generateTestPdf(data, filename) {
+  async function generateAndVerify(scenario) {
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     pdfDoc.registerFontkit(fontkit);
     const font = await pdfDoc.embedFont(fontBytes, { subset: false });
     const page = pdfDoc.getPages()[0];
     const { width: pageWidth, height: pageHeight } = page.getSize();
 
-    const drawBounded = (text, x, y, size = 10, maxW, color = rgb(0.1, 0.1, 0.1)) => {
+    const drawBounded = (text, x, y_bl, size = 10, maxW, color = rgb(0.1, 0.1, 0.1)) => {
       if (!text) return;
       const str = String(text).trim();
       if (!str) return;
@@ -150,7 +226,7 @@ async function runTests() {
       }
       page.drawText(str, {
         x,
-        y,
+        y: y_bl,
         size: s,
         font,
         color,
@@ -159,90 +235,101 @@ async function runTests() {
 
     const formatDate = (val) => {
       if (!val) return '';
-      const d = new Date(val);
-      if (isNaN(d.getTime())) return String(val);
-      const day = String(d.getDate()).padStart(2, '0');
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const year = d.getFullYear();
-      return `${day}/${month}/${year}`;
+      const parts = String(val).split('-');
+      if (parts.length === 3 && parts[0].length === 4) {
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      return String(val);
     };
 
+    const d = scenario.data;
+
     // UPPER SECTION
-    drawBounded(data.formNumber, 135, 650.5, 10.5, 85, rgb(0, 0.15, 0.6));
-    if (data.offlineFormNumber) {
-      drawBounded(data.offlineFormNumber, 230, 650.5, 10, 180, rgb(0, 0.15, 0.6));
+    // Line 1: क्रमांक : NGO/26/ [System No]  [Offline No]      दिनांक [Date]
+    drawBounded(d.formNumber, 125, 646.3, 10, 90, rgb(0, 0.15, 0.6));
+    if (d.offlineFormNumber) {
+      drawBounded(d.offlineFormNumber, 250, 646.3, 10, 175, rgb(0, 0.15, 0.6));
     }
-    drawBounded(formatDate(data.applicationDate), 455, 650.5, 9.5, 100);
+    drawBounded(formatDate(d.applicationDate), 445, 646.3, 9.5, 105);
 
-    drawBounded(data.applicantName, 72, 616.5, 10, 380);
-    drawBounded(data.fatherName, 138, 582.5, 10, 315);
+    // Line 2: नाम [Applicant Name]
+    drawBounded(d.applicantName, 62, 618.6, 10, 390);
 
-    drawBounded(formatDate(data.dateOfBirth), 106, 548.5, 9.5, 70);
-    drawBounded(data.gender === 'Female' ? 'महिला' : 'पुरुष', 210, 548.5, 9.5, 55);
-    drawBounded(data.education, 315, 548.5, 9.5, 135);
+    // Line 3: पिता/पति का नाम [Father/Husband Name]
+    drawBounded(d.fatherName, 122, 590.8, 10, 330);
 
-    drawBounded(data.aadharNumber, 148, 514.5, 10, 305);
-    drawBounded(data.address, 68, 480.5, 9.5, 385);
+    // Line 4: जन्म दिनांक [DOB]  लिंग [Gender]  शिक्षा [Education]
+    drawBounded(formatDate(d.dateOfBirth), 92, 563.1, 9.5, 75);
+    drawBounded(d.gender === 'Female' ? 'महिला' : d.gender === 'Male' ? 'पुरुष' : d.gender, 198, 563.1, 9.5, 62);
+    drawBounded(d.education, 295, 563.1, 9.5, 155);
 
-    drawBounded(data.district, 72, 446.5, 9.5, 95);
-    drawBounded(data.state, 208, 446.5, 9.5, 95);
-    drawBounded(data.mobile, 358, 446.5, 9.5, 195);
+    // Line 5: आवेदन के आधार नं. [Aadhaar Number]
+    drawBounded(d.aadharNumber, 130, 535.4, 10, 320);
 
-    drawBounded(data.nomineeName, 120, 412.5, 10, 190);
-    drawBounded(data.nomineeRelation, 358, 412.5, 10, 195);
+    // Line 6: पता [Address]
+    drawBounded(d.address, 58, 507.7, 9.5, 390);
 
-    drawBounded(data.nomineeAadhar, 140, 378.5, 9.5, 125);
-    drawBounded(data.nomineeMobile, 295, 378.5, 9.5, 115);
-    drawBounded(data.workerCode, 478, 378.5, 9.5, 75);
+    // Line 7: जिला [District]  राज्य [State]  मो. नं. [Mobile]
+    drawBounded(d.district, 65, 479.9, 9.5, 92);
+    drawBounded(d.state, 190, 479.9, 9.5, 105);
+    drawBounded(d.mobile, 332, 479.9, 9.5, 215);
 
-    const amtStr = data.amount ? `${data.amount}/-` : '';
-    drawBounded(amtStr, 68, 344.5, 9.5, 90);
-    drawBounded(data.paymentModeRef, 282, 344.5, 9.5, 130);
-    drawBounded(data.seniorCode, 480, 344.5, 9.5, 75);
+    // Line 8: नॉमिनी का नाम [Nominee Name]  सम्बन्ध [Nominee Relation]
+    drawBounded(d.nomineeName, 108, 452.2, 10, 185);
+    drawBounded(d.nomineeRelation, 338, 452.2, 10, 210);
 
-    // LOWER RECEIPT SECTION
-    drawBounded(data.formNumber, 135, 177.5, 10.5, 85, rgb(0, 0.15, 0.6));
-    if (data.offlineFormNumber) {
-      drawBounded(data.offlineFormNumber, 225, 177.5, 10, 180, rgb(0, 0.15, 0.6));
+    // Line 9: नॉमिनी का आधार नं. [Nominee Aadhaar]  मो. [Nominee Mobile]  कार्यकर्ता कोड [Worker Code]
+    drawBounded(d.nomineeAadhar, 130, 424.5, 9.5, 120);
+    drawBounded(d.nomineeMobile, 275, 424.5, 9.5, 125);
+    drawBounded(d.workerCode, 472, 424.5, 9.5, 75);
+
+    // Line 10: राशि [Amount]  नकद/चैक/डी.डी./यूटीआर नं. [Payment Ref]  सीनियर कोड [Senior Code]
+    const amtStr = d.amount ? `${d.amount}/-` : '';
+    drawBounded(amtStr, 60, 396.8, 9.5, 90);
+    drawBounded(d.paymentModeRef, 285, 396.8, 9.5, 120);
+    drawBounded(d.seniorCode, 472, 396.8, 9.5, 75);
+
+    // LOWER RECEIPT
+    // Line R1: क्रमांक : NGO/26/ [System No]  [Offline No]      दिनांक [Date]
+    drawBounded(d.formNumber, 125, 178.8, 10, 90, rgb(0, 0.15, 0.6));
+    if (d.offlineFormNumber) {
+      drawBounded(d.offlineFormNumber, 240, 178.8, 10, 190, rgb(0, 0.15, 0.6));
     }
-    drawBounded(formatDate(data.applicationDate), 480, 177.5, 9.5, 75);
+    drawBounded(formatDate(d.applicationDate), 472, 178.8, 9.5, 80);
 
-    drawBounded(data.applicantName, 65, 149.5, 10, 185);
-    drawBounded(data.fatherName, 335, 149.5, 10, 215);
-    drawBounded(data.address, 65, 120.5, 9.5, 485);
-    drawBounded(data.mobile, 65, 92.5, 9.5, 170);
-    drawBounded(data.paymentModeRef, 315, 92.5, 9.5, 235);
-    drawBounded(amtStr, 92, 63.5, 9.5, 145);
-    drawBounded(amtStr, 115, 43.0, 11, 130, rgb(0, 0.15, 0.6));
+    // Line R2: नाम [Applicant Name]      पिता/पति का नाम [Father/Husband Name]
+    drawBounded(d.applicantName, 58, 157.0, 10, 180);
+    drawBounded(d.fatherName, 330, 157.0, 10, 218);
 
-    const outPdfBytes = await pdfDoc.save();
-    const outDir = path.join(process.cwd(), 'test-output');
-    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-    const outPath = path.join(outDir, filename);
-    fs.writeFileSync(outPath, outPdfBytes);
+    // Line R3: पता [Address]
+    drawBounded(d.address, 58, 135.1, 9.5, 490);
 
-    it(`PDF ${filename} has exactly 1 page`, () => {
-      assert.strictEqual(pdfDoc.getPageCount(), 1, 'Must have exactly 1 page');
+    // Line R4: मो. [Mobile]      नकद/चैक/डीडी [Payment Mode/Ref]
+    drawBounded(d.mobile, 55, 113.2, 9.5, 172);
+    drawBounded(d.paymentModeRef, 308, 113.2, 9.5, 240);
+
+    // Line R5: बाबत राशि [Amount Text]
+    drawBounded(amtStr, 88, 91.3, 9.5, 142);
+
+    // Line R6: रु [Amount in Box]
+    drawBounded(amtStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
+
+    const outPdf = path.resolve('test-output', `${scenario.id}.pdf`);
+    const outPng = path.resolve('test-output', `${scenario.id}.png`);
+    const bytes = await pdfDoc.save();
+    fs.writeFileSync(outPdf, bytes);
+    await renderPdfToImage(outPdf, outPng, 2.0);
+
+    it(`${scenario.desc} generated valid 1-page PDF (${(bytes.length / 1024).toFixed(1)} KB)`, () => {
+      assert.strictEqual(pdfDoc.getPageCount(), 1);
+      assert.ok(bytes.length > 400000);
+      assert.ok(fs.existsSync(outPng));
     });
-
-    it(`PDF ${filename} file size is valid (>400KB)`, () => {
-      const stats = fs.statSync(outPath);
-      assert.ok(stats.size > 400000, `Size must be > 400KB (actual: ${stats.size})`);
-    });
-
-    return { outPath, pdfDoc };
   }
 
-  await generateTestPdf(sampleDualRecord, 'test_general_marriage_dual_official.pdf');
-  await generateTestPdf(sampleHistoricalRecord, 'test_general_marriage_historical_official.pdf');
-
-  it('Dual form number renders M-021 and 1269 properly without overlap', () => {
-    assert.ok(fs.existsSync('test-output/test_general_marriage_dual_official.pdf'));
-  });
-
-  it('Historical form renders SAF-104 with empty offline number', () => {
-    assert.ok(fs.existsSync('test-output/test_general_marriage_historical_official.pdf'));
-  });
+  for (const sc of testCases) {
+    await generateAndVerify(sc);
+  }
 
   console.log('\n============================================================');
   console.log(`TEST RESULTS: ${passCount} PASSED, ${failCount} FAILED`);
@@ -253,7 +340,7 @@ async function runTests() {
   }
 }
 
-runTests().catch((err) => {
-  console.error('Fatal test error:', err);
+runTests().catch(err => {
+  console.error(err);
   process.exit(1);
 });

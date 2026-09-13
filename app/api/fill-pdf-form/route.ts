@@ -173,45 +173,76 @@ export async function POST(request: NextRequest) {
 
     if (type === 'general-application') {
       // Calibrated single-page official template with 2 distinct sections
+      // Coordinate System: top-left (y represents distance from top of page, pageHeight = 841.89)
       fieldDefinitions = [
         // ==========================================
         // SECTION 1: "आवेदन–फॉर्म" (Top Section)
         // ==========================================
-        { field: 'क्रमांक', valueKeys: ['सदस्यता_क्रमांक', 'formNumber', 'applicationNumber', 'application_no', 'form_number'], x: 135, y: 191.4, maxW: 85, size: 10.5, color: { r: 0, g: 0.15, b: 0.6 } },
-        { field: 'ऑफलाइन_फॉर्म_नं', valueKeys: ['ऑफलाइन_फॉर्म_नं', 'offlineFormNumber', 'offline_form_number', 'offlineFormNo'], x: 230, y: 191.4, maxW: 180, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-        { field: 'दिनांक', valueKeys: ['आवेदन_दिनांक', 'applicationDate', 'date', 'created_at', 'application_date'], x: 455, y: 191.4, maxW: 100, size: 9.5, isDate: true },
-        { field: 'नाम', valueKeys: ['आवेदक_का_नाम', 'applicantName', 'name', 'shapath_name', 'शपथ_नाम', 'applicant_name'], x: 72, y: 225.4, maxW: 380, size: 10 },
-        { field: 'पिता_का_नाम', valueKeys: ['पिता_का_नाम', 'fatherName', 'father_husband_name', 'father_name', 'शपथ_पिता_का_नाम'], x: 138, y: 259.4, maxW: 315, size: 10 },
-        { field: 'जन्म_दिनांक', valueKeys: ['जन्म_तिथि', 'dateOfBirth', 'dob', 'date_of_birth'], x: 106, y: 293.4, maxW: 70, size: 9.5, isDate: true },
-        { field: 'लिंग', valueKeys: ['gender', 'लिंग'], x: 210, y: 293.4, maxW: 55, size: 9.5 },
-        { field: 'शिक्षा', valueKeys: ['education', 'शिक्षा', 'qualification'], x: 315, y: 293.4, maxW: 135, size: 9.5 },
-        { field: 'आधार_संख्या', valueKeys: ['आधार_संख्या', 'aadharNumber', 'aadhar_no', 'aadhaar', 'aadhar_number'], x: 148, y: 327.4, maxW: 305, size: 10 },
-        { field: 'पता', valueKeys: ['पता', 'address', 'full_address', 'शपथ_पता'], x: 68, y: 361.4, maxW: 385, size: 9.5 },
-        { field: 'जिला', valueKeys: ['जिला', 'district'], x: 72, y: 395.4, maxW: 95, size: 9.5 },
-        { field: 'राज्य', valueKeys: ['राज्य', 'state'], x: 208, y: 395.4, maxW: 95, size: 9.5 },
-        { field: 'मोबाइल', valueKeys: ['मोबाइल', 'mobile', 'phone'], x: 358, y: 395.4, maxW: 195, size: 9.5 },
-        { field: 'नामिनी_का_नाम', valueKeys: ['नामिनी_का_नाम', 'nomineeName', 'nominee_name'], x: 120, y: 429.4, maxW: 190, size: 10 },
-        { field: 'नामिनी_का_सम्बन्ध', valueKeys: ['नामिनी_का_सम्बन्ध', 'nomineeRelation', 'nominee_relation'], x: 358, y: 429.4, maxW: 195, size: 10 },
-        { field: 'नामिनी_का_आधार', valueKeys: ['नामिनी_का_आधार', 'nomineeAadhar', 'nominee_aadhar', 'nomineeAadharNumber', 'nominee_aadhaar', 'nominee_aadhar_number', 'nominee_aadhaar_number'], x: 140, y: 463.4, maxW: 125, size: 9.5 },
-        { field: 'नामिनी_का_मोबाइल', valueKeys: ['नामिनी_का_मोबाइल', 'nomineeMobile', 'nominee_mobile', 'nomineePhone', 'nominee_phone', 'nomineeMobileNumber'], x: 295, y: 463.4, maxW: 115, size: 9.5 },
-        { field: 'कार्यकर्ता_कोड', valueKeys: ['कार्यकर्ता_कोड', 'workerCode', 'worker_code', 'agentCode', 'agent_code', 'added_code', 'addedby_id', 'addedById', 'selectedAgentId', 'कार्यकर्ता_का_नाम', 'added_name', 'workerName'], x: 478, y: 463.4, maxW: 75, size: 9.5 },
-        { field: 'राशि', valueKeys: ['राशि', 'amount', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 68, y: 497.4, maxW: 90, size: 9.5, formatAmount: true },
-        { field: 'भुगतान_विवरण', valueKeys: ['भुगतान_विवरण', 'paymentModeRef', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo', 'transaction_id', 'transactionId', 'razorpay_payment_id', 'payment_type'], x: 282, y: 497.4, maxW: 130, size: 9.5 },
-        { field: 'सीनियर_कोड', valueKeys: ['सीनियर_कोड', 'seniorCode', 'senior_code', 'seniorWorker', 'senior_worker', 'seniorAgentCode', 'senior_agent_code'], x: 480, y: 497.4, maxW: 75, size: 9.5 },
+        // Line 1: क्रमांक : NGO/26/ [System No]  [Offline No]      दिनांक [Date]
+        { field: 'क्रमांक', valueKeys: ['formNumber', 'सदस्यता_क्रमांक', 'applicationNumber', 'application_no', 'form_number'], x: 125, y: 195.6, maxW: 90, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'ऑफलाइन_फॉर्म_नं', valueKeys: ['offlineFormNumber', 'ऑफलाइन_फॉर्म_नं', 'offline_form_number', 'offlineFormNo'], x: 250, y: 195.6, maxW: 175, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'दिनांक', valueKeys: ['applicationDate', 'आवेदन_दिनांक', 'date', 'created_at', 'application_date'], x: 445, y: 195.6, maxW: 105, size: 9.5, isDate: true },
+
+        // Line 2: नाम [Applicant Name]
+        { field: 'नाम', valueKeys: ['applicantName', 'आवेदक_का_नाम', 'name', 'applicant_name'], x: 62, y: 223.3, maxW: 390, size: 10 },
+
+        // Line 3: पिता/पति का नाम [Father/Husband Name]
+        { field: 'पिता_का_नाम', valueKeys: ['fatherName', 'पिता_का_नाम', 'father_husband_name', 'father_name', 'husbandName', 'husband_name'], x: 122, y: 251.1, maxW: 330, size: 10 },
+
+        // Line 4: जन्म दिनांक [DOB]  लिंग [Gender]  शिक्षा [Education]
+        { field: 'जन्म_दिनांक', valueKeys: ['dateOfBirth', 'जन्म_तिथि', 'dob', 'date_of_birth'], x: 92, y: 278.8, maxW: 75, size: 9.5, isDate: true },
+        { field: 'लिंग', valueKeys: ['gender', 'लिंग'], x: 198, y: 278.8, maxW: 62, size: 9.5 },
+        { field: 'शिक्षा', valueKeys: ['education', 'शिक्षा', 'qualification'], x: 295, y: 278.8, maxW: 155, size: 9.5 },
+
+        // Line 5: आवेदन के आधार नं. [Aadhaar Number]
+        { field: 'आधार_संख्या', valueKeys: ['aadharNumber', 'आधार_संख्या', 'aadhar_no', 'aadhaar', 'aadhar_number', 'aadhaarNumber'], x: 130, y: 306.5, maxW: 320, size: 10 },
+
+        // Line 6: पता [Address]
+        { field: 'पता', valueKeys: ['address', 'पता', 'full_address', 'fullAddress'], x: 58, y: 334.2, maxW: 390, size: 9.5 },
+
+        // Line 7: जिला [District]  राज्य [State]  मो. नं. [Mobile]
+        { field: 'जिला', valueKeys: ['district', 'जिला'], x: 65, y: 362.0, maxW: 92, size: 9.5 },
+        { field: 'राज्य', valueKeys: ['state', 'राज्य'], x: 190, y: 362.0, maxW: 105, size: 9.5 },
+        { field: 'मोबाइल', valueKeys: ['mobile', 'मोबाइल', 'phone', 'mobileNumber'], x: 332, y: 362.0, maxW: 215, size: 9.5 },
+
+        // Line 8: नॉमिनी का नाम [Nominee Name]  सम्बन्ध [Nominee Relation]
+        { field: 'नामिनी_का_नाम', valueKeys: ['nomineeName', 'नामिनी_का_नाम', 'nominee_name'], x: 108, y: 389.7, maxW: 185, size: 10 },
+        { field: 'नामिनी_का_सम्बन्ध', valueKeys: ['nomineeRelation', 'नामिनी_का_सम्बन्ध', 'nominee_relation'], x: 338, y: 389.7, maxW: 210, size: 10 },
+
+        // Line 9: नॉमिनी का आधार नं. [Nominee Aadhaar]  मो. [Nominee Mobile]  कार्यकर्ता कोड [Worker Code]
+        { field: 'नामिनी_का_आधार', valueKeys: ['nomineeAadhar', 'नामिनी_का_आधार', 'nominee_aadhar', 'nomineeAadharNumber', 'nominee_aadhaar', 'nomineeAadhaarNumber'], x: 130, y: 417.4, maxW: 120, size: 9.5 },
+        { field: 'नामिनी_का_मोबाइल', valueKeys: ['nomineeMobile', 'नामिनी_का_मोबाइल', 'nominee_mobile', 'nomineePhone', 'nominee_phone'], x: 275, y: 417.4, maxW: 125, size: 9.5 },
+        { field: 'कार्यकर्ता_कोड', valueKeys: ['workerCode', 'कार्यकर्ता_कोड', 'worker_code', 'agentCode', 'agent_code', 'added_code'], x: 472, y: 417.4, maxW: 75, size: 9.5 },
+
+        // Line 10: राशि [Amount]  नकद/चैक/डी.डी./यूटीआर नं. [Payment Ref]  सीनियर कोड [Senior Code]
+        { field: 'राशि', valueKeys: ['amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 60, y: 445.1, maxW: 90, size: 9.5, formatAmount: true },
+        { field: 'भुगतान_विवरण', valueKeys: ['paymentModeRef', 'भुगतान_विवरण', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo'], x: 285, y: 445.1, maxW: 120, size: 9.5 },
+        { field: 'सीनियर_कोड', valueKeys: ['seniorCode', 'सीनियर_कोड', 'senior_code', 'seniorWorker', 'senior_worker', 'seniorAgentCode', 'senior_agent_code'], x: 472, y: 445.1, maxW: 75, size: 9.5 },
 
         // ==========================================
         // SECTION 2: "सदस्यता फार्म रसीद" (Bottom Section)
         // ==========================================
-        { field: 'रसीद_क्रमांक', valueKeys: ['सदस्यता_क्रमांक', 'formNumber', 'applicationNumber', 'application_no', 'form_number'], x: 135, y: 664.4, maxW: 85, size: 10.5, color: { r: 0, g: 0.15, b: 0.6 } },
-        { field: 'रसीद_ऑफलाइन_फॉर्म_नं', valueKeys: ['ऑफलाइन_फॉर्म_नं', 'offlineFormNumber', 'offline_form_number', 'offlineFormNo'], x: 225, y: 664.4, maxW: 180, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-        { field: 'रसीद_दिनांक', valueKeys: ['आवेदन_दिनांक', 'applicationDate', 'date', 'created_at', 'application_date'], x: 480, y: 664.4, maxW: 75, size: 9.5, isDate: true },
-        { field: 'रसीद_नाम', valueKeys: ['आवेदक_का_नाम', 'applicantName', 'name', 'shapath_name', 'शपथ_नाम', 'applicant_name'], x: 65, y: 692.4, maxW: 185, size: 10 },
-        { field: 'रसीद_पिता_का_नाम', valueKeys: ['पिता_का_नाम', 'fatherName', 'father_husband_name', 'father_name', 'शपथ_पिता_का_नाम'], x: 335, y: 692.4, maxW: 215, size: 10 },
-        { field: 'रसीद_पता', valueKeys: ['पता', 'address', 'full_address', 'शपथ_पता'], x: 65, y: 721.4, maxW: 485, size: 9.5 },
-        { field: 'रसीद_मोबाइल', valueKeys: ['मोबाइल', 'mobile', 'phone'], x: 65, y: 749.4, maxW: 170, size: 9.5 },
-        { field: 'रसीद_भुगतान_विवरण', valueKeys: ['भुगतान_विवरण', 'paymentModeRef', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo', 'transaction_id', 'transactionId', 'razorpay_payment_id', 'payment_type'], x: 315, y: 749.4, maxW: 235, size: 9.5 },
-        { field: 'रसीद_राशि', valueKeys: ['राशि', 'amount', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 92, y: 778.4, maxW: 145, size: 9.5, formatAmount: true },
-        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['राशि', 'amount', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 115, y: 798.9, maxW: 130, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
+        // Line R1: क्रमांक : NGO/26/ [System No]  [Offline No]      दिनांक [Date]
+        { field: 'रसीद_क्रमांक', valueKeys: ['formNumber', 'सदस्यता_क्रमांक', 'applicationNumber', 'application_no', 'form_number'], x: 125, y: 663.1, maxW: 90, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'रसीद_ऑफलाइन_फॉर्म_नं', valueKeys: ['offlineFormNumber', 'ऑफलाइन_फॉर्म_नं', 'offline_form_number', 'offlineFormNo'], x: 240, y: 663.1, maxW: 190, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'रसीद_दिनांक', valueKeys: ['applicationDate', 'आवेदन_दिनांक', 'date', 'created_at', 'application_date'], x: 472, y: 663.1, maxW: 80, size: 9.5, isDate: true },
+
+        // Line R2: नाम [Applicant Name]      पिता/पति का नाम [Father/Husband Name]
+        { field: 'रसीद_नाम', valueKeys: ['applicantName', 'आवेदक_का_नाम', 'name', 'applicant_name'], x: 58, y: 684.9, maxW: 180, size: 10 },
+        { field: 'रसीद_पिता_का_नाम', valueKeys: ['fatherName', 'पिता_का_नाम', 'father_husband_name', 'father_name', 'husbandName', 'husband_name'], x: 330, y: 684.9, maxW: 218, size: 10 },
+
+        // Line R3: पता [Address]
+        { field: 'रसीद_पता', valueKeys: ['address', 'पता', 'full_address', 'fullAddress'], x: 58, y: 706.8, maxW: 490, size: 9.5 },
+
+        // Line R4: मो. [Mobile]      नकद/चैक/डीडी [Payment Mode/Ref]
+        { field: 'रसीद_मोबाइल', valueKeys: ['mobile', 'मोबाइल', 'phone', 'mobileNumber'], x: 55, y: 728.7, maxW: 172, size: 9.5 },
+        { field: 'रसीद_भुगतान_विवरण', valueKeys: ['paymentModeRef', 'भुगतान_विवरण', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo'], x: 308, y: 728.7, maxW: 240, size: 9.5 },
+
+        // Line R5: बाबत राशि [Amount Text]
+        { field: 'रसीद_राशि', valueKeys: ['amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 88, y: 750.6, maxW: 142, size: 9.5, formatAmount: true },
+
+        // Line R6: रु [Amount in Box]
+        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 115, y: 790.9, maxW: 120, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
       ];
     } else {
       // Legacy / fallback mappings

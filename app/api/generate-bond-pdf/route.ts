@@ -2,9 +2,47 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
+import 'regenerator-runtime/runtime';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 
 export const runtime = 'nodejs';
+
+// Helper to sanitize agent offline numbers
+function sanitizeOfflineNumber(val: any): string {
+  if (!val) return '';
+  const str = String(val).trim();
+  const upper = str.toUpperCase();
+  if (
+    upper.startsWith('EMP-') ||
+    upper.startsWith('EMP_') ||
+    upper === 'EMP' ||
+    upper === 'ADMIN' ||
+    upper === 'SUPER ADMIN' ||
+    upper === 'N/A' ||
+    upper === 'NA' ||
+    upper === 'NULL' ||
+    upper === 'UNDEFINED' ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+  ) {
+    return '';
+  }
+  return str;
+}
+
+function sanitizeValue(val: any): string {
+  if (!val) return '';
+  const str = String(val).trim();
+  const upper = str.toUpperCase();
+  if (
+    upper === 'NULL' ||
+    upper === 'UNDEFINED' ||
+    upper === 'N/A' ||
+    upper === 'NA'
+  ) {
+    return '';
+  }
+  return str;
+}
 
 // Add OPTIONS method to handle CORS preflight requests
 export async function OPTIONS(request: NextRequest) {
@@ -23,24 +61,23 @@ export async function POST(request: NextRequest) {
   try {
     const { record, imageData, duration } = await request.json();
 
-    console.log('Received record for bond PDF:', record);
-    console.log('Image data received for bond:', !!imageData);
+    console.log('Received record for General Bond PDF:', record?.applicantName || record?.formNumber || 'Unknown');
+    console.log('Image data received for General Bond:', !!imageData);
 
-    // Determine template path (supporting unified approved Vivah Yojana bond template with fallbacks)
+    // Canonical official template path for Vivah Yojana General Bond
     const candidateTemplates = [
+      path.join(process.cwd(), 'public', 'pdf', 'general_application', 'saf_vivah_bond.pdf'),
       path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'vivah_yojana_bond.pdf'),
       path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'viva yojana bond(1).pdf'),
-      path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'girl_bond.pdf'),
-      path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'boys_bond.pdf'),
     ];
     
     const templatePath = candidateTemplates.find((p) => fs.existsSync(p));
 
     if (!templatePath || !fs.existsSync(templatePath)) {
-      throw new Error(`Bond template not found in candidates: ${candidateTemplates.join(', ')}`);
+      throw new Error(`General Bond template not found in candidates: ${candidateTemplates.join(', ')}`);
     }
 
-    console.log('Using bond template:', templatePath);
+    console.log('Using General Bond template:', templatePath);
 
     // Load existing PDF template
     const existingPdfBytes = fs.readFileSync(templatePath);
@@ -49,9 +86,6 @@ export async function POST(request: NextRequest) {
     // Register fontkit to allow embedding TTF fonts
     let fontkitAvailable = false;
     try {
-      try {
-        await import('regenerator-runtime/runtime');
-      } catch {}
       const fontkitModule: any = await import('@pdf-lib/fontkit');
       const fontkit = fontkitModule?.default ?? fontkitModule;
       if (fontkit) {
@@ -83,11 +117,11 @@ export async function POST(request: NextRequest) {
         }
 
         if (image) {
-          // Precise passport photo box dimensions for approved Vivah Yojana bond template (504 x 324 pt canvas)
-          const imageX = 405;
-          const imageY = 146;
-          const imageWidth = 74;
-          const imageHeight = 84;
+          // Precise passport photo box dimensions for official saf_vivah_bond.pdf
+          const imageX = 448.5;
+          const imageY = 226;
+          const imageWidth = 87.5;
+          const imageHeight = 95;
 
           // Draw the image on the PDF (converted to bottom-left coordinate system)
           firstPage.drawImage(image, {
@@ -97,14 +131,14 @@ export async function POST(request: NextRequest) {
             height: imageHeight,
           });
 
-          console.log('Image embedded successfully in bond PDF');
+          console.log('Image embedded successfully in General Bond PDF');
         }
       } catch (imageError) {
-        console.error('Error embedding image in bond PDF:', imageError);
+        console.error('Error embedding image in General Bond PDF:', imageError);
       }
     }
 
-    // Try to embed a Devanagari-capable font; fallback to Helvetica
+    // Embed Devanagari font; fallback to Helvetica
     let font;
     const fontCandidates = [
       path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf'),
@@ -113,15 +147,11 @@ export async function POST(request: NextRequest) {
     const devanagariFontPath = fontCandidates.find((p) => fs.existsSync(p));
     if (devanagariFontPath) {
       if (!fontkitAvailable) {
-        throw new Error('Devanagari font found but fontkit is not installed. Run npm i @pdf-lib/fontkit and try again.');
+        throw new Error('Devanagari font found but fontkit is not installed.');
       }
       const customFontBytes = fs.readFileSync(devanagariFontPath);
-      font = await pdfDoc.embedFont(customFontBytes as any, { subset: false });
+      font = await pdfDoc.embedFont(customFontBytes as any, { subset: true });
     } else {
-      const containsHindi = Object.values(record ?? {}).some((v) => /[\u0900-\u097F]/.test(String(v)));
-      if (containsHindi) {
-        throw new Error('Hindi text detected but no Devanagari TTF font found. Place a font like public/fonts/NotoSansDevanagari-Regular.ttf.');
-      }
       font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     }
 
@@ -137,44 +167,135 @@ export async function POST(request: NextRequest) {
       });
     };
 
-    // 1. सदस्यता क्र. (Membership Number Box)
-    const membershipNo = record?.membershipNumber || record?.formNumber || record?.सदस्यता_क्रमांक || '';
-    drawTextAt(membershipNo, 80, 126, 11, rgb(0, 0.15, 0.6));
+    // Extract & sanitize dynamic field values
+    const workerCode = sanitizeOfflineNumber(
+      record?.workerOfflineFormNumber ||
+      record?.worker_offline_form_number ||
+      record?.agentOfflineFormNumber ||
+      record?.agent_offline_form_number ||
+      record?.कार्यकर्ता_कोड ||
+      ''
+    );
 
-    // 2. आवेदन क्र. (Application Number Box)
-    const applicationNo = record?.applicationNumber || record?.formNumber || record?.application_no || '';
-    drawTextAt(applicationNo, 388, 126, 11, rgb(0, 0.15, 0.6));
+    const seniorCode = sanitizeOfflineNumber(
+      record?.seniorOfflineFormNumber ||
+      record?.senior_offline_form_number ||
+      record?.seniorAgentOfflineFormNumber ||
+      record?.senior_agent_offline_form_number ||
+      record?.सीनियर_कोड ||
+      record?.सीनियर_कार्यकर्ता_कोड ||
+      ''
+    );
 
-    // 3. श्रीमान् (Applicant Name)
-    const applicantName = record?.applicantName || record?.name || record?.आवेदक_का_नाम || '';
-    drawTextAt(applicantName, 55, 172, 10);
+    // आवेदन क्र. - Use application's offlineFormNumber only; blank if missing
+    const applicationOfflineNo = sanitizeValue(
+      record?.offlineFormNumber ||
+      record?.offline_form_number ||
+      record?.applicationOfflineFormNumber ||
+      record?.ऑफलाइन_फॉर्म_नं ||
+      ''
+    );
 
-    // 4. पिता का नाम (Father's Name)
-    const fatherName = record?.fatherName || record?.father_husband_name || record?.पिता_का_नाम || '';
-    drawTextAt(fatherName, 230, 172, 10);
+    // सदस्यता क्र. - Authoritative membership number only; blank if missing
+    const membershipNo = sanitizeValue(
+      record?.membershipNumber ||
+      record?.membership_number ||
+      record?.memberNumber ||
+      record?.member_number ||
+      ''
+    );
 
-    // 5. उम्र (Age)
-    const ageVal = record?.age || record?.उम्र || '';
-    const ageStr = ageVal ? (String(ageVal).includes('वर्ष') ? String(ageVal) : `${ageVal} वर्ष`) : '';
-    drawTextAt(ageStr, 348, 172, 9.5);
+    // आवेदन दि. - Formatted application date
+    const rawAppDate = record?.applicationDate || record?.application_date || record?.created_at || '';
+    const applicationDate = rawAppDate ? formatDateToDDMMYYYY(rawAppDate) : '';
 
-    // 6. गोत्र (Gotra)
-    const gotra = record?.gotra || record?.गोत्र || '';
-    drawTextAt(gotra, 46, 197, 10);
+    const applicantName = sanitizeValue(record?.applicantName || record?.applicant_name || record?.name || record?.आवेदक_का_नाम || '');
+    const fatherName = sanitizeValue(record?.fatherName || record?.father_name || record?.father_husband_name || record?.husbandName || record?.पिता_का_नाम || '');
+    const caste = sanitizeValue(record?.category || record?.caste || record?.casteName || record?.जाति || '');
+    const village = sanitizeValue(record?.address || record?.village || record?.गाँव || record?.पता || '');
+    const warisdar = sanitizeValue(record?.nomineeName || record?.nominee_name || record?.warisdar || record?.वारिसदार || record?.नामिनी_का_नाम || '');
+    const district = sanitizeValue(record?.district || record?.जिला || '');
+    const agentMobile = sanitizeValue(record?.agentMobile || record?.workerMobile || record?.agent_mobile || record?.worker_mobile || record?.added_mobile || record?.कार्यकर्ता_का_मोबाइल || '');
+    const state = sanitizeValue(record?.state || record?.राज्य || 'राजस्थान');
+    const applicantAadhaar = sanitizeValue(record?.aadharNumber || record?.aadhar_number || record?.aadhaar || record?.आधार_संख्या || '');
+    const relation = sanitizeValue(record?.nomineeRelation || record?.nominee_relation || record?.relation || record?.सम्बन्ध || record?.नामिनी_का_सम्बन्ध || '');
+    const nomineeAadhaar = sanitizeValue(
+      record?.nomineeAadhar ||
+      record?.nomineeAadhaar ||
+      record?.nominee_aadhar ||
+      record?.nominee_aadhaar ||
+      record?.nomineeAadharNumber ||
+      record?.nomineeAadhaarNumber ||
+      record?.नामिनी_का_आधार ||
+      ''
+    );
+    const nomineeMobile = sanitizeValue(
+      record?.nomineeMobile ||
+      record?.nominee_mobile ||
+      record?.nomineePhone ||
+      record?.nominee_phone ||
+      record?.नामिनी_का_मोबाइल ||
+      ''
+    );
 
-    // 7. निवासी (Residence / Full Address)
-    const rawAddress = record?.address || record?.full_address || record?.पता || '';
-    const tehsil = record?.tehsil || record?.तहसील || '';
-    const district = record?.district || record?.जिला || '';
-    const fullAddress = [rawAddress, tehsil, district].filter(Boolean).join(', ') || rawAddress;
-    drawTextAt(fullAddress, 208, 197, 9.5);
-
-    // 8. Duration / Maturity ("आपको विवाह योजना का लाभ ... के बाद मिलेगा ।")
     let durationText = duration || record?.duration || record?.durationText || 'बारह महीने';
     if (durationText === 'अठारह महीने' || durationText === '18 महीने' || !durationText) {
       durationText = 'बारह महीने';
     }
-    drawTextAt(durationText, 200, 245, 10, rgb(0.6, 0.1, 0.1));
+
+    // 1. कार्यकर्ता कोड
+    drawTextAt(workerCode, 160, 122, 10, rgb(0.8, 0, 0));
+
+    // 2. सीनियर कार्यकर्ता कोड
+    drawTextAt(seniorCode, 470, 122, 10, rgb(0.8, 0, 0));
+
+    // 3. आवेदन क्र.
+    drawTextAt(applicationOfflineNo, 115, 153, 10, rgb(0, 0.15, 0.6));
+
+    // 4. सदस्यता क्र.
+    drawTextAt(membershipNo, 300, 153, 10, rgb(0, 0.15, 0.6));
+
+    // 5. आवेदन दि.
+    drawTextAt(applicationDate, 475, 153, 10, rgb(0, 0, 0.8));
+
+    // 6. नाम
+    drawTextAt(applicantName, 88, 187, 10);
+
+    // 7. पिता/पति का नाम
+    drawTextAt(fatherName, 305, 187, 10);
+
+    // 8. जाति
+    drawTextAt(caste, 88, 211, 10);
+
+    // 9. गांव
+    drawTextAt(village, 245, 211, 10);
+
+    // 10. वारिसदार
+    drawTextAt(warisdar, 110, 236, 10);
+
+    // 11. जिला
+    drawTextAt(district, 245, 236, 10);
+
+    // 12. एजेन्ट मो. नं.
+    drawTextAt(agentMobile, 125, 260, 10);
+
+    // 13. राज्य
+    drawTextAt(state, 245, 260, 10);
+
+    // 14. आधार नं.
+    drawTextAt(applicantAadhaar, 105, 285, 10);
+
+    // 15. सम्बन्ध
+    drawTextAt(relation, 260, 285, 10);
+
+    // 16. नॉमिनी आधार नं.
+    drawTextAt(nomineeAadhaar, 145, 309, 10);
+
+    // 17. नॉमिनी मो. नं.
+    drawTextAt(nomineeMobile, 300, 309, 10);
+
+    // 18. लाभ अवधि ("आपको विवाह योजना का लाभ ... के बाद मिलेगा ।")
+    drawTextAt(durationText, 285, 364, 10, rgb(0.8, 0, 0));
 
     // Serialize the PDF
     const pdfBytes = await pdfDoc.save();
@@ -183,7 +304,7 @@ export async function POST(request: NextRequest) {
       pdfBytes.byteOffset + pdfBytes.byteLength
     );
 
-    // Create a safe filename without Hindi characters
+    // Safe filename without Hindi characters
     const safeName = (record?.applicantName || record?.formNumber || 'bond')
       .replace(/[^\x00-\x7F]/g, '')
       .replace(/[^a-zA-Z0-9\s-_]/g, '')
@@ -212,10 +333,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error generating bond PDF:', error);
+    console.error('Error generating General Bond PDF:', error);
     return NextResponse.json(
       {
-        error: 'Failed to generate bond PDF',
+        error: 'Failed to generate General Bond PDF',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { 

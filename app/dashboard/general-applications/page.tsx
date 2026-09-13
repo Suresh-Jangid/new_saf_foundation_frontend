@@ -132,6 +132,7 @@ function calculateCategory(gender: string, age: number) {
 interface ResolvedAgentOfflineNumbers {
   workerOfflineFormNumber: string;
   seniorOfflineFormNumber: string;
+  workerMobile?: string;
 }
 
 function resolveAgentOfflineNumbers(
@@ -266,9 +267,24 @@ function resolveAgentOfflineNumbers(
     ).trim();
   }
 
+  const workerMobile = String(
+    (workerAgent && (
+      workerAgent.mobile ||
+      workerAgent.phone ||
+      workerAgent.contactNumber ||
+      workerAgent.agentProfile?.mobile ||
+      workerAgent.agent_profile?.mobile
+    )) ||
+    record.added_mobile ||
+    record.workerMobile ||
+    record.agentMobile ||
+    ""
+  ).trim();
+
   return {
     workerOfflineFormNumber: workerOffline,
     seniorOfflineFormNumber: seniorOffline,
+    workerMobile,
   };
 }
 
@@ -792,6 +808,32 @@ export default function GeneralApplicationsPage() {
 
   const handleGenerateBond = async (record: GeneralApplicationRecord) => {
     try {
+      let currentAgents = agentsList;
+      if (!currentAgents || currentAgents.length === 0) {
+        try {
+          const res = await agentRegistrationAPI.getAll();
+          if (res?.data && Array.isArray(res.data)) {
+            currentAgents = res.data;
+            setAgentsList(res.data);
+          }
+        } catch (e) {
+          console.warn('Could not fetch agents for General Bond PDF resolution:', e);
+        }
+      }
+
+      const { workerOfflineFormNumber, seniorOfflineFormNumber, workerMobile } = resolveAgentOfflineNumbers(
+        record,
+        currentAgents
+      );
+
+      const enrichedRecord = {
+        ...record,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+        workerMobile: workerMobile || (record as any).workerMobile || "",
+        agentMobile: workerMobile || (record as any).agentMobile || (record as any).workerMobile || "",
+      };
+
       // Get image data if available
       const imageData = await processImageData(record.passportPhoto);
 
@@ -800,8 +842,8 @@ export default function GeneralApplicationsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          record, 
+        body: JSON.stringify({
+          record: enrichedRecord,
           imageData,
           duration: "बारह महीने" // Duration: 12 months benefit
         }),

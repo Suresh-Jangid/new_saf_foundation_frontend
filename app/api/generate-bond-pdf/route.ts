@@ -247,55 +247,55 @@ export async function POST(request: NextRequest) {
     drawTextAt(workerCode, 160, 122, 10, rgb(0.8, 0, 0));
 
     // 2. सीनियर कार्यकर्ता कोड
-    drawTextAt(seniorCode, 470, 122, 10, rgb(0.8, 0, 0));
+    drawTextAt(seniorCode, 480, 122, 10, rgb(0.8, 0, 0));
 
     // 3. आवेदन क्र.
     drawTextAt(applicationOfflineNo, 115, 153, 10, rgb(0, 0.15, 0.6));
 
     // 4. सदस्यता क्र.
-    drawTextAt(membershipNo, 300, 153, 10, rgb(0, 0.15, 0.6));
+    drawTextAt(membershipNo, 330, 153, 10, rgb(0, 0.15, 0.6));
 
     // 5. आवेदन दि.
-    drawTextAt(applicationDate, 475, 153, 10, rgb(0, 0, 0.8));
+    drawTextAt(applicationDate, 474, 153, 10, rgb(0, 0.15, 0.6));
 
     // 6. नाम
-    drawTextAt(applicantName, 88, 187, 10);
+    drawTextAt(applicantName, 85, 190, 10);
 
     // 7. पिता/पति का नाम
-    drawTextAt(fatherName, 305, 187, 10);
+    drawTextAt(fatherName, 300, 190, 10);
 
     // 8. जाति
-    drawTextAt(caste, 88, 211, 10);
+    drawTextAt(caste, 85, 214, 10);
 
     // 9. गांव
-    drawTextAt(village, 245, 211, 10);
+    drawTextAt(village, 248, 214, 10);
 
     // 10. वारिसदार
-    drawTextAt(warisdar, 110, 236, 10);
+    drawTextAt(warisdar, 104, 239, 10);
 
     // 11. जिला
-    drawTextAt(district, 245, 236, 10);
+    drawTextAt(district, 248, 239, 10);
 
     // 12. एजेन्ट मो. नं.
-    drawTextAt(agentMobile, 125, 260, 10);
+    drawTextAt(agentMobile, 124, 263, 10);
 
     // 13. राज्य
-    drawTextAt(state, 245, 260, 10);
+    drawTextAt(state, 248, 263, 10);
 
     // 14. आधार नं.
-    drawTextAt(applicantAadhaar, 105, 285, 10);
+    drawTextAt(applicantAadhaar, 102, 288, 10);
 
     // 15. सम्बन्ध
-    drawTextAt(relation, 260, 285, 10);
+    drawTextAt(relation, 262, 288, 10);
 
     // 16. नॉमिनी आधार नं.
-    drawTextAt(nomineeAadhaar, 145, 309, 10);
+    drawTextAt(nomineeAadhaar, 144, 312, 10);
 
     // 17. नॉमिनी मो. नं.
-    drawTextAt(nomineeMobile, 300, 309, 10);
+    drawTextAt(nomineeMobile, 295, 312, 10);
 
     // 18. लाभ अवधि ("आपको विवाह योजना का लाभ ... के बाद मिलेगा ।")
-    drawTextAt(durationText, 285, 364, 10, rgb(0.8, 0, 0));
+    drawTextAt(durationText, 280, 363, 10, rgb(0.8, 0, 0));
 
     // Serialize the PDF
     const pdfBytes = await pdfDoc.save();

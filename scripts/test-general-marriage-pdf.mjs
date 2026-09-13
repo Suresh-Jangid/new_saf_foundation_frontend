@@ -43,7 +43,7 @@ async function runTests() {
     assert.ok(fs.existsSync(fontPath), 'Devanagari font must exist');
   });
 
-  console.log('\n2. Frontend Source Code Audit...');
+  console.log('\n2. Frontend Source Code Audit & Display Rule Verification...');
   const pageContent = fs.readFileSync('app/dashboard/general-applications/page.tsx', 'utf8');
   const routeContent = fs.readFileSync('app/api/fill-pdf-form/route.ts', 'utf8');
 
@@ -51,14 +51,31 @@ async function runTests() {
     assert.ok(routeContent.includes('Saf_general_form.pdf'), 'Must include Saf_general_form.pdf in candidates');
   });
 
-  it('GeneralApplicationsPage maps offlineFormNumber and all fields in mapToHindiFields', () => {
-    assert.ok(pageContent.includes('offlineFormNumber'), 'Must extract offlineFormNumber');
-    assert.ok(pageContent.includes('नामिनी_का_आधार:'), 'Must map nomineeAadhar');
-    assert.ok(pageContent.includes('नामिनी_का_मोबाइल:'), 'Must map nomineeMobile');
-    assert.ok(pageContent.includes('कार्यकर्ता_कोड:'), 'Must map workerCode');
-    assert.ok(pageContent.includes('राशि:'), 'Must map amount / totalAmount');
-    assert.ok(pageContent.includes('भुगतान_विवरण:'), 'Must map paymentModeRef');
-    assert.ok(pageContent.includes('सीनियर_कोड:'), 'Must map seniorCode');
+  it('fill-pdf-form route maps क्रमांक and रसीद_क्रमांक strictly to offlineFormNumber (NO formNumber fallback)', () => {
+    // Extract general-application fieldDefinitions
+    const genMatch = routeContent.match(/if \(type === 'general-application'\) \{[\s\S]*?fieldDefinitions = \[([\s\S]*?)\];/);
+    assert.ok(genMatch, 'general-application fieldDefinitions must be present');
+    const genDef = genMatch[1];
+    
+    // Check that क्रमांक definition does not contain formNumber or applicationNumber
+    const kramankMatch = genDef.match(/field: 'क्रमांक', valueKeys: \[([^\]]+)\]/);
+    assert.ok(kramankMatch, 'क्रमांक field definition must exist');
+    assert.ok(!kramankMatch[1].includes("'formNumber'"), 'क्रमांक must not include formNumber');
+    assert.ok(!kramankMatch[1].includes("'applicationNumber'"), 'क्रमांक must not include applicationNumber');
+    assert.ok(kramankMatch[1].includes("'offlineFormNumber'"), 'क्रमांक must include offlineFormNumber');
+
+    // Check receipt क्रमांक
+    const receiptKramankMatch = genDef.match(/field: 'रसीद_क्रमांक', valueKeys: \[([^\]]+)\]/);
+    assert.ok(receiptKramankMatch, 'रसीद_क्रमांक field definition must exist');
+    assert.ok(!receiptKramankMatch[1].includes("'formNumber'"), 'रसीद_क्रमांक must not include formNumber');
+    assert.ok(receiptKramankMatch[1].includes("'offlineFormNumber'"), 'रसीद_क्रमांक must include offlineFormNumber');
+  });
+
+  it('GeneralApplicationsPage mapToHindiFields maps सदस्यता_क्रमांक strictly to offlineFormNumber', () => {
+    const mapMatch = pageContent.match(/const mapToHindiFields = [\s\S]*?\n  \};/);
+    assert.ok(mapMatch, 'mapToHindiFields must be defined');
+    const mapBlock = mapMatch[0];
+    assert.ok(mapBlock.includes('सदस्यता_क्रमांक: record.offlineFormNumber'), 'सदस्यता_क्रमांक must map to offlineFormNumber');
   });
 
   it('GeneralApplicationsPage and route do NOT map raw database UUIDs or ObjectIDs to workerCode', () => {
@@ -66,7 +83,6 @@ async function runTests() {
     assert.ok(!routeContent.includes("'addedById'"), 'Route valueKeys must not include addedById');
     assert.ok(!routeContent.includes("'selectedAgentId'"), 'Route valueKeys must not include selectedAgentId');
     
-    // Extract mapToHindiFields block from pageContent
     const mapMatch = pageContent.match(/const mapToHindiFields = [\s\S]*?\n  \};/);
     assert.ok(mapMatch, 'mapToHindiFields must be defined');
     const mapBlock = mapMatch[0];
@@ -98,7 +114,7 @@ async function runTests() {
   const testCases = [
     {
       id: 'case_1_normal_complete',
-      desc: 'Case 1: Normal Complete Record (Dual Number M-021 + 1269)',
+      desc: 'Case 1: Normal Complete Record (Offline Number 1269 printed; M-021 excluded)',
       data: {
         formNumber: 'M-021',
         offlineFormNumber: '1269',
@@ -125,7 +141,7 @@ async function runTests() {
     },
     {
       id: 'case_2_historical_no_offline',
-      desc: 'Case 2: Historical Record with No Offline Number (SAF-104)',
+      desc: 'Case 2: Historical Record with No Offline Number (SAF-104 excluded; field left blank)',
       data: {
         formNumber: 'SAF-104',
         offlineFormNumber: null,
@@ -152,7 +168,7 @@ async function runTests() {
     },
     {
       id: 'case_3_long_text',
-      desc: 'Case 3: Long Text (Long Name & Extended Multi-Line Address)',
+      desc: 'Case 3: Long Text (Long Name & Extended Multi-Line Address with Auto-scaling)',
       data: {
         formNumber: 'M-099',
         offlineFormNumber: '54321',
@@ -245,71 +261,69 @@ async function runTests() {
     const d = scenario.data;
 
     // UPPER SECTION
-    // Line 1: क्रमांक : NGO/26/ [System No]  [Offline No]      दिनांक [Date]
-    drawBounded(d.formNumber, 125, 646.3, 10, 90, rgb(0, 0.15, 0.6));
+    // Line 1: क्रमांक : NGO/26/ [Offline No only]      दिनांक [Date]
     if (d.offlineFormNumber) {
-      drawBounded(d.offlineFormNumber, 250, 646.3, 10, 175, rgb(0, 0.15, 0.6));
+      drawBounded(d.offlineFormNumber, 125, 646.3 + 2.5, 10, 100, rgb(0, 0.15, 0.6));
     }
-    drawBounded(formatDate(d.applicationDate), 445, 646.3, 9.5, 105);
+    drawBounded(formatDate(d.applicationDate), 445, 646.3 + 2.5, 9.5, 105);
 
     // Line 2: नाम [Applicant Name]
-    drawBounded(d.applicantName, 62, 618.6, 10, 390);
+    drawBounded(d.applicantName, 62, 618.6 + 2.5, 10, 390);
 
     // Line 3: पिता/पति का नाम [Father/Husband Name]
-    drawBounded(d.fatherName, 122, 590.8, 10, 330);
+    drawBounded(d.fatherName, 122, 590.8 + 2.5, 10, 330);
 
     // Line 4: जन्म दिनांक [DOB]  लिंग [Gender]  शिक्षा [Education]
-    drawBounded(formatDate(d.dateOfBirth), 92, 563.1, 9.5, 75);
-    drawBounded(d.gender === 'Female' ? 'महिला' : d.gender === 'Male' ? 'पुरुष' : d.gender, 198, 563.1, 9.5, 62);
-    drawBounded(d.education, 295, 563.1, 9.5, 155);
+    drawBounded(formatDate(d.dateOfBirth), 92, 563.1 + 2.5, 9.5, 75);
+    drawBounded(d.gender === 'Female' ? 'महिला' : d.gender === 'Male' ? 'पुरुष' : d.gender, 198, 563.1 + 2.5, 9.5, 62);
+    drawBounded(d.education, 295, 563.1 + 2.5, 9.5, 155);
 
     // Line 5: आवेदन के आधार नं. [Aadhaar Number]
-    drawBounded(d.aadharNumber, 130, 535.4, 10, 320);
+    drawBounded(d.aadharNumber, 130, 535.4 + 2.5, 10, 320);
 
     // Line 6: पता [Address]
-    drawBounded(d.address, 58, 507.7, 9.5, 390);
+    drawBounded(d.address, 58, 507.7 + 2.5, 9.5, 390);
 
     // Line 7: जिला [District]  राज्य [State]  मो. नं. [Mobile]
-    drawBounded(d.district, 65, 479.9, 9.5, 92);
-    drawBounded(d.state, 190, 479.9, 9.5, 105);
-    drawBounded(d.mobile, 332, 479.9, 9.5, 215);
+    drawBounded(d.district, 65, 479.9 + 2.5, 9.5, 92);
+    drawBounded(d.state, 190, 479.9 + 2.5, 9.5, 105);
+    drawBounded(d.mobile, 332, 479.9 + 2.5, 9.5, 215);
 
     // Line 8: नॉमिनी का नाम [Nominee Name]  सम्बन्ध [Nominee Relation]
-    drawBounded(d.nomineeName, 108, 452.2, 10, 185);
-    drawBounded(d.nomineeRelation, 338, 452.2, 10, 210);
+    drawBounded(d.nomineeName, 108, 452.2 + 2.5, 10, 185);
+    drawBounded(d.nomineeRelation, 338, 452.2 + 2.5, 10, 210);
 
     // Line 9: नॉमिनी का आधार नं. [Nominee Aadhaar]  मो. [Nominee Mobile]  कार्यकर्ता कोड [Worker Code]
-    drawBounded(d.nomineeAadhar, 130, 424.5, 9.5, 120);
-    drawBounded(d.nomineeMobile, 275, 424.5, 9.5, 125);
-    drawBounded(d.workerCode, 472, 424.5, 9.5, 75);
+    drawBounded(d.nomineeAadhar, 130, 424.5 + 2.5, 9.5, 120);
+    drawBounded(d.nomineeMobile, 275, 424.5 + 2.5, 9.5, 125);
+    drawBounded(d.workerCode, 472, 424.5 + 2.5, 9.5, 75);
 
     // Line 10: राशि [Amount]  नकद/चैक/डी.डी./यूटीआर नं. [Payment Ref]  सीनियर कोड [Senior Code]
     const amtStr = d.amount ? `${d.amount}/-` : '';
-    drawBounded(amtStr, 60, 396.8, 9.5, 90);
-    drawBounded(d.paymentModeRef, 285, 396.8, 9.5, 120);
-    drawBounded(d.seniorCode, 472, 396.8, 9.5, 75);
+    drawBounded(amtStr, 60, 396.8 + 2.5, 9.5, 90);
+    drawBounded(d.paymentModeRef, 285, 396.8 + 2.5, 9.5, 120);
+    drawBounded(d.seniorCode, 472, 396.8 + 2.5, 9.5, 75);
 
     // LOWER RECEIPT
-    // Line R1: क्रमांक : NGO/26/ [System No]  [Offline No]      दिनांक [Date]
-    drawBounded(d.formNumber, 125, 178.8, 10, 90, rgb(0, 0.15, 0.6));
+    // Line R1: क्रमांक : NGO/26/ [Offline No only]      दिनांक [Date]
     if (d.offlineFormNumber) {
-      drawBounded(d.offlineFormNumber, 240, 178.8, 10, 190, rgb(0, 0.15, 0.6));
+      drawBounded(d.offlineFormNumber, 125, 178.8 + 2.5, 10, 100, rgb(0, 0.15, 0.6));
     }
-    drawBounded(formatDate(d.applicationDate), 472, 178.8, 9.5, 80);
+    drawBounded(formatDate(d.applicationDate), 472, 178.8 + 2.5, 9.5, 80);
 
     // Line R2: नाम [Applicant Name]      पिता/पति का नाम [Father/Husband Name]
-    drawBounded(d.applicantName, 58, 157.0, 10, 180);
-    drawBounded(d.fatherName, 330, 157.0, 10, 218);
+    drawBounded(d.applicantName, 58, 157.0 + 2.5, 10, 180);
+    drawBounded(d.fatherName, 330, 157.0 + 2.5, 10, 218);
 
     // Line R3: पता [Address]
-    drawBounded(d.address, 58, 135.1, 9.5, 490);
+    drawBounded(d.address, 58, 135.1 + 2.5, 9.5, 490);
 
     // Line R4: मो. [Mobile]      नकद/चैक/डीडी [Payment Mode/Ref]
-    drawBounded(d.mobile, 55, 113.2, 9.5, 172);
-    drawBounded(d.paymentModeRef, 308, 113.2, 9.5, 240);
+    drawBounded(d.mobile, 55, 113.2 + 2.5, 9.5, 172);
+    drawBounded(d.paymentModeRef, 308, 113.2 + 2.5, 9.5, 240);
 
     // Line R5: बाबत राशि [Amount Text]
-    drawBounded(amtStr, 88, 91.3, 9.5, 142);
+    drawBounded(amtStr, 88, 91.3 + 2.5, 9.5, 142);
 
     // Line R6: रु [Amount in Box]
     drawBounded(amtStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));

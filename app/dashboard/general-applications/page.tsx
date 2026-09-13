@@ -416,7 +416,7 @@ export default function GeneralApplicationsPage() {
 
   // Map English fields to Hindi for the PDF template
   const mapToHindiFields = (record: GeneralApplicationRecord & Record<string, any>) => ({
-    सदस्यता_क्रमांक: record.formNumber || record.form_number || "",
+    सदस्यता_क्रमांक: record.offlineFormNumber || record.offline_form_number || "",
     ऑफलाइन_फॉर्म_नं: record.offlineFormNumber || record.offline_form_number || "",
     आवेदन_दिनांक: record.applicationDate || record.application_date || "",
     आवेदक_का_नाम: record.applicantName || record.applicant_name || "",

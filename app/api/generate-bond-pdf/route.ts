@@ -262,37 +262,37 @@ export async function POST(request: NextRequest) {
     drawTextAt(applicantName, 85, 190, 10);
 
     // 7. पिता/पति का नाम
-    drawTextAt(fatherName, 300, 190, 10);
+    drawTextAt(fatherName, 308, 193, 10);
 
     // 8. जाति
     drawTextAt(caste, 85, 214, 10);
 
     // 9. गांव
-    drawTextAt(village, 248, 214, 10);
+    drawTextAt(village, 256, 217, 10);
 
     // 10. वारिसदार
     drawTextAt(warisdar, 104, 239, 10);
 
     // 11. जिला
-    drawTextAt(district, 248, 239, 10);
+    drawTextAt(district, 256, 242, 10);
 
     // 12. एजेन्ट मो. नं.
     drawTextAt(agentMobile, 124, 263, 10);
 
     // 13. राज्य
-    drawTextAt(state, 248, 263, 10);
+    drawTextAt(state, 256, 266, 10);
 
     // 14. आधार नं.
     drawTextAt(applicantAadhaar, 102, 288, 10);
 
     // 15. सम्बन्ध
-    drawTextAt(relation, 262, 288, 10);
+    drawTextAt(relation, 270, 291, 10);
 
     // 16. नॉमिनी आधार नं.
     drawTextAt(nomineeAadhaar, 144, 312, 10);
 
     // 17. नॉमिनी मो. नं.
-    drawTextAt(nomineeMobile, 295, 312, 10);
+    drawTextAt(nomineeMobile, 304, 315, 10);
 
     // 18. लाभ अवधि ("आपको विवाह योजना का लाभ ... के बाद मिलेगा ।")
     drawTextAt(durationText, 280, 363, 10, rgb(0.8, 0, 0));

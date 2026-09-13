@@ -91,8 +91,64 @@ async function runTests() {
     assert.ok(!mapBlock.includes('selectedAgentId'), 'mapToHindiFields must not use selectedAgentId for worker code');
   });
 
+  it('fill-pdf-form route maps नामिनी_का_आधार strictly to nominee Aadhaar aliases (NEVER applicant aadharNumber)', () => {
+    const genMatch = routeContent.match(/if \(type === 'general-application'\) \{[\s\S]*?fieldDefinitions = \[([\s\S]*?)\];/);
+    assert.ok(genMatch, 'general-application fieldDefinitions must be present');
+    const genDef = genMatch[1];
+    
+    const nomineeAadhaarMatch = genDef.match(/field: 'नामिनी_का_आधार', valueKeys: \[([^\]]+)\]/);
+    assert.ok(nomineeAadhaarMatch, 'नामिनी_का_आधार field definition must exist');
+    const keys = nomineeAadhaarMatch[1];
+    assert.ok(keys.includes("'nomineeAadhaar'"), 'Must include nomineeAadhaar');
+    assert.ok(keys.includes("'nomineeAadhar'"), 'Must include nomineeAadhar');
+    assert.ok(keys.includes("'nominee_aadhaar'"), 'Must include nominee_aadhaar');
+    assert.ok(keys.includes("'nominee_aadhar'"), 'Must include nominee_aadhar');
+    assert.ok(keys.includes("'nomineeAadhaarNumber'"), 'Must include nomineeAadhaarNumber');
+    assert.ok(keys.includes("'nomineeAadharNumber'"), 'Must include nomineeAadharNumber');
+    // Ensure applicant fields are strictly forbidden
+    assert.ok(!keys.includes("'aadharNumber'"), 'Must NEVER fallback to applicant aadharNumber');
+    assert.ok(!keys.includes("'applicantAadhar'"), 'Must NEVER fallback to applicant aadhar');
+  });
+
+  it('fill-pdf-form route maps नामिनी_का_मोबाइल strictly to nominee Mobile aliases (NEVER applicant mobile)', () => {
+    const genMatch = routeContent.match(/if \(type === 'general-application'\) \{[\s\S]*?fieldDefinitions = \[([\s\S]*?)\];/);
+    assert.ok(genMatch, 'general-application fieldDefinitions must be present');
+    const genDef = genMatch[1];
+    
+    const nomineeMobileMatch = genDef.match(/field: 'नामिनी_का_मोबाइल', valueKeys: \[([^\]]+)\]/);
+    assert.ok(nomineeMobileMatch, 'नामिनी_का_मोबाइल field definition must exist');
+    const keys = nomineeMobileMatch[1];
+    assert.ok(keys.includes("'nomineeMobile'"), 'Must include nomineeMobile');
+    assert.ok(keys.includes("'nomineePhone'"), 'Must include nomineePhone');
+    assert.ok(keys.includes("'nominee_mobile'"), 'Must include nominee_mobile');
+    assert.ok(keys.includes("'nominee_phone'"), 'Must include nominee_phone');
+    assert.ok(keys.includes("'nomineeMobileNumber'"), 'Must include nomineeMobileNumber');
+    // Ensure applicant fields are strictly forbidden
+    assert.ok(!keys.includes("'mobile'"), 'Must NEVER fallback to applicant mobile');
+    assert.ok(!keys.includes("'phone'"), 'Must NEVER fallback to applicant phone');
+    assert.ok(!keys.includes("'contact'"), 'Must NEVER fallback to applicant contact');
+  });
+
+  it('GeneralApplicationsPage mapToHindiFields maps nominee Aadhaar and Mobile from nominee source only', () => {
+    const mapMatch = pageContent.match(/const mapToHindiFields = [\s\S]*?\n  \};/);
+    assert.ok(mapMatch, 'mapToHindiFields must be defined');
+    const mapBlock = mapMatch[0];
+    assert.ok(mapBlock.includes('नामिनी_का_आधार:'), 'Must map नामिनी_का_आधार');
+    assert.ok(mapBlock.includes('नामिनी_का_मोबाइल:'), 'Must map नामिनी_का_मोबाइल');
+    assert.ok(!mapBlock.includes('नामिनी_का_आधार: record.aadharNumber'), 'Must not map nominee aadhaar to applicant aadharNumber');
+    assert.ok(!mapBlock.includes('नामिनी_का_मोबाइल: record.mobile'), 'Must not map nominee mobile to applicant mobile');
+  });
+
+  it('GeneralApplicationsPage mapApplicationRecord normalizes nominee Aadhaar and Mobile aliases', () => {
+    assert.ok(pageContent.includes('item.nomineeAadhaar'), 'Must normalize item.nomineeAadhaar');
+    assert.ok(pageContent.includes('item.nominee_aadhaar'), 'Must normalize item.nominee_aadhaar');
+    assert.ok(pageContent.includes('item.nominee_mobile'), 'Must normalize item.nominee_mobile');
+    assert.ok(pageContent.includes('nomineeAadhaar: nomineeAadhar'), 'Must assign nomineeAadhaar in returned record');
+  });
+
   it('fill-pdf-form route supports comprehensive valueKeys for all required fields', () => {
     assert.ok(routeContent.includes("'offlineFormNumber'"), 'route must include offlineFormNumber');
+    assert.ok(routeContent.includes("'nomineeAadhaar'"), 'route must include nomineeAadhaar');
     assert.ok(routeContent.includes("'nomineeAadhar'"), 'route must include nomineeAadhar');
     assert.ok(routeContent.includes("'nomineeMobile'"), 'route must include nomineeMobile');
     assert.ok(routeContent.includes("'workerCode'"), 'route must include workerCode');
@@ -106,7 +162,88 @@ async function runTests() {
     assert.ok(routeContent.includes('maxW'), 'route must implement maxW auto scaling');
   });
 
-  console.log('\n3. Dual Number & Multi-Scenario PDF Generation Verification...');
+  console.log('\n3. Nominee Field Value Extraction & Data Isolation Logic...');
+  const extractFieldValue = (formData, valueKeys) => {
+    for (const key of valueKeys) {
+      const val = formData[key];
+      if (val !== undefined && val !== null && String(val).trim() !== '') {
+        return String(val).trim();
+      }
+    }
+    return '';
+  };
+
+  const nomineeAadhaarKeys = ['नामिनी_का_आधार', 'nomineeAadhaar', 'nomineeAadhar', 'nominee_aadhaar', 'nominee_aadhar', 'nomineeAadhaarNumber', 'nomineeAadharNumber', 'nominee_aadhaar_number', 'nominee_aadhar_number', 'nomineeAdhar', 'nominee_adhar', 'nomineeAadhaarNo', 'nomineeAadharNo'];
+  const nomineeMobileKeys = ['नामिनी_का_मोबाइल', 'nomineeMobile', 'nomineePhone', 'nominee_mobile', 'nominee_phone', 'nomineeMobileNumber', 'nominee_mobile_number', 'nomineeContact', 'nominee_contact'];
+
+  it('Nominee Aadhaar resolves correctly with nomineeAadhaar (double "aa")', () => {
+    const data = {
+      aadharNumber: '890456789012',
+      nomineeAadhaar: '123456789012',
+    };
+    const resolved = extractFieldValue(data, nomineeAadhaarKeys);
+    assert.strictEqual(resolved, '123456789012');
+  });
+
+  it('Nominee Aadhaar resolves correctly with nomineeAadhar (single "a")', () => {
+    const data = {
+      aadharNumber: '890456789012',
+      nomineeAadhar: '678901234567',
+    };
+    const resolved = extractFieldValue(data, nomineeAadhaarKeys);
+    assert.strictEqual(resolved, '678901234567');
+  });
+
+  it('Nominee Mobile resolves correctly with nomineeMobile', () => {
+    const data = {
+      mobile: '9876543210',
+      nomineeMobile: '9876543211',
+    };
+    const resolved = extractFieldValue(data, nomineeMobileKeys);
+    assert.strictEqual(resolved, '9876543211');
+  });
+
+  it('Nominee Mobile resolves correctly with nomineePhone / nomineeContact alias', () => {
+    const data = {
+      mobile: '9876543210',
+      nomineePhone: '9414054321',
+    };
+    const resolved = extractFieldValue(data, nomineeMobileKeys);
+    assert.strictEqual(resolved, '9414054321');
+  });
+
+  it('Applicant Aadhaar is NEVER used as Nominee Aadhaar when nominee Aadhaar is missing', () => {
+    const data = {
+      aadharNumber: '890456789012',
+      applicantName: 'सुनीता पुरबिया',
+      nomineeName: 'महेन्द्र पुरबिया',
+    };
+    const resolved = extractFieldValue(data, nomineeAadhaarKeys);
+    assert.strictEqual(resolved, '', 'Nominee Aadhaar must remain blank and NOT fallback to applicant Aadhaar');
+  });
+
+  it('Applicant Mobile is NEVER used as Nominee Mobile when nominee Mobile is missing', () => {
+    const data = {
+      mobile: '9876543210',
+      applicantName: 'सुनीता पुरबिया',
+      nomineeName: 'महेन्द्र पुरबिया',
+    };
+    const resolved = extractFieldValue(data, nomineeMobileKeys);
+    assert.strictEqual(resolved, '', 'Nominee Mobile must remain blank and NOT fallback to applicant mobile');
+  });
+
+  it('Historical record with null nominee fields yields completely blank nominee Aadhaar and Mobile', () => {
+    const data = {
+      aadharNumber: '456789012345',
+      mobile: '9414012345',
+      nomineeAadhaar: null,
+      nomineeMobile: null,
+    };
+    assert.strictEqual(extractFieldValue(data, nomineeAadhaarKeys), '');
+    assert.strictEqual(extractFieldValue(data, nomineeMobileKeys), '');
+  });
+
+  console.log('\n4. Dual Number & Multi-Scenario PDF Generation Verification...');
   const existingPdfBytes = fs.readFileSync(templatePath);
   const fontBytes = fs.readFileSync(fontPath);
 

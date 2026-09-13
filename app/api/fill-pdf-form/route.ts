@@ -210,8 +210,8 @@ export async function POST(request: NextRequest) {
         { field: 'नामिनी_का_सम्बन्ध', valueKeys: ['nomineeRelation', 'नामिनी_का_सम्बन्ध', 'nominee_relation'], x: 338, y: 387.2, maxW: 210, size: 10 },
 
         // Line 9: नॉमिनी का आधार नं. [Nominee Aadhaar]  मो. [Nominee Mobile]  कार्यकर्ता कोड [Worker Code]
-        { field: 'नामिनी_का_आधार', valueKeys: ['nomineeAadhar', 'नामिनी_का_आधार', 'nominee_aadhar', 'nomineeAadharNumber', 'nominee_aadhaar', 'nomineeAadhaarNumber'], x: 130, y: 414.9, maxW: 120, size: 9.5 },
-        { field: 'नामिनी_का_मोबाइल', valueKeys: ['nomineeMobile', 'नामिनी_का_मोबाइल', 'nominee_mobile', 'nomineePhone', 'nominee_phone'], x: 275, y: 414.9, maxW: 125, size: 9.5 },
+        { field: 'नामिनी_का_आधार', valueKeys: ['nomineeAadhar', 'nomineeAadhaar', 'नामिनी_का_आधार', 'nominee_aadhar', 'nominee_aadhaar', 'nomineeAadharNumber', 'nomineeAadhaarNumber', 'nominee_aadhar_number', 'nominee_aadhaar_number', 'nomineeAdhar', 'nominee_adhar', 'nomineeAadharNo', 'nomineeAadhaarNo'], x: 130, y: 414.9, maxW: 120, size: 9.5 },
+        { field: 'नामिनी_का_मोबाइल', valueKeys: ['nomineeMobile', 'नामिनी_का_मोबाइल', 'nominee_mobile', 'nomineePhone', 'nominee_phone', 'nomineeMobileNumber', 'nominee_mobile_number', 'nomineeContact', 'nominee_contact'], x: 275, y: 414.9, maxW: 125, size: 9.5 },
         { field: 'कार्यकर्ता_कोड', valueKeys: ['workerCode', 'कार्यकर्ता_कोड', 'worker_code', 'agentCode', 'agent_code', 'added_code'], x: 472, y: 414.9, maxW: 75, size: 9.5 },
 
         // Line 10: राशि [Amount]  नकद/चैक/डी.डी./यूटीआर नं. [Payment Ref]  सीनियर कोड [Senior Code]

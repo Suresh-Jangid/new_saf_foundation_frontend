@@ -70,9 +70,13 @@ interface GeneralApplicationRecord {
   added_name?: string
   added_mobile?: string
   nomineeAadhar?: string
+  nomineeAadhaar?: string
   nominee_aadhar?: string
+  nominee_aadhaar?: string
   nomineeMobile?: string
+  nomineePhone?: string
   nominee_mobile?: string
+  nominee_phone?: string
   workerCode?: string
   worker_code?: string
   seniorCode?: string
@@ -128,11 +132,17 @@ function mapApplicationRecord(item: GeneralApplicationRecord & Record<string, an
 
   const nomineeAadhar =
     item.nomineeAadhar ||
-    item.nominee_aadhar ||
-    item.nomineeAadharNumber ||
-    item.nominee_aadhar_number ||
     item.nomineeAadhaar ||
+    item.nominee_aadhar ||
     item.nominee_aadhaar ||
+    item.nomineeAadharNumber ||
+    item.nomineeAadhaarNumber ||
+    item.nominee_aadhar_number ||
+    item.nominee_aadhaar_number ||
+    item.nomineeAdhar ||
+    item.nominee_adhar ||
+    item.nomineeAadharNo ||
+    item.nomineeAadhaarNo ||
     "";
 
   const nomineeMobile =
@@ -141,6 +151,9 @@ function mapApplicationRecord(item: GeneralApplicationRecord & Record<string, an
     item.nomineePhone ||
     item.nominee_phone ||
     item.nomineeMobileNumber ||
+    item.nominee_mobile_number ||
+    item.nomineeContact ||
+    item.nominee_contact ||
     "";
 
   const workerCode =
@@ -215,7 +228,11 @@ function mapApplicationRecord(item: GeneralApplicationRecord & Record<string, an
     added_name: item.added_name || item.workerName || item.addedBy?.name || item.agent?.name || "",
     added_mobile: item.added_mobile || item.workerMobile || item.addedBy?.mobile || item.agent?.mobile || "",
     nomineeAadhar,
+    nomineeAadhaar: nomineeAadhar,
+    nominee_aadhar: nomineeAadhar,
+    nominee_aadhaar: nomineeAadhar,
     nomineeMobile,
+    nominee_mobile: nomineeMobile,
     workerCode,
     seniorCode,
     totalAmount: String(totalAmount),
@@ -439,15 +456,27 @@ export default function GeneralApplicationsPage() {
     नामिनी_का_पता: record.address || "", // Using applicant's address as nominee address
     नामिनी_का_आधार:
       record.nomineeAadhar ||
+      record.nomineeAadhaar ||
       record.nominee_aadhar ||
-      record.nomineeAadharNumber ||
       record.nominee_aadhaar ||
+      record.nomineeAadharNumber ||
+      record.nomineeAadhaarNumber ||
+      record.nominee_aadhar_number ||
+      record.nominee_aadhaar_number ||
+      record.nomineeAdhar ||
+      record.nominee_adhar ||
+      record.nomineeAadharNo ||
+      record.nomineeAadhaarNo ||
       "",
     नामिनी_का_मोबाइल:
       record.nomineeMobile ||
       record.nominee_mobile ||
       record.nomineePhone ||
       record.nominee_phone ||
+      record.nomineeMobileNumber ||
+      record.nominee_mobile_number ||
+      record.nomineeContact ||
+      record.nominee_contact ||
       "",
     कार्यकर्ता_का_नाम: record.added_name || record.workerName || record.addedBy?.name || "",
     कार्यकर्ता_का_मोबाइल: record.added_mobile || record.workerMobile || record.addedBy?.mobile || "",

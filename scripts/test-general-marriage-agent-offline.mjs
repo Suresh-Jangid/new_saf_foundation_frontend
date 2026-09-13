@@ -289,6 +289,16 @@ async function testSuite() {
   assert(resH.workerOfflineFormNumber === "1258", `Worker offline number is 1258 (got "${resH.workerOfflineFormNumber}")`);
   assert(resH.seniorOfflineFormNumber === "", `Senior offline number is blank since senior is Admin (got "${resH.seniorOfflineFormNumber}")`);
 
+  // TEST I: Verify new official template Saf_general_form.pdf file & properties
+  console.log("\n--- Test Case I: Official Template File & Structure ---");
+  const templatePath = path.resolve('public', 'pdf', 'general_application', 'Saf_general_form.pdf');
+  assert(fs.existsSync(templatePath), `Template exists at ${templatePath}`);
+  const templateBytes = fs.readFileSync(templatePath);
+  const pdfDoc = await PDFDocument.load(templateBytes);
+  const pages = pdfDoc.getPages();
+  assert(pages.length === 1, `Template has exactly 1 page (got ${pages.length})`);
+  assert(templateBytes.length === 2764643, `Template matches exact new official file size (2764643 bytes)`);
+
   console.log(`\n========================================`);
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);
   console.log(`========================================`);

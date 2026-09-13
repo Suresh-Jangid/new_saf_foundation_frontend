@@ -106,10 +106,10 @@ export async function POST(request: NextRequest) {
 
         if (image) {
           // Precise passport photo box dimensions for approved official template
-          const imageX = 460;
-          const imageY = 222;
-          const imageWidth = 92;
-          const imageHeight = 118;
+          const imageX = 475;
+          const imageY = 242.5;
+          const imageWidth = 76;
+          const imageHeight = 99;
 
           // Draw the image on the PDF
           firstPage.drawImage(image, {

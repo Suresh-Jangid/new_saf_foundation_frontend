@@ -626,47 +626,86 @@ export function mapAgentFormRecord(
         profile.profile_image
     ),
     seniorEmployeeId: str(
-      profile.parentAgentId ??
-        profile.parent_agent_id ??
-        profile.seniorEmployeeId ??
-        profile.senior_employee_id ??
+      record.parentAgentId ??
         record.parent_agent_id ??
-        record.parentAgentId ??
-        record.senior_employee_id ??
-        record.seniorEmployeeId
+        record.seniorId ??
+        record.senior_id ??
+        profile.parentAgentId ??
+        profile.parent_agent_id ??
+        profile.seniorId ??
+        profile.senior_id ??
+        (record.hierarchy as Record<string, unknown>)?.parentAgentId ??
+        (profile.hierarchy as Record<string, unknown>)?.parentAgentId
     ),
     parentAgentId: str(
-      profile.parentAgentId ??
-        profile.parent_agent_id ??
+      record.parentAgentId ??
         record.parent_agent_id ??
-        record.parentAgentId
+        record.seniorId ??
+        record.senior_id ??
+        profile.parentAgentId ??
+        profile.parent_agent_id ??
+        profile.seniorId ??
+        profile.senior_id ??
+        (record.hierarchy as Record<string, unknown>)?.parentAgentId ??
+        (profile.hierarchy as Record<string, unknown>)?.parentAgentId
     ),
     seniorName: str(
-      profile.seniorName ??
-        profile.senior_name ??
+      record.seniorName ??
         record.senior_name ??
-        record.seniorName ??
+        record.parentName ??
+        profile.seniorName ??
+        profile.senior_name ??
+        profile.parentName ??
+        (record.hierarchy as Record<string, unknown>)?.seniorName ??
+        (record.hierarchy as Record<string, unknown>)?.parentName ??
+        (profile.hierarchy as Record<string, unknown>)?.seniorName ??
+        (profile.hierarchy as Record<string, unknown>)?.parentName ??
         (record.senior as Record<string, unknown>)?.name
     ),
     seniorCode: str(
-      profile.seniorCode ??
-        profile.senior_code ??
+      record.seniorCode ??
         record.senior_code ??
-        record.seniorCode ??
+        record.parentEmployeeId ??
+        record.seniorEmployeeId ??
+        record.senior_employee_id ??
+        profile.seniorCode ??
+        profile.senior_code ??
+        profile.parentEmployeeId ??
+        profile.seniorEmployeeId ??
+        profile.senior_employee_id ??
+        (record.hierarchy as Record<string, unknown>)?.seniorCode ??
+        (record.hierarchy as Record<string, unknown>)?.parentEmployeeId ??
+        (profile.hierarchy as Record<string, unknown>)?.seniorCode ??
+        (profile.hierarchy as Record<string, unknown>)?.parentEmployeeId ??
         (record.senior as Record<string, unknown>)?.employee_id
     ),
-    level: str(
-      profile.level ??
+    level: (() => {
+      const rawLevel = str(
         record.level ??
-        (Boolean(
+          profile.level ??
+          (record.hierarchy as Record<string, unknown>)?.level ??
+          (profile.hierarchy as Record<string, unknown>)?.level
+      ).toUpperCase();
+      const hasParent = Boolean(
+        record.parentAgentId ??
+          record.parent_agent_id ??
+          record.seniorId ??
+          record.senior_id ??
           profile.parentAgentId ??
-            profile.parent_agent_id ??
-            record.parent_agent_id ??
-            record.parentAgentId
-        )
-          ? "2"
-          : "1")
-    ),
+          profile.parent_agent_id ??
+          profile.seniorId ??
+          profile.senior_id ??
+          (record.hierarchy as Record<string, unknown>)?.parentAgentId ??
+          (profile.hierarchy as Record<string, unknown>)?.parentAgentId ??
+          (record.seniorCode && record.seniorCode !== "ADMIN") ??
+          (record.senior_code && record.senior_code !== "ADMIN") ??
+          (profile.seniorCode && profile.seniorCode !== "ADMIN") ??
+          (record.seniorName && record.seniorName !== "Super Admin")
+      );
+      if (rawLevel === "LEVEL_2" || rawLevel === "LEVEL-2" || rawLevel === "2") return "LEVEL_2";
+      if (rawLevel === "LEVEL_1" || rawLevel === "LEVEL-1" || rawLevel === "1") return hasParent ? "LEVEL_2" : "LEVEL_1";
+      return hasParent ? "LEVEL_2" : "LEVEL_1";
+    })(),
   };
 }
 

@@ -121,12 +121,35 @@ export default function EditAgentRegistrationForm() {
         const rawList = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
         const validList = rawList.filter((s: any) => {
           if (!s) return false;
-          if (s.level === 2 || s.level === "2" || s.level === "LEVEL-2") return false;
+          if (s.level === 2 || s.level === "2" || s.level === "LEVEL-2" || s.level === "LEVEL_2") return false;
           if (s.is_active === 0 || s.is_active === false || s.status === "inactive") return false;
           if (s.is_deleted || s.deleted_at) return false;
           return true;
         });
         setEligibleSeniors(validList);
+
+        // Sync senior selection if form was loaded before eligible seniors
+        setForm((prev) => {
+          if (!prev.parentAgentId && !prev.seniorCode && !prev.seniorEmployeeId) return prev;
+          const match = validList.find(
+            (s: any) =>
+              (prev.parentAgentId && (s.id === prev.parentAgentId || s.userId === prev.parentAgentId || s.user_id === prev.parentAgentId)) ||
+              (prev.seniorEmployeeId && (s.id === prev.seniorEmployeeId || s.userId === prev.seniorEmployeeId || s.user_id === prev.seniorEmployeeId)) ||
+              (prev.seniorCode && (s.employeeId === prev.seniorCode || s.employee_id === prev.seniorCode || s.employeeCode === prev.seniorCode || s.code === prev.seniorCode))
+          );
+          if (match) {
+            const matchedUserId = String(match.id || match.userId || match.user_id);
+            return {
+              ...prev,
+              seniorEmployeeId: matchedUserId,
+              parentAgentId: matchedUserId,
+              seniorCode: match.employeeId || match.employee_id || prev.seniorCode,
+              seniorName: match.name || match.fullName || prev.seniorName,
+              level: "LEVEL_2",
+            };
+          }
+          return prev;
+        });
       } catch (err) {
         console.error("Failed to load eligible seniors in edit form:", err);
       }
@@ -163,17 +186,21 @@ export default function EditAgentRegistrationForm() {
       
       try {
         setIsLoadingData(true);
-        const response = await postUrlEncoded(API_ENDPOINTS.GET_AGENTS, { id });
-        const raw = unwrapApiRecordById<Record<string, unknown>>(response.data?.data, id);
+        const response = await agentRegistrationAPI.getById(id);
+        const raw = unwrapApiRecordById<Record<string, unknown>>(response?.data, id) || response?.data || response;
         const mapped = mapAgentFormRecord(raw);
         
-        if (mapped && (response.data?.status || response.data?.success)) {
-          setForm({
+        if (mapped && (response?.status || response?.success || response?.data)) {
+          // Resolve senior ID from mapped data
+          const rawParentId = mapped.parentAgentId || mapped.seniorEmployeeId || "";
+          
+          setForm((prev) => ({
             ...initialState,
             ...mapped,
+            seniorEmployeeId: rawParentId,
             password: "",
             profile_image: null,
-          });
+          }));
 
           if (mapped.profile_image) {
             setExistingProfileImage(getProxiedPhotoSrc(mapped.profile_image));
@@ -233,6 +260,18 @@ export default function EditAgentRegistrationForm() {
     setForm({ ...form, [name]: value });
   };
 
+  const isLevel2 =
+    form.level === "LEVEL_2" ||
+    form.level === "LEVEL-2" ||
+    form.level === "2" ||
+    Boolean(
+      form.parentAgentId ||
+      form.seniorEmployeeId ||
+      (form.seniorCode && form.seniorCode !== "ADMIN") ||
+      (form.seniorName && form.seniorName !== "Super Admin")
+    );
+  const isLevel1 = !isLevel2;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -252,7 +291,11 @@ export default function EditAgentRegistrationForm() {
         return parsedDate ? formatDateForAPI(parsedDate) : "";
       };
 
-      const selectedSeniorId = form.seniorEmployeeId && form.seniorEmployeeId.trim() !== "" ? form.seniorEmployeeId.trim() : null;
+      const selectedSeniorId = isLevel2
+        ? (form.seniorEmployeeId && form.seniorEmployeeId.trim() !== ""
+            ? form.seniorEmployeeId.trim()
+            : (form.parentAgentId && form.parentAgentId.trim() !== "" ? form.parentAgentId.trim() : null))
+        : null;
 
       const submissionData: Record<string, unknown> = {
         ...form,
@@ -292,8 +335,6 @@ export default function EditAgentRegistrationForm() {
       </div>
     );
   }
-
-  const isLevel1 = form.level === "1" && (!form.seniorEmployeeId || form.seniorEmployeeId === "");
 
   return (
     <RoleGuard requiredModule="agent_registration" requiredAction="update">
@@ -586,9 +627,38 @@ export default function EditAgentRegistrationForm() {
                     </div>
                   ) : (
                     <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">वर्तमान स्तर / Current Hierarchy:</span>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-300">
+                          LEVEL-2 AGENT
+                        </span>
+                      </div>
                       <Select
                         value={form.seniorEmployeeId ? form.seniorEmployeeId : "direct_admin"}
-                        onValueChange={(val) => handleSelectChange("seniorEmployeeId", val === "direct_admin" ? "" : val)}
+                        onValueChange={(val) => {
+                          if (val === "direct_admin") {
+                            setForm((prev) => ({
+                              ...prev,
+                              seniorEmployeeId: "",
+                              parentAgentId: "",
+                              seniorCode: "ADMIN",
+                              seniorName: "Super Admin",
+                              level: "LEVEL_1",
+                            }));
+                          } else {
+                            const found = eligibleSeniors.find(
+                              (s) => String(s.id || s.userId || s.user_id) === val
+                            );
+                            setForm((prev) => ({
+                              ...prev,
+                              seniorEmployeeId: val,
+                              parentAgentId: val,
+                              seniorCode: found?.employeeId || found?.employee_id || prev.seniorCode,
+                              seniorName: found?.name || found?.fullName || prev.seniorName,
+                              level: "LEVEL_2",
+                            }));
+                          }
+                        }}
                       >
                         <SelectTrigger id="seniorEmployeeId">
                           <SelectValue placeholder="सीनियर कर्मचारी चुनें / Select Senior" />
@@ -619,7 +689,7 @@ export default function EditAgentRegistrationForm() {
                       <div className="text-xs space-y-0.5">
                         <p className={form.seniorEmployeeId ? "text-purple-700 font-medium" : "text-emerald-700 font-medium"}>
                           {form.seniorEmployeeId
-                            ? "यह Employee चयनित Senior के अधीन LEVEL-2 Agent है।"
+                            ? `यह Employee चयनित Senior (${form.seniorCode ? form.seniorCode + " — " : ""}${form.seniorName || "Selected Senior"}) के अधीन LEVEL-2 Agent है।`
                             : "सीधे Admin के अंतर्गत रखने पर यह LEVEL-1 Senior बन जाएगा।"}
                         </p>
                         <p className="text-muted-foreground">

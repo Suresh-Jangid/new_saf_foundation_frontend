@@ -48,9 +48,15 @@ interface AgentRecord {
   seniorName?: string;
   senior_code?: string;
   seniorCode?: string;
+  seniorId?: string;
+  senior_id?: string;
   level?: string | number;
   parent_agent_id?: string;
   parentAgentId?: string;
+  parentEmployeeId?: string;
+  parent_employee_id?: string;
+  parentName?: string;
+  parent_name?: string;
   senior_employee_id?: string;
   seniorEmployeeId?: string;
   senior?: { name?: string; employee_id?: string };
@@ -61,24 +67,50 @@ interface AgentRecord {
 
 // Define columns for the DataTable with 2-level hierarchy display
 const columns = [
-  { key: "employee_id", label: "एजेंट कोड / Agent Code" },
-  { key: "name", label: "नाम / Name" },
+  { 
+    key: "employee_id", 
+    label: "एजेंट कोड / Agent Code",
+    render: (_: any, record: AgentRecord) => {
+      const code = record.employee_id || record.agentProfile?.employeeId || record.agent_profile?.employee_id || (record as any).employeeId || "-";
+      return <span className="font-semibold text-gray-900">{code}</span>;
+    }
+  },
+  { 
+    key: "name", 
+    label: "नाम / Name",
+    render: (_: any, record: AgentRecord) => {
+      return <span>{record.name || "-"}</span>;
+    }
+  },
   {
     key: "level",
     label: "स्तर / Level",
-    render: (value: any, record: AgentRecord) => {
+    render: (_: any, record: AgentRecord) => {
+      const rawLevel = String(
+        record.level ||
+        record.agentProfile?.level ||
+        record.agent_profile?.level ||
+        (record as any).hierarchy?.level ||
+        ""
+      ).toUpperCase();
+      const hasParent = Boolean(
+        record.parentAgentId ||
+        record.parent_agent_id ||
+        record.seniorId ||
+        record.senior_id ||
+        record.parentEmployeeId ||
+        record.agentProfile?.parentAgentId ||
+        record.agent_profile?.parent_agent_id ||
+        (record.seniorCode && record.seniorCode !== "ADMIN") ||
+        (record.senior_code && record.senior_code !== "ADMIN") ||
+        (record.agentProfile?.seniorCode && record.agentProfile?.seniorCode !== "ADMIN") ||
+        (record.seniorName && record.seniorName !== "Super Admin")
+      );
       const isLevel2 =
-        value === 2 ||
-        value === "2" ||
-        value === "LEVEL-2" ||
-        Boolean(
-          record.parent_agent_id ||
-          record.parentAgentId ||
-          record.senior_employee_id ||
-          record.seniorEmployeeId ||
-          record.agentProfile?.parentAgentId ||
-          record.agent_profile?.parent_agent_id
-        );
+        rawLevel === "LEVEL_2" ||
+        rawLevel === "LEVEL-2" ||
+        rawLevel === "2" ||
+        (rawLevel !== "LEVEL_1" && rawLevel !== "LEVEL-1" && hasParent);
       return (
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
@@ -95,24 +127,40 @@ const columns = [
   {
     key: "senior_name",
     label: "सीनियर / Senior",
-    render: (value: any, record: AgentRecord) => {
+    render: (_: any, record: AgentRecord) => {
+      const rawLevel = String(
+        record.level ||
+        record.agentProfile?.level ||
+        record.agent_profile?.level ||
+        (record as any).hierarchy?.level ||
+        ""
+      ).toUpperCase();
+      const hasParent = Boolean(
+        record.parentAgentId ||
+        record.parent_agent_id ||
+        record.seniorId ||
+        record.senior_id ||
+        record.parentEmployeeId ||
+        record.agentProfile?.parentAgentId ||
+        record.agent_profile?.parent_agent_id ||
+        (record.seniorCode && record.seniorCode !== "ADMIN") ||
+        (record.senior_code && record.senior_code !== "ADMIN") ||
+        (record.agentProfile?.seniorCode && record.agentProfile?.seniorCode !== "ADMIN") ||
+        (record.seniorName && record.seniorName !== "Super Admin")
+      );
       const isLevel2 =
-        record.level === 2 ||
-        record.level === "2" ||
-        record.level === "LEVEL-2" ||
-        Boolean(
-          record.parent_agent_id ||
-          record.parentAgentId ||
-          record.senior_employee_id ||
-          record.seniorEmployeeId ||
-          record.agentProfile?.parentAgentId ||
-          record.agent_profile?.parent_agent_id
-        );
+        rawLevel === "LEVEL_2" ||
+        rawLevel === "LEVEL-2" ||
+        rawLevel === "2" ||
+        (rawLevel !== "LEVEL_1" && rawLevel !== "LEVEL-1" && hasParent);
+
       const seniorName =
-        value ||
         record.seniorName ||
+        record.senior_name ||
+        (record as any).parentName ||
         record.agentProfile?.seniorName ||
         record.agent_profile?.senior_name ||
+        (record as any).hierarchy?.seniorName ||
         record.senior?.name ||
         (isLevel2 ? "-" : "Super Admin");
       return <span className="font-medium text-gray-800">{seniorName}</span>;
@@ -121,24 +169,40 @@ const columns = [
   {
     key: "senior_code",
     label: "सीनियर कोड / Senior Code",
-    render: (value: any, record: AgentRecord) => {
+    render: (_: any, record: AgentRecord) => {
+      const rawLevel = String(
+        record.level ||
+        record.agentProfile?.level ||
+        record.agent_profile?.level ||
+        (record as any).hierarchy?.level ||
+        ""
+      ).toUpperCase();
+      const hasParent = Boolean(
+        record.parentAgentId ||
+        record.parent_agent_id ||
+        record.seniorId ||
+        record.senior_id ||
+        record.parentEmployeeId ||
+        record.agentProfile?.parentAgentId ||
+        record.agent_profile?.parent_agent_id ||
+        (record.seniorCode && record.seniorCode !== "ADMIN") ||
+        (record.senior_code && record.senior_code !== "ADMIN") ||
+        (record.agentProfile?.seniorCode && record.agentProfile?.seniorCode !== "ADMIN") ||
+        (record.seniorName && record.seniorName !== "Super Admin")
+      );
       const isLevel2 =
-        record.level === 2 ||
-        record.level === "2" ||
-        record.level === "LEVEL-2" ||
-        Boolean(
-          record.parent_agent_id ||
-          record.parentAgentId ||
-          record.senior_employee_id ||
-          record.seniorEmployeeId ||
-          record.agentProfile?.parentAgentId ||
-          record.agent_profile?.parent_agent_id
-        );
+        rawLevel === "LEVEL_2" ||
+        rawLevel === "LEVEL-2" ||
+        rawLevel === "2" ||
+        (rawLevel !== "LEVEL_1" && rawLevel !== "LEVEL-1" && hasParent);
+
       const seniorCode =
-        value ||
         record.seniorCode ||
+        record.senior_code ||
+        (record as any).parentEmployeeId ||
         record.agentProfile?.seniorCode ||
         record.agent_profile?.senior_code ||
+        (record as any).hierarchy?.seniorCode ||
         record.senior?.employee_id ||
         (isLevel2 ? "-" : "ADMIN");
       return (
@@ -148,13 +212,55 @@ const columns = [
       );
     },
   },
-  { key: "fatherName", label: "पिता" },
-  { key: "gotra", label: "गोत्र" },
-  { key: "age", label: "आयु" },
-  { key: "village", label: "गांव" },
-  { key: "mobile", label: "मोबाइल" },
-  { key: "district", label: "जिला" },
-  { key: "workArea", label: "कार्य क्षेत्र" },
+  { 
+    key: "fatherName", 
+    label: "पिता / Father",
+    render: (_: any, record: AgentRecord) => {
+      return <span>{record.fatherName || record.agentProfile?.fatherName || record.agent_profile?.father_name || "-"}</span>;
+    }
+  },
+  { 
+    key: "gotra", 
+    label: "गोत्र / Gotra",
+    render: (_: any, record: AgentRecord) => {
+      return <span>{record.gotra || record.agentProfile?.gotra || record.agent_profile?.gotra || "-"}</span>;
+    }
+  },
+  { 
+    key: "age", 
+    label: "आयु / Age",
+    render: (_: any, record: AgentRecord) => {
+      return <span>{record.age || record.agentProfile?.age || record.agent_profile?.age || "-"}</span>;
+    }
+  },
+  { 
+    key: "village", 
+    label: "गांव / Village",
+    render: (_: any, record: AgentRecord) => {
+      return <span>{record.village || record.agentProfile?.village || record.agent_profile?.village || "-"}</span>;
+    }
+  },
+  { 
+    key: "mobile", 
+    label: "मोबाइल / Mobile",
+    render: (_: any, record: AgentRecord) => {
+      return <span>{record.mobile || record.agentProfile?.mobile || record.agent_profile?.mobile || "-"}</span>;
+    }
+  },
+  { 
+    key: "district", 
+    label: "जिला / District",
+    render: (_: any, record: AgentRecord) => {
+      return <span>{record.district || record.agentProfile?.district || record.agent_profile?.district || "-"}</span>;
+    }
+  },
+  { 
+    key: "workArea", 
+    label: "कार्य क्षेत्र / Work Area",
+    render: (_: any, record: AgentRecord) => {
+      return <span>{record.workArea || record.agentProfile?.workArea || record.agent_profile?.work_area || "-"}</span>;
+    }
+  },
 ];
 
 export default function AgentRegistrationList() {
@@ -171,7 +277,7 @@ export default function AgentRegistrationList() {
     deleteApi,
   } = useCRUD<AgentRecord>("agentRecords", [], {
     create: API_ENDPOINTS.CREATE_AGENT,
-    read: API_ENDPOINTS.GET_AGENTS,
+    read: "/v1/agents",
     update: API_ENDPOINTS.UPDATE_AGENT,
     delete: API_ENDPOINTS.DELETE_AGENT,
   });

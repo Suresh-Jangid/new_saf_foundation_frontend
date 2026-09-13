@@ -874,9 +874,25 @@ export const agentRegistrationAPI = {
   },
 
   getAll: async (filters?: Record<string, any>): Promise<ApiResponse<any[]>> => {
-    const formData = createFormData(filters || {});
-    const response = await post<ApiResponse<any[]>>(API_ENDPOINTS.GET_AGENTS, formData);
-    return response.data;
+    try {
+      const query = filters && Object.keys(filters).length > 0 ? new URLSearchParams(filters).toString() : "";
+      const response = await api.get(`/v1/agents${query ? `?${query}` : ""}`);
+      return response.data;
+    } catch (error) {
+      const formData = createFormData(filters || {});
+      const response = await post<ApiResponse<any[]>>(API_ENDPOINTS.GET_AGENTS, formData);
+      return response.data;
+    }
+  },
+
+  getById: async (id: string): Promise<ApiResponse<any>> => {
+    try {
+      const response = await api.get(`/v1/agents/${id}`);
+      return response.data;
+    } catch (error) {
+      const response = await postUrlEncoded(API_ENDPOINTS.GET_AGENTS, { id });
+      return response.data;
+    }
   },
 
   getEligibleSeniors: async (): Promise<ApiResponse<any[]>> => {

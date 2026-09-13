@@ -549,6 +549,9 @@ export class APIService {
   static getAgents = (filters?: ApplicationFilters) => 
     agentRegistrationAPI.getAll(filters);
 
+  static getAgentById = (id: string) =>
+    agentRegistrationAPI.getById(id);
+
   static getEligibleSeniors = () =>
     agentRegistrationAPI.getEligibleSeniors();
   

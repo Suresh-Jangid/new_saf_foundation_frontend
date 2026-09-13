@@ -175,9 +175,22 @@ export interface AgentRegistration {
   ifsc: string;
   nomineeName: string;
   nomineeMobile: string;
-  nomineeRelation: string;
   workArea: string;
   gender: string;
+  dateOfBirth?: string;
+  doj?: string;
+  designation?: string;
+  password?: string;
+  profile_image?: File | string | null;
+  seniorEmployeeId?: string | null;
+  parentAgentId?: string | null;
+  senior_employee_id?: string | null;
+  parent_agent_id?: string | null;
+  seniorName?: string | null;
+  senior_name?: string | null;
+  seniorCode?: string | null;
+  senior_code?: string | null;
+  level?: string | number | null;
 }
 
 export interface MarriageCongratulations {
@@ -535,6 +548,9 @@ export class APIService {
   
   static getAgents = (filters?: ApplicationFilters) => 
     agentRegistrationAPI.getAll(filters);
+
+  static getEligibleSeniors = () =>
+    agentRegistrationAPI.getEligibleSeniors();
   
   static updateAgent = (id: string, data: Partial<AgentRegistration>) => 
     agentRegistrationAPI.update(id, data);

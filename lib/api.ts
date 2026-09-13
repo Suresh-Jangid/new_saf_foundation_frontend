@@ -322,6 +322,7 @@ export const API_ENDPOINTS = {
   // Agent Registration
   CREATE_AGENT: "?apicall=addAgent",
   GET_AGENTS: "?apicall=getAgents",
+  GET_ELIGIBLE_SENIORS: "?apicall=getEligibleSeniors",
   UPDATE_AGENT: "?apicall=editAgent",
   DELETE_AGENT: "?apicall=deleteAgent",
   GET_AGENT_PERMISSIONS: "?apicall=getAgentPermissions",
@@ -876,6 +877,21 @@ export const agentRegistrationAPI = {
     const formData = createFormData(filters || {});
     const response = await post<ApiResponse<any[]>>(API_ENDPOINTS.GET_AGENTS, formData);
     return response.data;
+  },
+
+  getEligibleSeniors: async (): Promise<ApiResponse<any[]>> => {
+    try {
+      const response = await api.get("/v1/agents/seniors/eligible");
+      return response.data;
+    } catch (error) {
+      try {
+        const response = await get<ApiResponse<any[]>>(API_ENDPOINTS.GET_ELIGIBLE_SENIORS);
+        return response.data;
+      } catch (fallbackError) {
+        console.error("Error fetching eligible seniors:", error);
+        throw error;
+      }
+    }
   },
 
   update: async (id: string, data: any): Promise<ApiResponse> => {

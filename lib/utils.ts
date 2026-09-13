@@ -625,6 +625,48 @@ export function mapAgentFormRecord(
         profile.profile_image_url ??
         profile.profile_image
     ),
+    seniorEmployeeId: str(
+      profile.parentAgentId ??
+        profile.parent_agent_id ??
+        profile.seniorEmployeeId ??
+        profile.senior_employee_id ??
+        record.parent_agent_id ??
+        record.parentAgentId ??
+        record.senior_employee_id ??
+        record.seniorEmployeeId
+    ),
+    parentAgentId: str(
+      profile.parentAgentId ??
+        profile.parent_agent_id ??
+        record.parent_agent_id ??
+        record.parentAgentId
+    ),
+    seniorName: str(
+      profile.seniorName ??
+        profile.senior_name ??
+        record.senior_name ??
+        record.seniorName ??
+        (record.senior as Record<string, unknown>)?.name
+    ),
+    seniorCode: str(
+      profile.seniorCode ??
+        profile.senior_code ??
+        record.senior_code ??
+        record.seniorCode ??
+        (record.senior as Record<string, unknown>)?.employee_id
+    ),
+    level: str(
+      profile.level ??
+        record.level ??
+        (Boolean(
+          profile.parentAgentId ??
+            profile.parent_agent_id ??
+            record.parent_agent_id ??
+            record.parentAgentId
+        )
+          ? "2"
+          : "1")
+    ),
   };
 }
 

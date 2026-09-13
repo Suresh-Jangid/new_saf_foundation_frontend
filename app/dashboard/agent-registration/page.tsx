@@ -44,14 +44,110 @@ interface AgentRecord {
   doj: string;
   designation: string;
   profile_image?: string;
+  senior_name?: string;
+  seniorName?: string;
+  senior_code?: string;
+  seniorCode?: string;
+  level?: string | number;
+  parent_agent_id?: string;
+  parentAgentId?: string;
+  senior_employee_id?: string;
+  seniorEmployeeId?: string;
+  senior?: { name?: string; employee_id?: string };
+  agentProfile?: any;
+  agent_profile?: any;
   createdAt: string;
 }
 
-// Define columns for the DataTable
+// Define columns for the DataTable with 2-level hierarchy display
 const columns = [
   { key: "employee_id", label: "एजेंट कोड / Agent Code" },
-  { key: "employee_id", label: "कर्मचारी आईडी" },
-  { key: "name", label: "नाम" },
+  { key: "name", label: "नाम / Name" },
+  {
+    key: "level",
+    label: "स्तर / Level",
+    render: (value: any, record: AgentRecord) => {
+      const isLevel2 =
+        value === 2 ||
+        value === "2" ||
+        value === "LEVEL-2" ||
+        Boolean(
+          record.parent_agent_id ||
+          record.parentAgentId ||
+          record.senior_employee_id ||
+          record.seniorEmployeeId ||
+          record.agentProfile?.parentAgentId ||
+          record.agent_profile?.parent_agent_id
+        );
+      return (
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
+            isLevel2
+              ? "bg-purple-100 text-purple-800 border border-purple-200"
+              : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+          }`}
+        >
+          {isLevel2 ? "LEVEL-2" : "LEVEL-1"}
+        </span>
+      );
+    },
+  },
+  {
+    key: "senior_name",
+    label: "सीनियर / Senior",
+    render: (value: any, record: AgentRecord) => {
+      const isLevel2 =
+        record.level === 2 ||
+        record.level === "2" ||
+        record.level === "LEVEL-2" ||
+        Boolean(
+          record.parent_agent_id ||
+          record.parentAgentId ||
+          record.senior_employee_id ||
+          record.seniorEmployeeId ||
+          record.agentProfile?.parentAgentId ||
+          record.agent_profile?.parent_agent_id
+        );
+      const seniorName =
+        value ||
+        record.seniorName ||
+        record.agentProfile?.seniorName ||
+        record.agent_profile?.senior_name ||
+        record.senior?.name ||
+        (isLevel2 ? "-" : "Super Admin");
+      return <span className="font-medium text-gray-800">{seniorName}</span>;
+    },
+  },
+  {
+    key: "senior_code",
+    label: "सीनियर कोड / Senior Code",
+    render: (value: any, record: AgentRecord) => {
+      const isLevel2 =
+        record.level === 2 ||
+        record.level === "2" ||
+        record.level === "LEVEL-2" ||
+        Boolean(
+          record.parent_agent_id ||
+          record.parentAgentId ||
+          record.senior_employee_id ||
+          record.seniorEmployeeId ||
+          record.agentProfile?.parentAgentId ||
+          record.agent_profile?.parent_agent_id
+        );
+      const seniorCode =
+        value ||
+        record.seniorCode ||
+        record.agentProfile?.seniorCode ||
+        record.agent_profile?.senior_code ||
+        record.senior?.employee_id ||
+        (isLevel2 ? "-" : "ADMIN");
+      return (
+        <span className="font-mono text-xs text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded border">
+          {seniorCode}
+        </span>
+      );
+    },
+  },
   { key: "fatherName", label: "पिता" },
   { key: "gotra", label: "गोत्र" },
   { key: "age", label: "आयु" },

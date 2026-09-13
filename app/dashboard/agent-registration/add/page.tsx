@@ -12,10 +12,27 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarDays, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCRUD } from "@/hooks/use-crud";
-import { API_ENDPOINTS } from "@/lib/api";
+import { API_ENDPOINTS, agentRegistrationAPI } from "@/lib/api";
 import { toast } from "sonner";
 import { formatDate, isValidDate, parseDateFromDDMMYYYY, getCurrentUserInfo, formatDateForAPI } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard"
+
+interface EligibleSenior {
+  id?: string;
+  userId?: string;
+  user_id?: string;
+  employee_id?: string;
+  employeeId?: string;
+  employeeCode?: string;
+  code?: string;
+  name?: string;
+  fullName?: string;
+  employeeName?: string;
+  level?: string | number;
+  designation?: string;
+  is_active?: number | boolean;
+  status?: string;
+}
 
 const initialState = {
   date: "",
@@ -40,17 +57,47 @@ const initialState = {
   gender: "",
   doj: "",
   designation: "",
+  seniorEmployeeId: "",
   password: "",
   profile_image: null as File | null,
 };
 
 export default function AddAgentPage() {
-  // Generate employee ID like EMP-YYMMDDHHmm
-  
-
   const [form, setForm] = useState(() => ({ ...initialState }));
+  const [eligibleSeniors, setEligibleSeniors] = useState<EligibleSenior[]>([]);
+  const [loadingSeniors, setLoadingSeniors] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+
+  // Fetch eligible seniors from backend on mount
+  React.useEffect(() => {
+    let isMounted = true;
+    const loadSeniors = async () => {
+      try {
+        setLoadingSeniors(true);
+        const res = await agentRegistrationAPI.getEligibleSeniors();
+        if (!isMounted) return;
+        const rawList = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+        // Filter out level-2, inactive, deleted defensively
+        const validList = rawList.filter((s: any) => {
+          if (!s) return false;
+          if (s.level === 2 || s.level === "2" || s.level === "LEVEL-2") return false;
+          if (s.is_active === 0 || s.is_active === false || s.status === "inactive") return false;
+          if (s.is_deleted || s.deleted_at) return false;
+          return true;
+        });
+        setEligibleSeniors(validList);
+      } catch (err) {
+        console.error("Failed to load eligible seniors:", err);
+      } finally {
+        if (isMounted) setLoadingSeniors(false);
+      }
+    };
+    loadSeniors();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const { createApi } = useCRUD("agentRecords", [], {
     create: API_ENDPOINTS.CREATE_AGENT,
@@ -147,9 +194,15 @@ export default function AddAgentPage() {
         const parsedDate = parseDateFromDDMMYYYY(dateString);
         return parsedDate ? formatDateForAPI(parsedDate) : "";
       };
-      
+
+      const selectedSeniorId = form.seniorEmployeeId && form.seniorEmployeeId.trim() !== "" ? form.seniorEmployeeId.trim() : null;
+
       const submissionData = {
         ...form,
+        seniorEmployeeId: selectedSeniorId,
+        parentAgentId: selectedSeniorId,
+        senior_employee_id: selectedSeniorId,
+        parent_agent_id: selectedSeniorId,
         date: parseAndFormatDate(form.date),
         dateOfBirth: parseAndFormatDate(form.dateOfBirth),
         doj: parseAndFormatDate(form.doj),
@@ -160,6 +213,11 @@ export default function AddAgentPage() {
       const result = await createApi(submissionData);
       
       if (result) {
+        toast.success(
+          selectedSeniorId 
+            ? "Level-2 Agent सफलतापूर्वक पंजीकृत हुआ" 
+            : "Level-1 Senior सफलतापूर्वक पंजीकृत हुआ"
+        );
         router.push("/dashboard/agent-registration");
       }
     } catch (error) {
@@ -192,7 +250,7 @@ export default function AddAgentPage() {
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={handleSubmit}>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="date">दिनांक (Date) *</Label>
                   <div className="relative flex gap-2">
@@ -292,8 +350,8 @@ export default function AddAgentPage() {
                 </div>
               </div>
 
-              {/* Date of Birth */}
-              <div className="grid grid-cols-3 gap-4">
+              {/* Date of Birth & Joining */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="dateOfBirth">जन्म तिथि (Date of Birth)</Label>
                   <div className="relative flex gap-2">
@@ -420,11 +478,55 @@ export default function AddAgentPage() {
                     </Popover>
                   </div>
                 </div>
+              </div>
+
+              {/* Designation & Senior Employee Selection */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="designation">पद (Designation)</Label>
                   <Input id="designation" name="designation" value={form.designation} onChange={handleChange} />
                 </div>
+                <div>
+                  <Label htmlFor="seniorEmployeeId">
+                    सीनियर कर्मचारी / Senior Employee
+                  </Label>
+                  <Select
+                    value={form.seniorEmployeeId ? form.seniorEmployeeId : "direct_admin"}
+                    onValueChange={(val) => handleSelectChange("seniorEmployeeId", val === "direct_admin" ? "" : val)}
+                  >
+                    <SelectTrigger id="seniorEmployeeId">
+                      <SelectValue placeholder="सीनियर कर्मचारी चुनें / Select Senior" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="direct_admin">
+                        सीधे Admin के अंतर्गत / Direct Under Admin (Level-1 Senior)
+                      </SelectItem>
+                      {eligibleSeniors.map((senior) => {
+                        const sId = String(senior.id || senior.userId || senior.user_id || senior.employee_id || "");
+                        const sCode = senior.employee_id || senior.employeeId || senior.employeeCode || senior.code || "";
+                        const sName = senior.name || senior.fullName || senior.employeeName || "";
+                        const label = sCode ? `${sCode} — ${sName}` : sName;
+                        return (
+                          <SelectItem key={sId} value={sId}>
+                            {label}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  <div className="text-xs space-y-0.5 mt-1">
+                    <p className={form.seniorEmployeeId ? "text-purple-700 font-medium" : "text-emerald-700 font-medium"}>
+                      {form.seniorEmployeeId
+                        ? "किसी Senior को चुनने पर यह Employee उसके अधीन LEVEL-2 Agent बनेगा।"
+                        : "सीधे Admin के अंतर्गत चुनने पर यह नया Employee LEVEL-1 Senior बनेगा।"}
+                    </p>
+                    <p className="text-muted-foreground">
+                      केवल Level-1 Senior employees ही चयन योग्य हैं। (Hierarchy Depth: Max 2)
+                    </p>
+                  </div>
+                </div>
               </div>
+
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <Label htmlFor="password">पासवर्ड (Password) *</Label>

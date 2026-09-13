@@ -51,6 +51,9 @@ export interface GeneralApplication {
   state: string;
   nomineeName: string;
   nomineeRelation: string;
+  nomineeAadhar?: string | null;
+  nomineeAadhaar?: string | null;
+  nomineeMobile?: string | null;
   workerName: string;
   workerMobile: string;
   affidavit: string;

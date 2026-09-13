@@ -51,6 +51,10 @@ export type GeneralApplicationFormData = {
   state: string;
   nomineeName: string;
   nomineeRelation: string;
+  nomineeAadhar?: string;
+  nomineeAadhaar?: string;
+  nomineeMobile?: string;
+  nomineePhone?: string;
   affidavit: string;
   passportPhoto: File | null;
   gender: string;
@@ -87,6 +91,8 @@ export default function EditGeneralApplicationPage() {
     state: "",
     nomineeName: "",
     nomineeRelation: "",
+    nomineeAadhar: "",
+    nomineeMobile: "",
     affidavit: "",
     passportPhoto: null,
     gender: "",
@@ -271,6 +277,22 @@ export default function EditGeneralApplicationPage() {
 
           const offNo = record.offlineFormNumber || record.offline_form_number || "";
 
+          const nomineeAadhar =
+            record.nomineeAadhar ||
+            record.nomineeAadhaar ||
+            record.nominee_aadhar ||
+            record.nominee_aadhaar ||
+            record.nomineeAadharNumber ||
+            record.nomineeAadhaarNumber ||
+            "";
+          const nomineeMobile =
+            record.nomineeMobile ||
+            record.nominee_mobile ||
+            record.nomineePhone ||
+            record.nominee_phone ||
+            record.nomineeMobileNumber ||
+            "";
+
           setFormData({
             formNumber: record.formNumber || "",
             offlineFormNumber: offNo,
@@ -289,6 +311,8 @@ export default function EditGeneralApplicationPage() {
             state: record.state || "",
             nomineeName: record.nomineeName || "",
             nomineeRelation: record.nomineeRelation || "",
+            nomineeAadhar,
+            nomineeMobile,
             affidavit: record.affidavit || "",
             passportPhoto: null,
             gender: record.gender || "",
@@ -367,6 +391,23 @@ export default function EditGeneralApplicationPage() {
       toast.error('कृपया कार्यकर्ता का नाम चुनें / Please select a worker')
       return false
     }
+
+    if (formData.nomineeAadhar && formData.nomineeAadhar.trim()) {
+      const nomineeAadharDigits = formData.nomineeAadhar.replace(/\D/g, '')
+      if (nomineeAadharDigits.length !== 12) {
+        toast.error('नॉमिनी का आधार 12 अंकों का होना चाहिए / Nominee Aadhaar must be 12 digits')
+        return false
+      }
+    }
+
+    if (formData.nomineeMobile && formData.nomineeMobile.trim()) {
+      const nomineeMobileDigits = formData.nomineeMobile.replace(/\D/g, '')
+      if (nomineeMobileDigits.length !== 10) {
+        toast.error('नॉमिनी मोबाइल नंबर 10 अंकों का होना चाहिए / Nominee mobile must be 10 digits')
+        return false
+      }
+    }
+
     return true
   }
 
@@ -391,6 +432,8 @@ export default function EditGeneralApplicationPage() {
     try {
       const mobileDigits = (formData.mobile || '').replace(/\D/g, '')
       const aadharDigits = (formData.aadharNumber || '').replace(/\D/g, '')
+      const nomineeAadharDigits = (formData.nomineeAadhar || '').replace(/\D/g, '').slice(0, 12)
+      const nomineeMobileDigits = (formData.nomineeMobile || '').replace(/\D/g, '').slice(0, 10)
 
       const apiFormData = buildEditFormData(id, {
         applicationDate: formatDateForAPI(applicationDateObj),
@@ -409,6 +452,12 @@ export default function EditGeneralApplicationPage() {
         state: formData.state,
         nomineeName: formData.nomineeName,
         nomineeRelation: formData.nomineeRelation,
+        nomineeAadhar: nomineeAadharDigits,
+        nominee_aadhar: nomineeAadharDigits,
+        nomineeAadhaar: nomineeAadharDigits,
+        nomineeMobile: nomineeMobileDigits,
+        nominee_mobile: nomineeMobileDigits,
+        nomineePhone: nomineeMobileDigits,
         affidavit: formData.affidavit,
         gender: formData.gender,
         category: formData.category,
@@ -834,7 +883,7 @@ export default function EditGeneralApplicationPage() {
               </div>
 
               {/* Nominee Information Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="nomineeName">नॉमिनी का नाम / Nominee Name</Label>
                   <Input
@@ -851,6 +900,36 @@ export default function EditGeneralApplicationPage() {
                     value={formData.nomineeRelation}
                     onChange={(e) => setFormData((prev) => ({ ...prev, nomineeRelation: e.target.value }))}
                     placeholder="संबंध दर्ज करें"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="nomineeAadhar">नॉमिनी का आधार नं. / Nominee Aadhaar Number</Label>
+                  <Input
+                    id="nomineeAadhar"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={12}
+                    value={formData.nomineeAadhar || ""}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 12)
+                      setFormData((prev) => ({ ...prev, nomineeAadhar: digits }))
+                    }}
+                    placeholder="12 अंकों का आधार दर्ज करें"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="nomineeMobile">नॉमिनी मोबाइल नं. / Nominee Mobile Number</Label>
+                  <Input
+                    id="nomineeMobile"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={formData.nomineeMobile || ""}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+                      setFormData((prev) => ({ ...prev, nomineeMobile: digits }))
+                    }}
+                    placeholder="10 अंकों का मोबाइल दर्ज करें"
                   />
                 </div>
               </div>

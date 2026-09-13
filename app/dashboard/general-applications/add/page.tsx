@@ -58,6 +58,8 @@ export default function AddGeneralApplicationPage() {
     state: string;
     nomineeName: string;
     nomineeRelation: string;
+    nomineeAadhar: string;
+    nomineeMobile: string;
     affidavit: string;
     passportPhoto: File | null;
     gender: string;
@@ -87,6 +89,8 @@ export default function AddGeneralApplicationPage() {
     state: "",
     nomineeName: "",
     nomineeRelation: "",
+    nomineeAadhar: "",
+    nomineeMobile: "",
     affidavit: "",
     passportPhoto: null,
     gender: "",
@@ -132,6 +136,22 @@ export default function AddGeneralApplicationPage() {
       return false
     }
 
+    if (formData.nomineeAadhar && formData.nomineeAadhar.trim()) {
+      const nomineeAadharDigits = formData.nomineeAadhar.replace(/\D/g, '')
+      if (nomineeAadharDigits.length !== 12) {
+        toast.error('नॉमिनी का आधार 12 अंकों का होना चाहिए / Nominee Aadhaar must be 12 digits')
+        return false
+      }
+    }
+
+    if (formData.nomineeMobile && formData.nomineeMobile.trim()) {
+      const nomineeMobileDigits = formData.nomineeMobile.replace(/\D/g, '')
+      if (nomineeMobileDigits.length !== 10) {
+        toast.error('नॉमिनी मोबाइल नंबर 10 अंकों का होना चाहिए / Nominee mobile must be 10 digits')
+        return false
+      }
+    }
+
     // Validate Razorpay payment completion
     if (isRazorpayPaymentMode(formData.paymentMode) && paymentStatus !== 'paid') {
       toast.error('कृपया ऑनलाइन भुगतान पूरा करें / Please complete the online payment to proceed')
@@ -161,6 +181,8 @@ export default function AddGeneralApplicationPage() {
     console.log("Current form data before submission:", {
       nomineeName: formData.nomineeName,
       nomineeRelation: formData.nomineeRelation,
+      nomineeAadhar: formData.nomineeAadhar,
+      nomineeMobile: formData.nomineeMobile,
       selectedAgentId: formData.selectedAgentId,
       offlineFormNumber: formData.offlineFormNumber,
     })
@@ -168,6 +190,8 @@ export default function AddGeneralApplicationPage() {
     try {
       const mobileDigits = (formData.mobile || '').replace(/\D/g, '')
       const aadharDigits = (formData.aadharNumber || '').replace(/\D/g, '')
+      const nomineeAadharDigits = (formData.nomineeAadhar || '').replace(/\D/g, '').slice(0, 12)
+      const nomineeMobileDigits = (formData.nomineeMobile || '').replace(/\D/g, '').slice(0, 10)
 
       const apiFormData = new FormData()
 
@@ -198,6 +222,24 @@ export default function AddGeneralApplicationPage() {
         apiFormData.append("nomineeRelation", formData.nomineeRelation.trim())
       } else {
         apiFormData.append("nomineeRelation", "")
+      }
+
+      if (nomineeAadharDigits) {
+        apiFormData.append("nomineeAadhar", nomineeAadharDigits)
+        apiFormData.append("nominee_aadhar", nomineeAadharDigits)
+        apiFormData.append("nomineeAadhaar", nomineeAadharDigits)
+      } else {
+        apiFormData.append("nomineeAadhar", "")
+        apiFormData.append("nominee_aadhar", "")
+      }
+
+      if (nomineeMobileDigits) {
+        apiFormData.append("nomineeMobile", nomineeMobileDigits)
+        apiFormData.append("nominee_mobile", nomineeMobileDigits)
+        apiFormData.append("nomineePhone", nomineeMobileDigits)
+      } else {
+        apiFormData.append("nomineeMobile", "")
+        apiFormData.append("nominee_mobile", "")
       }
 
       apiFormData.append("affidavit", formData.affidavit)
@@ -834,7 +876,7 @@ export default function AddGeneralApplicationPage() {
               </div>
 
               {/* Nominee Information Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="nomineeName">नॉमिनी का नाम / Nominee Name</Label>
                   <Input
@@ -851,6 +893,36 @@ export default function AddGeneralApplicationPage() {
                     value={formData.nomineeRelation}
                     onChange={(e) => setFormData((prev) => ({ ...prev, nomineeRelation: e.target.value }))}
                     placeholder="संबंध दर्ज करें"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="nomineeAadhar">नॉमिनी का आधार नं. / Nominee Aadhaar Number</Label>
+                  <Input
+                    id="nomineeAadhar"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={12}
+                    value={formData.nomineeAadhar}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 12)
+                      setFormData((prev) => ({ ...prev, nomineeAadhar: digits }))
+                    }}
+                    placeholder="12 अंकों का आधार दर्ज करें"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="nomineeMobile">नॉमिनी मोबाइल नं. / Nominee Mobile Number</Label>
+                  <Input
+                    id="nomineeMobile"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={formData.nomineeMobile}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+                      setFormData((prev) => ({ ...prev, nomineeMobile: digits }))
+                    }}
+                    placeholder="10 अंकों का मोबाइल दर्ज करें"
                   />
                 </div>
               </div>

@@ -22,6 +22,7 @@ function sanitizeOfflineNumber(val: any): string {
     upper === 'NA' ||
     upper === 'NULL' ||
     upper === 'UNDEFINED' ||
+    upper === 'UUID' ||
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
   ) {
     return '';
@@ -211,7 +212,14 @@ export async function POST(request: NextRequest) {
 
     const applicantName = sanitizeValue(record?.applicantName || record?.applicant_name || record?.name || record?.आवेदक_का_नाम || '');
     const fatherName = sanitizeValue(record?.fatherName || record?.father_name || record?.father_husband_name || record?.husbandName || record?.पिता_का_नाम || '');
-    const caste = sanitizeValue(record?.category || record?.caste || record?.casteName || record?.जाति || '');
+    const gotra = sanitizeValue(
+      record?.gotra ||
+      record?.gotraName ||
+      record?.gotra_name ||
+      record?.Gotra ||
+      record?.गोत्र ||
+      ''
+    );
     const village = sanitizeValue(record?.address || record?.village || record?.गाँव || record?.पता || '');
     const warisdar = sanitizeValue(record?.nomineeName || record?.nominee_name || record?.warisdar || record?.वारिसदार || record?.नामिनी_का_नाम || '');
     const district = sanitizeValue(record?.district || record?.जिला || '');
@@ -244,10 +252,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. कार्यकर्ता कोड
-    drawTextAt(workerCode, 160, 122, 10, rgb(0.8, 0, 0));
+    drawTextAt(workerCode, 160, 125, 10, rgb(0.8, 0, 0));
 
     // 2. सीनियर कार्यकर्ता कोड
-    drawTextAt(seniorCode, 480, 122, 10, rgb(0.8, 0, 0));
+    drawTextAt(seniorCode, 480, 125, 10, rgb(0.8, 0, 0));
 
     // 3. आवेदन क्र.
     drawTextAt(applicationOfflineNo, 115, 153, 10, rgb(0, 0.15, 0.6));
@@ -264,8 +272,8 @@ export async function POST(request: NextRequest) {
     // 7. पिता/पति का नाम
     drawTextAt(fatherName, 308, 193, 10);
 
-    // 8. जाति
-    drawTextAt(caste, 85, 214, 10);
+    // 8. जाति (Displays Gotra value)
+    drawTextAt(gotra, 85, 214, 10);
 
     // 9. गांव
     drawTextAt(village, 256, 217, 10);

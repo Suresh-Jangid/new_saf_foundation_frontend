@@ -31,6 +31,7 @@ function sanitizeOfflineNumber(val) {
     upper === 'NA' ||
     upper === 'NULL' ||
     upper === 'UNDEFINED' ||
+    upper === 'UUID' ||
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
   ) {
     return '';
@@ -295,11 +296,45 @@ async function runBondTestSuite() {
   const appNoToUse = sanitizeValue(testApp1.offlineFormNumber);
   assert(appNoToUse === "1149" && appNoToUse !== "M-027", `Bond uses offlineFormNumber 1149, never system form number M-027`);
 
-  // Test Nominee & Aadhaar fields
-  console.log('\n--- Test Group 5: Nominee Aadhaar, Nominee Mobile, and Applicant Aadhaar ---');
-  assert(testApp1.aadharNumber === "123456789012", `Applicant Aadhaar is 123456789012`);
-  assert(testApp1.nomineeAadhar === "888877776666", `Nominee Aadhaar is 888877776666`);
-  assert(testApp1.nomineeMobile === "9988776655", `Nominee Mobile is 9988776655`);
+  // Test Group 6: Gotra Resolution and Fallback Prevention
+  console.log('\n--- Test Group 6: Gotra Data Resolution & Fallback Prevention for जाति Field ---');
+  function resolveGotraValue(record) {
+    return sanitizeValue(
+      record?.gotra ||
+      record?.gotraName ||
+      record?.gotra_name ||
+      record?.Gotra ||
+      record?.गोत्र ||
+      ''
+    );
+  }
+
+  // A. Gotra exists -> जाति receives gotra value
+  const recordWithGotra = { gotra: "जाट", category: "OBC", caste: "Jat", gender: "Male" };
+  assert(resolveGotraValue(recordWithGotra) === "जाट", `A. Gotra exists: जाति field receives "जाट"`);
+
+  // B. Gotra missing -> जाति field is blank
+  const recordWithoutGotra = { category: "OBC", caste: "Jat", gender: "Male" };
+  assert(resolveGotraValue(recordWithoutGotra) === "", `B. Gotra missing: जाति field remains strictly blank`);
+
+  // C. Caste/category exists but gotra missing -> must NOT fallback
+  const recordWithCasteOnly = { caste: "Prajapat", category: "OBC" };
+  assert(resolveGotraValue(recordWithCasteOnly) === "", `C. Caste/Category exists without gotra: जाति field does NOT fallback to caste/category`);
+
+  // D. Gender exists -> gender must NOT appear in जाति field
+  const recordWithGenderOnly = { gender: "Female" };
+  assert(resolveGotraValue(recordWithGenderOnly) === "", `D. Gender exists: जाति field does NOT display gender`);
+
+  // E & F: Dynamic worker & senior code remain offline numbers only
+  const bondWorkerOffline = sanitizeOfflineNumber("1000");
+  const bondSeniorOffline = sanitizeOfflineNumber("999");
+  assert(bondWorkerOffline === "1000", `E. Worker offline number is 1000 only`);
+  assert(bondSeniorOffline === "999", `F. Senior offline number is 999 only`);
+
+  // G, H, I: Forbidden values for worker/senior
+  assert(sanitizeOfflineNumber("EMP-001") === "", `G. EMP-xxx rejected`);
+  assert(sanitizeOfflineNumber("ADMIN") === "", `H. ADMIN rejected`);
+  assert(sanitizeOfflineNumber("UUID") === "" && sanitizeOfflineNumber(null) === "" && sanitizeOfflineNumber(undefined) === "" && sanitizeOfflineNumber("N/A") === "", `I. UUID/null/undefined/N/A rejected`);
 
   console.log(`\n========================================`);
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);

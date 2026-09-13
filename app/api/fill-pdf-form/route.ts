@@ -209,15 +209,15 @@ export async function POST(request: NextRequest) {
         { field: 'नामिनी_का_नाम', valueKeys: ['nomineeName', 'नामिनी_का_नाम', 'nominee_name'], x: 108, y: 387.2, maxW: 185, size: 10 },
         { field: 'नामिनी_का_सम्बन्ध', valueKeys: ['nomineeRelation', 'नामिनी_का_सम्बन्ध', 'nominee_relation'], x: 338, y: 387.2, maxW: 210, size: 10 },
 
-        // Line 9: नॉमिनी का आधार नं. [Nominee Aadhaar]  मो. [Nominee Mobile]  कार्यकर्ता कोड [Worker Code]
+        // Line 9: नॉमिनी का आधार नं. [Nominee Aadhaar]  मो. [Nominee Mobile]  कार्यकर्ता कोड [Worker Offline Form No]
         { field: 'नामिनी_का_आधार', valueKeys: ['nomineeAadhar', 'nomineeAadhaar', 'नामिनी_का_आधार', 'nominee_aadhar', 'nominee_aadhaar', 'nomineeAadharNumber', 'nomineeAadhaarNumber', 'nominee_aadhar_number', 'nominee_aadhaar_number', 'nomineeAdhar', 'nominee_adhar', 'nomineeAadharNo', 'nomineeAadhaarNo'], x: 130, y: 414.9, maxW: 120, size: 9.5 },
         { field: 'नामिनी_का_मोबाइल', valueKeys: ['nomineeMobile', 'नामिनी_का_मोबाइल', 'nominee_mobile', 'nomineePhone', 'nominee_phone', 'nomineeMobileNumber', 'nominee_mobile_number', 'nomineeContact', 'nominee_contact'], x: 275, y: 414.9, maxW: 125, size: 9.5 },
-        { field: 'कार्यकर्ता_कोड', valueKeys: ['workerCode', 'कार्यकर्ता_कोड', 'worker_code', 'agentCode', 'agent_code', 'added_code'], x: 472, y: 414.9, maxW: 75, size: 9.5 },
+        { field: 'कार्यकर्ता_कोड', valueKeys: ['workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'कार्यकर्ता_कोड'], x: 472, y: 414.9, maxW: 75, size: 9.5 },
 
-        // Line 10: राशि [Amount]  नकद/चैक/डी.डी./यूटीआर नं. [Payment Ref]  सीनियर कोड [Senior Code]
+        // Line 10: राशि [Amount]  नकद/चैक/डी.डी./यूटीआर नं. [Payment Ref]  सीनियर कोड [Senior Offline Form No]
         { field: 'राशि', valueKeys: ['amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 60, y: 442.6, maxW: 90, size: 9.5, formatAmount: true },
         { field: 'भुगतान_विवरण', valueKeys: ['paymentModeRef', 'भुगतान_विवरण', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo'], x: 285, y: 442.6, maxW: 120, size: 9.5 },
-        { field: 'सीनियर_कोड', valueKeys: ['seniorCode', 'सीनियर_कोड', 'senior_code', 'seniorWorker', 'senior_worker', 'seniorAgentCode', 'senior_agent_code'], x: 472, y: 442.6, maxW: 75, size: 9.5 },
+        { field: 'सीनियर_कोड', valueKeys: ['seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'senior_offline_form_no', 'सीनियर_कोड'], x: 472, y: 442.6, maxW: 75, size: 9.5 },
 
         // ==========================================
         // SECTION 2: "सदस्यता फार्म रसीद" (Bottom Section)
@@ -317,6 +317,22 @@ export async function POST(request: NextRequest) {
       }
 
       let textValue = String(val).trim();
+
+      if (type === 'general-application' && (def.field === 'कार्यकर्ता_कोड' || def.field === 'सीनियर_कोड')) {
+        // Strict business rule: Only offline form numbers allowed in worker and senior code fields.
+        // Never print EMP-xxx, ADMIN, N/A, null, undefined, or UUIDs.
+        if (
+          /^EMP-\d+/i.test(textValue) ||
+          textValue.toUpperCase() === 'ADMIN' ||
+          textValue.toUpperCase() === 'SUPER ADMIN' ||
+          textValue.toUpperCase() === 'N/A' ||
+          textValue.toLowerCase() === 'null' ||
+          textValue.toLowerCase() === 'undefined' ||
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(textValue)
+        ) {
+          continue;
+        }
+      }
 
       // Format date
       if (def.isDate) {

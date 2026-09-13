@@ -10,7 +10,7 @@ import { DataTable } from "@/components/data-table"
 import { useRouter } from "next/navigation"
 import { get } from "@/lib/api"
 import { useCRUD } from "@/hooks/use-crud"
-import { API_ENDPOINTS, generalApplicationsAPI } from "@/lib/api"
+import { API_ENDPOINTS, generalApplicationsAPI, agentRegistrationAPI } from "@/lib/api"
 import { toast } from "sonner"
 import {
   AlertDialog,
@@ -79,8 +79,16 @@ interface GeneralApplicationRecord {
   nominee_phone?: string
   workerCode?: string
   worker_code?: string
+  workerOfflineFormNumber?: string | null
+  worker_offline_form_number?: string | null
+  agentOfflineFormNumber?: string | null
+  agent_offline_form_number?: string | null
   seniorCode?: string
   senior_code?: string
+  seniorOfflineFormNumber?: string | null
+  senior_offline_form_number?: string | null
+  seniorAgentOfflineFormNumber?: string | null
+  senior_agent_offline_form_number?: string | null
   totalAmount?: string | number
   total_amount?: string | number
   amount?: string | number
@@ -102,6 +110,8 @@ interface GeneralApplicationRecord {
     code?: string
     agentCode?: string
     agent_code?: string
+    offlineFormNumber?: string
+    offline_form_number?: string
   }
 }
 
@@ -117,6 +127,149 @@ function calculateCategory(gender: string, age: number) {
     if (age >= 19) return "C";
   }
   return "";
+}
+
+interface ResolvedAgentOfflineNumbers {
+  workerOfflineFormNumber: string;
+  seniorOfflineFormNumber: string;
+}
+
+function resolveAgentOfflineNumbers(
+  record: GeneralApplicationRecord & Record<string, any>,
+  agentsList: any[] = []
+): ResolvedAgentOfflineNumbers {
+  // If explicitly already provided on record, use it
+  let workerOffline = String(
+    record.workerOfflineFormNumber ||
+    record.worker_offline_form_number ||
+    record.agentOfflineFormNumber ||
+    record.agent_offline_form_number ||
+    ""
+  ).trim();
+
+  let seniorOffline = String(
+    record.seniorOfflineFormNumber ||
+    record.senior_offline_form_number ||
+    record.seniorAgentOfflineFormNumber ||
+    record.senior_agent_offline_form_number ||
+    ""
+  ).trim();
+
+  // If already resolved, return
+  if (workerOffline && seniorOffline) {
+    return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline };
+  }
+
+  if (!agentsList || agentsList.length === 0) {
+    return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline };
+  }
+
+  // Build lookup maps
+  const agentById = new Map<string, any>();
+  const agentByCode = new Map<string, any>();
+
+  for (const agent of agentsList) {
+    const id = String(agent.id || "").trim();
+    const empId = String(
+      agent.employeeId ||
+      agent.employee_id ||
+      agent.agentProfile?.employeeId ||
+      agent.agent_profile?.employee_id ||
+      ""
+    ).trim();
+
+    if (id) agentById.set(id, agent);
+    if (empId) agentByCode.set(empId.toUpperCase(), agent);
+  }
+
+  // Find worker agent
+  const targetWorkerId = String(
+    record.addedById ||
+    record.addedby_id ||
+    record.selectedAgentId ||
+    record.addedBy?.id ||
+    record.agent?.id ||
+    ""
+  ).trim();
+
+  const targetWorkerCode = String(
+    record.workerCode ||
+    record.worker_code ||
+    record.agentCode ||
+    record.agent_code ||
+    record.added_code ||
+    record.addedBy?.agentCode ||
+    record.addedBy?.code ||
+    ""
+  ).trim().toUpperCase();
+
+  const workerAgent = (targetWorkerId && agentById.get(targetWorkerId)) || (targetWorkerCode && agentByCode.get(targetWorkerCode));
+
+  if (workerAgent && !workerOffline) {
+    workerOffline = String(
+      workerAgent.offlineFormNumber ||
+      workerAgent.offline_form_number ||
+      workerAgent.agentProfile?.offlineFormNumber ||
+      workerAgent.agent_profile?.offline_form_number ||
+      ""
+    ).trim();
+  }
+
+  // Find senior agent
+  let seniorAgent: any = null;
+
+  if (workerAgent) {
+    const parentSeniorId = String(
+      workerAgent.parentAgentId ||
+      workerAgent.parent_agent_id ||
+      workerAgent.seniorId ||
+      workerAgent.senior_id ||
+      ""
+    ).trim();
+
+    const parentSeniorCode = String(
+      workerAgent.seniorEmployeeId ||
+      workerAgent.senior_employee_id ||
+      workerAgent.parentEmployeeId ||
+      workerAgent.seniorCode ||
+      ""
+    ).trim().toUpperCase();
+
+    if (parentSeniorId && agentById.has(parentSeniorId)) {
+      seniorAgent = agentById.get(parentSeniorId);
+    } else if (parentSeniorCode && parentSeniorCode !== "ADMIN" && parentSeniorCode !== "SUPER ADMIN" && agentByCode.has(parentSeniorCode)) {
+      seniorAgent = agentByCode.get(parentSeniorCode);
+    }
+  }
+
+  if (!seniorAgent) {
+    const targetSeniorCode = String(
+      record.seniorCode ||
+      record.senior_code ||
+      record.seniorWorker ||
+      record.senior_worker ||
+      ""
+    ).trim().toUpperCase();
+
+    if (targetSeniorCode && targetSeniorCode !== "ADMIN" && targetSeniorCode !== "SUPER ADMIN" && agentByCode.has(targetSeniorCode)) {
+      seniorAgent = agentByCode.get(targetSeniorCode);
+    }
+  }
+
+  if (seniorAgent && !seniorOffline) {
+    seniorOffline = String(
+      seniorAgent.offlineFormNumber ||
+      seniorAgent.offline_form_number ||
+      seniorAgent.agentProfile?.offlineFormNumber ||
+      seniorAgent.agent_profile?.offline_form_number ||
+      ""
+    ).trim();
+  }
+
+  return {
+    workerOfflineFormNumber: workerOffline,
+    seniorOfflineFormNumber: seniorOffline,
+  };
 }
 
 function mapApplicationRecord(item: GeneralApplicationRecord & Record<string, any>): GeneralApplicationRecord {
@@ -182,6 +335,20 @@ function mapApplicationRecord(item: GeneralApplicationRecord & Record<string, an
     item.senior_agent_code ||
     "";
 
+  const workerOfflineFormNumber =
+    item.workerOfflineFormNumber ||
+    item.worker_offline_form_number ||
+    item.agentOfflineFormNumber ||
+    item.agent_offline_form_number ||
+    "";
+
+  const seniorOfflineFormNumber =
+    item.seniorOfflineFormNumber ||
+    item.senior_offline_form_number ||
+    item.seniorAgentOfflineFormNumber ||
+    item.senior_agent_offline_form_number ||
+    "";
+
   const totalAmount =
     item.totalAmount ??
     item.total_amount ??
@@ -235,6 +402,8 @@ function mapApplicationRecord(item: GeneralApplicationRecord & Record<string, an
     nominee_mobile: nomineeMobile,
     workerCode,
     seniorCode,
+    workerOfflineFormNumber: String(workerOfflineFormNumber || ""),
+    seniorOfflineFormNumber: String(seniorOfflineFormNumber || ""),
     totalAmount: String(totalAmount),
     amount: String(totalAmount),
     paymentModeRef,
@@ -254,6 +423,24 @@ export default function GeneralApplicationsPage() {
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null)
   const router = useRouter();
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
+  const [agentsList, setAgentsList] = useState<any[]>([])
+
+  useEffect(() => {
+    let isMounted = true
+    agentRegistrationAPI
+      .getAll()
+      .then((res) => {
+        if (isMounted && res?.data && Array.isArray(res.data)) {
+          setAgentsList(res.data)
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not prefetch agents in GeneralApplicationsPage:", err)
+      })
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false)
   const [importing, setImporting] = useState(false)
@@ -481,13 +668,10 @@ export default function GeneralApplicationsPage() {
     कार्यकर्ता_का_नाम: record.added_name || record.workerName || record.addedBy?.name || "",
     कार्यकर्ता_का_मोबाइल: record.added_mobile || record.workerMobile || record.addedBy?.mobile || "",
     कार्यकर्ता_कोड:
-      record.workerCode ||
-      record.worker_code ||
-      record.agentCode ||
-      record.agent_code ||
-      record.added_code ||
-      record.addedBy?.agentCode ||
-      record.addedBy?.code ||
+      record.workerOfflineFormNumber ||
+      record.worker_offline_form_number ||
+      record.agentOfflineFormNumber ||
+      record.agent_offline_form_number ||
       "",
     राशि:
       record.totalAmount ||
@@ -506,12 +690,10 @@ export default function GeneralApplicationsPage() {
       record.utr_no ||
       "",
     सीनियर_कोड:
-      record.seniorCode ||
-      record.senior_code ||
-      record.seniorWorker ||
-      record.senior_worker ||
-      record.seniorAgentCode ||
-      record.senior_agent_code ||
+      record.seniorOfflineFormNumber ||
+      record.senior_offline_form_number ||
+      record.seniorAgentOfflineFormNumber ||
+      record.senior_agent_offline_form_number ||
       "",
     शपथ_नाम: record.applicantName || record.applicant_name || "",
     शपथ_पिता_का_नाम: record.fatherName || record.father_name || record.father_husband_name || record.husbandName || "",
@@ -521,12 +703,38 @@ export default function GeneralApplicationsPage() {
 
   const handleGeneratePDFForm = async (record: GeneralApplicationRecord) => {
     try {
-      const mapped = mapToHindiFields(record);
+      let currentAgents = agentsList;
+      if (!currentAgents || currentAgents.length === 0) {
+        try {
+          const res = await agentRegistrationAPI.getAll();
+          if (res?.data && Array.isArray(res.data)) {
+            currentAgents = res.data;
+            setAgentsList(res.data);
+          }
+        } catch (e) {
+          console.warn('Could not fetch agents for PDF resolution:', e);
+        }
+      }
+
+      const { workerOfflineFormNumber, seniorOfflineFormNumber } = resolveAgentOfflineNumbers(
+        record,
+        currentAgents
+      );
+
+      const enrichedRecord = {
+        ...record,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+      };
+
+      const mapped = mapToHindiFields(enrichedRecord);
       
       // Combine raw record fields, mapped Hindi fields, and explicitly resolved attributes
       const dataForPdf = {
-        ...record,
+        ...enrichedRecord,
         ...mapped,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
         gender: record.gender,
       };
       

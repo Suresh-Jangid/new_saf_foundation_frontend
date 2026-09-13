@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
     drawTextAt(seniorCode, 480, 125, 10, rgb(0.8, 0, 0));
 
     // 3. आवेदन क्र.
-    drawTextAt(applicationOfflineNo, 115, 153, 10, rgb(0, 0.15, 0.6));
+    drawTextAt(applicationOfflineNo, 120, 156, 10, rgb(0, 0.15, 0.6));
 
     // 4. सदस्यता क्र.
     drawTextAt(membershipNo, 330, 153, 10, rgb(0, 0.15, 0.6));
@@ -267,37 +267,37 @@ export async function POST(request: NextRequest) {
     drawTextAt(applicationDate, 474, 153, 10, rgb(0, 0.15, 0.6));
 
     // 6. नाम
-    drawTextAt(applicantName, 85, 190, 10);
+    drawTextAt(applicantName, 90, 193, 10);
 
     // 7. पिता/पति का नाम
     drawTextAt(fatherName, 308, 193, 10);
 
     // 8. जाति (Displays Gotra value)
-    drawTextAt(gotra, 85, 214, 10);
+    drawTextAt(gotra, 90, 217, 10);
 
     // 9. गांव
     drawTextAt(village, 256, 217, 10);
 
     // 10. वारिसदार
-    drawTextAt(warisdar, 104, 239, 10);
+    drawTextAt(warisdar, 109, 242, 10);
 
     // 11. जिला
     drawTextAt(district, 256, 242, 10);
 
     // 12. एजेन्ट मो. नं.
-    drawTextAt(agentMobile, 124, 263, 10);
+    drawTextAt(agentMobile, 129, 266, 10);
 
     // 13. राज्य
     drawTextAt(state, 256, 266, 10);
 
     // 14. आधार नं.
-    drawTextAt(applicantAadhaar, 102, 288, 10);
+    drawTextAt(applicantAadhaar, 107, 291, 10);
 
     // 15. सम्बन्ध
     drawTextAt(relation, 270, 291, 10);
 
     // 16. नॉमिनी आधार नं.
-    drawTextAt(nomineeAadhaar, 144, 312, 10);
+    drawTextAt(nomineeAadhaar, 149, 315, 10);
 
     // 17. नॉमिनी मो. नं.
     drawTextAt(nomineeMobile, 304, 315, 10);

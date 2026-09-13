@@ -597,6 +597,18 @@ export function mapAgentFormRecord(
         record.created_at,
     ),
     employee_id: str(profile.employeeId ?? profile.employee_id ?? record.employee_id),
+    offlineFormNumber: str(
+      record.offlineFormNumber ??
+        record.offline_form_number ??
+        profile.offlineFormNumber ??
+        profile.offline_form_number
+    ),
+    offline_form_number: str(
+      record.offlineFormNumber ??
+        record.offline_form_number ??
+        profile.offlineFormNumber ??
+        profile.offline_form_number
+    ),
     name: str(record.name),
     fatherName: str(profile.fatherName ?? profile.father_name ?? record.fatherName),
     gotra: str(profile.gotra ?? record.gotra),

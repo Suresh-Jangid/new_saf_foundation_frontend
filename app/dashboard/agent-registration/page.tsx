@@ -60,6 +60,8 @@ interface AgentRecord {
   senior_employee_id?: string;
   seniorEmployeeId?: string;
   senior?: { name?: string; employee_id?: string };
+  offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
   agentProfile?: any;
   agent_profile?: any;
   createdAt: string;
@@ -72,7 +74,17 @@ const columns = [
     label: "एजेंट कोड / Agent Code",
     render: (_: any, record: AgentRecord) => {
       const code = record.employee_id || record.agentProfile?.employeeId || record.agent_profile?.employee_id || (record as any).employeeId || "-";
-      return <span className="font-semibold text-gray-900">{code}</span>;
+      const offline = record.offlineFormNumber || record.offline_form_number || record.agentProfile?.offlineFormNumber || record.agentProfile?.offline_form_number || record.agent_profile?.offline_form_number || "";
+      return (
+        <div className="flex flex-col">
+          <span className="font-semibold text-gray-900">{code}</span>
+          {offline ? (
+            <span className="text-xs text-muted-foreground">
+              ऑफलाइन: <span className="font-medium text-foreground">{offline}</span>
+            </span>
+          ) : null}
+        </div>
+      );
     }
   },
   { 
@@ -472,7 +484,7 @@ export default function AgentRegistrationList() {
           onGenerateApplicationForm={handleGenerateApplicationFormPDF}
           onGenerateAdikartForm={handleGenerateAdikartFormPDF}
           editUrlPattern="/dashboard/agent-registration/edit/[id]"
-          searchFields={["employee_id", "name", "fatherName", "village", "mobile"]}
+          searchFields={["employee_id", "name", "fatherName", "village", "mobile", "offlineFormNumber", "offline_form_number"]}
           itemsPerPage={10}
           showGenderFilter={true}
           genderField="gender"

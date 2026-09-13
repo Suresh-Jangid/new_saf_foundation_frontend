@@ -191,6 +191,8 @@ export interface AgentRegistration {
   seniorCode?: string | null;
   senior_code?: string | null;
   level?: string | number | null;
+  offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
 }
 
 export interface MarriageCongratulations {

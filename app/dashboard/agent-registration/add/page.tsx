@@ -15,7 +15,17 @@ import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS, agentRegistrationAPI } from "@/lib/api";
 import { toast } from "sonner";
 import { formatDate, isValidDate, parseDateFromDDMMYYYY, getCurrentUserInfo, formatDateForAPI } from "@/lib/utils";
-import { RoleGuard } from "@/components/role-guard"
+import { RoleGuard } from "@/components/role-guard";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface EligibleSenior {
   id?: string;
@@ -36,6 +46,7 @@ interface EligibleSenior {
 
 const initialState = {
   date: "",
+  offlineFormNumber: "",
   dateOfBirth: "",
   name: "",
   fatherName: "",
@@ -67,6 +78,7 @@ export default function AddAgentPage() {
   const [eligibleSeniors, setEligibleSeniors] = useState<EligibleSenior[]>([]);
   const [loadingSeniors, setLoadingSeniors] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const router = useRouter();
 
   // Fetch eligible seniors from backend on mount
@@ -174,7 +186,7 @@ export default function AddAgentPage() {
     setForm({ ...form, [name]: value });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
@@ -183,6 +195,16 @@ export default function AddAgentPage() {
       return;
     }
 
+    const trimmedOffline = form.offlineFormNumber ? form.offlineFormNumber.trim() : "";
+    if (trimmedOffline) {
+      setConfirmDialogOpen(true);
+    } else {
+      executeSubmit();
+    }
+  };
+
+  const executeSubmit = async () => {
+    setConfirmDialogOpen(false);
     try {
       setIsSubmitting(true);
       
@@ -199,6 +221,7 @@ export default function AddAgentPage() {
 
       const submissionData = {
         ...form,
+        offlineFormNumber: form.offlineFormNumber ? form.offlineFormNumber.trim() : undefined,
         seniorEmployeeId: selectedSeniorId,
         parentAgentId: selectedSeniorId,
         senior_employee_id: selectedSeniorId,
@@ -210,9 +233,9 @@ export default function AddAgentPage() {
         addedby_id,
       };
       
-      const result = await createApi(submissionData);
+      const result = await agentRegistrationAPI.create(submissionData);
       
-      if (result) {
+      if (result?.status || result?.success || result) {
         toast.success(
           selectedSeniorId 
             ? "Level-2 Agent सफलतापूर्वक पंजीकृत हुआ" 
@@ -220,9 +243,10 @@ export default function AddAgentPage() {
         );
         router.push("/dashboard/agent-registration");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating agent:", error);
-      toast.error("एजेंट जोड़ने में त्रुटि");
+      const errorMessage = error?.response?.data?.message || error?.message || "एजेंट जोड़ने में त्रुटि";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -250,7 +274,7 @@ export default function AddAgentPage() {
           </CardHeader>
           <CardContent>
             <form className="space-y-4" onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="date">दिनांक (Date) *</Label>
                   <div className="relative flex gap-2">
@@ -314,6 +338,22 @@ export default function AddAgentPage() {
                       </PopoverContent>
                     </Popover>
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="offlineFormNumber">ऑफलाइन फॉर्म नं. / Offline Form No.</Label>
+                  <Input
+                    id="offlineFormNumber"
+                    name="offlineFormNumber"
+                    value={form.offlineFormNumber}
+                    placeholder="उदा. 1259"
+                    maxLength={50}
+                    className="bg-background"
+                    onChange={handleChange}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    भौतिक फॉर्म नंबर (वैकल्पिक) / Physical form number
+                  </p>
                 </div>
                
                 <div>
@@ -651,6 +691,26 @@ export default function AddAgentPage() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Human Error Protection Confirmation Dialog */}
+        <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>फॉर्म संख्या पुष्टि / Confirm Offline Form Number</AlertDialogTitle>
+              <AlertDialogDescription className="text-base text-gray-800 font-medium pt-2">
+                ऑफलाइन फॉर्म नं. <span className="font-bold text-primary">{form.offlineFormNumber ? form.offlineFormNumber.trim() : ""}</span> सही है?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConfirmDialogOpen(false)}>
+                रद्द करें / Edit
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={executeSubmit} disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "हाँ, सही है / Confirm & Save"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </RoleGuard>
   );

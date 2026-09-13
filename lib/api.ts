@@ -868,9 +868,17 @@ export const disabilityCycleAPI = {
 // Agent Registration API Services
 export const agentRegistrationAPI = {
   create: async (data: any): Promise<ApiResponse> => {
-    const formData = createFormData(data);
-    const response = await post<ApiResponse>(API_ENDPOINTS.CREATE_AGENT, formData);
-    return response.data;
+    try {
+      const response = await api.post("/v1/agents", data);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 400 || error.response?.data?.message) {
+        throw error;
+      }
+      const formData = createFormData(data);
+      const response = await post<ApiResponse>(API_ENDPOINTS.CREATE_AGENT, formData);
+      return response.data;
+    }
   },
 
   getAll: async (filters?: Record<string, any>): Promise<ApiResponse<any[]>> => {
@@ -911,9 +919,17 @@ export const agentRegistrationAPI = {
   },
 
   update: async (id: string, data: any): Promise<ApiResponse> => {
-    const formData = createFormData({ ...data, id });
-    const response = await post<ApiResponse>(API_ENDPOINTS.UPDATE_AGENT, formData);
-    return response.data;
+    try {
+      const response = await api.put(`/v1/agents/${id}`, data);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 400 || error.response?.data?.message) {
+        throw error;
+      }
+      const formData = createFormData({ ...data, id });
+      const response = await post<ApiResponse>(API_ENDPOINTS.UPDATE_AGENT, formData);
+      return response.data;
+    }
   },
 
   delete: async (id: string): Promise<ApiResponse> => {

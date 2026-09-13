@@ -13,9 +13,19 @@ import { CalendarDays, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS, postUrlEncoded, agentRegistrationAPI } from "@/lib/api";
-import { toast } from "sonner"
+import { toast } from "sonner";
 import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, mapAgentFormRecord, unwrapApiRecordById, getProxiedPhotoSrc } from "@/lib/utils";
-import { RoleGuard } from "@/components/role-guard"
+import { RoleGuard } from "@/components/role-guard";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface EligibleSenior {
   id?: string;
@@ -38,6 +48,8 @@ interface AgentRecord {
   id: string;
   date: string;
   employee_id: string;
+  offlineFormNumber?: string;
+  offline_form_number?: string;
   name: string;
   fatherName: string;
   gotra: string;
@@ -71,6 +83,7 @@ interface AgentRecord {
 const initialState = {
   date: "",
   employee_id: "",
+  offlineFormNumber: "",
   name: "",
   fatherName: "",
   gotra: "",
@@ -103,6 +116,8 @@ const initialState = {
 
 export default function EditAgentRegistrationForm() {
   const [form, setForm] = useState(initialState);
+  const [initialOfflineFormNumber, setInitialOfflineFormNumber] = useState<string>("");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [eligibleSeniors, setEligibleSeniors] = useState<EligibleSenior[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -193,10 +208,13 @@ export default function EditAgentRegistrationForm() {
         if (mapped && (response?.status || response?.success || response?.data)) {
           // Resolve senior ID from mapped data
           const rawParentId = mapped.parentAgentId || mapped.seniorEmployeeId || "";
+          const rawOffline = mapped.offlineFormNumber || (raw as any)?.offlineFormNumber || (raw as any)?.agentProfile?.offlineFormNumber || "";
+          setInitialOfflineFormNumber(rawOffline);
           
           setForm((prev) => ({
             ...initialState,
             ...mapped,
+            offlineFormNumber: rawOffline,
             seniorEmployeeId: rawParentId,
             password: "",
             profile_image: null,
@@ -272,7 +290,7 @@ export default function EditAgentRegistrationForm() {
     );
   const isLevel1 = !isLevel2;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
@@ -281,6 +299,18 @@ export default function EditAgentRegistrationForm() {
       return;
     }
 
+    const currentOffline = (form.offlineFormNumber || '').trim();
+    const initialOffline = (initialOfflineFormNumber || '').trim();
+
+    if (currentOffline !== initialOffline) {
+      setConfirmDialogOpen(true);
+    } else {
+      executeSubmit();
+    }
+  };
+
+  const executeSubmit = async () => {
+    setConfirmDialogOpen(false);
     try {
       setIsSubmitting(true);
       
@@ -299,6 +329,7 @@ export default function EditAgentRegistrationForm() {
 
       const submissionData: Record<string, unknown> = {
         ...form,
+        offlineFormNumber: form.offlineFormNumber ? form.offlineFormNumber.trim() : "",
         seniorEmployeeId: selectedSeniorId,
         parentAgentId: selectedSeniorId,
         senior_employee_id: selectedSeniorId,
@@ -312,15 +343,16 @@ export default function EditAgentRegistrationForm() {
         delete submissionData.password;
       }
   
-      const success = await updateApi(id, submissionData);
+      const res = await agentRegistrationAPI.update(id, submissionData);
       
-      if (success) {
+      if (res?.status || res?.success || res) {
         toast.success("एजेंट सफलतापूर्वक अपडेट हुआ");
         router.push("/dashboard/agent-registration");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating agent:", error);
-      toast.error("एजेंट अपडेट करने में त्रुटि");
+      const errorMessage = error?.response?.data?.message || error?.message || "एजेंट अपडेट करने में त्रुटि";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -358,7 +390,7 @@ export default function EditAgentRegistrationForm() {
           </CardHeader>
           <CardContent>
             <form key={id} className="space-y-4" autoComplete="off" onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="date">दिनांक (Date) *</Label>
                   <div className="relative flex gap-2">
@@ -427,6 +459,21 @@ export default function EditAgentRegistrationForm() {
                 <div>
                   <Label htmlFor="employee_id">कर्मचारी आईडी (Employee ID) *</Label>
                   <Input id="employee_id" name="employee_id" disabled value={form.employee_id} onChange={handleChange} required />
+                </div>
+                <div>
+                  <Label htmlFor="offlineFormNumber">ऑफलाइन फॉर्म नं. / Offline Form No.</Label>
+                  <Input
+                    id="offlineFormNumber"
+                    name="offlineFormNumber"
+                    value={form.offlineFormNumber || ""}
+                    placeholder="उदा. 1259"
+                    maxLength={50}
+                    className="bg-background"
+                    onChange={handleChange}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    भौतिक फॉर्म नंबर (वैकल्पिक) / Physical form number
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="name">नाम (Name) *</Label>
@@ -818,6 +865,26 @@ export default function EditAgentRegistrationForm() {
             </form>
           </CardContent>
         </Card>
+
+        {/* Human Error Protection Confirmation Dialog */}
+        <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>फॉर्म संख्या पुष्टि / Confirm Offline Form Number</AlertDialogTitle>
+              <AlertDialogDescription className="text-base text-gray-800 font-medium pt-2">
+                ऑफलाइन फॉर्म नं. <span className="font-bold text-primary">{form.offlineFormNumber ? form.offlineFormNumber.trim() : ""}</span> सही है?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setConfirmDialogOpen(false)}>
+                रद्द करें / Edit
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={executeSubmit} disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "हाँ, सही है / Confirm & Save"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </RoleGuard>
   );

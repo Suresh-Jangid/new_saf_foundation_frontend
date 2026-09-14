@@ -103,6 +103,7 @@ export interface CreateDhundhotsavPayload {
   paymentMode?: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER";
   selectedAgentId?: string;
   agentId?: string;
+  addedById?: string | null;
   epinCode?: string | null;
   pinNumber?: string | null;
   [key: string]: any;
@@ -139,6 +140,7 @@ export interface UpdateDhundhotsavPayload {
   pendingAmount?: number;
   selectedAgentId?: string;
   agentId?: string;
+  addedById?: string | null;
   [key: string]: any;
 }
 

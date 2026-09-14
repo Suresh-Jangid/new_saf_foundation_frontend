@@ -43,7 +43,17 @@ export default function EditDhundhotsavPage() {
   const [isFetching, setIsFetching] = useState(true);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [initialOfflineFormNumber, setInitialOfflineFormNumber] = useState<string>("");
-  const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile: string }>>([]);
+  const [agents, setAgents] = useState<
+    Array<{
+      id: string; // User ID (primary value)
+      userId: string; // User ID
+      agentProfileId: string; // Agent Profile ID
+      name: string;
+      mobile: string;
+      employeeId?: string;
+      offlineFormNumber?: string;
+    }>
+  >([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
 
   // Form State
@@ -137,6 +147,15 @@ export default function EditDhundhotsavPage() {
         const dhDate = reg.dhundhDate ? reg.dhundhDate.split("T")[0] : "";
         const dob = reg.dateOfBirth ? reg.dateOfBirth.split("T")[0] : "";
 
+        const rawWorkerId = String(
+          reg.addedById ||
+          (reg as any).addedby_id ||
+          reg.addedBy?.id ||
+          (reg as any).agentId ||
+          (reg as any).selectedAgentId ||
+          ""
+        ).trim();
+
         setFormData({
           formNumber: reg.formNumber || (reg as any).form_number || "",
           offlineFormNumber: offNo,
@@ -166,7 +185,7 @@ export default function EditDhundhotsavPage() {
           schemeType: "DHUNDHOTSAV",
           pool: "MALE_POOL",
           membershipFee: 5100,
-          selectedAgentId: reg.addedById || (reg as any).addedby_id || "",
+          selectedAgentId: rawWorkerId,
           epinCode: reg.epinCode || (reg as any).epin_code || "",
         });
 
@@ -196,14 +215,53 @@ export default function EditDhundhotsavPage() {
       agentRegistrationAPI
         .getAll()
         .then((res: any) => {
-          if (res && res.data) {
-            setAgents(
-              res.data.map((ag: any) => ({
-                id: String(ag.id || ag.user_id),
-                name: ag.applicantName || ag.name || "Agent",
-                mobile: ag.mobileNumber || ag.mobile || "",
-              }))
-            );
+          if (res && res.data && Array.isArray(res.data)) {
+            const mappedAgents = res.data.map((ag: any) => {
+              const resolvedUserId = String(
+                ag.userId ||
+                ag.user_id ||
+                ag.user?.id ||
+                ag.agentProfile?.userId ||
+                ag.agentProfile?.user_id ||
+                ag.agent_profile?.user_id ||
+                ag.id ||
+                ""
+              ).trim();
+
+              const resolvedProfileId = String(
+                ag.agentProfile?.id ||
+                ag.agent_profile?.id ||
+                ag.id ||
+                ag.agentId ||
+                ag.agent_id ||
+                resolvedUserId
+              ).trim();
+
+              return {
+                id: resolvedUserId,
+                userId: resolvedUserId,
+                agentProfileId: resolvedProfileId,
+                name: ag.applicantName || ag.name || ag.user?.name || "Agent",
+                mobile: ag.mobileNumber || ag.mobile || ag.phone || ag.user?.mobile || "",
+                employeeId: ag.employeeId || ag.employee_id || ag.agentProfile?.employeeId || "",
+                offlineFormNumber: ag.offlineFormNumber || ag.offline_form_number || ag.agentProfile?.offlineFormNumber || "",
+              };
+            });
+
+            // Reconcile selectedAgentId if set with Agent Profile ID
+            setFormData((prev) => {
+              if (!prev.selectedAgentId) return prev;
+              const cur = prev.selectedAgentId.trim();
+              const matched = mappedAgents.find(
+                (a: any) => a.userId === cur || a.id === cur || a.agentProfileId === cur
+              );
+              if (matched && matched.userId && matched.userId !== cur) {
+                return { ...prev, selectedAgentId: matched.userId };
+              }
+              return prev;
+            });
+
+            setAgents(mappedAgents);
           }
         })
         .catch(() => {
@@ -364,8 +422,9 @@ export default function EditDhundhotsavPage() {
         documentUrl: documentBase64 || undefined,
         gender: formData.gender,
         category: formData.category,
-        selectedAgentId: formData.selectedAgentId || undefined,
-        agentId: formData.selectedAgentId || undefined,
+        selectedAgentId: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
+        agentId: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
+        addedById: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
       };
 
       const res = await DhundhotsavService.updateRegistration(id, payload);
@@ -839,7 +898,7 @@ export default function EditDhundhotsavPage() {
                   >
                     <option value="">-- स्वयं / Self (No Specific Worker) --</option>
                     {agents.map((agent) => (
-                      <option key={agent.id} value={agent.id}>
+                      <option key={agent.userId || agent.id} value={agent.userId || agent.id}>
                         {agent.name} {agent.mobile ? `(${agent.mobile})` : ""}
                       </option>
                     ))}

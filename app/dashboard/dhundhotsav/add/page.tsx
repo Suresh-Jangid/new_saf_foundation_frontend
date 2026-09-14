@@ -28,7 +28,17 @@ import { formatDate } from "@/lib/utils";
 export default function AddDhundhotsavPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile: string }>>([]);
+  const [agents, setAgents] = useState<
+    Array<{
+      id: string; // User ID (primary value)
+      userId: string; // User ID
+      agentProfileId: string; // Agent Profile ID
+      name: string;
+      mobile: string;
+      employeeId?: string;
+      offlineFormNumber?: string;
+    }>
+  >([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
 
   // Form State
@@ -122,14 +132,39 @@ export default function AddDhundhotsavPage() {
       agentRegistrationAPI
         .getAll()
         .then((res: any) => {
-          if (res && res.data) {
-            setAgents(
-              res.data.map((ag: any) => ({
-                id: String(ag.id || ag.user_id),
-                name: ag.applicantName || ag.name || "Agent",
-                mobile: ag.mobileNumber || ag.mobile || "",
-              }))
-            );
+          if (res && res.data && Array.isArray(res.data)) {
+            const mappedAgents = res.data.map((ag: any) => {
+              const resolvedUserId = String(
+                ag.userId ||
+                ag.user_id ||
+                ag.user?.id ||
+                ag.agentProfile?.userId ||
+                ag.agentProfile?.user_id ||
+                ag.agent_profile?.user_id ||
+                ag.id ||
+                ""
+              ).trim();
+
+              const resolvedProfileId = String(
+                ag.agentProfile?.id ||
+                ag.agent_profile?.id ||
+                ag.id ||
+                ag.agentId ||
+                ag.agent_id ||
+                resolvedUserId
+              ).trim();
+
+              return {
+                id: resolvedUserId,
+                userId: resolvedUserId,
+                agentProfileId: resolvedProfileId,
+                name: ag.applicantName || ag.name || ag.user?.name || "Agent",
+                mobile: ag.mobileNumber || ag.mobile || ag.phone || ag.user?.mobile || "",
+                employeeId: ag.employeeId || ag.employee_id || ag.agentProfile?.employeeId || "",
+                offlineFormNumber: ag.offlineFormNumber || ag.offline_form_number || ag.agentProfile?.offlineFormNumber || "",
+              };
+            });
+            setAgents(mappedAgents);
           }
         })
         .catch(() => {
@@ -299,8 +334,9 @@ export default function AddDhundhotsavPage() {
         totalAmount: 5100,
         paymentAmount: parsedPayment > 0 ? parsedPayment : 5100,
         paymentMode: formData.paymentMode,
-        selectedAgentId: formData.selectedAgentId || undefined,
-        agentId: formData.selectedAgentId || undefined,
+        selectedAgentId: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
+        agentId: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
+        addedById: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
         epinCode: trimmedEpin,
         pinNumber: trimmedEpin,
       };
@@ -755,7 +791,7 @@ export default function AddDhundhotsavPage() {
                   >
                     <option value="">-- स्वयं / Self (No Specific Worker) --</option>
                     {agents.map((agent) => (
-                      <option key={agent.id} value={agent.id}>
+                      <option key={agent.userId || agent.id} value={agent.userId || agent.id}>
                         {agent.name} {agent.mobile ? `(${agent.mobile})` : ""}
                       </option>
                     ))}

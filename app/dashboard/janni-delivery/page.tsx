@@ -62,10 +62,239 @@ import { RoleGuard } from "@/components/role-guard";
 import { JanniDeliveryService, JanniDeliveryRegistration } from "@/lib/janni-delivery-service";
 import { formatDate } from "@/lib/utils";
 import * as XLSX from "xlsx";
+import { agentRegistrationAPI } from "@/lib/api";
+
+interface ResolvedAgentOfflineNumbers {
+  workerOfflineFormNumber: string;
+  seniorOfflineFormNumber: string;
+  workerMobile?: string;
+  workerName?: string;
+  seniorName?: string;
+}
+
+function resolveAgentOfflineNumbers(
+  record: JanniDeliveryRegistration & Record<string, any>,
+  agentsList: any[] = []
+): ResolvedAgentOfflineNumbers {
+  let workerOffline = String(
+    record.workerOfflineFormNumber ||
+    record.worker_offline_form_number ||
+    record.agentOfflineFormNumber ||
+    record.agent_offline_form_number ||
+    ""
+  ).trim();
+
+  let seniorOffline = String(
+    record.seniorOfflineFormNumber ||
+    record.senior_offline_form_number ||
+    record.seniorAgentOfflineFormNumber ||
+    record.senior_agent_offline_form_number ||
+    ""
+  ).trim();
+
+  if (workerOffline && seniorOffline) {
+    return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline };
+  }
+
+  if (!agentsList || agentsList.length === 0) {
+    return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline };
+  }
+
+  const agentById = new Map<string, any>();
+  const agentByCode = new Map<string, any>();
+
+  for (const agent of agentsList) {
+    const ids = [
+      agent.id,
+      agent.userId,
+      agent.user_id,
+      agent.agentProfile?.id,
+      agent.agentProfile?.userId,
+      agent.agentProfile?.user_id,
+      agent.agent_profile?.id,
+      agent.agent_profile?.user_id,
+    ].filter(Boolean);
+
+    ids.forEach((id) => {
+      const normalized = String(id).trim();
+      if (normalized) agentById.set(normalized, agent);
+    });
+
+    const empIds = [
+      agent.employeeId,
+      agent.employee_id,
+      agent.agentProfile?.employeeId,
+      agent.agent_profile?.employee_id,
+      agent.agentCode,
+      agent.agent_code,
+      agent.code,
+    ].filter(Boolean);
+
+    empIds.forEach((emp) => {
+      const normalized = String(emp).trim().toUpperCase();
+      if (normalized) agentByCode.set(normalized, agent);
+    });
+  }
+
+  const targetWorkerId = String(
+    record.addedById ||
+    record.addedby_id ||
+    record.selectedAgentId ||
+    record.agentId ||
+    record.addedBy?.id ||
+    record.agent?.id ||
+    ""
+  ).trim();
+
+  const targetWorkerCode = String(
+    record.workerCode ||
+    record.worker_code ||
+    record.agentCode ||
+    record.agent_code ||
+    record.added_code ||
+    record.addedBy?.employee_id ||
+    (record.addedBy as any)?.agentCode ||
+    (record.addedBy as any)?.code ||
+    ""
+  ).trim().toUpperCase();
+
+  const workerAgent = (targetWorkerId && agentById.get(targetWorkerId)) || (targetWorkerCode && agentByCode.get(targetWorkerCode));
+
+  if (workerAgent && !workerOffline) {
+    workerOffline = String(
+      workerAgent.offlineFormNumber ||
+      workerAgent.offline_form_number ||
+      workerAgent.agentProfile?.offlineFormNumber ||
+      workerAgent.agent_profile?.offline_form_number ||
+      workerAgent.agentProfile?.offline_form_no ||
+      workerAgent.offlineFormNo ||
+      workerAgent.user?.offlineFormNumber ||
+      workerAgent.user?.offline_form_number ||
+      ""
+    ).trim();
+  }
+
+  let seniorAgent: any = null;
+
+  if (workerAgent) {
+    const parentSeniorId = String(
+      workerAgent.parentAgentId ||
+      workerAgent.parent_agent_id ||
+      workerAgent.seniorId ||
+      workerAgent.senior_id ||
+      workerAgent.agentProfile?.parentAgentId ||
+      workerAgent.agent_profile?.parent_agent_id ||
+      workerAgent.agentProfile?.seniorId ||
+      workerAgent.agent_profile?.senior_id ||
+      ""
+    ).trim();
+
+    const parentSeniorCode = String(
+      workerAgent.seniorEmployeeId ||
+      workerAgent.senior_employee_id ||
+      workerAgent.parentEmployeeId ||
+      workerAgent.parent_employee_id ||
+      workerAgent.seniorCode ||
+      workerAgent.senior_code ||
+      workerAgent.agentProfile?.seniorEmployeeId ||
+      workerAgent.agent_profile?.senior_employee_id ||
+      workerAgent.agentProfile?.seniorCode ||
+      workerAgent.agent_profile?.senior_code ||
+      ""
+    ).trim().toUpperCase();
+
+    if (parentSeniorId && agentById.has(parentSeniorId)) {
+      seniorAgent = agentById.get(parentSeniorId);
+    } else if (parentSeniorCode && parentSeniorCode !== "ADMIN" && parentSeniorCode !== "SUPER ADMIN" && agentByCode.has(parentSeniorCode)) {
+      seniorAgent = agentByCode.get(parentSeniorCode);
+    }
+  }
+
+  if (!seniorAgent) {
+    const targetSeniorCode = String(
+      record.seniorCode ||
+      record.senior_code ||
+      record.seniorWorker ||
+      record.senior_worker ||
+      ""
+    ).trim().toUpperCase();
+
+    if (targetSeniorCode && targetSeniorCode !== "ADMIN" && targetSeniorCode !== "SUPER ADMIN" && agentByCode.has(targetSeniorCode)) {
+      seniorAgent = agentByCode.get(targetSeniorCode);
+    }
+  }
+
+  if (seniorAgent && !seniorOffline) {
+    seniorOffline = String(
+      seniorAgent.offlineFormNumber ||
+      seniorAgent.offline_form_number ||
+      seniorAgent.agentProfile?.offlineFormNumber ||
+      seniorAgent.agent_profile?.offline_form_number ||
+      seniorAgent.agentProfile?.offline_form_no ||
+      seniorAgent.offlineFormNo ||
+      seniorAgent.user?.offlineFormNumber ||
+      seniorAgent.user?.offline_form_number ||
+      ""
+    ).trim();
+  }
+
+  const workerMobile = String(
+    (workerAgent && (
+      workerAgent.mobile ||
+      workerAgent.phone ||
+      workerAgent.contactNumber ||
+      workerAgent.agentProfile?.mobile ||
+      workerAgent.agent_profile?.mobile ||
+      workerAgent.user?.mobile ||
+      workerAgent.user?.phone
+    )) ||
+    record.addedBy?.mobile ||
+    record.added_mobile ||
+    record.workerMobile ||
+    record.agentMobile ||
+    ""
+  ).trim();
+
+  const workerName = String(
+    (workerAgent && (
+      workerAgent.name ||
+      workerAgent.agentProfile?.name ||
+      workerAgent.agent_profile?.name ||
+      workerAgent.fullName ||
+      workerAgent.user?.name
+    )) ||
+    record.addedBy?.name ||
+    record.workerName ||
+    record.agentName ||
+    ""
+  ).trim();
+
+  const seniorName = String(
+    (seniorAgent && (
+      seniorAgent.name ||
+      seniorAgent.agentProfile?.name ||
+      seniorAgent.agent_profile?.name ||
+      seniorAgent.fullName ||
+      seniorAgent.user?.name
+    )) ||
+    record.seniorName ||
+    record.senior_name ||
+    ""
+  ).trim();
+
+  return {
+    workerOfflineFormNumber: workerOffline,
+    seniorOfflineFormNumber: seniorOffline,
+    workerMobile,
+    workerName,
+    seniorName,
+  };
+}
 
 export default function JanniDeliveryListPage() {
   const router = useRouter();
   const [registrations, setRegistrations] = useState<JanniDeliveryRegistration[]>([]);
+  const [agentsList, setAgentsList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentAddressFilter, setCurrentAddressFilter] = useState("all");
   const [currentGenderFilter, setCurrentGenderFilter] = useState("all");
@@ -87,6 +316,24 @@ export default function JanniDeliveryListPage() {
   const [installmentReceiptNo, setInstallmentReceiptNo] = useState("");
   const [installmentPaymentMode, setInstallmentPaymentMode] = useState("CASH");
   const [isSubmittingInstallment, setIsSubmittingInstallment] = useState(false);
+
+  // Fetch agents list once on mount for hierarchy resolution
+  useEffect(() => {
+    let mounted = true;
+    agentRegistrationAPI
+      .getAll()
+      .then((res: any) => {
+        if (mounted && res && res.data && Array.isArray(res.data)) {
+          setAgentsList(res.data);
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not load agents list for Janni Delivery:", err);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const fetchRegistrations = useCallback(async () => {
     setIsLoading(true);
@@ -227,10 +474,34 @@ export default function JanniDeliveryListPage() {
   const handleGenerateBond = async (record: JanniDeliveryRegistration) => {
     try {
       toast.loading("Generating Bond PDF...", { id: "bond-pdf" });
+      const resolvedAgentDetails = resolveAgentOfflineNumbers(record, agentsList);
+      const enrichedRecord = {
+        ...record,
+        ...resolvedAgentDetails,
+        workerOfflineFormNumber:
+          resolvedAgentDetails.workerOfflineFormNumber ||
+          (record as any).workerOfflineFormNumber ||
+          (record as any).worker_offline_form_number ||
+          (record as any).agentOfflineFormNumber ||
+          "",
+        seniorOfflineFormNumber:
+          resolvedAgentDetails.seniorOfflineFormNumber ||
+          (record as any).seniorOfflineFormNumber ||
+          (record as any).senior_offline_form_number ||
+          (record as any).seniorAgentOfflineFormNumber ||
+          "",
+        workerMobile:
+          resolvedAgentDetails.workerMobile ||
+          record.addedBy?.mobile ||
+          (record as any).workerMobile ||
+          (record as any).agentMobile ||
+          "",
+      };
+
       const response = await fetch("/api/generate-janni-bond-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ record }),
+        body: JSON.stringify({ record: enrichedRecord }),
       });
       if (!response.ok) throw new Error("Failed to generate Bond PDF");
       const blob = await response.blob();

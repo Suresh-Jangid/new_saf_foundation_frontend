@@ -17,6 +17,8 @@ interface EpinInputVerifierProps {
   agentId?: string;
   className?: string;
   disabled?: boolean;
+  externalError?: string | null;
+  onClearExternalError?: () => void;
 }
 
 export const EpinInputVerifier: React.FC<EpinInputVerifierProps> = ({
@@ -27,6 +29,8 @@ export const EpinInputVerifier: React.FC<EpinInputVerifierProps> = ({
   agentId,
   className,
   disabled = false,
+  externalError,
+  onClearExternalError,
 }) => {
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] =
@@ -35,6 +39,7 @@ export const EpinInputVerifier: React.FC<EpinInputVerifierProps> = ({
   const handleValidate = useCallback(
     async (epinCodeToValidate?: string) => {
       const epinCode = (epinCodeToValidate ?? value).trim();
+      if (onClearExternalError) onClearExternalError();
       if (!epinCode) {
         setValidationResult(null);
         if (onVerified) onVerified(null);
@@ -59,17 +64,28 @@ export const EpinInputVerifier: React.FC<EpinInputVerifierProps> = ({
         setIsValidating(false);
       }
     },
-    [value, agentId, onVerified]
+    [value, agentId, onVerified, onClearExternalError]
   );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.toUpperCase().replace(/\s/g, "");
+    if (onClearExternalError) onClearExternalError();
     onChange(val);
     if (validationResult) {
       setValidationResult(null);
       if (onVerified) onVerified(null);
     }
   };
+
+  const hasExternalConflict = Boolean(externalError && externalError.trim());
+  const effectiveResult: EpinValidationResponse | null = hasExternalConflict
+    ? {
+        valid: false,
+        pinNumber: value,
+        message: externalError!,
+        code: "ALREADY_USED",
+      }
+    : validationResult;
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -84,24 +100,24 @@ export const EpinInputVerifier: React.FC<EpinInputVerifierProps> = ({
           )}
         </Label>
 
-        {validationResult && (
+        {effectiveResult && (
           <span
             className={cn(
               "text-[11px] font-medium flex items-center gap-1",
-              validationResult.valid
+              effectiveResult.valid
                 ? "text-emerald-600 dark:text-emerald-400"
                 : "text-rose-600 dark:text-rose-400"
             )}
           >
-            {validationResult.valid ? (
+            {effectiveResult.valid ? (
               <>
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Valid (₹{validationResult.schemeAmount || 0})</span>
+                <span>Valid (₹{effectiveResult.schemeAmount || 0})</span>
               </>
             ) : (
               <>
                 <XCircle className="h-3.5 w-3.5" />
-                <span>{validationResult.code}</span>
+                <span>{effectiveResult.code}</span>
               </>
             )}
           </span>
@@ -116,15 +132,15 @@ export const EpinInputVerifier: React.FC<EpinInputVerifierProps> = ({
             value={value}
             onChange={handleInputChange}
             onBlur={() => {
-              if (value.trim().length >= 4 && !validationResult) {
+              if (value.trim().length >= 4 && !validationResult && !hasExternalConflict) {
                 handleValidate();
               }
             }}
             disabled={disabled || isValidating}
             className={cn(
               "font-mono uppercase tracking-wider text-sm",
-              validationResult?.valid && "border-emerald-500 bg-emerald-50/20",
-              validationResult && !validationResult.valid && "border-rose-500 bg-rose-50/20"
+              effectiveResult?.valid && "border-emerald-500 bg-emerald-50/20",
+              effectiveResult && !effectiveResult.valid && "border-rose-500 bg-rose-50/20"
             )}
           />
         </div>
@@ -143,25 +159,25 @@ export const EpinInputVerifier: React.FC<EpinInputVerifierProps> = ({
         </Button>
       </div>
 
-      {validationResult && (
+      {effectiveResult && (
         <div
           className={cn(
             "p-2.5 rounded-lg border text-xs flex items-start gap-2",
-            validationResult.valid
+            effectiveResult.valid
               ? "bg-emerald-50/70 border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-300"
               : "bg-rose-50/70 border-rose-200 text-rose-800 dark:bg-rose-950/30 dark:border-rose-800 dark:text-rose-300"
           )}
         >
-          {validationResult.valid ? (
+          {effectiveResult.valid ? (
             <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />
           ) : (
             <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-600" />
           )}
           <div className="space-y-0.5">
-            <div className="font-medium">{validationResult.message}</div>
-            {validationResult.valid && validationResult.schemeAmount ? (
+            <div className="font-medium">{effectiveResult.message}</div>
+            {effectiveResult.valid && effectiveResult.schemeAmount ? (
               <div className="text-[11px] opacity-85">
-                Voucher value ₹{validationResult.schemeAmount.toLocaleString("hi-IN")} will be applied to this registration.
+                Voucher value ₹{effectiveResult.schemeAmount.toLocaleString("hi-IN")} will be applied to this registration.
               </div>
             ) : null}
           </div>

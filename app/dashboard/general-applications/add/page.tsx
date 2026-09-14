@@ -105,6 +105,7 @@ export default function AddGeneralApplicationPage() {
   })
 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [epinConflictError, setEpinConflictError] = useState<string | null>(null);
 
   // Helper function to convert dd-mm-yyyy to yyyymmdd format
   const convertToYYYYMMDD = (dateString: string): string => {
@@ -328,18 +329,21 @@ export default function AddGeneralApplicationPage() {
       } else {
         const errorMsg = response.data.message || "Failed to add application";
         if (response.data.status === 409 || /already|assigned|consumed|used/i.test(errorMsg)) {
-          toast.error("यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।");
+          const conflictMsg = "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।";
+          setEpinConflictError(conflictMsg);
+          toast.error(conflictMsg);
         } else {
           toast.error(errorMsg);
         }
       }
     } catch (error: any) {
       console.error("Error adding application:", error);
-      if (error.response?.status === 409 || error.status === 409) {
-        toast.error(
+      if (error.response?.status === 409 || error.status === 409 || /already|assigned|consumed|used/i.test(error.response?.data?.message || error.message || "")) {
+        const conflictMsg =
           error.response?.data?.message ||
-            "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।"
-        );
+          "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।";
+        setEpinConflictError(conflictMsg);
+        toast.error(conflictMsg);
       } else {
         toast.error(error.response?.data?.message || error.message || "Failed to add application");
       }
@@ -995,20 +999,24 @@ export default function AddGeneralApplicationPage() {
                 <div className="p-4 bg-muted/20 border rounded-lg">
                   <EpinInputVerifier
                     value={formData.epinCode || formData.epinNumber || ""}
-                    onChange={(epinVal) =>
+                    onChange={(epinVal) => {
+                      setEpinConflictError(null);
                       setFormData((prev) => ({
                         ...prev,
                         epinCode: epinVal,
                         epinNumber: epinVal,
-                      }))
-                    }
+                      }));
+                    }}
                     onVerified={(result) => {
+                      setEpinConflictError(null);
                       if (result && result.valid && result.schemeAmount) {
                         toast.success(
                           `E-PIN Validated: ₹${result.schemeAmount.toLocaleString("hi-IN")} voucher applied / ई-पिन मान्य है`
                         );
                       }
                     }}
+                    externalError={epinConflictError}
+                    onClearExternalError={() => setEpinConflictError(null)}
                     agentId={formData.selectedAgentId || undefined}
                   />
                 </div>

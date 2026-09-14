@@ -331,16 +331,33 @@ export const EpinService = {
 
       if (response?.data) {
         const res = response.data;
-        const isValid = Boolean(res.valid || res.status === "ACTIVE" || res.status === "ASSIGNED" || res.success === true);
         const epinData = res.data || res.epin || {};
+        const rawCode = String(res.code || epinData.code || "").toUpperCase();
+        const rawStatus = String(res.status || epinData.status || "").toUpperCase();
+
+        const isExplicitlyInvalid =
+          res.valid === false ||
+          res.success === false ||
+          rawCode === "ALREADY_USED" ||
+          rawCode === "USED" ||
+          rawCode === "BURNT" ||
+          rawCode === "INVALID" ||
+          rawCode === "UNAUTHORIZED" ||
+          rawStatus === "USED" ||
+          rawStatus === "BURNT" ||
+          rawStatus === "ALREADY_USED";
+
+        const isValid = !isExplicitlyInvalid && (
+          res.valid === true ||
+          (res.valid === undefined && (rawStatus === "ACTIVE" || rawStatus === "ASSIGNED" || res.success === true))
+        );
 
         let code: EpinValidationResponse["code"] = "VALID";
         if (!isValid) {
-          const status = (res.status || epinData.status || "").toUpperCase();
-          if (status === "USED") code = "ALREADY_USED";
-          else if (status === "BURNT") code = "BURNT";
-          else if (status === "NOT_ASSIGNED") code = "NOT_ASSIGNED";
-          else if (status === "UNAUTHORIZED") code = "UNAUTHORIZED";
+          if (rawCode === "ALREADY_USED" || rawStatus === "USED" || rawStatus === "ALREADY_USED") code = "ALREADY_USED";
+          else if (rawCode === "BURNT" || rawStatus === "BURNT") code = "BURNT";
+          else if (rawCode === "NOT_ASSIGNED" || rawStatus === "NOT_ASSIGNED") code = "NOT_ASSIGNED";
+          else if (rawCode === "UNAUTHORIZED" || rawStatus === "UNAUTHORIZED") code = "UNAUTHORIZED";
           else code = "INVALID";
         }
 

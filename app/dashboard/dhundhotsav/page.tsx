@@ -622,7 +622,7 @@ export default function DhundhotsavListPage() {
 
       const imageData = await getPhotoDataUrl(record.passportPhotoUrl || (record as any).passportPhoto);
 
-      const response = await fetch("/api/generate-bond-pdf", {
+      const response = await fetch("/api/generate-dhundhotsav-bond-pdf", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -643,7 +643,7 @@ export default function DhundhotsavListPage() {
       const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `BOND_${record.applicantName || record.formNumber || "bond"}.pdf`;
+      a.download = `dhundhotsav_bond_${record.offlineFormNumber || record.formNumber || "bond"}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -651,7 +651,7 @@ export default function DhundhotsavListPage() {
 
       toast.success("Bond PDF generated successfully");
     } catch (error) {
-      console.error("Error generating bond PDF:", error);
+      console.error("Error generating Dhundhotsav bond PDF:", error);
       toast.error("Failed to generate bond PDF");
     }
   };

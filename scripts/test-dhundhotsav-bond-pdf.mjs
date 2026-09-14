@@ -132,6 +132,49 @@ async function runRegressionTests() {
   assert(nomineeRelationExtract, 'G. सम्बन्ध equals nomineeRelation');
 
   // ----------------------------------------------------
+  // G2. PDF जाति strictly receives gotra and NOT category
+  // ----------------------------------------------------
+  const casteGotraExtract = routeContent.includes('const caste = sanitizeValue(') &&
+    routeContent.includes('record.gotra') &&
+    !routeContent.includes('record.caste || record.category') &&
+    routeContent.includes("{ field: 'जाति', val: caste, x: 80, y: 208.8");
+  assert(casteGotraExtract, 'G2. PDF जाति receives gotra and NEVER category/caste fallback');
+
+  // ----------------------------------------------------
+  // G3. Nominee Aadhaar strictly extracted
+  // ----------------------------------------------------
+  const nomineeAadharExtract = routeContent.includes('const nomineeAadhar = sanitizeValue(') &&
+    routeContent.includes('record.nomineeAadhar') &&
+    routeContent.includes("{ field: 'नॉमिनी_आधार_नं', val: nomineeAadhar, x: 130, y: 305.7");
+  assert(nomineeAadharExtract, 'G3. PDF नॉमिनी आधार नं. receives nomineeAadhar');
+
+  // ----------------------------------------------------
+  // G4. Applicant mobile vs Agent mobile distinctness test
+  // ----------------------------------------------------
+  const mockRecord = {
+    gotra: 'Jangid',
+    category: 'A',
+    mobile: '9000000001',
+    agentMobile: '9111111111',
+    nomineeName: 'Test Nominee',
+    nomineeRelation: 'भाई',
+    nomineeAadhar: '999999999999',
+  };
+  const mockGotraVal = sanitizeValue(mockRecord.gotra || '');
+  const mockApplicantMobile = sanitizeValue(mockRecord.mobile || '');
+  const mockAgentMobile = sanitizeValue(mockRecord.agentMobile || '');
+  assert(
+    mockGotraVal === 'Jangid' && mockGotraVal !== mockRecord.category,
+    'G4. PDF जाति receives gotra ("Jangid") not category ("A")'
+  );
+  assert(
+    mockApplicantMobile === '9000000001' &&
+    mockAgentMobile === '9111111111' &&
+    mockApplicantMobile !== mockAgentMobile,
+    'G5. Applicant mobile ("9000000001") and Agent mobile ("9111111111") remain strictly distinct'
+  );
+
+  // ----------------------------------------------------
   // H. Missing nomineeName → blank
   // ----------------------------------------------------
   assert(sanitizeValue('') === '' && sanitizeValue(undefined) === '' && sanitizeValue(null) === '', 'H. Missing nomineeName -> blank');

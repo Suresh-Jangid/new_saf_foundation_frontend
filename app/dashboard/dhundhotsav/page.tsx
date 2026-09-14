@@ -266,6 +266,8 @@ function mapDhundhotsavToHindiFields(record: DhundhotsavRegistration & Record<st
     dateOfBirth: record.dateOfBirth || "",
     गोत्र: gotra,
     gotra: gotra,
+    जाति: gotra,
+    caste: gotra,
     उम्र: ageText,
     ageText: ageText,
     लिंग: record.gender || "Male",
@@ -628,6 +630,8 @@ export default function DhundhotsavListPage() {
         seniorName: seniorName || (record as any).seniorName || "",
         nomineeName: record.nomineeName || (record as any).nominee_name || "",
         nomineeRelation: record.nomineeRelation || (record as any).nominee_relation || "",
+        nomineeAadhar: record.nomineeAadhar || (record as any).nomineeAadhaar || (record as any).nominee_aadhar || "",
+        gotra: record.gotra || (record as any).gotraName || (record as any).gotra_name || "",
         offlineFormNumber: record.offlineFormNumber || (record as any).offline_form_number || "",
       };
 

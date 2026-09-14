@@ -205,7 +205,15 @@ export async function POST(request: NextRequest) {
     // 5. Applicant info & Strict Field Separations
     const applicantName = sanitizeValue(record.applicantName || record.name || '');
     const fatherName = sanitizeValue(record.fatherName || record.husbandName || record.fatherHusbandName || '');
-    const caste = sanitizeValue(record.caste || record.category || '');
+    // PDF 'जाति' strictly maps to gotra (never category/gender/caste fallback)
+    const caste = sanitizeValue(
+      record.gotra ||
+      record.gotraName ||
+      record.gotra_name ||
+      record['गोत्र'] ||
+      record['जाति'] ||
+      ''
+    );
     const village = sanitizeValue(record.village || record.tehsil || record.address || '');
 
     // Nominee Name (वारिसदार) - strictly nominee name, never applicant/father/agent name

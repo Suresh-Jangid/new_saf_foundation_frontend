@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -45,19 +45,225 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Eye,
   Edit,
   Trash2,
-  Receipt,
+  FileText,
   KeyRound,
+  Receipt,
 } from "lucide-react";
 import { RoleGuard } from "@/components/role-guard";
 import {
   DhundhotsavService,
   DhundhotsavRegistration,
 } from "@/lib/dhundhotsav-service";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getPhotoDataUrl, calculateAge } from "@/lib/utils";
 import { isAdmin } from "@/lib/permissions";
+import { agentRegistrationAPI } from "@/lib/api";
+
+interface ResolvedAgentOfflineNumbers {
+  workerOfflineFormNumber: string;
+  seniorOfflineFormNumber: string;
+  workerMobile?: string;
+}
+
+function resolveAgentOfflineNumbers(
+  record: DhundhotsavRegistration & Record<string, any>,
+  agentsList: any[] = []
+): ResolvedAgentOfflineNumbers {
+  let workerOffline = String(
+    record.workerOfflineFormNumber ||
+    record.worker_offline_form_number ||
+    record.agentOfflineFormNumber ||
+    record.agent_offline_form_number ||
+    ""
+  ).trim();
+
+  let seniorOffline = String(
+    record.seniorOfflineFormNumber ||
+    record.senior_offline_form_number ||
+    record.seniorAgentOfflineFormNumber ||
+    record.senior_agent_offline_form_number ||
+    ""
+  ).trim();
+
+  if (workerOffline && seniorOffline) {
+    return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline };
+  }
+
+  if (!agentsList || agentsList.length === 0) {
+    return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline };
+  }
+
+  const agentById = new Map<string, any>();
+  const agentByCode = new Map<string, any>();
+
+  for (const agent of agentsList) {
+    const id = String(agent.id || "").trim();
+    const empId = String(
+      agent.employeeId ||
+      agent.employee_id ||
+      agent.agentProfile?.employeeId ||
+      agent.agent_profile?.employee_id ||
+      ""
+    ).trim();
+
+    if (id) agentById.set(id, agent);
+    if (empId) agentByCode.set(empId.toUpperCase(), agent);
+  }
+
+  const targetWorkerId = String(
+    record.addedById ||
+    record.addedby_id ||
+    record.selectedAgentId ||
+    record.agentId ||
+    record.addedBy?.id ||
+    record.agent?.id ||
+    ""
+  ).trim();
+
+  const targetWorkerCode = String(
+    record.workerCode ||
+    record.worker_code ||
+    record.agentCode ||
+    record.agent_code ||
+    record.added_code ||
+    record.addedBy?.employee_id ||
+    (record.addedBy as any)?.agentCode ||
+    (record.addedBy as any)?.code ||
+    ""
+  ).trim().toUpperCase();
+
+  const workerAgent = (targetWorkerId && agentById.get(targetWorkerId)) || (targetWorkerCode && agentByCode.get(targetWorkerCode));
+
+  if (workerAgent && !workerOffline) {
+    workerOffline = String(
+      workerAgent.offlineFormNumber ||
+      workerAgent.offline_form_number ||
+      workerAgent.agentProfile?.offlineFormNumber ||
+      workerAgent.agent_profile?.offline_form_number ||
+      ""
+    ).trim();
+  }
+
+  let seniorAgent: any = null;
+
+  if (workerAgent) {
+    const parentSeniorId = String(
+      workerAgent.parentAgentId ||
+      workerAgent.parent_agent_id ||
+      workerAgent.seniorId ||
+      workerAgent.senior_id ||
+      ""
+    ).trim();
+
+    const parentSeniorCode = String(
+      workerAgent.seniorEmployeeId ||
+      workerAgent.senior_employee_id ||
+      workerAgent.parentEmployeeId ||
+      workerAgent.seniorCode ||
+      ""
+    ).trim().toUpperCase();
+
+    if (parentSeniorId && agentById.has(parentSeniorId)) {
+      seniorAgent = agentById.get(parentSeniorId);
+    } else if (parentSeniorCode && parentSeniorCode !== "ADMIN" && parentSeniorCode !== "SUPER ADMIN" && agentByCode.has(parentSeniorCode)) {
+      seniorAgent = agentByCode.get(parentSeniorCode);
+    }
+  }
+
+  if (!seniorAgent) {
+    const targetSeniorCode = String(
+      record.seniorCode ||
+      record.senior_code ||
+      record.seniorWorker ||
+      record.senior_worker ||
+      ""
+    ).trim().toUpperCase();
+
+    if (targetSeniorCode && targetSeniorCode !== "ADMIN" && targetSeniorCode !== "SUPER ADMIN" && agentByCode.has(targetSeniorCode)) {
+      seniorAgent = agentByCode.get(targetSeniorCode);
+    }
+  }
+
+  if (seniorAgent && !seniorOffline) {
+    seniorOffline = String(
+      seniorAgent.offlineFormNumber ||
+      seniorAgent.offline_form_number ||
+      seniorAgent.agentProfile?.offlineFormNumber ||
+      seniorAgent.agent_profile?.offline_form_number ||
+      ""
+    ).trim();
+  }
+
+  const workerMobile = String(
+    (workerAgent && (
+      workerAgent.mobile ||
+      workerAgent.phone ||
+      workerAgent.contactNumber ||
+      workerAgent.agentProfile?.mobile ||
+      workerAgent.agent_profile?.mobile
+    )) ||
+    record.added_mobile ||
+    record.workerMobile ||
+    record.agentMobile ||
+    ""
+  ).trim();
+
+  return {
+    workerOfflineFormNumber: workerOffline,
+    seniorOfflineFormNumber: seniorOffline,
+    workerMobile,
+  };
+}
+
+// Map English fields to Hindi for the PDF template
+function mapDhundhotsavToHindiFields(record: DhundhotsavRegistration & Record<string, any>) {
+  return {
+    सदस्यता_क्रमांक: record.offlineFormNumber || record.offline_form_number || "",
+    ऑफलाइन_फॉर्म_नं: record.offlineFormNumber || record.offline_form_number || "",
+    आवेदन_दिनांक: record.applicationDate || "",
+    आवेदक_का_नाम: record.applicantName || "",
+    पिता_का_नाम: record.fatherName || record.husbandName || "",
+    माता_का_नाम: record.motherName || "",
+    जन्म_तिथि: record.dateOfBirth || "",
+    गोत्र: record.gotra || "",
+    उम्र: record.age ? String(record.age) : "",
+    लिंग: record.gender || "Male",
+    शिक्षा: (record as any).education || (record as any).qualification || "",
+    मोबाइल: record.mobile || "",
+    आधार_संख्या: record.aadharNumber || "",
+    पता: record.address || "",
+    पिन: record.pinCode || "",
+    तहसील: record.tehsil || "",
+    जिला: record.district || "",
+    राज्य: record.state || "Rajasthan",
+    नामिनी_का_नाम: record.nomineeName || "",
+    नामिनी_का_सम्बन्ध: record.nomineeRelation || "",
+    नामिनी_का_पता: record.address || "",
+    नामिनी_का_आधार: record.nomineeAadhar || "",
+    नामिनी_का_मोबाइल: record.nomineeMobile || "",
+    कार्यकर्ता_का_नाम: record.addedBy?.name || (record as any).workerName || "",
+    कार्यकर्ता_का_मोबाइल: record.addedBy?.mobile || (record as any).workerMobile || "",
+    कार्यकर्ता_कोड:
+      record.workerOfflineFormNumber ||
+      record.worker_offline_form_number ||
+      record.agentOfflineFormNumber ||
+      record.agent_offline_form_number ||
+      "",
+    राशि: String(record.totalAmount || record.membershipFee || 5100),
+    भुगतान_विवरण: (record as any).paymentModeRef || (record as any).paymentMode || "CASH",
+    सीनियर_कोड:
+      record.seniorOfflineFormNumber ||
+      record.senior_offline_form_number ||
+      record.seniorAgentOfflineFormNumber ||
+      record.senior_agent_offline_form_number ||
+      "",
+    शपथ_नाम: record.applicantName || "",
+    शपथ_पिता_का_नाम: record.fatherName || record.husbandName || "",
+    शपथ_गोत्र: record.gotra || "",
+    शपथ_पता: record.address || "",
+  };
+}
 
 export default function DhundhotsavListPage() {
   const router = useRouter();
@@ -69,6 +275,7 @@ export default function DhundhotsavListPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [agentsList, setAgentsList] = useState<any[]>([]);
 
   // Modals state
   const [selectedRecord, setSelectedRecord] = useState<DhundhotsavRegistration | null>(null);
@@ -100,6 +307,23 @@ export default function DhundhotsavListPage() {
     totalPending: 0,
   });
 
+  useEffect(() => {
+    let isMounted = true;
+    agentRegistrationAPI
+      .getAll()
+      .then((res) => {
+        if (isMounted && res?.data && Array.isArray(res.data)) {
+          setAgentsList(res.data);
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not prefetch agents in DhundhotsavPage:", err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const fetchRegistrations = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -126,7 +350,6 @@ export default function DhundhotsavListPage() {
             totalPending: res.summary.totalPending || 0,
           });
         } else {
-          // Calculate client-side fallback
           let totPaid = 0;
           let totPending = 0;
 
@@ -169,7 +392,6 @@ export default function DhundhotsavListPage() {
     e.preventDefault();
     if (!selectedRecord) return;
 
-    // Strict enforcement of ₹300 for single Dhundhotsav ledger
     if (Number(installmentAmount) !== 300) {
       toast.error("ढूंढोत्सव योजना के लिए किश्त राशि ₹300 निर्धारित है / Installment amount must be exactly ₹300");
       return;
@@ -209,6 +431,147 @@ export default function DhundhotsavListPage() {
       toast.error(err.message || "हटाने में विफल / Failed to delete record");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // 1. Generate PDF Form Handler
+  const handleGeneratePDFForm = async (record: DhundhotsavRegistration) => {
+    try {
+      let currentAgents = agentsList;
+      if (!currentAgents || currentAgents.length === 0) {
+        try {
+          const res = await agentRegistrationAPI.getAll();
+          if (res?.data && Array.isArray(res.data)) {
+            currentAgents = res.data;
+            setAgentsList(res.data);
+          }
+        } catch (e) {
+          console.warn("Could not fetch agents for Dhundhotsav PDF resolution:", e);
+        }
+      }
+
+      const { workerOfflineFormNumber, seniorOfflineFormNumber } = resolveAgentOfflineNumbers(
+        record as any,
+        currentAgents
+      );
+
+      const enrichedRecord = {
+        ...record,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+      };
+
+      const mapped = mapDhundhotsavToHindiFields(enrichedRecord);
+
+      const dataForPdf = {
+        ...enrichedRecord,
+        ...mapped,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+        gender: record.gender || "Male",
+      };
+
+      const imageData = await getPhotoDataUrl(record.passportPhotoUrl || (record as any).passportPhoto);
+
+      const response = await fetch("/api/fill-pdf-form", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "general-application",
+          data: dataForPdf,
+          offsetX: 0,
+          offsetY: 0,
+          valueOffsetX: 0,
+          valueOffsetY: 0,
+          imageData,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate PDF");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `dhundhotsav_application_form_${record.formNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("PDF form generated successfully");
+    } catch (error) {
+      console.error("Error generating Dhundhotsav PDF form:", error);
+      toast.error("Failed to generate PDF form");
+    }
+  };
+
+  // 3. Generate Bond PDF Handler
+  const handleGenerateBond = async (record: DhundhotsavRegistration) => {
+    try {
+      let currentAgents = agentsList;
+      if (!currentAgents || currentAgents.length === 0) {
+        try {
+          const res = await agentRegistrationAPI.getAll();
+          if (res?.data && Array.isArray(res.data)) {
+            currentAgents = res.data;
+            setAgentsList(res.data);
+          }
+        } catch (e) {
+          console.warn("Could not fetch agents for Dhundhotsav Bond PDF resolution:", e);
+        }
+      }
+
+      const { workerOfflineFormNumber, seniorOfflineFormNumber, workerMobile } = resolveAgentOfflineNumbers(
+        record as any,
+        currentAgents
+      );
+
+      const enrichedRecord = {
+        ...record,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+        workerMobile: workerMobile || (record as any).workerMobile || "",
+        agentMobile: workerMobile || (record as any).agentMobile || "",
+      };
+
+      const imageData = await getPhotoDataUrl(record.passportPhotoUrl || (record as any).passportPhoto);
+
+      const response = await fetch("/api/generate-bond-pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          record: enrichedRecord,
+          imageData,
+          duration: "बारह महीने",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || "Failed to generate bond PDF");
+      }
+
+      const pdfBlob = await response.blob();
+      const url = window.URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `BOND_${record.applicantName || record.formNumber || "bond"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Bond PDF generated successfully");
+    } catch (error) {
+      console.error("Error generating bond PDF:", error);
+      toast.error("Failed to generate bond PDF");
     }
   };
 
@@ -394,7 +757,12 @@ export default function DhundhotsavListPage() {
                             <TableCell className="w-[160px]">
                               <div className="flex flex-col">
                                 <div className="flex items-center gap-1.5">
-                                  <span className="font-semibold text-gray-900">{reg.formNumber || "-"}</span>
+                                  <Link
+                                    href={`/dashboard/dhundhotsav/${reg.id}`}
+                                    className="font-semibold text-gray-900 hover:text-primary hover:underline cursor-pointer"
+                                  >
+                                    {reg.formNumber || "-"}
+                                  </Link>
                                   {reg.epinCode && (
                                     <span title={`E-PIN: ${reg.epinCode}`}>
                                       <KeyRound className="h-3.5 w-3.5 text-emerald-600 inline" />
@@ -421,9 +789,12 @@ export default function DhundhotsavListPage() {
 
                             {/* Applicant Name & Details */}
                             <TableCell className="w-[180px]">
-                              <div className="font-medium text-gray-900">
+                              <Link
+                                href={`/dashboard/dhundhotsav/${reg.id}`}
+                                className="font-medium text-gray-900 hover:text-primary hover:underline cursor-pointer block"
+                              >
                                 {reg.applicantName}
-                              </div>
+                              </Link>
                               <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                                 <span>पिता: {reg.fatherName || reg.husbandName || "-"}</span>
                                 {reg.gotra && (
@@ -476,25 +847,25 @@ export default function DhundhotsavListPage() {
                               </div>
                             </TableCell>
 
-                            {/* Actions matching General Marriage table compact button styles */}
+                            {/* Actions matching General Marriage table 4-button pattern exactly */}
                             <TableCell className="w-[200px]">
                               <TooltipProvider>
                                 <div className="flex flex-col sm:flex-row gap-1">
-                                  {/* 1. View / Details */}
+                                  {/* 1. Generate PDF Form */}
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => router.push(`/dashboard/dhundhotsav/${reg.id}`)}
+                                        onClick={() => handleGeneratePDFForm(reg)}
                                         className="w-full sm:w-auto"
                                       >
-                                        <Eye className="w-4 h-4" />
-                                        <span className="ml-1 sm:hidden">View</span>
+                                        <FileText className="w-4 h-4" />
+                                        <span className="ml-1 sm:hidden">PDF Form</span>
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>विवरण देखें / View Details</p>
+                                      <p>Generate PDF Form</p>
                                     </TooltipContent>
                                   </Tooltip>
 
@@ -513,25 +884,25 @@ export default function DhundhotsavListPage() {
                                       </Link>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>संपादित करें / Edit</p>
+                                      <p>Edit / संपादित करें</p>
                                     </TooltipContent>
                                   </Tooltip>
 
-                                  {/* 3. ₹300 किस्त */}
+                                  {/* 3. Generate Bond PDF */}
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <Button
                                         size="sm"
                                         variant="outline"
-                                        onClick={() => openInstallmentModal(reg)}
-                                        className="w-full sm:w-auto text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300"
+                                        onClick={() => handleGenerateBond(reg)}
+                                        className="w-full sm:w-auto"
                                       >
-                                        <Receipt className="w-4 h-4 text-emerald-600" />
-                                        <span className="ml-1 text-xs">₹300 किश्त</span>
+                                        <FileText className="w-4 h-4" />
+                                        <span className="ml-1 sm:hidden">Bond</span>
                                       </Button>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>₹300 किश्त दर्ज करें / Add Installment</p>
+                                      <p>Generate Bond PDF</p>
                                     </TooltipContent>
                                   </Tooltip>
 
@@ -553,7 +924,7 @@ export default function DhundhotsavListPage() {
                                         </Button>
                                       </TooltipTrigger>
                                       <TooltipContent>
-                                        <p>हटाएं / Delete</p>
+                                        <p>Delete / हटाएँ</p>
                                       </TooltipContent>
                                     </Tooltip>
                                   )}
@@ -578,7 +949,7 @@ export default function DhundhotsavListPage() {
           </CardContent>
         </Card>
 
-        {/* Add ₹300 Installment Modal (Single Ledger Architecture) */}
+        {/* ₹300 Installment Modal (Single Ledger Architecture) */}
         <Dialog open={isInstallmentModalOpen} onOpenChange={setIsInstallmentModalOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -592,7 +963,6 @@ export default function DhundhotsavListPage() {
             </DialogHeader>
 
             <form onSubmit={handleAddInstallment} className="space-y-4 pt-2">
-              {/* Installment Amount (Locked to ₹300) */}
               <div className="space-y-1.5">
                 <Label htmlFor="dhundhInstAmount" className="text-xs font-semibold">
                   किश्त राशि / Amount (₹) <span className="text-destructive">*</span>
@@ -611,7 +981,6 @@ export default function DhundhotsavListPage() {
                 </div>
               </div>
 
-              {/* Payment Date */}
               <div className="space-y-1.5">
                 <Label htmlFor="dhundhInstDate" className="text-xs font-semibold">
                   भुगतान दिनांक / Payment Date <span className="text-destructive">*</span>
@@ -626,7 +995,6 @@ export default function DhundhotsavListPage() {
                 />
               </div>
 
-              {/* Payment Mode */}
               <div className="space-y-1.5">
                 <Label htmlFor="dhundhInstMode" className="text-xs font-semibold">
                   भुगतान माध्यम / Payment Mode <span className="text-destructive">*</span>
@@ -644,7 +1012,6 @@ export default function DhundhotsavListPage() {
                 </select>
               </div>
 
-              {/* Rashid / Receipt Number */}
               <div className="space-y-1.5">
                 <Label htmlFor="dhundhRashidNo" className="text-xs font-semibold">
                   रसीद संख्या / Receipt / Rashid Number (Optional)
@@ -658,7 +1025,6 @@ export default function DhundhotsavListPage() {
                 />
               </div>
 
-              {/* Note */}
               <div className="space-y-1.5">
                 <Label htmlFor="dhundhInstNote" className="text-xs font-semibold">
                   टिप्पणी / Remarks (Optional)

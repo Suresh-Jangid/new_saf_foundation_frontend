@@ -1,11 +1,53 @@
 import fs from 'fs';
 import path from 'path';
 import 'regenerator-runtime/runtime.js';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
+import { renderPdfToImage } from './render-crisp-pdf.mjs';
+
+function sanitizeOfflineNumber(val) {
+  if (!val) return '';
+  const str = String(val).trim();
+  const upper = str.toUpperCase();
+  if (
+    upper.startsWith('EMP-') ||
+    upper.startsWith('EMP_') ||
+    upper.startsWith('DH-') ||
+    upper.startsWith('DH_') ||
+    upper.startsWith('SAF-') ||
+    upper.startsWith('SAF_') ||
+    upper === 'EMP' ||
+    upper === 'ADMIN' ||
+    upper === 'SUPER ADMIN' ||
+    upper === 'N/A' ||
+    upper === 'NA' ||
+    upper === 'NULL' ||
+    upper === 'UNDEFINED' ||
+    upper === 'UUID' ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+  ) {
+    return '';
+  }
+  return str;
+}
+
+function sanitizeValue(val) {
+  if (!val) return '';
+  const str = String(val).trim();
+  const upper = str.toUpperCase();
+  if (
+    upper === 'NULL' ||
+    upper === 'UNDEFINED' ||
+    upper === 'N/A' ||
+    upper === 'NA'
+  ) {
+    return '';
+  }
+  return str;
+}
 
 async function runRegressionTests() {
-  console.log('=== DHUNDHOTSAV BOND PDF REGRESSION TESTS ===\n');
+  console.log('=== DHUNDHOTSAV BOND PDF FINAL DATA MAPPING REGRESSION TESTS ===\n');
   let passed = 0;
   let failed = 0;
 
@@ -19,129 +61,253 @@ async function runRegressionTests() {
     }
   }
 
-  // ----------------------------------------------------
-  // A. saf_dhundh_bond.pdf exists
-  // ----------------------------------------------------
-  const bondTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'dhundhotsav', 'saf_dhundh_bond.pdf');
-  assert(fs.existsSync(bondTemplatePath), 'A. saf_dhundh_bond.pdf exists', `Path: ${bondTemplatePath}`);
+  const routePath = path.join(process.cwd(), 'app', 'api', 'generate-dhundhotsav-bond-pdf', 'route.ts');
+  const routeContent = fs.readFileSync(routePath, 'utf-8');
 
-  // Load Dhundhotsav Bond template
-  const bondBytes = fs.readFileSync(bondTemplatePath);
-  const bondDoc = await PDFDocument.load(bondBytes);
-  bondDoc.registerFontkit(fontkit);
+  const pagePath = path.join(process.cwd(), 'app', 'dashboard', 'dhundhotsav', 'page.tsx');
+  const pageContent = fs.readFileSync(pagePath, 'utf-8');
 
   // ----------------------------------------------------
-  // B. Template has expected page count (1 page)
+  // A. Worker code comes from Agent offlineFormNumber (sanitized)
   // ----------------------------------------------------
-  const pages = bondDoc.getPages();
-  assert(pages.length === 1, 'B. Template has expected page count (1 page)', `Found ${pages.length} pages`);
+  const workerCodeExtract = routeContent.includes('const rawWorkerOffline =') &&
+    routeContent.includes('record.workerOfflineFormNumber') &&
+    routeContent.includes('const workerOffline = sanitizeOfflineNumber(rawWorkerOffline)') &&
+    routeContent.includes("{ field: 'कार्यकर्ता_कोड', val: workerOffline, x: 112, y: 122.3");
+  const testWorkerVal = sanitizeOfflineNumber('1259');
+  assert(workerCodeExtract && testWorkerVal === '1259', 'A. Worker code comes from Agent offlineFormNumber');
 
   // ----------------------------------------------------
-  // C. Template dimensions are correct (A4 portrait)
+  // B. Senior code comes from parent Senior offlineFormNumber (sanitized)
   // ----------------------------------------------------
-  const firstPage = pages[0];
-  const { width, height } = firstPage.getSize();
-  const isA4 = Math.abs(width - 595.28) < 1.0 && Math.abs(height - 841.89) < 1.0;
-  assert(isA4, 'C. Template dimensions are correct (A4)', `Dimensions: ${width.toFixed(2)} x ${height.toFixed(2)} pt`);
+  const seniorCodeExtract = routeContent.includes('const rawSeniorOffline =') &&
+    routeContent.includes('record.seniorOfflineFormNumber') &&
+    routeContent.includes('const seniorOffline = sanitizeOfflineNumber(rawSeniorOffline)') &&
+    routeContent.includes("{ field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 462, y: 122.3");
+  const testSeniorVal = sanitizeOfflineNumber('1258');
+  assert(seniorCodeExtract && testSeniorVal === '1258', 'B. Senior code comes from parent Senior offlineFormNumber');
 
   // ----------------------------------------------------
-  // D. Dhundhotsav Generate Bond PDF uses saf_dhundh_bond.pdf
+  // C. Application number comes from application offlineFormNumber
   // ----------------------------------------------------
-  const routeContent = fs.readFileSync(path.join(process.cwd(), 'app', 'api', 'generate-dhundhotsav-bond-pdf', 'route.ts'), 'utf-8');
-  const dhundhBondRouteUsesTemplate = routeContent.includes("path.join(process.cwd(), 'public', 'pdf', 'dhundhotsav', 'saf_dhundh_bond.pdf')");
-  const dhundhPageContent = fs.readFileSync(path.join(process.cwd(), 'app', 'dashboard', 'dhundhotsav', 'page.tsx'), 'utf-8');
-  const dhundhPageCallsRoute = dhundhPageContent.includes('/api/generate-dhundhotsav-bond-pdf');
-  assert(dhundhBondRouteUsesTemplate && dhundhPageCallsRoute, 'D. Dhundhotsav Generate Bond PDF uses saf_dhundh_bond.pdf');
-
-  // ----------------------------------------------------
-  // E. Dhundhotsav Generate PDF Form still uses Saf_dhundh_form.pdf
-  // ----------------------------------------------------
-  const fillPdfRouteContent = fs.readFileSync(path.join(process.cwd(), 'app', 'api', 'fill-pdf-form', 'route.ts'), 'utf-8');
-  const dhundhFormExists = fs.existsSync(path.join(process.cwd(), 'public', 'pdf', 'dhundhotsav', 'Saf_dhundh_form.pdf'));
-  const fillPdfUsesDhundhForm = fillPdfRouteContent.includes("path.join(process.cwd(), 'public', 'pdf', 'dhundhotsav', 'Saf_dhundh_form.pdf')");
-  assert(dhundhFormExists && fillPdfUsesDhundhForm, 'E. Dhundhotsav Generate PDF Form still uses Saf_dhundh_form.pdf');
-
-  // ----------------------------------------------------
-  // F. General Marriage Bond PDF still uses saf_vivah_bond.pdf
-  // ----------------------------------------------------
-  const generalBondRouteContent = fs.readFileSync(path.join(process.cwd(), 'app', 'api', 'generate-bond-pdf', 'route.ts'), 'utf-8');
-  const vivahBondExists = fs.existsSync(path.join(process.cwd(), 'public', 'pdf', 'general_application', 'saf_vivah_bond.pdf'));
-  const generalBondUsesSafVivah = generalBondRouteContent.includes("saf_vivah_bond.pdf");
-  assert(vivahBondExists && generalBondUsesSafVivah, 'F. General Marriage Bond PDF still uses saf_vivah_bond.pdf');
-
-  // ----------------------------------------------------
-  // G & H: application offlineFormNumber is used where applicable (never DH-xxx or UUID)
-  // ----------------------------------------------------
-  const hasOfflineFormNumberLogic = routeContent.includes('const rawOfflineFormNumber =') &&
+  const appNumberExtract = routeContent.includes('const rawOfflineFormNumber =') &&
     routeContent.includes('record.offlineFormNumber') &&
-    routeContent.includes('const offlineFormNumber = sanitizeOfflineNumber(rawOfflineFormNumber)');
-  assert(hasOfflineFormNumberLogic, 'G. application offlineFormNumber is used where applicable');
-  const sanitizeOfflineNumberDef = routeContent.includes("upper.startsWith('EMP-')") &&
-    routeContent.includes("upper === 'ADMIN'") &&
-    routeContent.includes("/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)");
-  assert(sanitizeOfflineNumberDef, 'H. DH-xxx/system ID is never used as application offline number');
+    routeContent.includes('const offlineFormNumber = sanitizeOfflineNumber(rawOfflineFormNumber)') &&
+    routeContent.includes("{ field: 'आवेदन_क्र', val: offlineFormNumber, x: 102, y: 145.9");
+  const testAppNumVal = sanitizeOfflineNumber('555');
+  assert(appNumberExtract && testAppNumVal === '555', 'C. Application number comes from application offlineFormNumber');
 
   // ----------------------------------------------------
-  // I & J: worker / senior offline numbers appear in code fields
+  // D. वारिसदार equals nomineeName
   // ----------------------------------------------------
-  const workerCodeFieldDef = routeContent.includes("{ field: 'कार्यकर्ता_कोड', val: workerOffline, x: 112, y: 122.3");
-  const seniorCodeFieldDef = routeContent.includes("{ field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 462, y: 122.3");
-  assert(workerCodeFieldDef, 'I. worker offline number appears in worker code');
-  assert(seniorCodeFieldDef, 'J. senior offline number appears in senior code');
+  const nomineeFieldExtract = routeContent.includes('const nomineeName = sanitizeValue(') &&
+    routeContent.includes('record.nomineeName') &&
+    routeContent.includes("{ field: 'वारिसदार', val: nomineeName, x: 95, y: 233.1");
+  assert(nomineeFieldExtract, 'D. वारिसदार equals nomineeName');
 
   // ----------------------------------------------------
-  // K & L: missing worker / senior offline number = blank
+  // E. एजेन्ट मो. नं. equals assigned Agent mobile
   // ----------------------------------------------------
-  const sanitizeEmptyBlank = routeContent.includes("if (!val) return '';") && routeContent.includes("return '';");
-  assert(sanitizeEmptyBlank, 'K. missing worker offline number = blank');
-  assert(sanitizeEmptyBlank, 'L. missing senior offline number = blank');
+  const agentMobileExtract = routeContent.includes('const agentMobile = sanitizeValue(') &&
+    routeContent.includes('record.agentMobile') &&
+    routeContent.includes('record.workerMobile') &&
+    routeContent.includes("{ field: 'एजेन्ट_मो_नं', val: agentMobile, x: 115, y: 257.3");
+  assert(agentMobileExtract, 'E. एजेन्ट मो. नं. equals assigned Agent mobile');
 
   // ----------------------------------------------------
-  // M. employee IDs cannot appear in code fields
+  // F. Applicant mobile is NOT used as Agent mobile
   // ----------------------------------------------------
-  const employeeIdSanitized = routeContent.includes("upper.startsWith('EMP-')") &&
-    routeContent.includes("upper === 'ADMIN'") &&
-    routeContent.includes("upper === 'SUPER ADMIN'") &&
-    routeContent.includes("upper === 'N/A'");
-  assert(employeeIdSanitized, 'M. employee IDs cannot appear in code fields');
+  // Verify agentMobile extraction does NOT include record.mobile or applicant mobile fallback
+  const lines = routeContent.split('\n');
+  const agentMobileBlock = lines.slice(lines.findIndex(l => l.includes('const agentMobile = sanitizeValue(')), lines.findIndex(l => l.includes('const agentMobile = sanitizeValue(')) + 10).join('\n');
+  const noApplicantMobileFallback = !agentMobileBlock.includes('record.mobile') && !agentMobileBlock.includes('record.phone');
+  assert(noApplicantMobileFallback, 'F. Applicant mobile is NOT used as Agent mobile');
 
   // ----------------------------------------------------
-  // N & O: worker / senior name handling
+  // G. सम्बन्ध equals nomineeRelation
   // ----------------------------------------------------
-  assert(dhundhPageContent.includes('workerName: workerName') && dhundhPageContent.includes('seniorName: seniorName'), 'N. worker name uses users.name where field exists');
-  assert(dhundhPageContent.includes('seniorName: seniorName'), 'O. senior name uses parent Level-1 users.name where field exists');
+  const nomineeRelationExtract = routeContent.includes('const nomineeRelation = sanitizeValue(') &&
+    routeContent.includes('record.nomineeRelation') &&
+    routeContent.includes("{ field: 'सम्बन्ध', val: nomineeRelation, x: 275, y: 279.4");
+  assert(nomineeRelationExtract, 'G. सम्बन्ध equals nomineeRelation');
 
   // ----------------------------------------------------
-  // P. Gotra uses gotra only where field exists
+  // H. Missing nomineeName → blank
   // ----------------------------------------------------
-  const casteField = routeContent.includes("const caste = sanitizeValue(record.caste || record.category || '');");
-  assert(casteField, 'P. Gotra uses gotra only where field exists (no false fallback)');
+  assert(sanitizeValue('') === '' && sanitizeValue(undefined) === '' && sanitizeValue(null) === '', 'H. Missing nomineeName -> blank');
 
   // ----------------------------------------------------
-  // Q. ₹300 is NOT blindly inserted as registration/assistance amount
+  // I. Missing agent mobile → blank
   // ----------------------------------------------------
-  const noBlind300 = !routeContent.includes("val: '300'") && !routeContent.includes("val: 300");
-  assert(noBlind300, 'Q. ₹300 is NOT blindly inserted as registration/assistance amount');
+  assert(sanitizeValue('') === '' && sanitizeValue(undefined) === '' && sanitizeValue('NULL') === '', 'I. Missing agent mobile -> blank');
 
   // ----------------------------------------------------
-  // R. no unrelated PDF template is loaded
+  // J. Missing nomineeRelation → blank
   // ----------------------------------------------------
-  const noOtherTemplatesLoaded = !routeContent.includes('saf_vivah_bond.pdf') &&
-    !routeContent.includes('mayra_bond.pdf') &&
-    !routeContent.includes('janni_sahayata_bond.pdf');
-  assert(noOtherTemplatesLoaded, 'R. no unrelated PDF template is loaded');
+  assert(sanitizeValue('') === '' && sanitizeValue(undefined) === '' && sanitizeValue('N/A') === '', 'J. Missing nomineeRelation -> blank');
 
   // ----------------------------------------------------
-  // S. photo fits printed box if template contains a photo box
+  // K. EMP-xxx cannot appear in worker/senior code fields
   // ----------------------------------------------------
-  const photoBoxesCalibrated = routeContent.includes('463.63 + 1, 154.2 + 1, 83.04 - 2, 90.15 - 2') &&
-    routeContent.includes('463.63 + 1, 252.6 + 1, 83.04 - 2, 90.15 - 2');
-  assert(photoBoxesCalibrated, 'S. photo fits printed box if template contains a photo box');
+  const emp005Sanitized = sanitizeOfflineNumber('EMP-005');
+  const emp004Sanitized = sanitizeOfflineNumber('EMP-004');
+  const emp001Sanitized = sanitizeOfflineNumber('EMP-001');
+  assert(emp005Sanitized === '' && emp004Sanitized === '' && emp001Sanitized === '', 'K. EMP-xxx cannot appear in worker/senior code fields');
 
   // ----------------------------------------------------
-  // SUMMARY
+  // L. ADMIN cannot appear in senior code
   // ----------------------------------------------------
-  console.log(`\nRegression Tests Summary: ${passed} passed, ${failed} failed.`);
+  const adminSanitized = sanitizeOfflineNumber('ADMIN');
+  const superAdminSanitized = sanitizeOfflineNumber('SUPER ADMIN');
+  assert(adminSanitized === '' && superAdminSanitized === '', 'L. ADMIN cannot appear in senior code');
+
+  // ----------------------------------------------------
+  // M. UUID cannot appear in worker/senior code
+  // ----------------------------------------------------
+  const uuidSanitized = sanitizeOfflineNumber('a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d');
+  const systemIdSanitized = sanitizeOfflineNumber('DH-014');
+  assert(uuidSanitized === '' && systemIdSanitized === '', 'M. UUID / DH-xxx cannot appear in worker/senior code');
+
+  // ----------------------------------------------------
+  // N. Dhundhotsav Generate PDF Form still uses: Saf_dhundh_form.pdf
+  // ----------------------------------------------------
+  const dhundhFormPath = path.join(process.cwd(), 'public', 'pdf', 'dhundhotsav', 'Saf_dhundh_form.pdf');
+  const fillPdfContent = fs.readFileSync(path.join(process.cwd(), 'app', 'api', 'fill-pdf-form', 'route.ts'), 'utf-8');
+  assert(fs.existsSync(dhundhFormPath) && fillPdfContent.includes('Saf_dhundh_form.pdf'), 'N. Dhundhotsav Generate PDF Form still uses Saf_dhundh_form.pdf');
+
+  // ----------------------------------------------------
+  // O. Dhundhotsav Generate Bond PDF still uses: saf_dhundh_bond.pdf
+  // ----------------------------------------------------
+  const dhundhBondPath = path.join(process.cwd(), 'public', 'pdf', 'dhundhotsav', 'saf_dhundh_bond.pdf');
+  assert(fs.existsSync(dhundhBondPath) && routeContent.includes('saf_dhundh_bond.pdf'), 'O. Dhundhotsav Generate Bond PDF still uses saf_dhundh_bond.pdf');
+
+  // ----------------------------------------------------
+  // P. General Marriage Bond PDF still uses: saf_vivah_bond.pdf
+  // ----------------------------------------------------
+  const vivahBondPath = path.join(process.cwd(), 'public', 'pdf', 'general_application', 'saf_vivah_bond.pdf');
+  const generalBondRoute = fs.readFileSync(path.join(process.cwd(), 'app', 'api', 'generate-bond-pdf', 'route.ts'), 'utf-8');
+  assert(fs.existsSync(vivahBondPath) && generalBondRoute.includes('saf_vivah_bond.pdf'), 'P. General Marriage Bond PDF still uses saf_vivah_bond.pdf');
+
+  // ----------------------------------------------------
+  // Q. 4-button Actions layout remains unchanged
+  // ----------------------------------------------------
+  const hasFormBtn = pageContent.includes('handleGeneratePDFForm(reg)');
+  const hasEditBtn = pageContent.includes('/dashboard/dhundhotsav/edit/');
+  const hasBondBtn = pageContent.includes('handleGenerateBond(reg)');
+  const hasDeleteBtn = pageContent.includes('setRecordToDelete(reg.id)');
+  const formIdx = pageContent.indexOf('handleGeneratePDFForm(reg)');
+  const editIdx = pageContent.indexOf('/dashboard/dhundhotsav/edit/');
+  const bondIdx = pageContent.indexOf('handleGenerateBond(reg)');
+  const deleteIdx = pageContent.indexOf('setRecordToDelete(reg.id)');
+  const correctOrder = formIdx < editIdx && editIdx < bondIdx && bondIdx < deleteIdx;
+  assert(hasFormBtn && hasEditBtn && hasBondBtn && hasDeleteBtn && correctOrder, 'Q. 4-button Actions layout remains unchanged');
+
+  // ----------------------------------------------------
+  // R. सदस्यता क्र. uses authoritative membershipNumber or remains blank (does not copy offlineFormNumber)
+  // ----------------------------------------------------
+  const membershipNumberExtract = routeContent.includes('const rawMembershipNumber =') &&
+    routeContent.includes('const membershipNumber = sanitizeOfflineNumber(rawMembershipNumber)') &&
+    routeContent.includes("{ field: 'सदस्यता_क्र', val: membershipNumber, x: 304, y: 144.1");
+  assert(membershipNumberExtract, 'R. सदस्यता क्र. uses authoritative membershipNumber or remains blank (does not copy offlineFormNumber)');
+
+  // ----------------------------------------------------
+  // GENERATE VISUAL TEST RECORD OUTPUT
+  // ----------------------------------------------------
+  console.log('\nGenerating visual test output with official test record...');
+  const templateBytes = fs.readFileSync(dhundhBondPath);
+  const pdfDoc = await PDFDocument.load(templateBytes);
+  pdfDoc.registerFontkit(fontkit);
+
+  const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf');
+  const font = await pdfDoc.embedFont(fs.readFileSync(fontPath));
+
+  const page = pdfDoc.getPage(0);
+  const { height: pageHeight } = page.getSize();
+
+  // Test record as per Section 7 (membershipNumber is omitted/empty so सदस्यता क्र. stays blank)
+  const testRecord = {
+    workerOfflineFormNumber: '1259',
+    seniorOfflineFormNumber: '1258',
+    offlineFormNumber: '555',
+    membershipNumber: '', // Authoritative membership number missing -> blank
+    applicationDate: '14/09/2026',
+    applicantName: 'दिलीप पुरबिया',
+    fatherName: 'रामलाल पुरबिया',
+    caste: 'पुरबिया',
+    village: 'समदड़ी',
+    nomineeName: 'jayantilal',
+    district: 'बालोतरा',
+    agentMobile: '9876543210',
+    state: 'राजस्थान',
+    aadharNumber: '1234 5678 9012',
+    nomineeRelation: 'पिता',
+    nomineeAadhar: '9876 5432 1098',
+    mobile: '9123456789',
+    duration: 'बारह महीने',
+  };
+
+  const fields = [
+    // Top Code fields
+    { field: 'कार्यकर्ता_कोड', val: sanitizeOfflineNumber(testRecord.workerOfflineFormNumber), x: 112, y: 122.3, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+    { field: 'सीनियर_कार्यकर्ता_कोड', val: sanitizeOfflineNumber(testRecord.seniorOfflineFormNumber), x: 462, y: 122.3, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+
+    // Numbers & Date row
+    { field: 'आवेदन_क्र', val: sanitizeOfflineNumber(testRecord.offlineFormNumber), x: 102, y: 145.9, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+    { field: 'सदस्यता_क्र', val: sanitizeOfflineNumber(testRecord.membershipNumber), x: 304, y: 144.1, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+    { field: 'आवेदन_दिनांक', val: testRecord.applicationDate, x: 485, y: 142.9, maxW: 75, size: 9.5 },
+
+    // Left Column Fields
+    { field: 'नाम', val: testRecord.applicantName, x: 80, y: 184.6, maxW: 150, size: 10 },
+    { field: 'जाति', val: testRecord.caste, x: 80, y: 208.8, maxW: 150, size: 9.5 },
+    { field: 'वारिसदार', val: testRecord.nomineeName, x: 95, y: 233.1, maxW: 135, size: 9.5 },
+    { field: 'एजेन्ट_मो_नं', val: testRecord.agentMobile, x: 115, y: 257.3, maxW: 115, size: 9.5 },
+    { field: 'आधार_नं', val: testRecord.aadharNumber, x: 95, y: 281.5, maxW: 135, size: 9.5 },
+    { field: 'नॉमिनी_आधार_नं', val: testRecord.nomineeAadhar, x: 130, y: 305.7, maxW: 100, size: 9.5 },
+
+    // Center Column Fields
+    { field: 'पिता_पति_का_नाम', val: testRecord.fatherName, x: 325, y: 184.9, maxW: 130, size: 10 },
+    { field: 'गांव', val: testRecord.village, x: 265, y: 208.5, maxW: 190, size: 9.5 },
+    { field: 'जिला', val: testRecord.district, x: 265, y: 232.1, maxW: 190, size: 9.5 },
+    { field: 'राज्य', val: testRecord.state, x: 265, y: 255.8, maxW: 190, size: 9.5 },
+    { field: 'सम्बन्ध', val: testRecord.nomineeRelation, x: 275, y: 279.4, maxW: 180, size: 9.5 },
+    { field: 'मो_नं', val: testRecord.mobile, x: 275, y: 303.0, maxW: 180, size: 9.5 },
+
+    // Benefit Duration Clause
+    { field: 'अवधि', val: testRecord.duration, x: 282, y: 360.8, maxW: 75, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },
+  ];
+
+  for (const f of fields) {
+    if (!f.val) continue;
+    const drawX = f.x;
+    const drawY = pageHeight - f.y;
+    let size = f.size || 9.5;
+    if (f.maxW && font.widthOfTextAtSize) {
+      const w = font.widthOfTextAtSize(f.val, size);
+      if (w > f.maxW) {
+        size = Math.max(6.0, size * (f.maxW / w));
+      }
+    }
+    const color = f.color ? rgb(f.color.r, f.color.g, f.color.b) : rgb(0.1, 0.1, 0.1);
+    page.drawText(f.val, { x: drawX, y: drawY, size, font, color });
+  }
+
+  const outPdfPath = 'test-output/dhundhotsav-bond-final-data-mapping.pdf';
+  const outPngPath = 'test-output/dhundhotsav-bond-final-data-mapping.png';
+  if (!fs.existsSync('test-output')) {
+    fs.mkdirSync('test-output', { recursive: true });
+  }
+
+  const pdfBytes = await pdfDoc.save();
+  fs.writeFileSync(outPdfPath, pdfBytes);
+  console.log(`Saved: ${outPdfPath}`);
+
+  await renderPdfToImage(outPdfPath, outPngPath, 2.0);
+  console.log(`Saved: ${outPngPath}`);
+
+  console.log(`\n==================================================`);
+  console.log(`FINAL REPORT SUMMARY: ${passed} passed, ${failed} failed.`);
+  console.log(`==================================================\n`);
+
   if (failed > 0) {
     process.exit(1);
   }

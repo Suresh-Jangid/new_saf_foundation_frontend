@@ -607,7 +607,13 @@ export default function DhundhotsavListPage() {
         }
       }
 
-      const { workerOfflineFormNumber, seniorOfflineFormNumber, workerMobile } = resolveAgentOfflineNumbers(
+      const {
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+        workerMobile,
+        workerName,
+        seniorName,
+      } = resolveAgentOfflineNumbers(
         record as any,
         currentAgents
       );
@@ -618,6 +624,11 @@ export default function DhundhotsavListPage() {
         seniorOfflineFormNumber,
         workerMobile: workerMobile || (record as any).workerMobile || "",
         agentMobile: workerMobile || (record as any).agentMobile || "",
+        workerName: workerName || (record as any).workerName || "",
+        seniorName: seniorName || (record as any).seniorName || "",
+        nomineeName: record.nomineeName || (record as any).nominee_name || "",
+        nomineeRelation: record.nomineeRelation || (record as any).nominee_relation || "",
+        offlineFormNumber: record.offlineFormNumber || (record as any).offline_form_number || "",
       };
 
       const imageData = await getPhotoDataUrl(record.passportPhotoUrl || (record as any).passportPhoto);

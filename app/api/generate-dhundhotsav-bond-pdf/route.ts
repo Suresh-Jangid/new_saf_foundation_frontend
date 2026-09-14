@@ -9,7 +9,7 @@ import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 
 export const runtime = 'nodejs';
 
-// Helper to sanitize agent offline numbers
+// Helper to sanitize agent and application offline numbers
 function sanitizeOfflineNumber(val: any): string {
   if (!val) return '';
   const str = String(val).trim();
@@ -17,6 +17,10 @@ function sanitizeOfflineNumber(val: any): string {
   if (
     upper.startsWith('EMP-') ||
     upper.startsWith('EMP_') ||
+    upper.startsWith('DH-') ||
+    upper.startsWith('DH_') ||
+    upper.startsWith('SAF-') ||
+    upper.startsWith('SAF_') ||
     upper === 'EMP' ||
     upper === 'ADMIN' ||
     upper === 'SUPER ADMIN' ||
@@ -151,7 +155,7 @@ export async function POST(request: NextRequest) {
       : await pdfDoc.embedFont('Helvetica');
 
     // Extract dynamic fields adhering strictly to business rules:
-    // 1. Worker offline number (sanitized)
+    // 1. Worker offline number (sanitized) - from assigned Agent Registration
     const rawWorkerOffline =
       record.workerOfflineFormNumber ||
       record.worker_offline_form_number ||
@@ -161,7 +165,7 @@ export async function POST(request: NextRequest) {
       '';
     const workerOffline = sanitizeOfflineNumber(rawWorkerOffline);
 
-    // 2. Senior offline number (sanitized)
+    // 2. Senior offline number (sanitized) - from parent Level-1 Senior Agent
     const rawSeniorOffline =
       record.seniorOfflineFormNumber ||
       record.senior_offline_form_number ||
@@ -179,6 +183,16 @@ export async function POST(request: NextRequest) {
       '';
     const offlineFormNumber = sanitizeOfflineNumber(rawOfflineFormNumber);
 
+    // Membership Number - strictly real authoritative membershipNumber only, else blank (do not copy offlineFormNumber)
+    const rawMembershipNumber =
+      record.membershipNumber ||
+      record.membership_number ||
+      record.memberNumber ||
+      record.member_number ||
+      record.membershipNo ||
+      '';
+    const membershipNumber = sanitizeOfflineNumber(rawMembershipNumber);
+
     // 4. Date formatting
     const rawDate =
       record.applicationDate ||
@@ -188,18 +202,53 @@ export async function POST(request: NextRequest) {
       '';
     const applicationDate = rawDate ? formatDateToDDMMYYYY(String(rawDate)) : '';
 
-    // 5. Applicant info
+    // 5. Applicant info & Strict Field Separations
     const applicantName = sanitizeValue(record.applicantName || record.name || '');
     const fatherName = sanitizeValue(record.fatherName || record.husbandName || record.fatherHusbandName || '');
     const caste = sanitizeValue(record.caste || record.category || '');
     const village = sanitizeValue(record.village || record.tehsil || record.address || '');
-    const nomineeName = sanitizeValue(record.nomineeName || record.nominee_name || '');
+
+    // Nominee Name (वारिसदार) - strictly nominee name, never applicant/father/agent name
+    const nomineeName = sanitizeValue(
+      record.nomineeName ||
+      record.nominee_name ||
+      record.nominee ||
+      record['वारिसदार'] ||
+      record['नामिनी_का_नाम'] ||
+      record['नॉमिनी_का_नाम'] ||
+      ''
+    );
+
     const district = sanitizeValue(record.district || '');
-    const agentMobile = sanitizeValue(record.agentMobile || record.workerMobile || record.added_mobile || '');
+
+    // Assigned Agent's mobile (एजेन्ट मो. नं.) - strictly assigned worker/agent mobile, NEVER applicant mobile
+    const agentMobile = sanitizeValue(
+      record.agentMobile ||
+      record.workerMobile ||
+      record.agentPhone ||
+      record.workerPhone ||
+      record.added_mobile ||
+      record['कार्यकर्ता_का_मोबाइल'] ||
+      ''
+    );
+
     const state = sanitizeValue(record.state || 'राजस्थान');
     const aadharNumber = sanitizeValue(record.aadharNumber || record.aadhar || record.applicantAadhar || '');
-    const nomineeRelation = sanitizeValue(record.nomineeRelation || record.nominee_relation || '');
+
+    // Nominee Relation (सम्बन्ध) - strictly nominee relation, never inferred
+    const nomineeRelation = sanitizeValue(
+      record.nomineeRelation ||
+      record.nominee_relation ||
+      record.relation ||
+      record['सम्बन्ध'] ||
+      record['नामिनी_का_सम्बन्ध'] ||
+      record['नॉमिनी_का_सम्बन्ध'] ||
+      ''
+    );
+
     const nomineeAadhar = sanitizeValue(record.nomineeAadhar || record.nomineeAadhaar || record.nominee_aadhar || '');
+
+    // Applicant Mobile (मो. नं.)
     const mobile = sanitizeValue(record.mobile || record.phone || record.applicantMobile || '');
 
     // Calibrated dynamic field positions on the official 1-page Dhundhotsav Bond template
@@ -210,7 +259,7 @@ export async function POST(request: NextRequest) {
 
       // Numbers & Date row
       { field: 'आवेदन_क्र', val: offlineFormNumber, x: 102, y: 145.9, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सदस्यता_क्र', val: offlineFormNumber, x: 304, y: 144.1, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+      { field: 'सदस्यता_क्र', val: membershipNumber, x: 304, y: 144.1, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
       { field: 'आवेदन_दिनांक', val: applicationDate, x: 485, y: 142.9, maxW: 75, size: 9.5 },
 
       // Left Column Fields

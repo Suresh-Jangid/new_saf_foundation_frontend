@@ -40,7 +40,12 @@ export async function POST(request: NextRequest) {
     // Determine template path based on type
     let templatePath: string;
     
-    if (type === 'general-application') {
+    if (type === 'dhundhotsav' || type === 'dhundhotsav-application') {
+      const candidateTemplates = [
+        path.join(process.cwd(), 'public', 'pdf', 'dhundhotsav', 'Saf_dhundh_form.pdf'),
+      ];
+      templatePath = candidateTemplates.find((p) => fs.existsSync(p)) || '';
+    } else if (type === 'general-application') {
       // Use the newly approved unified General Application form template
       const candidateTemplates = [
         path.join(process.cwd(), 'public', 'pdf', 'general_application', 'Saf_general_form.pdf'),
@@ -105,11 +110,18 @@ export async function POST(request: NextRequest) {
         }
 
         if (image) {
-          // Precise passport photo box dimensions for approved official template
-          const imageX = 475;
-          const imageY = 242.5;
-          const imageWidth = 76;
-          const imageHeight = 99;
+          // Precise passport photo box dimensions for approved official templates
+          let imageX = 475;
+          let imageY = 242.5;
+          let imageWidth = 76;
+          let imageHeight = 99;
+
+          if (type === 'dhundhotsav' || type === 'dhundhotsav-application') {
+            imageX = 460.5;
+            imageY = 224.3;
+            imageWidth = 91.3;
+            imageHeight = 119.1;
+          }
 
           // Draw the image on the PDF
           firstPage.drawImage(image, {
@@ -171,7 +183,68 @@ export async function POST(request: NextRequest) {
 
     let fieldDefinitions: FieldDef[] = [];
 
-    if (type === 'general-application') {
+    if (type === 'dhundhotsav' || type === 'dhundhotsav-application') {
+      // Calibrated single-page official template for Dhundhotsav (Saf_dhundh_form.pdf)
+      // Coordinate System: top-left (y represents distance from top of page, pageHeight = 841.89)
+      fieldDefinitions = [
+        // ==========================================
+        // SECTION 1: "बाल-गोपाल ढूंढोत्सव सहायता योजना आवेदन" (Upper Section)
+        // ==========================================
+        // Line 1: क्रमांक : NGO/26/ [Offline No only]  एजेन्ट कोड [Worker Offline only]  सीनियर कोड [Senior Offline only]  दिनांक [Date]
+        { field: 'क्रमांक', valueKeys: ['offlineFormNumber', 'ऑफलाइन_फॉर्म_नं', 'offline_form_number', 'offlineFormNo', 'सदस्यता_क्रमांक'], x: 120, y: 195.6, maxW: 38, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'एजेन्ट_कोड', valueKeys: ['workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'कार्यकर्ता_कोड'], x: 205, y: 195.6, maxW: 85, size: 9.5, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'सीनियर_कोड', valueKeys: ['seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'senior_offline_form_no', 'सीनियर_कोड'], x: 345, y: 195.6, maxW: 60, size: 9.5, color: { r: 0, g: 0.15, b: 0.6 } },
+        { field: 'दिनांक', valueKeys: ['applicationDate', 'आवेदन_दिनांक', 'date', 'created_at', 'application_date'], x: 440, y: 195.6, maxW: 110, size: 9.5, isDate: true },
+
+        // Line 2: नाम [Applicant Name]
+        { field: 'नाम', valueKeys: ['applicantName', 'आवेदक_का_नाम', 'name', 'applicant_name'], x: 60, y: 223.3, maxW: 390, size: 10 },
+
+        // Line 3: पिता/पति का नाम [Father/Husband Name]
+        { field: 'पिता_का_नाम', valueKeys: ['fatherName', 'पिता_का_नाम', 'father_husband_name', 'father_name', 'husbandName', 'husband_name'], x: 120, y: 251.1, maxW: 330, size: 10 },
+
+        // Line 4: जन्म दिनांक [DOB]  लिंग [Gender]  शिक्षा [Education]
+        { field: 'जन्म_दिनांक', valueKeys: ['dateOfBirth', 'जन्म_तिथि', 'dob', 'date_of_birth'], x: 92, y: 278.8, maxW: 75, size: 9.5, isDate: true },
+        { field: 'लिंग', valueKeys: ['gender', 'लिंग'], x: 198, y: 278.8, maxW: 62, size: 9.5 },
+        { field: 'शिक्षा', valueKeys: ['education', 'शिक्षा', 'qualification'], x: 295, y: 278.8, maxW: 155, size: 9.5 },
+
+        // Line 5: आवेदन के आधार नं. [Aadhaar Number]
+        { field: 'आधार_संख्या', valueKeys: ['aadharNumber', 'आधार_संख्या', 'aadhar_no', 'aadhaar', 'aadhar_number', 'aadhaarNumber'], x: 130, y: 306.5, maxW: 320, size: 10 },
+
+        // Line 6: पता [Address]
+        { field: 'पता', valueKeys: ['address', 'पता', 'full_address', 'fullAddress'], x: 60, y: 334.2, maxW: 390, size: 9.5 },
+
+        // Line 7: जिला [District]  राज्य [State]  मो. नं. [Mobile]
+        { field: 'जिला', valueKeys: ['district', 'जिला'], x: 65, y: 361.9, maxW: 92, size: 9.5 },
+        { field: 'राज्य', valueKeys: ['state', 'राज्य'], x: 190, y: 361.9, maxW: 105, size: 9.5 },
+        { field: 'मोबाइल', valueKeys: ['mobile', 'मोबाइल', 'phone', 'mobileNumber'], x: 332, y: 361.9, maxW: 220, size: 9.5 },
+
+        // Line 8: नॉमिनी का नाम [Nominee Name]  सम्बन्ध [Nominee Relation]
+        { field: 'नामिनी_का_नाम', valueKeys: ['nomineeName', 'नामिनी_का_नाम', 'nominee_name'], x: 108, y: 389.7, maxW: 185, size: 10 },
+        { field: 'नामिनी_का_सम्बन्ध', valueKeys: ['nomineeRelation', 'नामिनी_का_सम्बन्ध', 'nominee_relation'], x: 338, y: 389.7, maxW: 210, size: 10 },
+
+        // Line 9: नॉमिनी का आधार नं. [Nominee Aadhaar]  मो. [Nominee Mobile]  कार्यकर्ता नाम [Worker Name]
+        { field: 'नामिनी_का_आधार', valueKeys: ['nomineeAadhar', 'nomineeAadhaar', 'नामिनी_का_आधार', 'nominee_aadhar', 'nominee_aadhaar', 'nomineeAadharNumber', 'nomineeAadhaarNumber', 'nominee_aadhar_number', 'nominee_aadhaar_number', 'nomineeAdhar', 'nominee_adhar', 'nomineeAadharNo', 'nomineeAadhaarNo'], x: 130, y: 417.4, maxW: 120, size: 9.5 },
+        { field: 'नामिनी_का_मोबाइल', valueKeys: ['nomineeMobile', 'नामिनी_का_मोबाइल', 'nominee_mobile', 'nomineePhone', 'nominee_phone', 'nomineeMobileNumber', 'nominee_mobile_number', 'nomineeContact', 'nominee_contact'], x: 275, y: 417.4, maxW: 125, size: 9.5 },
+        { field: 'कार्यकर्ता_नाम', valueKeys: ['workerName', 'कार्यकर्ता_का_नाम', 'worker_name', 'agentName', 'agent_name', 'कार्यकर्ता_नाम'], x: 470, y: 417.4, maxW: 85, size: 9.5 },
+
+        // Line 10: राशि [Registration Fee = ₹5,100]  नकद/चैक/डी.डी./यूटीआर नं. [Payment Ref]  सीनियर कार्यकर्ता नाम [Senior Worker Name]
+        { field: 'राशि', valueKeys: ['amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee', 'registrationFee'], x: 62, y: 445.1, maxW: 55, size: 9.5, formatAmount: true },
+        { field: 'भुगतान_विवरण', valueKeys: ['paymentModeRef', 'भुगतान_विवरण', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo'], x: 245, y: 445.1, maxW: 120, size: 9.5 },
+        { field: 'सीनियर_कार्यकर्ता_नाम', valueKeys: ['seniorName', 'सीनियर_कार्यकर्ता_का_नाम', 'senior_name', 'seniorWorkerName', 'senior_worker_name', 'seniorAgentName', 'senior_agent_name', 'सीनियर_कार्यकर्ता_नाम'], x: 465, y: 445.1, maxW: 90, size: 9.5 },
+
+        // ==========================================
+        // SECTION 2: "शपथ-पत्र" (Lower Section)
+        // ==========================================
+        // मैं [Name]  पुत्र/पुत्री/पत्नी श्रीमान् [Father/Husband]  उम्र [Age]  गोत्र [Gotra]
+        { field: 'शपथ_नाम', valueKeys: ['applicantName', 'आवेदक_का_नाम', 'name', 'applicant_name', 'शपथ_नाम'], x: 48, y: 579.5, maxW: 132, size: 9.5 },
+        { field: 'शपथ_पिता_का_नाम', valueKeys: ['fatherName', 'पिता_का_नाम', 'father_husband_name', 'father_name', 'husbandName', 'husband_name', 'शपथ_पिता_का_नाम'], x: 280, y: 579.5, maxW: 115, size: 9.5 },
+        { field: 'शपथ_उम्र', valueKeys: ['ageText', 'age', 'उम्र', 'शपथ_उम्र'], x: 422, y: 579.5, maxW: 55, size: 9.5 },
+        { field: 'शपथ_गोत्र', valueKeys: ['gotra', 'गोत्र', 'gotraName', 'gotra_name', 'शपथ_गोत्र'], x: 502, y: 579.5, maxW: 62, size: 9.5 },
+
+        // निवासी [Address]
+        { field: 'शपथ_पता', valueKeys: ['residenceAddress', 'address', 'पता', 'full_address', 'fullAddress', 'शपथ_पता'], x: 70, y: 613.7, maxW: 112, size: 9.0 },
+      ];
+    } else if (type === 'general-application') {
       // Calibrated single-page official template with 2 distinct sections
       // Coordinate System: top-left (y represents distance from top of page, pageHeight = 841.89)
       // Display Rule: In the printed "क्रमांक : NGO/26/" field, render ONLY offlineFormNumber (never system formNumber)
@@ -318,7 +391,10 @@ export async function POST(request: NextRequest) {
 
       let textValue = String(val).trim();
 
-      if (type === 'general-application' && (def.field === 'कार्यकर्ता_कोड' || def.field === 'सीनियर_कोड')) {
+      if (
+        (type === 'general-application' || type === 'dhundhotsav' || type === 'dhundhotsav-application') &&
+        (def.field === 'कार्यकर्ता_कोड' || def.field === 'सीनियर_कोड' || def.field === 'एजेन्ट_कोड')
+      ) {
         // Strict business rule: Only offline form numbers allowed in worker and senior code fields.
         // Never print EMP-xxx, ADMIN, N/A, null, undefined, or UUIDs.
         if (
@@ -392,7 +468,10 @@ export async function POST(request: NextRequest) {
 
     // Generate appropriate filename based on gender and type
     let filename = 'filled_form.pdf';
-    if (type === 'general-application') {
+    if (type === 'dhundhotsav' || type === 'dhundhotsav-application') {
+      const formNumber = (data as any)?.offlineFormNumber || (data as any)?.formNumber || 'filled';
+      filename = `dhundhotsav_application_form_${formNumber}.pdf`;
+    } else if (type === 'general-application') {
       const gender = data?.gender || data?.लिंग;
       const formNumber = (data as any)?.सदस्यता_क्रमांक || (data as any)?.formNumber || 'filled';
       if (gender === 'Female' || gender === 'महिला') {

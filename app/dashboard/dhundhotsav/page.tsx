@@ -64,6 +64,8 @@ interface ResolvedAgentOfflineNumbers {
   workerOfflineFormNumber: string;
   seniorOfflineFormNumber: string;
   workerMobile?: string;
+  workerName?: string;
+  seniorName?: string;
 }
 
 function resolveAgentOfflineNumbers(
@@ -209,59 +211,127 @@ function resolveAgentOfflineNumbers(
     ""
   ).trim();
 
+  const workerName = String(
+    (workerAgent && (
+      workerAgent.name ||
+      workerAgent.agentProfile?.name ||
+      workerAgent.fullName
+    )) ||
+    record.addedBy?.name ||
+    record.workerName ||
+    record.agentName ||
+    ""
+  ).trim();
+
+  const seniorName = String(
+    (seniorAgent && (
+      seniorAgent.name ||
+      seniorAgent.agentProfile?.name ||
+      seniorAgent.fullName
+    )) ||
+    record.seniorName ||
+    record.seniorWorkerName ||
+    ""
+  ).trim();
+
   return {
     workerOfflineFormNumber: workerOffline,
     seniorOfflineFormNumber: seniorOffline,
     workerMobile,
+    workerName,
+    seniorName,
   };
 }
 
 // Map English fields to Hindi for the PDF template
 function mapDhundhotsavToHindiFields(record: DhundhotsavRegistration & Record<string, any>) {
+  const ageText = record.age ? String(record.age) : "";
+  const gotra = record.gotra || (record as any).gotraName || (record as any).gotra_name || "";
+  const address = record.address || "";
+  const workerName = record.workerName || record.addedBy?.name || (record as any).worker_name || (record as any).agentName || "";
+  const seniorName = record.seniorName || (record as any).seniorWorkerName || (record as any).senior_name || "";
+
   return {
     सदस्यता_क्रमांक: record.offlineFormNumber || record.offline_form_number || "",
     ऑफलाइन_फॉर्म_नं: record.offlineFormNumber || record.offline_form_number || "",
+    offlineFormNumber: record.offlineFormNumber || record.offline_form_number || "",
     आवेदन_दिनांक: record.applicationDate || "",
+    applicationDate: record.applicationDate || "",
     आवेदक_का_नाम: record.applicantName || "",
-    पिता_का_नाम: record.fatherName || record.husbandName || "",
+    applicantName: record.applicantName || "",
+    पिता_का_नाम: record.fatherName || record.husbandName || (record as any).fatherHusbandName || "",
+    fatherName: record.fatherName || record.husbandName || (record as any).fatherHusbandName || "",
     माता_का_नाम: record.motherName || "",
     जन्म_तिथि: record.dateOfBirth || "",
-    गोत्र: record.gotra || "",
-    उम्र: record.age ? String(record.age) : "",
+    dateOfBirth: record.dateOfBirth || "",
+    गोत्र: gotra,
+    gotra: gotra,
+    उम्र: ageText,
+    ageText: ageText,
     लिंग: record.gender || "Male",
+    gender: record.gender || "Male",
     शिक्षा: (record as any).education || (record as any).qualification || "",
+    education: (record as any).education || (record as any).qualification || "",
     मोबाइल: record.mobile || "",
-    आधार_संख्या: record.aadharNumber || "",
-    पता: record.address || "",
+    mobile: record.mobile || "",
+    आधार_संख्या: record.aadharNumber || (record as any).aadhar || (record as any).applicantAadhar || "",
+    aadharNumber: record.aadharNumber || (record as any).aadhar || (record as any).applicantAadhar || "",
+    पता: address,
+    address: address,
     पिन: record.pinCode || "",
     तहसील: record.tehsil || "",
     जिला: record.district || "",
+    district: record.district || "",
     राज्य: record.state || "Rajasthan",
-    नामिनी_का_नाम: record.nomineeName || "",
-    नामिनी_का_सम्बन्ध: record.nomineeRelation || "",
-    नामिनी_का_पता: record.address || "",
-    नामिनी_का_आधार: record.nomineeAadhar || "",
-    नामिनी_का_मोबाइल: record.nomineeMobile || "",
-    कार्यकर्ता_का_नाम: record.addedBy?.name || (record as any).workerName || "",
-    कार्यकर्ता_का_मोबाइल: record.addedBy?.mobile || (record as any).workerMobile || "",
+    state: record.state || "Rajasthan",
+    नामिनी_का_नाम: record.nomineeName || (record as any).nominee_name || "",
+    nomineeName: record.nomineeName || (record as any).nominee_name || "",
+    नामिनी_का_सम्बन्ध: record.nomineeRelation || (record as any).nominee_relation || "",
+    nomineeRelation: record.nomineeRelation || (record as any).nominee_relation || "",
+    नामिनी_का_पता: address,
+    नामिनी_का_आधार: record.nomineeAadhar || (record as any).nomineeAadhaar || (record as any).nominee_aadhar || "",
+    nomineeAadhar: record.nomineeAadhar || (record as any).nomineeAadhaar || (record as any).nominee_aadhar || "",
+    नामिनी_का_मोबाइल: record.nomineeMobile || (record as any).nominee_mobile || "",
+    nomineeMobile: record.nomineeMobile || (record as any).nominee_mobile || "",
+    कार्यकर्ता_का_नाम: workerName,
+    workerName: workerName,
+    कार्यकर्ता_का_मोबाइल: (record as any).workerMobile || record.addedBy?.mobile || "",
     कार्यकर्ता_कोड:
       record.workerOfflineFormNumber ||
       record.worker_offline_form_number ||
       record.agentOfflineFormNumber ||
       record.agent_offline_form_number ||
       "",
-    राशि: String(record.totalAmount || record.membershipFee || 5100),
+    workerOfflineFormNumber:
+      record.workerOfflineFormNumber ||
+      record.worker_offline_form_number ||
+      record.agentOfflineFormNumber ||
+      record.agent_offline_form_number ||
+      "",
+    राशि: "5100",
+    amount: "5100",
     भुगतान_विवरण: (record as any).paymentModeRef || (record as any).paymentMode || "CASH",
+    paymentModeRef: (record as any).paymentModeRef || (record as any).paymentMode || "CASH",
     सीनियर_कोड:
       record.seniorOfflineFormNumber ||
       record.senior_offline_form_number ||
       record.seniorAgentOfflineFormNumber ||
       record.senior_agent_offline_form_number ||
       "",
+    seniorOfflineFormNumber:
+      record.seniorOfflineFormNumber ||
+      record.senior_offline_form_number ||
+      record.seniorAgentOfflineFormNumber ||
+      record.senior_agent_offline_form_number ||
+      "",
+    सीनियर_कार्यकर्ता_नाम: seniorName,
+    seniorName: seniorName,
     शपथ_नाम: record.applicantName || "",
-    शपथ_पिता_का_नाम: record.fatherName || record.husbandName || "",
-    शपथ_गोत्र: record.gotra || "",
-    शपथ_पता: record.address || "",
+    शपथ_पिता_का_नाम: record.fatherName || record.husbandName || (record as any).fatherHusbandName || "",
+    शपथ_उम्र: ageText,
+    शपथ_गोत्र: gotra,
+    शपथ_पता: address,
+    residenceAddress: address,
   };
 }
 
@@ -450,7 +520,13 @@ export default function DhundhotsavListPage() {
         }
       }
 
-      const { workerOfflineFormNumber, seniorOfflineFormNumber } = resolveAgentOfflineNumbers(
+      const {
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+        workerMobile,
+        workerName,
+        seniorName,
+      } = resolveAgentOfflineNumbers(
         record as any,
         currentAgents
       );
@@ -459,6 +535,9 @@ export default function DhundhotsavListPage() {
         ...record,
         workerOfflineFormNumber,
         seniorOfflineFormNumber,
+        workerMobile,
+        workerName,
+        seniorName,
       };
 
       const mapped = mapDhundhotsavToHindiFields(enrichedRecord);
@@ -468,6 +547,8 @@ export default function DhundhotsavListPage() {
         ...mapped,
         workerOfflineFormNumber,
         seniorOfflineFormNumber,
+        workerName,
+        seniorName,
         gender: record.gender || "Male",
       };
 
@@ -479,7 +560,7 @@ export default function DhundhotsavListPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          type: "general-application",
+          type: "dhundhotsav",
           data: dataForPdf,
           offsetX: 0,
           offsetY: 0,
@@ -497,7 +578,7 @@ export default function DhundhotsavListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `dhundhotsav_application_form_${record.formNumber}.pdf`;
+      a.download = `dhundhotsav_application_form_${record.offlineFormNumber || record.formNumber || "filled"}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();

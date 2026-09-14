@@ -100,17 +100,36 @@ function resolveAgentOfflineNumbers(
   const agentByCode = new Map<string, any>();
 
   for (const agent of agentsList) {
-    const id = String(agent.id || "").trim();
-    const empId = String(
-      agent.employeeId ||
-      agent.employee_id ||
-      agent.agentProfile?.employeeId ||
-      agent.agent_profile?.employee_id ||
-      ""
-    ).trim();
+    const ids = [
+      agent.id,
+      agent.userId,
+      agent.user_id,
+      agent.agentProfile?.id,
+      agent.agentProfile?.userId,
+      agent.agentProfile?.user_id,
+      agent.agent_profile?.id,
+      agent.agent_profile?.user_id,
+    ].filter(Boolean);
 
-    if (id) agentById.set(id, agent);
-    if (empId) agentByCode.set(empId.toUpperCase(), agent);
+    ids.forEach((id) => {
+      const normalized = String(id).trim();
+      if (normalized) agentById.set(normalized, agent);
+    });
+
+    const empIds = [
+      agent.employeeId,
+      agent.employee_id,
+      agent.agentProfile?.employeeId,
+      agent.agent_profile?.employee_id,
+      agent.agentCode,
+      agent.agent_code,
+      agent.code,
+    ].filter(Boolean);
+
+    empIds.forEach((emp) => {
+      const normalized = String(emp).trim().toUpperCase();
+      if (normalized) agentByCode.set(normalized, agent);
+    });
   }
 
   const targetWorkerId = String(
@@ -143,6 +162,10 @@ function resolveAgentOfflineNumbers(
       workerAgent.offline_form_number ||
       workerAgent.agentProfile?.offlineFormNumber ||
       workerAgent.agent_profile?.offline_form_number ||
+      workerAgent.agentProfile?.offline_form_no ||
+      workerAgent.offlineFormNo ||
+      workerAgent.user?.offlineFormNumber ||
+      workerAgent.user?.offline_form_number ||
       ""
     ).trim();
   }
@@ -155,6 +178,10 @@ function resolveAgentOfflineNumbers(
       workerAgent.parent_agent_id ||
       workerAgent.seniorId ||
       workerAgent.senior_id ||
+      workerAgent.agentProfile?.parentAgentId ||
+      workerAgent.agent_profile?.parent_agent_id ||
+      workerAgent.agentProfile?.seniorId ||
+      workerAgent.agent_profile?.senior_id ||
       ""
     ).trim();
 
@@ -162,7 +189,13 @@ function resolveAgentOfflineNumbers(
       workerAgent.seniorEmployeeId ||
       workerAgent.senior_employee_id ||
       workerAgent.parentEmployeeId ||
+      workerAgent.parent_employee_id ||
       workerAgent.seniorCode ||
+      workerAgent.senior_code ||
+      workerAgent.agentProfile?.seniorEmployeeId ||
+      workerAgent.agent_profile?.senior_employee_id ||
+      workerAgent.agentProfile?.seniorCode ||
+      workerAgent.agent_profile?.senior_code ||
       ""
     ).trim().toUpperCase();
 
@@ -193,6 +226,10 @@ function resolveAgentOfflineNumbers(
       seniorAgent.offline_form_number ||
       seniorAgent.agentProfile?.offlineFormNumber ||
       seniorAgent.agent_profile?.offline_form_number ||
+      seniorAgent.agentProfile?.offline_form_no ||
+      seniorAgent.offlineFormNo ||
+      seniorAgent.user?.offlineFormNumber ||
+      seniorAgent.user?.offline_form_number ||
       ""
     ).trim();
   }
@@ -203,8 +240,11 @@ function resolveAgentOfflineNumbers(
       workerAgent.phone ||
       workerAgent.contactNumber ||
       workerAgent.agentProfile?.mobile ||
-      workerAgent.agent_profile?.mobile
+      workerAgent.agent_profile?.mobile ||
+      workerAgent.user?.mobile ||
+      workerAgent.user?.phone
     )) ||
+    record.addedBy?.mobile ||
     record.added_mobile ||
     record.workerMobile ||
     record.agentMobile ||
@@ -215,7 +255,9 @@ function resolveAgentOfflineNumbers(
     (workerAgent && (
       workerAgent.name ||
       workerAgent.agentProfile?.name ||
-      workerAgent.fullName
+      workerAgent.agent_profile?.name ||
+      workerAgent.fullName ||
+      workerAgent.user?.name
     )) ||
     record.addedBy?.name ||
     record.workerName ||
@@ -227,7 +269,9 @@ function resolveAgentOfflineNumbers(
     (seniorAgent && (
       seniorAgent.name ||
       seniorAgent.agentProfile?.name ||
-      seniorAgent.fullName
+      seniorAgent.agent_profile?.name ||
+      seniorAgent.fullName ||
+      seniorAgent.user?.name
     )) ||
     record.seniorName ||
     record.seniorWorkerName ||

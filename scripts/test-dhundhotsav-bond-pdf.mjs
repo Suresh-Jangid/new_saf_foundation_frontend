@@ -175,6 +175,79 @@ async function runRegressionTests() {
   );
 
   // ----------------------------------------------------
+  // G6. resolveAgentOfflineNumbers logic validation (user ID indexing, worker, senior, agent mobile)
+  // ----------------------------------------------------
+  const mockAgentsList = [
+    {
+      id: 'agent-profile-uuid-worker',
+      userId: 'user-uuid-worker-999',
+      employeeId: 'EMP-005',
+      offlineFormNumber: '1259',
+      mobile: '9876543210',
+      parentAgentId: 'agent-profile-uuid-senior',
+      name: 'Worker Agent Name',
+    },
+    {
+      id: 'agent-profile-uuid-senior',
+      userId: 'user-uuid-senior-888',
+      employeeId: 'EMP-004',
+      offlineFormNumber: '1258',
+      mobile: '9888888888',
+      name: 'Senior Agent Name',
+    }
+  ];
+
+  // Emulate resolveAgentOfflineNumbers indexing
+  const agentById = new Map();
+  const agentByCode = new Map();
+  for (const agent of mockAgentsList) {
+    const ids = [
+      agent.id,
+      agent.userId,
+      agent.user_id,
+      agent.agentProfile?.id,
+      agent.agentProfile?.userId,
+      agent.agentProfile?.user_id,
+      agent.agent_profile?.id,
+      agent.agent_profile?.user_id,
+    ].filter(Boolean);
+    ids.forEach((id) => {
+      const normalized = String(id).trim();
+      if (normalized) agentById.set(normalized, agent);
+    });
+
+    const empIds = [
+      agent.employeeId,
+      agent.employee_id,
+      agent.agentProfile?.employeeId,
+      agent.agent_profile?.employee_id,
+      agent.agentCode,
+      agent.agent_code,
+      agent.code,
+    ].filter(Boolean);
+    empIds.forEach((emp) => {
+      const normalized = String(emp).trim().toUpperCase();
+      if (normalized) agentByCode.set(normalized, agent);
+    });
+  }
+
+  const dhundhotsavRecord = {
+    addedById: 'user-uuid-worker-999',
+    mobile: '9000000001',
+    applicantName: 'दिलीप पुरबिया',
+  };
+
+  const resolvedWorker = agentById.get(dhundhotsavRecord.addedById);
+  const resolvedWorkerOffline = resolvedWorker?.offlineFormNumber;
+  const resolvedSenior = resolvedWorker?.parentAgentId ? agentById.get(resolvedWorker.parentAgentId) : null;
+  const resolvedSeniorOffline = resolvedSenior?.offlineFormNumber;
+  const resolvedWorkerMobile = resolvedWorker?.mobile || '';
+
+  assert(resolvedWorker && resolvedWorkerOffline === '1259', 'G6. record.addedById resolves worker with offlineFormNumber 1259');
+  assert(resolvedSenior && resolvedSeniorOffline === '1258', 'G7. Parent Senior resolves with offlineFormNumber 1258');
+  assert(resolvedWorkerMobile === '9876543210' && dhundhotsavRecord.mobile === '9000000001', 'G8. Worker agent mobile is 9876543210 and applicant mobile remains separate');
+
+  // ----------------------------------------------------
   // H. Missing nomineeName → blank
   // ----------------------------------------------------
   assert(sanitizeValue('') === '' && sanitizeValue(undefined) === '' && sanitizeValue(null) === '', 'H. Missing nomineeName -> blank');

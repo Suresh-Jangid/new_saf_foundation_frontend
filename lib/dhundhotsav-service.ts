@@ -17,6 +17,7 @@ export interface DhundhotsavRegistration {
   id: string;
   formNumber: string;
   offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
   applicationDate: string;
   applicantName: string;
   fatherName: string;
@@ -67,6 +68,7 @@ export interface DhundhotsavRegistration {
 export interface CreateDhundhotsavPayload {
   applicationDate: string;
   offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
   applicantName: string;
   fatherName: string;
   husbandName?: string | null;
@@ -103,10 +105,12 @@ export interface CreateDhundhotsavPayload {
   agentId?: string;
   epinCode?: string | null;
   pinNumber?: string | null;
+  [key: string]: any;
 }
 
 export interface UpdateDhundhotsavPayload {
   offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
   applicantName?: string;
   fatherName?: string;
   husbandName?: string | null;
@@ -133,6 +137,9 @@ export interface UpdateDhundhotsavPayload {
   category?: "A" | "B" | "C" | "D" | "E" | "F";
   totalAmount?: number;
   pendingAmount?: number;
+  selectedAgentId?: string;
+  agentId?: string;
+  [key: string]: any;
 }
 
 export interface DhundhotsavFilters {

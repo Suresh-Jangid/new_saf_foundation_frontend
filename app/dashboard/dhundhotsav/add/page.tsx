@@ -264,9 +264,11 @@ export default function AddDhundhotsavPage() {
     setIsLoading(true);
 
     try {
+      const trimmedOffline = (formData.offlineFormNumber || "").trim();
       const payload: CreateDhundhotsavPayload = {
         applicationDate: formData.applicationDate,
-        offlineFormNumber: formData.offlineFormNumber.trim() || undefined,
+        offlineFormNumber: trimmedOffline || undefined,
+        offline_form_number: trimmedOffline || undefined,
         dhundhDate: formData.dhundhDate || undefined,
         childName: formData.childName.trim() || undefined,
         applicantName: formData.applicantName.trim(),

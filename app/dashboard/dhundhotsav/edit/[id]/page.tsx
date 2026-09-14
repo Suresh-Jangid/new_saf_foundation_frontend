@@ -124,7 +124,12 @@ export default function EditDhundhotsavPage() {
       const res = await DhundhotsavService.getRegistrationById(id);
       if (res && res.data) {
         const reg = res.data;
-        const offNo = reg.offlineFormNumber || "";
+        const offNo = String(
+          reg.offlineFormNumber ||
+          (reg as any).offline_form_number ||
+          (reg as any).offlineFormNo ||
+          ""
+        ).trim();
         setInitialOfflineFormNumber(offNo);
 
         // Format dates safely
@@ -133,36 +138,36 @@ export default function EditDhundhotsavPage() {
         const dob = reg.dateOfBirth ? reg.dateOfBirth.split("T")[0] : "";
 
         setFormData({
-          formNumber: reg.formNumber || "",
+          formNumber: reg.formNumber || (reg as any).form_number || "",
           offlineFormNumber: offNo,
           applicationDate: appDate,
           dhundhDate: dhDate,
-          childName: reg.childName || "",
-          applicantName: reg.applicantName || "",
-          fatherName: reg.fatherName || "",
-          husbandName: reg.husbandName || "",
-          motherName: reg.motherName || "",
+          childName: reg.childName || (reg as any).child_name || "",
+          applicantName: reg.applicantName || (reg as any).applicant_name || "",
+          fatherName: reg.fatherName || (reg as any).father_name || "",
+          husbandName: reg.husbandName || (reg as any).husband_name || "",
+          motherName: reg.motherName || (reg as any).mother_name || "",
           dateOfBirth: dob,
           age: reg.age ? String(reg.age) : "",
-          aadharNumber: reg.aadharNumber || "",
+          aadharNumber: reg.aadharNumber || (reg as any).aadhar_number || "",
           gotra: reg.gotra || "",
           mobile: reg.mobile || "",
           address: reg.address || "",
-          pinCode: reg.pinCode || "",
+          pinCode: reg.pinCode || (reg as any).pin_code || "",
           tehsil: reg.tehsil || "",
           district: reg.district || "",
           state: reg.state || "Rajasthan",
-          nomineeName: reg.nomineeName || "",
-          nomineeRelation: reg.nomineeRelation || "",
-          nomineeMobile: reg.nomineeMobile || "",
-          nomineeAadhar: reg.nomineeAadhar || "",
+          nomineeName: reg.nomineeName || (reg as any).nominee_name || "",
+          nomineeRelation: reg.nomineeRelation || (reg as any).nominee_relation || "",
+          nomineeMobile: reg.nomineeMobile || (reg as any).nominee_mobile || "",
+          nomineeAadhar: reg.nomineeAadhar || (reg as any).nominee_aadhar || "",
           gender: (reg.gender as any) || "Male",
           category: (reg.category as any) || "A",
           schemeType: "DHUNDHOTSAV",
           pool: "MALE_POOL",
           membershipFee: 5100,
-          selectedAgentId: reg.addedById || "",
-          epinCode: reg.epinCode || "",
+          selectedAgentId: reg.addedById || (reg as any).addedby_id || "",
+          epinCode: reg.epinCode || (reg as any).epin_code || "",
         });
 
         if (reg.passportPhotoUrl) {
@@ -332,8 +337,10 @@ export default function EditDhundhotsavPage() {
     setIsLoading(true);
 
     try {
+      const trimmedOffline = (formData.offlineFormNumber || "").trim();
       const payload: UpdateDhundhotsavPayload = {
-        offlineFormNumber: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : "",
+        offlineFormNumber: trimmedOffline || null,
+        offline_form_number: trimmedOffline || null,
         applicantName: formData.applicantName.trim(),
         fatherName: formData.fatherName.trim(),
         husbandName: formData.husbandName.trim() || null,
@@ -357,6 +364,8 @@ export default function EditDhundhotsavPage() {
         documentUrl: documentBase64 || undefined,
         gender: formData.gender,
         category: formData.category,
+        selectedAgentId: formData.selectedAgentId || undefined,
+        agentId: formData.selectedAgentId || undefined,
       };
 
       const res = await DhundhotsavService.updateRegistration(id, payload);

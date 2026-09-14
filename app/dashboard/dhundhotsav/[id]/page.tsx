@@ -170,9 +170,9 @@ export default function DhundhotsavDetailsPage() {
                 <span className="font-mono text-base font-bold text-amber-600">
                   {record.formNumber}
                 </span>
-                {record.offlineFormNumber && (
+                {(record.offlineFormNumber || (record as any).offline_form_number) && (
                   <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-xs font-sans">
-                    ऑफलाइन: {record.offlineFormNumber}
+                    ऑफलाइन: {record.offlineFormNumber || (record as any).offline_form_number}
                   </Badge>
                 )}
                 <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-300">

@@ -288,34 +288,35 @@ export async function POST(request: NextRequest) {
     const nomineeMobile = sanitizeValue(record.nomineeMobile || record.nomineePhone || record.nominee_mobile || '');
 
     // Calibrated dynamic field positions on official 1-page Janni Delivery Bond template (595.28 x 841.89 pt)
+    // Y coordinates are calibrated to match each template label's visual baseline (measured via pixel analysis at 4x scale)
     const fields = [
-      // Top Code fields
-      { field: 'कार्यकर्ता_कोड', val: workerOffline, x: 112, y: 122.3, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 462, y: 122.3, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+      // Top Code fields (label baseline ≈ 119 from top)
+      { field: 'कार्यकर्ता_कोड', val: workerOffline, x: 112, y: 119.0, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+      { field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 462, y: 119.0, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
 
-      // Numbers & Date row
-      { field: 'आवेदन_क्र', val: applicationNo, x: 102, y: 145.9, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सदस्यता_क्र', val: membershipNumber, x: 304, y: 144.1, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'आवेदन_दिनांक', val: applicationDate, x: 485, y: 142.9, maxW: 75, size: 9.5 },
+      // Numbers & Date row (label baseline ≈ 136 from top)
+      { field: 'आवेदन_क्र', val: applicationNo, x: 102, y: 136.0, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+      { field: 'सदस्यता_क्र', val: membershipNumber, x: 304, y: 136.0, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+      { field: 'आवेदन_दिनांक', val: applicationDate, x: 485, y: 136.0, maxW: 75, size: 9.5 },
 
-      // Left Column Fields
-      { field: 'नाम', val: applicantName, x: 80, y: 184.6, maxW: 150, size: 10 },
-      { field: 'जाति', val: caste, x: 80, y: 208.8, maxW: 150, size: 9.5 },
-      { field: 'वारिसदार', val: nomineeName, x: 95, y: 233.1, maxW: 135, size: 9.5 },
-      { field: 'एजेन्ट_मो_नं', val: agentMobile, x: 115, y: 257.3, maxW: 115, size: 9.5 },
-      { field: 'आधार_नं', val: aadharNumber, x: 95, y: 281.5, maxW: 135, size: 9.5 },
-      { field: 'नॉमिनी_आधार_नं', val: nomineeAadhar, x: 130, y: 305.7, maxW: 100, size: 9.5 },
+      // Left Column Fields (baselines measured per row from template labels)
+      { field: 'नाम', val: applicantName, x: 80, y: 178.0, maxW: 150, size: 10 },
+      { field: 'जाति', val: caste, x: 80, y: 200.0, maxW: 150, size: 9.5 },
+      { field: 'वारिसदार', val: nomineeName, x: 95, y: 223.0, maxW: 135, size: 9.5 },
+      { field: 'एजेन्ट_मो_नं', val: agentMobile, x: 115, y: 248.0, maxW: 115, size: 9.5 },
+      { field: 'आधार_नं', val: aadharNumber, x: 95, y: 273.0, maxW: 135, size: 9.5 },
+      { field: 'नॉमिनी_आधार_नं', val: nomineeAadhar, x: 130, y: 295.0, maxW: 100, size: 9.5 },
 
-      // Center Column Fields
-      { field: 'पिता_पति_का_नाम', val: fatherHusbandName, x: 325, y: 184.9, maxW: 130, size: 10 },
-      { field: 'गांव', val: village, x: 265, y: 208.5, maxW: 190, size: 9.5 },
-      { field: 'जिला', val: district, x: 265, y: 232.1, maxW: 190, size: 9.5 },
-      { field: 'राज्य', val: state, x: 265, y: 255.8, maxW: 190, size: 9.5 },
-      { field: 'सम्बन्ध', val: nomineeRelation, x: 275, y: 279.4, maxW: 180, size: 9.5 },
-      { field: 'नॉमिनी_मो_नं', val: nomineeMobile, x: 292, y: 303.0, maxW: 165, size: 9.5 },
+      // Center Column Fields (same row baselines as left column)
+      { field: 'पिता_पति_का_नाम', val: fatherHusbandName, x: 325, y: 178.0, maxW: 130, size: 10 },
+      { field: 'गांव', val: village, x: 265, y: 200.0, maxW: 190, size: 9.5 },
+      { field: 'जिला', val: district, x: 265, y: 223.0, maxW: 190, size: 9.5 },
+      { field: 'राज्य', val: state, x: 265, y: 248.0, maxW: 190, size: 9.5 },
+      { field: 'सम्बन्ध', val: nomineeRelation, x: 275, y: 273.0, maxW: 180, size: 9.5 },
+      { field: 'नॉमिनी_मो_नं', val: nomineeMobile, x: 292, y: 295.0, maxW: 165, size: 9.5 },
 
-      // Benefit Duration Clause
-      { field: 'अवधि', val: String(duration || 'नौ माह').trim(), x: 282, y: 360.8, maxW: 75, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },
+      // Benefit Duration Clause (label baseline ≈ 352 from top)
+      { field: 'अवधि', val: String(duration || 'नौ माह').trim(), x: 282, y: 352.0, maxW: 75, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },
     ];
 
     for (const f of fields) {

@@ -127,13 +127,25 @@ export default function AddJanniDeliveryPage() {
         .getAll()
         .then((res) => {
           if (res && res.data && Array.isArray(res.data)) {
-            setAgents(
-              res.data.map((a: any) => ({
-                id: String(a.id || a.user_id),
-                name: a.name || a.agent_name || "Agent",
-                mobile: a.mobile || a.phone || "",
-              }))
-            );
+            const mappedAgents = res.data.map((ag: any) => {
+              const resolvedUserId = String(
+                ag.userId ||
+                ag.user_id ||
+                ag.user?.id ||
+                ag.agentProfile?.userId ||
+                ag.agentProfile?.user_id ||
+                ag.agent_profile?.user_id ||
+                ag.id ||
+                ""
+              ).trim();
+
+              return {
+                id: resolvedUserId,
+                name: ag.applicantName || ag.name || ag.agent_name || ag.user?.name || "Agent",
+                mobile: ag.mobileNumber || ag.mobile || ag.phone || ag.user?.mobile || "",
+              };
+            });
+            setAgents(mappedAgents);
           }
         })
         .catch((err) => {

@@ -131,11 +131,11 @@ export async function POST(request: NextRequest) {
     );
 
     // Embed photos inside calibrated photo boxes on official A4 template:
-    // Top Photo Box (Applicant):   x = 463.63, yFromTop = 154.2, w = 83.04, h = 90.15
-    // Bottom Photo Box (Nominee):  x = 463.63, yFromTop = 252.6, w = 83.04, h = 90.15
+    // Top Photo Box (Applicant):   x = 460.5, yFromTop = 148.0, w = 84.5, h = 91.5
+    // Bottom Photo Box (Nominee):  x = 460.5, yFromTop = 246.5, w = 84.5, h = 91.5
     if (applicantPhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 463.63 + 1, 154.2 + 1, 83.04 - 2, 90.15 - 2);
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 462.0, 149.5, 81.0, 88.0, 'contain');
       } catch (err) {
         console.warn('Could not embed applicant photo in Janni Bond:', err);
       }
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
 
     if (nomineePhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 463.63 + 1, 252.6 + 1, 83.04 - 2, 90.15 - 2);
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 462.0, 248.0, 81.0, 88.0, 'contain');
       } catch (err) {
         console.warn('Could not embed nominee photo in Janni Bond:', err);
       }
@@ -194,15 +194,14 @@ export async function POST(request: NextRequest) {
       '';
     const seniorOffline = sanitizeOfflineNumber(rawSeniorOffline);
 
-    // 3. Application number - official Janni application formNumber
-    const applicationNo = sanitizeValue(
-      record.formNumber ||
-      record.form_number ||
-      record.applicationNumber ||
-      record.application_number ||
-      record.applicationNo ||
-      ''
-    );
+    // 3. Application number - strictly Offline Form No., leave blank if absent (never fallback to system formNumber)
+    const rawOfflineFormNumber =
+      record.offlineFormNumber ||
+      record.offline_form_number ||
+      record.offlineFormNo ||
+      record.offline_form_no ||
+      '';
+    const applicationNo = sanitizeOfflineNumber(rawOfflineFormNumber);
 
     // 4. Membership Number - strictly real authoritative membershipNumber only, else blank
     const rawMembershipNumber =
@@ -313,7 +312,7 @@ export async function POST(request: NextRequest) {
       { field: 'जिला', val: district, x: 265, y: 223.0, maxW: 190, size: 9.5 },
       { field: 'राज्य', val: state, x: 265, y: 248.0, maxW: 190, size: 9.5 },
       { field: 'सम्बन्ध', val: nomineeRelation, x: 275, y: 273.0, maxW: 180, size: 9.5 },
-      { field: 'नॉमिनी_मो_नं', val: nomineeMobile, x: 292, y: 295.0, maxW: 165, size: 9.5 },
+      { field: 'नॉमिनी_मो_नं', val: nomineeMobile, x: 318, y: 295.0, maxW: 140, size: 9.5 },
 
       // Benefit Duration Clause (label baseline ≈ 352 from top)
       { field: 'अवधि', val: String(duration || 'नौ माह').trim(), x: 282, y: 352.0, maxW: 75, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },

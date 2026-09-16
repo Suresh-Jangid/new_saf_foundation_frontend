@@ -161,7 +161,7 @@ async function runTests() {
 
   it('23. Nominee mobile (नॉमिनी मो. नं.) is rendered', () => {
     assert.ok(routeContent.includes("field: 'नॉमिनी_मो_नं'"), 'Must contain नॉमिनी_मो_नं mapping');
-    assert.ok(routeContent.includes('x: 292, y: 295.0'), 'Nominee mobile positioned at x=292, y=295.0');
+    assert.ok(routeContent.includes('x: 318, y: 295.0'), 'Nominee mobile positioned at x=318, y=295.0');
   });
 
   it('24. Duration (लाभ अवधि) is rendered', () => {
@@ -170,8 +170,8 @@ async function runTests() {
   });
 
   it('25. Upper applicant photo box and lower nominee photo box are configured', () => {
-    assert.ok(routeContent.includes('yFromTop = 154.2'), 'Upper applicant photo box at y=154.2');
-    assert.ok(routeContent.includes('yFromTop = 252.6'), 'Lower nominee photo box at y=252.6');
+    assert.ok(routeContent.includes('yFromTop = 148.0'), 'Upper applicant photo box at y=148.0');
+    assert.ok(routeContent.includes('yFromTop = 246.5'), 'Lower nominee photo box at y=246.5');
   });
 
   it('26. Director signature is placed in director signature area', () => {

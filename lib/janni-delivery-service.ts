@@ -128,6 +128,9 @@ export interface UpdateJanniDeliveryPayload {
   category?: "A" | "B" | "C" | "D" | "E" | "F";
   totalAmount?: number;
   pendingAmount?: number;
+  selectedAgentId?: string;
+  addedById?: string;
+  agentId?: string;
 }
 
 export interface JanniDeliveryFilters {

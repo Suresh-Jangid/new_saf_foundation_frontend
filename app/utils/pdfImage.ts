@@ -93,6 +93,7 @@ export async function embedPdfImage(
   yFromTop: number,
   width: number,
   height: number,
+  fit: 'fill' | 'contain' = 'fill',
 ): Promise<void> {
   const loaded = await loadImageBytes(source);
   if (!loaded) return;
@@ -124,10 +125,23 @@ export async function embedPdfImage(
     return;
   }
 
+  let drawX = x;
+  let drawY = pageHeight - yFromTop - height;
+  let drawW = width;
+  let drawH = height;
+
+  if (fit === 'contain' && image.width && image.height) {
+    const scale = Math.min(width / image.width, height / image.height);
+    drawW = image.width * scale;
+    drawH = image.height * scale;
+    drawX = x + (width - drawW) / 2;
+    drawY = pageHeight - yFromTop - height + (height - drawH) / 2;
+  }
+
   page.drawImage(image, {
-    x,
-    y: pageHeight - yFromTop - height,
-    width,
-    height,
+    x: drawX,
+    y: drawY,
+    width: drawW,
+    height: drawH,
   });
 }

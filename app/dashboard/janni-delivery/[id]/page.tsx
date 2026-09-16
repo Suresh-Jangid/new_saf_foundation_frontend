@@ -142,13 +142,25 @@ export default function EditJanniDeliveryPage() {
         .getAll()
         .then((res) => {
           if (res && res.data && Array.isArray(res.data)) {
-            setAgents(
-              res.data.map((a: any) => ({
-                id: String(a.id || a.user_id),
-                name: a.name || a.agent_name || "Agent",
-                mobile: a.mobile || a.phone || "",
-              }))
-            );
+            const mappedAgents = res.data.map((ag: any) => {
+              const resolvedUserId = String(
+                ag.userId ||
+                ag.user_id ||
+                ag.user?.id ||
+                ag.agentProfile?.userId ||
+                ag.agentProfile?.user_id ||
+                ag.agent_profile?.user_id ||
+                ag.id ||
+                ""
+              ).trim();
+
+              return {
+                id: resolvedUserId,
+                name: ag.applicantName || ag.name || ag.agent_name || ag.user?.name || "Agent",
+                mobile: ag.mobileNumber || ag.mobile || ag.phone || ag.user?.mobile || "",
+              };
+            });
+            setAgents(mappedAgents);
           }
         })
         .catch((err) => {
@@ -214,6 +226,15 @@ export default function EditJanniDeliveryPage() {
           setNomineePhotoPreview(getProxiedPhotoSrc(data.nomineePhotoUrl) || data.nomineePhotoUrl);
         }
 
+        const rawWorkerId = String(
+          data.addedById ||
+          (data as any).addedby_id ||
+          data.addedBy?.id ||
+          (data as any).agentId ||
+          (data as any).selectedAgentId ||
+          ""
+        ).trim();
+
         setFormData({
           applicationDate: formattedAppDate,
           formNumber: data.formNumber || "",
@@ -245,7 +266,7 @@ export default function EditJanniDeliveryPage() {
           totalAmount: data.totalAmount != null ? String(data.totalAmount) : "0",
           paymentAmount: initialPaid,
           paymentMode: validPaymentMode,
-          selectedAgentId: data.addedById || data.addedBy?.id || "",
+          selectedAgentId: rawWorkerId,
           epinCode: data.epinCode || "",
         });
       } else {
@@ -439,6 +460,9 @@ export default function EditJanniDeliveryPage() {
       category: formData.category,
       totalAmount: totAmt,
       pendingAmount: pendAmt,
+      selectedAgentId: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
+      addedById: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
+      agentId: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
     };
 
     setIsLoading(true);

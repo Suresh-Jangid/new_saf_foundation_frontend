@@ -680,6 +680,9 @@ export default function DhundhotsavListPage() {
       };
 
       const imageData = await getPhotoDataUrl(record.passportPhotoUrl || (record as any).passportPhoto);
+      const nomineeImageData = await getPhotoDataUrl(
+        record.nomineePhotoUrl || (record as any).nomineePhoto || (record as any).nomineePassportPhoto
+      );
 
       const response = await fetch("/api/generate-dhundhotsav-bond-pdf", {
         method: "POST",
@@ -689,7 +692,8 @@ export default function DhundhotsavListPage() {
         body: JSON.stringify({
           record: enrichedRecord,
           imageData,
-          duration: "बारह महीने",
+          nomineeImageData,
+          duration: record.benefitDuration || (record as any).duration || undefined,
         }),
       });
 

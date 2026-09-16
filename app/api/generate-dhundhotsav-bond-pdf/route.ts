@@ -74,7 +74,16 @@ export async function POST(request: NextRequest) {
     }
 
     const record = body?.record || body?.data || (body && typeof body === 'object' && !Array.isArray(body) ? body : {});
-    const duration = body?.duration || record?.duration || 'बारह महीने';
+    const duration =
+      String(
+        record?.benefitDuration ??
+        record?.duration ??
+        record?.benefit_duration ??
+        body?.benefitDuration ??
+        body?.benefit_duration ??
+        (body?.duration && body.duration !== 'बारह महीने' ? body.duration : (record?.benefitDuration || record?.duration ? undefined : body?.duration)) ??
+        ""
+      ).trim() || "बारह महीने";
 
     console.log('Generating Dhundhotsav Bond PDF for:', record?.applicantName || record?.formNumber || 'Unknown');
 

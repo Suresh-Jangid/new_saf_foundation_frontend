@@ -126,11 +126,15 @@ export async function POST(request: NextRequest) {
     );
 
     // Embed photos inside calibrated photo boxes:
-    // Top Photo Box (Applicant):   x = 463.63, yFromTop = 154.2, w = 83.04, h = 90.15 (bottom-left y: 597.54)
-    // Bottom Photo Box (Nominee):  x = 463.63, yFromTop = 252.6, w = 83.04, h = 90.15 (bottom-left y: 499.09)
+    // Top Photo Box (Applicant):
+    //   Outer Black Border: x = 463.2, yFromTop = 153.8, w = 84.0, h = 91.0
+    //   Inner Image Box:    x = 464.0, yFromTop = 154.6, w = 82.2, h = 89.2
+    // Bottom Photo Box (Nominee):
+    //   Outer Black Border: x = 463.2, yFromTop = 252.2, w = 84.0, h = 91.0
+    //   Inner Image Box:    x = 464.0, yFromTop = 253.2, w = 82.2, h = 89.2
     if (applicantPhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 463.63 + 1, 154.2 + 1, 83.04 - 2, 90.15 - 2);
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 464.0, 154.6, 82.2, 89.2, 'cover');
       } catch (err) {
         console.warn('Could not embed applicant photo in Dhundhotsav Bond:', err);
       }
@@ -138,21 +142,22 @@ export async function POST(request: NextRequest) {
 
     if (nomineePhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 463.63 + 1, 252.6 + 1, 83.04 - 2, 90.15 - 2);
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 464.0, 253.2, 82.2, 89.2, 'cover');
       } catch (err) {
         console.warn('Could not embed nominee photo in Dhundhotsav Bond:', err);
       }
     }
 
-    // Embed Devanagari font
+    // Embed Devanagari font (prioritize SemiBold for matching bold printed label weights)
     const fontCandidates = [
+      path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-SemiBold.ttf'),
       path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf'),
       path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari.ttf'),
     ];
     const devanagariFontPath = fontCandidates.find((p) => fs.existsSync(p));
     const font = devanagariFontPath
       ? await pdfDoc.embedFont(fs.readFileSync(devanagariFontPath), { subset: false })
-      : await pdfDoc.embedFont('Helvetica');
+      : await pdfDoc.embedFont('Helvetica-Bold');
 
     // Extract dynamic fields adhering strictly to business rules:
     // 1. Worker offline number (sanitized) - from assigned Agent Registration
@@ -261,33 +266,33 @@ export async function POST(request: NextRequest) {
 
     // Calibrated dynamic field positions on the official 1-page Dhundhotsav Bond template
     const fields = [
-      // Top Code fields
-      { field: 'कार्यकर्ता_कोड', val: workerOffline, x: 112, y: 122.3, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 462, y: 122.3, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+      // Top Code fields (label baseline ≈ 118.0 from top)
+      { field: 'कार्यकर्ता_कोड', val: workerOffline, x: 112, y: 118.0, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+      { field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 462, y: 118.0, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
 
-      // Numbers & Date row
-      { field: 'आवेदन_क्र', val: offlineFormNumber, x: 102, y: 145.9, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सदस्यता_क्र', val: membershipNumber, x: 304, y: 144.1, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'आवेदन_दिनांक', val: applicationDate, x: 485, y: 142.9, maxW: 75, size: 9.5 },
+      // Numbers & Date row (label baseline ≈ 142.0 from top)
+      { field: 'आवेदन_क्र', val: offlineFormNumber, x: 102, y: 142.0, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+      { field: 'सदस्यता_क्र', val: membershipNumber, x: 304, y: 142.0, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+      { field: 'आवेदन_दिनांक', val: applicationDate, x: 485, y: 142.0, maxW: 75, size: 9.5 },
 
-      // Left Column Fields
-      { field: 'नाम', val: applicantName, x: 80, y: 184.6, maxW: 150, size: 10 },
-      { field: 'जाति', val: caste, x: 80, y: 208.8, maxW: 150, size: 9.5 },
-      { field: 'वारिसदार', val: nomineeName, x: 95, y: 233.1, maxW: 135, size: 9.5 },
-      { field: 'एजेन्ट_मो_नं', val: agentMobile, x: 115, y: 257.3, maxW: 115, size: 9.5 },
-      { field: 'आधार_नं', val: aadharNumber, x: 95, y: 281.5, maxW: 135, size: 9.5 },
-      { field: 'नॉमिनी_आधार_नं', val: nomineeAadhar, x: 130, y: 305.7, maxW: 100, size: 9.5 },
+      // Left Column Fields (baselines measured per row from template labels)
+      { field: 'नाम', val: applicantName, x: 75, y: 181.0, maxW: 155, size: 10 },
+      { field: 'जाति', val: caste, x: 75, y: 205.0, maxW: 155, size: 9.5 },
+      { field: 'वारिसदार', val: nomineeName, x: 95, y: 229.0, maxW: 135, size: 9.5 },
+      { field: 'एजेन्ट_मो_नं', val: agentMobile, x: 110, y: 253.5, maxW: 120, size: 9.5 },
+      { field: 'आधार_नं', val: aadharNumber, x: 95, y: 277.5, maxW: 135, size: 9.5 },
+      { field: 'नॉमिनी_आधार_नं', val: nomineeAadhar, x: 130, y: 301.5, maxW: 100, size: 9.5 },
 
-      // Center Column Fields
-      { field: 'पिता_पति_का_नाम', val: fatherName, x: 325, y: 184.9, maxW: 130, size: 10 },
-      { field: 'गांव', val: village, x: 265, y: 208.5, maxW: 190, size: 9.5 },
-      { field: 'जिला', val: district, x: 265, y: 232.1, maxW: 190, size: 9.5 },
-      { field: 'राज्य', val: state, x: 265, y: 255.8, maxW: 190, size: 9.5 },
-      { field: 'सम्बन्ध', val: nomineeRelation, x: 275, y: 279.4, maxW: 180, size: 9.5 },
-      { field: 'मो_नं', val: mobile, x: 275, y: 303.0, maxW: 180, size: 9.5 },
+      // Center Column Fields (same row baselines as left column)
+      { field: 'पिता_पति_का_नाम', val: fatherName, x: 325, y: 181.0, maxW: 130, size: 10 },
+      { field: 'गांव', val: village, x: 262, y: 205.0, maxW: 190, size: 9.5 },
+      { field: 'जिला', val: district, x: 268, y: 229.0, maxW: 190, size: 9.5 },
+      { field: 'राज्य', val: state, x: 265, y: 253.5, maxW: 190, size: 9.5 },
+      { field: 'सम्बन्ध', val: nomineeRelation, x: 275, y: 277.5, maxW: 180, size: 9.5 },
+      { field: 'मो_नं', val: mobile, x: 275, y: 301.5, maxW: 180, size: 9.5 },
 
-      // Benefit Duration Clause
-      { field: 'अवधि', val: String(duration || 'बारह महीने').trim(), x: 282, y: 360.8, maxW: 75, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },
+      // Benefit Duration Clause (label baseline ≈ 358.0 from top)
+      { field: 'अवधि', val: String(duration || 'बारह महीने').trim(), x: 282, y: 358.0, maxW: 75, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },
     ];
 
     for (const f of fields) {

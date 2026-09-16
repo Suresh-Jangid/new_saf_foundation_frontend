@@ -73,7 +73,7 @@ async function runRegressionTests() {
   const workerCodeExtract = routeContent.includes('const rawWorkerOffline =') &&
     routeContent.includes('record.workerOfflineFormNumber') &&
     routeContent.includes('const workerOffline = sanitizeOfflineNumber(rawWorkerOffline)') &&
-    routeContent.includes("{ field: 'कार्यकर्ता_कोड', val: workerOffline, x: 112, y: 122.3");
+    routeContent.includes("{ field: 'कार्यकर्ता_कोड', val: workerOffline, x: 112, y: 118.0");
   const testWorkerVal = sanitizeOfflineNumber('1259');
   assert(workerCodeExtract && testWorkerVal === '1259', 'A. Worker code comes from Agent offlineFormNumber');
 
@@ -83,7 +83,7 @@ async function runRegressionTests() {
   const seniorCodeExtract = routeContent.includes('const rawSeniorOffline =') &&
     routeContent.includes('record.seniorOfflineFormNumber') &&
     routeContent.includes('const seniorOffline = sanitizeOfflineNumber(rawSeniorOffline)') &&
-    routeContent.includes("{ field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 462, y: 122.3");
+    routeContent.includes("{ field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 462, y: 118.0");
   const testSeniorVal = sanitizeOfflineNumber('1258');
   assert(seniorCodeExtract && testSeniorVal === '1258', 'B. Senior code comes from parent Senior offlineFormNumber');
 
@@ -93,7 +93,7 @@ async function runRegressionTests() {
   const appNumberExtract = routeContent.includes('const rawOfflineFormNumber =') &&
     routeContent.includes('record.offlineFormNumber') &&
     routeContent.includes('const offlineFormNumber = sanitizeOfflineNumber(rawOfflineFormNumber)') &&
-    routeContent.includes("{ field: 'आवेदन_क्र', val: offlineFormNumber, x: 102, y: 145.9");
+    routeContent.includes("{ field: 'आवेदन_क्र', val: offlineFormNumber, x: 102, y: 142.0");
   const testAppNumVal = sanitizeOfflineNumber('555');
   assert(appNumberExtract && testAppNumVal === '555', 'C. Application number comes from application offlineFormNumber');
 
@@ -102,7 +102,7 @@ async function runRegressionTests() {
   // ----------------------------------------------------
   const nomineeFieldExtract = routeContent.includes('const nomineeName = sanitizeValue(') &&
     routeContent.includes('record.nomineeName') &&
-    routeContent.includes("{ field: 'वारिसदार', val: nomineeName, x: 95, y: 233.1");
+    routeContent.includes("{ field: 'वारिसदार', val: nomineeName, x: 95, y: 229.0");
   assert(nomineeFieldExtract, 'D. वारिसदार equals nomineeName');
 
   // ----------------------------------------------------
@@ -111,7 +111,7 @@ async function runRegressionTests() {
   const agentMobileExtract = routeContent.includes('const agentMobile = sanitizeValue(') &&
     routeContent.includes('record.agentMobile') &&
     routeContent.includes('record.workerMobile') &&
-    routeContent.includes("{ field: 'एजेन्ट_मो_नं', val: agentMobile, x: 115, y: 257.3");
+    routeContent.includes("{ field: 'एजेन्ट_मो_नं', val: agentMobile, x: 110, y: 253.5");
   assert(agentMobileExtract, 'E. एजेन्ट मो. नं. equals assigned Agent mobile');
 
   // ----------------------------------------------------
@@ -128,7 +128,7 @@ async function runRegressionTests() {
   // ----------------------------------------------------
   const nomineeRelationExtract = routeContent.includes('const nomineeRelation = sanitizeValue(') &&
     routeContent.includes('record.nomineeRelation') &&
-    routeContent.includes("{ field: 'सम्बन्ध', val: nomineeRelation, x: 275, y: 279.4");
+    routeContent.includes("{ field: 'सम्बन्ध', val: nomineeRelation, x: 275, y: 277.5");
   assert(nomineeRelationExtract, 'G. सम्बन्ध equals nomineeRelation');
 
   // ----------------------------------------------------
@@ -137,7 +137,7 @@ async function runRegressionTests() {
   const casteGotraExtract = routeContent.includes('const caste = sanitizeValue(') &&
     routeContent.includes('record.gotra') &&
     !routeContent.includes('record.caste || record.category') &&
-    routeContent.includes("{ field: 'जाति', val: caste, x: 80, y: 208.8");
+    routeContent.includes("{ field: 'जाति', val: caste, x: 75, y: 205.0");
   assert(casteGotraExtract, 'G2. PDF जाति receives gotra and NEVER category/caste fallback');
 
   // ----------------------------------------------------
@@ -145,7 +145,7 @@ async function runRegressionTests() {
   // ----------------------------------------------------
   const nomineeAadharExtract = routeContent.includes('const nomineeAadhar = sanitizeValue(') &&
     routeContent.includes('record.nomineeAadhar') &&
-    routeContent.includes("{ field: 'नॉमिनी_आधार_नं', val: nomineeAadhar, x: 130, y: 305.7");
+    routeContent.includes("{ field: 'नॉमिनी_आधार_नं', val: nomineeAadhar, x: 130, y: 301.5");
   assert(nomineeAadharExtract, 'G3. PDF नॉमिनी आधार नं. receives nomineeAadhar');
 
   // ----------------------------------------------------
@@ -323,7 +323,7 @@ async function runRegressionTests() {
   // ----------------------------------------------------
   const membershipNumberExtract = routeContent.includes('const rawMembershipNumber =') &&
     routeContent.includes('const membershipNumber = sanitizeOfflineNumber(rawMembershipNumber)') &&
-    routeContent.includes("{ field: 'सदस्यता_क्र', val: membershipNumber, x: 304, y: 144.1");
+    routeContent.includes("{ field: 'सदस्यता_क्र', val: membershipNumber, x: 304, y: 142.0");
   assert(membershipNumberExtract, 'R. सदस्यता क्र. uses authoritative membershipNumber or remains blank (does not copy offlineFormNumber)');
 
   // ----------------------------------------------------
@@ -334,7 +334,7 @@ async function runRegressionTests() {
   const pdfDoc = await PDFDocument.load(templateBytes);
   pdfDoc.registerFontkit(fontkit);
 
-  const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf');
+  const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-SemiBold.ttf');
   const font = await pdfDoc.embedFont(fs.readFileSync(fontPath));
 
   const page = pdfDoc.getPage(0);
@@ -364,32 +364,32 @@ async function runRegressionTests() {
 
   const fields = [
     // Top Code fields
-    { field: 'कार्यकर्ता_कोड', val: sanitizeOfflineNumber(testRecord.workerOfflineFormNumber), x: 112, y: 122.3, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-    { field: 'सीनियर_कार्यकर्ता_कोड', val: sanitizeOfflineNumber(testRecord.seniorOfflineFormNumber), x: 462, y: 122.3, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+    { field: 'कार्यकर्ता_कोड', val: sanitizeOfflineNumber(testRecord.workerOfflineFormNumber), x: 112, y: 118.0, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+    { field: 'सीनियर_कार्यकर्ता_कोड', val: sanitizeOfflineNumber(testRecord.seniorOfflineFormNumber), x: 462, y: 118.0, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
 
     // Numbers & Date row
-    { field: 'आवेदन_क्र', val: sanitizeOfflineNumber(testRecord.offlineFormNumber), x: 102, y: 145.9, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-    { field: 'सदस्यता_क्र', val: sanitizeOfflineNumber(testRecord.membershipNumber), x: 304, y: 144.1, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-    { field: 'आवेदन_दिनांक', val: testRecord.applicationDate, x: 485, y: 142.9, maxW: 75, size: 9.5 },
+    { field: 'आवेदन_क्र', val: sanitizeOfflineNumber(testRecord.offlineFormNumber), x: 102, y: 142.0, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+    { field: 'सदस्यता_क्र', val: sanitizeOfflineNumber(testRecord.membershipNumber), x: 304, y: 142.0, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+    { field: 'आवेदन_दिनांक', val: testRecord.applicationDate, x: 485, y: 142.0, maxW: 75, size: 9.5 },
 
     // Left Column Fields
-    { field: 'नाम', val: testRecord.applicantName, x: 80, y: 184.6, maxW: 150, size: 10 },
-    { field: 'जाति', val: testRecord.caste, x: 80, y: 208.8, maxW: 150, size: 9.5 },
-    { field: 'वारिसदार', val: testRecord.nomineeName, x: 95, y: 233.1, maxW: 135, size: 9.5 },
-    { field: 'एजेन्ट_मो_नं', val: testRecord.agentMobile, x: 115, y: 257.3, maxW: 115, size: 9.5 },
-    { field: 'आधार_नं', val: testRecord.aadharNumber, x: 95, y: 281.5, maxW: 135, size: 9.5 },
-    { field: 'नॉमिनी_आधार_नं', val: testRecord.nomineeAadhar, x: 130, y: 305.7, maxW: 100, size: 9.5 },
+    { field: 'नाम', val: testRecord.applicantName, x: 75, y: 181.0, maxW: 155, size: 10 },
+    { field: 'जाति', val: testRecord.caste, x: 75, y: 205.0, maxW: 155, size: 9.5 },
+    { field: 'वारिसदार', val: testRecord.nomineeName, x: 95, y: 229.0, maxW: 135, size: 9.5 },
+    { field: 'एजेन्ट_मो_नं', val: testRecord.agentMobile, x: 110, y: 253.5, maxW: 120, size: 9.5 },
+    { field: 'आधार_नं', val: testRecord.aadharNumber, x: 95, y: 277.5, maxW: 135, size: 9.5 },
+    { field: 'नॉमिनी_आधार_नं', val: testRecord.nomineeAadhar, x: 130, y: 301.5, maxW: 100, size: 9.5 },
 
     // Center Column Fields
-    { field: 'पिता_पति_का_नाम', val: testRecord.fatherName, x: 325, y: 184.9, maxW: 130, size: 10 },
-    { field: 'गांव', val: testRecord.village, x: 265, y: 208.5, maxW: 190, size: 9.5 },
-    { field: 'जिला', val: testRecord.district, x: 265, y: 232.1, maxW: 190, size: 9.5 },
-    { field: 'राज्य', val: testRecord.state, x: 265, y: 255.8, maxW: 190, size: 9.5 },
-    { field: 'सम्बन्ध', val: testRecord.nomineeRelation, x: 275, y: 279.4, maxW: 180, size: 9.5 },
-    { field: 'मो_नं', val: testRecord.mobile, x: 275, y: 303.0, maxW: 180, size: 9.5 },
+    { field: 'पिता_पति_का_नाम', val: testRecord.fatherName, x: 325, y: 181.0, maxW: 130, size: 10 },
+    { field: 'गांव', val: testRecord.village, x: 262, y: 205.0, maxW: 190, size: 9.5 },
+    { field: 'जिला', val: testRecord.district, x: 268, y: 229.0, maxW: 190, size: 9.5 },
+    { field: 'राज्य', val: testRecord.state, x: 265, y: 253.5, maxW: 190, size: 9.5 },
+    { field: 'सम्बन्ध', val: testRecord.nomineeRelation, x: 275, y: 277.5, maxW: 180, size: 9.5 },
+    { field: 'मो_नं', val: testRecord.mobile, x: 275, y: 301.5, maxW: 180, size: 9.5 },
 
     // Benefit Duration Clause
-    { field: 'अवधि', val: testRecord.duration, x: 282, y: 360.8, maxW: 75, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },
+    { field: 'अवधि', val: testRecord.duration, x: 282, y: 358.0, maxW: 75, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },
   ];
 
   for (const f of fields) {

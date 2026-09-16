@@ -73,12 +73,12 @@ async function runTests() {
 
   it('7. Worker code field (कार्यकर्ता कोड) is rendered with proper styling', () => {
     assert.ok(routeContent.includes("field: 'कार्यकर्ता_कोड'"), 'Must contain कार्यकर्ता_कोड mapping');
-    assert.ok(routeContent.includes('x: 112, y: 119.0'), 'Worker code must be positioned at x=112, y=119.0');
+    assert.ok(routeContent.includes('x: 225, y: 107.5'), 'Worker code must be positioned at x=225, y=107.5');
   });
 
   it('8. Senior code field (सीनियर कार्यकर्ता कोड) is rendered with proper styling', () => {
     assert.ok(routeContent.includes("field: 'सीनियर_कार्यकर्ता_कोड'"), 'Must contain सीनियर_कार्यकर्ता_कोड mapping');
-    assert.ok(routeContent.includes('x: 462, y: 119.0'), 'Senior code must be positioned at x=462, y=119.0');
+    assert.ok(routeContent.includes('x: 458, y: 107.5'), 'Senior code must be positioned at x=458, y=107.5');
   });
 
   it('9. Application number (आवेदन क्र.) is rendered', () => {

@@ -289,9 +289,9 @@ export async function POST(request: NextRequest) {
     // Calibrated dynamic field positions on official 1-page Janni Delivery Bond template (595.28 x 841.89 pt)
     // Y coordinates are calibrated to match each template label's visual baseline (measured via pixel analysis at 4x scale)
     const fields = [
-      // Top Code fields (label baseline ≈ 119 from top)
-      { field: 'कार्यकर्ता_कोड', val: workerOffline, x: 112, y: 119.0, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 462, y: 119.0, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+      // Top Code fields (label baseline ≈ 107.5 from top)
+      { field: 'कार्यकर्ता_कोड', val: workerOffline, x: 225, y: 107.5, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+      { field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 458, y: 107.5, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
 
       // Numbers & Date row (label baseline ≈ 136 from top)
       { field: 'आवेदन_क्र', val: applicationNo, x: 102, y: 136.0, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },

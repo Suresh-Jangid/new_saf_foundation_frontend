@@ -1,4 +1,5 @@
 import { getBackendOrigin } from "@/lib/api-url";
+import { pushGraphicsState, popGraphicsState, clip, endPath, rectangle } from 'pdf-lib';
 
 const getBackendBaseUrl = () => getBackendOrigin();
 
@@ -93,7 +94,7 @@ export async function embedPdfImage(
   yFromTop: number,
   width: number,
   height: number,
-  fit: 'fill' | 'contain' = 'fill',
+  fit: 'fill' | 'contain' | 'cover' = 'fill',
 ): Promise<void> {
   const loaded = await loadImageBytes(source);
   if (!loaded) return;
@@ -125,17 +126,48 @@ export async function embedPdfImage(
     return;
   }
 
-  let drawX = x;
-  let drawY = pageHeight - yFromTop - height;
-  let drawW = width;
-  let drawH = height;
+  const boxX = x;
+  const boxY = pageHeight - yFromTop - height;
+  const boxW = width;
+  const boxH = height;
+
+  if (fit === 'cover' && image.width && image.height) {
+    const scale = Math.max(boxW / image.width, boxH / image.height);
+    const drawW = image.width * scale;
+    const drawH = image.height * scale;
+    const drawX = boxX + (boxW - drawW) / 2;
+    const drawY = boxY + (boxH - drawH) / 2;
+
+    // Strict clipping to the inner box rectangle ensures zero leakage onto the black border
+    page.pushOperators(
+      pushGraphicsState(),
+      rectangle(boxX, boxY, boxW, boxH),
+      clip(),
+      endPath()
+    );
+
+    page.drawImage(image, {
+      x: drawX,
+      y: drawY,
+      width: drawW,
+      height: drawH,
+    });
+
+    page.pushOperators(popGraphicsState());
+    return;
+  }
+
+  let drawX = boxX;
+  let drawY = boxY;
+  let drawW = boxW;
+  let drawH = boxH;
 
   if (fit === 'contain' && image.width && image.height) {
-    const scale = Math.min(width / image.width, height / image.height);
+    const scale = Math.min(boxW / image.width, boxH / image.height);
     drawW = image.width * scale;
     drawH = image.height * scale;
-    drawX = x + (width - drawW) / 2;
-    drawY = pageHeight - yFromTop - height + (height - drawH) / 2;
+    drawX = boxX + (boxW - drawW) / 2;
+    drawY = boxY + (boxH - drawH) / 2;
   }
 
   page.drawImage(image, {

@@ -169,9 +169,9 @@ async function runTests() {
     assert.ok(routeContent.includes('x: 282, y: 352.0'), 'Duration positioned at x=282, y=352.0');
   });
 
-  it('25. Upper applicant photo box and lower nominee photo box are configured', () => {
-    assert.ok(routeContent.includes('yFromTop = 148.0'), 'Upper applicant photo box at y=148.0');
-    assert.ok(routeContent.includes('yFromTop = 246.5'), 'Lower nominee photo box at y=246.5');
+  it('25. Upper applicant photo box and lower nominee photo box are configured with cover fit', () => {
+    assert.ok(routeContent.includes('461.2, 148.8, 82.0, 89.0, \'cover\''), 'Upper applicant photo box at y=148.8 with cover fit');
+    assert.ok(routeContent.includes('461.2, 247.2, 82.0, 89.2, \'cover\''), 'Lower nominee photo box at y=247.2 with cover fit');
   });
 
   it('26. Director signature is placed in director signature area', () => {

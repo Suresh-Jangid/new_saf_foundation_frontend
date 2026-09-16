@@ -131,11 +131,15 @@ export async function POST(request: NextRequest) {
     );
 
     // Embed photos inside calibrated photo boxes on official A4 template:
-    // Top Photo Box (Applicant):   x = 460.5, yFromTop = 148.0, w = 84.5, h = 91.5
-    // Bottom Photo Box (Nominee):  x = 460.5, yFromTop = 246.5, w = 84.5, h = 91.5
+    // Top Photo Box (Applicant):
+    //   Outer Black Border: x = 460.2, yFromTop = 147.8, w = 84.0, h = 91.0
+    //   Inner Image Box:    x = 461.2, yFromTop = 148.8, w = 82.0, h = 89.0
+    // Bottom Photo Box (Nominee):
+    //   Outer Black Border: x = 460.2, yFromTop = 246.2, w = 84.0, h = 91.2
+    //   Inner Image Box:    x = 461.2, yFromTop = 247.2, w = 82.0, h = 89.2
     if (applicantPhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 462.0, 149.5, 81.0, 88.0, 'contain');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 461.2, 148.8, 82.0, 89.0, 'cover');
       } catch (err) {
         console.warn('Could not embed applicant photo in Janni Bond:', err);
       }
@@ -143,7 +147,7 @@ export async function POST(request: NextRequest) {
 
     if (nomineePhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 462.0, 248.0, 81.0, 88.0, 'contain');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 461.2, 247.2, 82.0, 89.2, 'cover');
       } catch (err) {
         console.warn('Could not embed nominee photo in Janni Bond:', err);
       }

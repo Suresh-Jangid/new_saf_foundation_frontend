@@ -80,6 +80,8 @@ export default function EditJanniDeliveryPage() {
     nomineeName: string;
     nomineeRelation: string;
     nomineeMobile: string;
+    nomineeAadhar: string;
+    offlineFormNumber: string;
     gender: "Female" | "Male" | "Other";
     category: "A" | "B" | "C" | "D" | "E" | "F";
     totalAmount: string;
@@ -111,6 +113,8 @@ export default function EditJanniDeliveryPage() {
     nomineeName: "",
     nomineeRelation: "",
     nomineeMobile: "",
+    nomineeAadhar: "",
+    offlineFormNumber: "",
     gender: "Female",
     category: "A",
     totalAmount: "0",
@@ -124,6 +128,11 @@ export default function EditJanniDeliveryPage() {
   const [passportPhotoBase64, setPassportPhotoBase64] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
+
+  // Nominee Photo state
+  const [nomineePhotoBase64, setNomineePhotoBase64] = useState<string | null>(null);
+  const [nomineePhotoPreview, setNomineePhotoPreview] = useState<string | null>(null);
+  const [existingNomineePhotoUrl, setExistingNomineePhotoUrl] = useState<string | null>(null);
 
   // Load agents if Admin
   useEffect(() => {
@@ -200,6 +209,10 @@ export default function EditJanniDeliveryPage() {
           setExistingPhotoUrl(data.passportPhotoUrl);
           setPhotoPreview(getProxiedPhotoSrc(data.passportPhotoUrl) || data.passportPhotoUrl);
         }
+        if (data.nomineePhotoUrl) {
+          setExistingNomineePhotoUrl(data.nomineePhotoUrl);
+          setNomineePhotoPreview(getProxiedPhotoSrc(data.nomineePhotoUrl) || data.nomineePhotoUrl);
+        }
 
         setFormData({
           applicationDate: formattedAppDate,
@@ -225,6 +238,8 @@ export default function EditJanniDeliveryPage() {
           nomineeName: data.nomineeName || "",
           nomineeRelation: data.nomineeRelation || "",
           nomineeMobile: data.nomineeMobile || "",
+          nomineeAadhar: data.nomineeAadhar || "",
+          offlineFormNumber: data.offlineFormNumber || "",
           gender: (data.gender as any) || "Female",
           category: (data.category as any) || "A",
           totalAmount: data.totalAmount != null ? String(data.totalAmount) : "0",
@@ -294,6 +309,25 @@ export default function EditJanniDeliveryPage() {
     reader.readAsDataURL(file);
   };
 
+  // Nominee Photo Upload handler
+  const handleNomineePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("कृपया 5MB से छोटी फ़ाइल अपलोड करें / Nominee photo must be under 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setNomineePhotoBase64(base64);
+      setNomineePhotoPreview(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const convertToYYYYMMDD = (dateString: string): string => {
     if (!dateString) return "";
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
@@ -316,6 +350,13 @@ export default function EditJanniDeliveryPage() {
 
     if (rawAadhar.length !== 12) {
       toast.error("कृपया 12 अंकों का आधार नंबर दर्ज करें / Enter a valid 12-digit Aadhaar number");
+      return;
+    }
+
+    // Nominee Aadhaar validation (optional but must be 12 digits if entered)
+    const rawNomineeAadhar = formData.nomineeAadhar.replace(/\D/g, "");
+    if (rawNomineeAadhar && rawNomineeAadhar.length !== 12) {
+      toast.error("कृपया नॉमिनी का 12 अंकों का आधार नंबर दर्ज करें / Enter a valid 12-digit Nominee Aadhaar number");
       return;
     }
 
@@ -390,7 +431,10 @@ export default function EditJanniDeliveryPage() {
       nomineeName: formData.nomineeName.trim() || null,
       nomineeRelation: formData.nomineeRelation.trim() || null,
       nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || null,
+      nomineeAadhar: rawNomineeAadhar || null,
       passportPhotoUrl: passportPhotoBase64 || existingPhotoUrl || null,
+      nomineePhotoUrl: nomineePhotoBase64 || existingNomineePhotoUrl || null,
+      offlineFormNumber: formData.offlineFormNumber.trim() || null,
       gender: formData.gender,
       category: formData.category,
       totalAmount: totAmt,
@@ -587,6 +631,25 @@ export default function EditJanniDeliveryPage() {
                       </select>
                     </div>
                   )}
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      ऑफलाइन फॉर्म नं. / Offline Form No.
+                    </Label>
+                    <p className="text-[10px] text-gray-400 mb-0.5">
+                      भौतिक फॉर्म नंबर (वैकल्पिक) / Physical form number
+                    </p>
+                    <Input
+                      id="offlineFormNumber"
+                      name="offlineFormNumber"
+                      placeholder="ऑफलाइन फॉर्म नं."
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.offlineFormNumber}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, offlineFormNumber: e.target.value }))
+                      }
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1031,6 +1094,23 @@ export default function EditJanniDeliveryPage() {
                       }
                     />
                   </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      नॉमिनी आधार नंबर / Nominee Aadhaar No.
+                    </Label>
+                    <Input
+                      inputMode="numeric"
+                      maxLength={14}
+                      placeholder="12 digit Aadhaar No."
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.nomineeAadhar}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
+                        setFormData((prev) => ({ ...prev, nomineeAadhar: digits }));
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1134,6 +1214,36 @@ export default function EditJanniDeliveryPage() {
                         />
                         <span className="text-xs text-muted-foreground">
                           {passportPhotoBase64 ? "नई फोटो चयनित (New Photo Selected)" : "वर्तमान फोटो (Current Photo)"}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="mt-2 h-24 w-24 rounded border border-dashed flex flex-col items-center justify-center text-gray-400">
+                        <ImageIcon className="h-6 w-6" />
+                        <span className="text-[10px] mt-1">No photo</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      नॉमिनी फोटो (Nominee Photo)
+                    </Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleNomineePhotoUpload}
+                      className="text-xs sm:text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#0B4A8F]/10 file:text-[#0B4A8F] hover:file:bg-[#0B4A8F]/20 cursor-pointer"
+                    />
+                    <p className="text-xs text-gray-500">Supports JPG, PNG, WEBP (Max 5MB)</p>
+                    {nomineePhotoPreview ? (
+                      <div className="mt-2 flex items-center gap-3">
+                        <img
+                          src={nomineePhotoPreview}
+                          alt="Nominee Preview"
+                          className="h-24 w-24 object-cover rounded border"
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {nomineePhotoBase64 ? "नई फोटो चयनित (New Photo Selected)" : "वर्तमान फोटो (Current Photo)"}
                         </span>
                       </div>
                     ) : (

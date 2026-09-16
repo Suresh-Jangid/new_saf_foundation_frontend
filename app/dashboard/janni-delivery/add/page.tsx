@@ -65,6 +65,8 @@ export default function AddJanniDeliveryPage() {
     nomineeName: string;
     nomineeRelation: string;
     nomineeMobile: string;
+    nomineeAadhar: string;
+    offlineFormNumber: string;
     gender: "Female" | "Male" | "Other";
     category: "A" | "B" | "C" | "D" | "E" | "F";
     totalAmount: string;
@@ -95,6 +97,8 @@ export default function AddJanniDeliveryPage() {
     nomineeName: "",
     nomineeRelation: "",
     nomineeMobile: "",
+    nomineeAadhar: "",
+    offlineFormNumber: "",
     gender: "Female",
     category: "A",
     totalAmount: "0",
@@ -107,6 +111,10 @@ export default function AddJanniDeliveryPage() {
   // Photo state
   const [passportPhotoBase64, setPassportPhotoBase64] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+
+  // Nominee Photo state
+  const [nomineePhotoBase64, setNomineePhotoBase64] = useState<string | null>(null);
+  const [nomineePhotoPreview, setNomineePhotoPreview] = useState<string | null>(null);
 
   // E-PIN Validation State
   const [, setEpinVerified] = useState<EpinValidationResponse | null>(null);
@@ -179,6 +187,25 @@ export default function AddJanniDeliveryPage() {
       const base64 = reader.result as string;
       setPassportPhotoBase64(base64);
       setPhotoPreview(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Nominee Photo Upload handler
+  const handleNomineePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("कृपया 5MB से छोटी फ़ाइल अपलोड करें / Nominee photo must be under 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setNomineePhotoBase64(base64);
+      setNomineePhotoPreview(base64);
     };
     reader.readAsDataURL(file);
   };
@@ -267,6 +294,13 @@ export default function AddJanniDeliveryPage() {
       return;
     }
 
+    // Nominee Aadhaar validation (optional but must be 12 digits if entered)
+    const rawNomineeAadhar = formData.nomineeAadhar.replace(/\D/g, "");
+    if (rawNomineeAadhar && rawNomineeAadhar.length !== 12) {
+      toast.error("कृपया नॉमिनी का 12 अंकों का आधार नंबर दर्ज करें / Enter a valid 12-digit Nominee Aadhaar number");
+      return;
+    }
+
     // Prepare payload
     const payload: CreateJanniDeliveryPayload = {
       applicationDate: convertToYYYYMMDD(formData.applicationDate),
@@ -291,7 +325,10 @@ export default function AddJanniDeliveryPage() {
       nomineeName: formData.nomineeName.trim() || null,
       nomineeRelation: formData.nomineeRelation.trim() || null,
       nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || null,
+      nomineeAadhar: rawNomineeAadhar || null,
       passportPhotoUrl: passportPhotoBase64 || null,
+      nomineePhotoUrl: nomineePhotoBase64 || null,
+      offlineFormNumber: formData.offlineFormNumber.trim() || null,
       gender: formData.gender,
       category: formData.category,
       totalAmount: Number(formData.totalAmount) || 0,
@@ -461,6 +498,25 @@ export default function AddJanniDeliveryPage() {
                       </select>
                     </div>
                   )}
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      ऑफलाइन फॉर्म नं. / Offline Form No.
+                    </Label>
+                    <p className="text-[10px] text-gray-400 mb-0.5">
+                      भौतिक फॉर्म नंबर (वैकल्पिक) / Physical form number
+                    </p>
+                    <Input
+                      id="offlineFormNumber"
+                      name="offlineFormNumber"
+                      placeholder="ऑफलाइन फॉर्म नं."
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.offlineFormNumber}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, offlineFormNumber: e.target.value }))
+                      }
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -905,6 +961,23 @@ export default function AddJanniDeliveryPage() {
                       }
                     />
                   </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      नॉमिनी आधार नंबर / Nominee Aadhaar No.
+                    </Label>
+                    <Input
+                      inputMode="numeric"
+                      maxLength={14}
+                      placeholder="12 digit Aadhaar No."
+                      className="mt-1 text-xs sm:text-sm"
+                      value={formData.nomineeAadhar}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
+                        setFormData((prev) => ({ ...prev, nomineeAadhar: digits }));
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -988,6 +1061,28 @@ export default function AddJanniDeliveryPage() {
                         <img
                           src={photoPreview}
                           alt="Mother Preview"
+                          className="h-24 w-24 object-cover rounded border"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      नॉमिनी फोटो (Nominee Photo)
+                    </Label>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleNomineePhotoUpload}
+                      className="text-xs sm:text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#0B4A8F]/10 file:text-[#0B4A8F] hover:file:bg-[#0B4A8F]/20 cursor-pointer"
+                    />
+                    <p className="text-xs text-gray-500">Supports JPG, PNG, WEBP (Max 5MB)</p>
+                    {nomineePhotoPreview && (
+                      <div className="mt-2">
+                        <img
+                          src={nomineePhotoPreview}
+                          alt="Nominee Preview"
                           className="h-24 w-24 object-cover rounded border"
                         />
                       </div>

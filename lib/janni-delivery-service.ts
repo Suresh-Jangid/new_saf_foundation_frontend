@@ -37,8 +37,11 @@ export interface JanniDeliveryRegistration {
   nomineeName?: string | null;
   nomineeRelation?: string | null;
   nomineeMobile?: string | null;
+  nomineeAadhar?: string | null;
+  nomineePhotoUrl?: string | null;
   passportPhotoUrl?: string | null;
   affidavitUrl?: string | null;
+  offlineFormNumber?: string | null;
   gender: string;
   category: string;
   totalAmount: number;
@@ -80,8 +83,11 @@ export interface CreateJanniDeliveryPayload {
   nomineeName?: string | null;
   nomineeRelation?: string | null;
   nomineeMobile?: string | null;
+  nomineeAadhar?: string | null;
+  nomineePhotoUrl?: string | null;
   passportPhotoUrl?: string | null;
   affidavitUrl?: string | null;
+  offlineFormNumber?: string | null;
   gender?: "Female" | "Male" | "Other";
   category?: "A" | "B" | "C" | "D" | "E" | "F";
   totalAmount?: number;
@@ -113,8 +119,11 @@ export interface UpdateJanniDeliveryPayload {
   nomineeName?: string | null;
   nomineeRelation?: string | null;
   nomineeMobile?: string | null;
+  nomineeAadhar?: string | null;
+  nomineePhotoUrl?: string | null;
   passportPhotoUrl?: string | null;
   affidavitUrl?: string | null;
+  offlineFormNumber?: string | null;
   gender?: "Female" | "Male" | "Other";
   category?: "A" | "B" | "C" | "D" | "E" | "F";
   totalAmount?: number;

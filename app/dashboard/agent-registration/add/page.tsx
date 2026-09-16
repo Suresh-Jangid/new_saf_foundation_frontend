@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS, agentRegistrationAPI } from "@/lib/api";
 import { toast } from "sonner";
-import { formatDate, isValidDate, parseDateFromDDMMYYYY, getCurrentUserInfo, formatDateForAPI } from "@/lib/utils";
+import { formatDate, isValidDate, parseDateFromDDMMYYYY, getCurrentUserInfo, formatDateForAPI, fileToBase64 } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard";
 import {
   AlertDialog,
@@ -70,7 +70,7 @@ const initialState = {
   designation: "",
   seniorEmployeeId: "",
   password: "",
-  profile_image: null as File | null,
+  profile_image: null as File | string | null,
 };
 
 export default function AddAgentPage() {
@@ -219,6 +219,13 @@ export default function AddAgentPage() {
 
       const selectedSeniorId = form.seniorEmployeeId && form.seniorEmployeeId.trim() !== "" ? form.seniorEmployeeId.trim() : null;
 
+      let serializedProfileImage: string | null = null;
+      if (form.profile_image instanceof File) {
+        serializedProfileImage = await fileToBase64(form.profile_image);
+      } else if (typeof form.profile_image === "string" && form.profile_image.trim() !== "") {
+        serializedProfileImage = form.profile_image;
+      }
+
       const submissionData = {
         ...form,
         offlineFormNumber: form.offlineFormNumber ? form.offlineFormNumber.trim() : undefined,
@@ -229,6 +236,7 @@ export default function AddAgentPage() {
         date: parseAndFormatDate(form.date),
         dateOfBirth: parseAndFormatDate(form.dateOfBirth),
         doj: parseAndFormatDate(form.doj),
+        profile_image: serializedProfileImage,
         addedby,
         addedby_id,
       };
@@ -375,10 +383,10 @@ export default function AddAgentPage() {
                   />
                   {form.profile_image && (
                     <div className="mt-2 flex items-center gap-2">
-                      <img 
-                        src={URL.createObjectURL(form.profile_image)} 
-                        alt="Profile Preview" 
-                        className="h-32 w-auto border rounded" 
+                      <img
+                        src={typeof form.profile_image === 'string' ? form.profile_image : URL.createObjectURL(form.profile_image)}
+                        alt="Profile Preview"
+                        className="h-32 w-auto border rounded"
                       />
                       <X
                         className="ml-2 w-5 h-5 text-red-500 cursor-pointer hover:text-red-700"

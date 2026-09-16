@@ -869,7 +869,21 @@ export const disabilityCycleAPI = {
 export const agentRegistrationAPI = {
   create: async (data: any): Promise<ApiResponse> => {
     try {
-      const response = await api.post("/v1/agents", data);
+      let payload = data;
+      if (data && typeof data === "object") {
+        if (typeof File !== "undefined" && data.profile_image instanceof File) {
+          const reader = new FileReader();
+          const b64 = await new Promise<string>((resolve, reject) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(data.profile_image);
+          });
+          payload = { ...data, profile_image: b64 };
+        } else if (data.profile_image === undefined || data.profile_image === null) {
+          payload = { ...data, profile_image: null };
+        }
+      }
+      const response = await api.post("/v1/agents", payload);
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 400 || error.response?.data?.message) {
@@ -920,7 +934,19 @@ export const agentRegistrationAPI = {
 
   update: async (id: string, data: any): Promise<ApiResponse> => {
     try {
-      const response = await api.put(`/v1/agents/${id}`, data);
+      let payload = data;
+      if (data && typeof data === "object") {
+        if (typeof File !== "undefined" && data.profile_image instanceof File) {
+          const reader = new FileReader();
+          const b64 = await new Promise<string>((resolve, reject) => {
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(data.profile_image);
+          });
+          payload = { ...data, profile_image: b64 };
+        }
+      }
+      const response = await api.put(`/v1/agents/${id}`, payload);
       return response.data;
     } catch (error: any) {
       if (error.response?.status === 400 || error.response?.data?.message) {

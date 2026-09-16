@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS, postUrlEncoded, agentRegistrationAPI } from "@/lib/api";
 import { toast } from "sonner";
-import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, mapAgentFormRecord, unwrapApiRecordById, getProxiedPhotoSrc } from "@/lib/utils";
+import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, mapAgentFormRecord, unwrapApiRecordById, getProxiedPhotoSrc, fileToBase64 } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard";
 import {
   AlertDialog,
@@ -111,7 +111,7 @@ const initialState = {
   seniorCode: "",
   level: "1",
   password: "",
-  profile_image: null as File | null,
+  profile_image: null as File | string | null,
 };
 
 export default function EditAgentRegistrationForm() {
@@ -327,6 +327,15 @@ export default function EditAgentRegistrationForm() {
             : (form.parentAgentId && form.parentAgentId.trim() !== "" ? form.parentAgentId.trim() : null))
         : null;
 
+      let serializedProfileImage: string | null = null;
+      if (form.profile_image instanceof File) {
+        serializedProfileImage = await fileToBase64(form.profile_image);
+      } else if (typeof form.profile_image === "string" && form.profile_image.trim() !== "") {
+        serializedProfileImage = form.profile_image;
+      } else if (existingProfileImage && typeof existingProfileImage === "string") {
+        serializedProfileImage = existingProfileImage;
+      }
+
       const submissionData: Record<string, unknown> = {
         ...form,
         offlineFormNumber: form.offlineFormNumber ? form.offlineFormNumber.trim() : "",
@@ -337,6 +346,7 @@ export default function EditAgentRegistrationForm() {
         date: parseAndFormatDate(form.date),
         dateOfBirth: parseAndFormatDate(form.dateOfBirth),
         doj: parseAndFormatDate(form.doj),
+        profile_image: serializedProfileImage,
       };
 
       if (!form.password) {
@@ -494,10 +504,10 @@ export default function EditAgentRegistrationForm() {
                   />
                   {(form.profile_image || existingProfileImage) && (
                     <div className="mt-2 flex items-center gap-2">
-                      <img 
-                        src={form.profile_image ? URL.createObjectURL(form.profile_image) : existingProfileImage!} 
-                        alt="Profile Preview" 
-                        className="h-32 w-auto border rounded" 
+                      <img
+                        src={form.profile_image instanceof File ? URL.createObjectURL(form.profile_image) : (typeof form.profile_image === "string" ? form.profile_image : existingProfileImage!)}
+                        alt="Profile Preview"
+                        className="h-32 w-auto border rounded"
                         onError={(e) => {
                           // Handle image loading error
                           const target = e.target as HTMLImageElement;

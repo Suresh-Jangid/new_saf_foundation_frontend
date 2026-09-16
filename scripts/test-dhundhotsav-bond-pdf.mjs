@@ -364,32 +364,32 @@ async function runRegressionTests() {
 
   const fields = [
     // Top Code fields
-    { field: 'कार्यकर्ता_कोड', val: sanitizeOfflineNumber(testRecord.workerOfflineFormNumber), x: 110.6, y: 122.30, maxW: 75, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-    { field: 'सीनियर_कार्यकर्ता_कोड', val: sanitizeOfflineNumber(testRecord.seniorOfflineFormNumber), x: 462.3, y: 117.90, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+    { field: 'कार्यकर्ता_कोड', val: sanitizeOfflineNumber(testRecord.workerOfflineFormNumber), x: 110.6, y: 122.30, maxW: 75, size: 11.5, color: { r: 0, g: 0.15, b: 0.6 } },
+    { field: 'सीनियर_कार्यकर्ता_कोड', val: sanitizeOfflineNumber(testRecord.seniorOfflineFormNumber), x: 462.3, y: 117.90, maxW: 85, size: 11.5, color: { r: 0, g: 0.15, b: 0.6 } },
 
     // Numbers & Date row
-    { field: 'आवेदन_क्र', val: sanitizeOfflineNumber(testRecord.offlineFormNumber), x: 102.3, y: 145.89, maxW: 135, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-    { field: 'सदस्यता_क्र', val: sanitizeOfflineNumber(testRecord.membershipNumber), x: 303.8, y: 144.07, maxW: 120, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-    { field: 'आवेदन_दिनांक', val: testRecord.applicationDate, x: 485.1, y: 142.86, maxW: 75, size: 9.5 },
+    { field: 'आवेदन_क्र', val: sanitizeOfflineNumber(testRecord.offlineFormNumber), x: 102.3, y: 145.89, maxW: 135, size: 11.5, color: { r: 0, g: 0.15, b: 0.6 } },
+    { field: 'सदस्यता_क्र', val: sanitizeOfflineNumber(testRecord.membershipNumber), x: 303.8, y: 144.07, maxW: 120, size: 11.0, color: { r: 0, g: 0.15, b: 0.6 } },
+    { field: 'आवेदन_दिनांक', val: testRecord.applicationDate, x: 485.1, y: 142.86, maxW: 75, size: 10.5 },
 
     // Left Column Fields
-    { field: 'नाम', val: testRecord.applicantName, x: 69.8, y: 184.60, maxW: 160, size: 10 },
-    { field: 'जाति', val: testRecord.caste, x: 74.5, y: 208.82, maxW: 155, size: 9.5 },
-    { field: 'वारिसदार', val: testRecord.nomineeName, x: 92.5, y: 233.05, maxW: 140, size: 9.5 },
-    { field: 'एजेन्ट_मो_नं', val: testRecord.agentMobile, x: 109.0, y: 257.28, maxW: 120, size: 9.5 },
-    { field: 'आधार_नं', val: testRecord.aadharNumber, x: 94.5, y: 281.51, maxW: 135, size: 9.5 },
-    { field: 'नॉमिनी_आधार_नं', val: testRecord.nomineeAadhar, x: 128.7, y: 305.74, maxW: 105, size: 9.5 },
+    { field: 'नाम', val: testRecord.applicantName, x: 69.8, y: 184.60, maxW: 160, size: 10.5 },
+    { field: 'जाति', val: testRecord.caste, x: 74.5, y: 208.82, maxW: 155, size: 10.5 },
+    { field: 'वारिसदार', val: testRecord.nomineeName, x: 92.5, y: 233.05, maxW: 140, size: 10.5 },
+    { field: 'एजेन्ट_मो_नं', val: testRecord.agentMobile, x: 109.0, y: 257.28, maxW: 120, size: 10.5 },
+    { field: 'आधार_नं', val: testRecord.aadharNumber, x: 94.5, y: 281.51, maxW: 135, size: 10.5 },
+    { field: 'नॉमिनी_आधार_नं', val: testRecord.nomineeAadhar, x: 128.7, y: 305.74, maxW: 105, size: 10.5 },
 
     // Center Column Fields
-    { field: 'पिता_पति_का_नाम', val: testRecord.fatherName, x: 323.5, y: 184.90, maxW: 132, size: 10 },
-    { field: 'गांव', val: testRecord.village, x: 259.7, y: 208.52, maxW: 195, size: 9.5 },
-    { field: 'जिला', val: testRecord.district, x: 266.5, y: 232.13, maxW: 190, size: 9.5 },
-    { field: 'राज्य', val: testRecord.state, x: 262.9, y: 255.75, maxW: 195, size: 9.5 },
-    { field: 'सम्बन्ध', val: testRecord.nomineeRelation, x: 273.5, y: 279.37, maxW: 185, size: 9.5 },
-    { field: 'मो_नं', val: testRecord.mobile, x: 269.2, y: 302.99, maxW: 185, size: 9.5 },
+    { field: 'पिता_पति_का_नाम', val: testRecord.fatherName, x: 323.5, y: 184.90, maxW: 132, size: 10.5 },
+    { field: 'गांव', val: testRecord.village, x: 259.7, y: 208.52, maxW: 195, size: 10.5 },
+    { field: 'जिला', val: testRecord.district, x: 266.5, y: 232.13, maxW: 190, size: 10.5 },
+    { field: 'राज्य', val: testRecord.state, x: 262.9, y: 255.75, maxW: 195, size: 10.5 },
+    { field: 'सम्बन्ध', val: testRecord.nomineeRelation, x: 273.5, y: 279.37, maxW: 185, size: 10.5 },
+    { field: 'मो_नं', val: testRecord.mobile, x: 269.2, y: 302.99, maxW: 185, size: 10.5 },
 
     // Benefit Duration Clause
-    { field: 'अवधि', val: testRecord.duration, x: 281.1, y: 360.83, maxW: 76, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },
+    { field: 'अवधि', val: testRecord.duration, x: 281.1, y: 360.83, maxW: 76, size: 10.0, color: { r: 0.8, g: 0.1, b: 0.1 } },
   ];
 
   for (const f of fields) {

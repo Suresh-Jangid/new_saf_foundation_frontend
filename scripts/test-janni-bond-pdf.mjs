@@ -73,12 +73,12 @@ async function runTests() {
 
   it('7. Worker code field (कार्यकर्ता कोड) is rendered with proper styling', () => {
     assert.ok(routeContent.includes("field: 'कार्यकर्ता_कोड'"), 'Must contain कार्यकर्ता_कोड mapping');
-    assert.ok(routeContent.includes('x: 225, y: 107.5'), 'Worker code must be positioned at x=225, y=107.5');
+    assert.ok(routeContent.includes('x: 138, y: 112.5'), 'Worker code must be positioned at x=138, y=112.5');
   });
 
   it('8. Senior code field (सीनियर कार्यकर्ता कोड) is rendered with proper styling', () => {
     assert.ok(routeContent.includes("field: 'सीनियर_कार्यकर्ता_कोड'"), 'Must contain सीनियर_कार्यकर्ता_कोड mapping');
-    assert.ok(routeContent.includes('x: 458, y: 107.5'), 'Senior code must be positioned at x=458, y=107.5');
+    assert.ok(routeContent.includes('x: 460, y: 112.5'), 'Senior code must be positioned at x=460, y=112.5');
   });
 
   it('9. Application number (आवेदन क्र.) is rendered', () => {
@@ -100,19 +100,19 @@ async function runTests() {
 
   it('12. Applicant name (नाम) is rendered', () => {
     assert.ok(routeContent.includes("field: 'नाम'"), 'Must contain नाम mapping');
-    assert.ok(routeContent.includes('x: 80, y: 178.0'), 'Applicant name positioned at x=80, y=178.0');
+    assert.ok(routeContent.includes('x: 75, y: 178.0'), 'Applicant name positioned at x=75, y=178.0');
   });
 
   it('13. जाति preserves Janni contract (gotra/category)', () => {
     assert.ok(routeContent.includes("field: 'जाति'"), 'Must contain जाति mapping');
     assert.ok(routeContent.includes('record.gotra'), 'Must map from record.gotra');
-    assert.ok(routeContent.includes('x: 80, y: 200.0'), 'Caste/Gotra positioned at x=80, y=200.0');
+    assert.ok(routeContent.includes('x: 75, y: 201.0'), 'Caste/Gotra positioned at x=75, y=201.0');
   });
 
   it('14. वारिसदार maps to nomineeName', () => {
     assert.ok(routeContent.includes("field: 'वारिसदार'"), 'Must contain वारिसदार mapping');
     assert.ok(routeContent.includes('record.nomineeName'), 'Must map from nomineeName');
-    assert.ok(routeContent.includes('x: 95, y: 223.0'), 'Nominee name positioned at x=95, y=223.0');
+    assert.ok(routeContent.includes('x: 95, y: 224.0'), 'Nominee name positioned at x=95, y=224.0');
   });
 
   it('15. एजेन्ट मो. नं. uses assigned Agent mobile (NEVER applicant mobile)', () => {
@@ -121,17 +121,17 @@ async function runTests() {
       routeContent.includes('record.agentMobile') && routeContent.includes('record.workerMobile'),
       'Must use agent mobile source'
     );
-    assert.ok(routeContent.includes('x: 115, y: 248.0'), 'Agent mobile positioned at x=115, y=248.0');
+    assert.ok(routeContent.includes('x: 110, y: 249.0'), 'Agent mobile positioned at x=110, y=249.0');
   });
 
   it('16. Applicant Aadhaar (आधार नं.) is rendered', () => {
     assert.ok(routeContent.includes("field: 'आधार_नं'"), 'Must contain आधार_नं mapping');
-    assert.ok(routeContent.includes('x: 95, y: 273.0'), 'Aadhaar positioned at x=95, y=273.0');
+    assert.ok(routeContent.includes('x: 95, y: 273.5'), 'Aadhaar positioned at x=95, y=273.5');
   });
 
   it('17. Nominee Aadhaar (नॉमिनी आधार नं.) is rendered', () => {
     assert.ok(routeContent.includes("field: 'नॉमिनी_आधार_नं'"), 'Must contain नॉमिनी_आधार_नं mapping');
-    assert.ok(routeContent.includes('x: 130, y: 295.0'), 'Nominee Aadhaar positioned at x=130, y=295.0');
+    assert.ok(routeContent.includes('x: 128, y: 297.0'), 'Nominee Aadhaar positioned at x=128, y=297.0');
   });
 
   it('18. Father/Husband (पिता/पति का नाम) is rendered', () => {
@@ -141,27 +141,27 @@ async function runTests() {
 
   it('19. Village/Address (गांव) is rendered', () => {
     assert.ok(routeContent.includes("field: 'गांव'"), 'Must contain गांव mapping');
-    assert.ok(routeContent.includes('x: 265, y: 200.0'), 'Village positioned at x=265, y=200.0');
+    assert.ok(routeContent.includes('x: 262, y: 201.0'), 'Village positioned at x=262, y=201.0');
   });
 
   it('20. District (जिला) is rendered', () => {
     assert.ok(routeContent.includes("field: 'जिला'"), 'Must contain जिला mapping');
-    assert.ok(routeContent.includes('x: 265, y: 223.0'), 'District positioned at x=265, y=223.0');
+    assert.ok(routeContent.includes('x: 268, y: 224.0'), 'District positioned at x=268, y=224.0');
   });
 
   it('21. State (राज्य) is rendered', () => {
     assert.ok(routeContent.includes("field: 'राज्य'"), 'Must contain राज्य mapping');
-    assert.ok(routeContent.includes('x: 265, y: 248.0'), 'State positioned at x=265, y=248.0');
+    assert.ok(routeContent.includes('x: 265, y: 249.0'), 'State positioned at x=265, y=249.0');
   });
 
   it('22. Relationship (सम्बन्ध) is rendered', () => {
     assert.ok(routeContent.includes("field: 'सम्बन्ध'"), 'Must contain सम्बन्ध mapping');
-    assert.ok(routeContent.includes('x: 275, y: 273.0'), 'Relation positioned at x=275, y=273.0');
+    assert.ok(routeContent.includes('x: 275, y: 273.5'), 'Relation positioned at x=275, y=273.5');
   });
 
   it('23. Nominee mobile (नॉमिनी मो. नं.) is rendered', () => {
     assert.ok(routeContent.includes("field: 'नॉमिनी_मो_नं'"), 'Must contain नॉमिनी_मो_नं mapping');
-    assert.ok(routeContent.includes('x: 318, y: 295.0'), 'Nominee mobile positioned at x=318, y=295.0');
+    assert.ok(routeContent.includes('x: 302, y: 297.0'), 'Nominee mobile positioned at x=302, y=297.0');
   });
 
   it('24. Duration (लाभ अवधि) is rendered', () => {

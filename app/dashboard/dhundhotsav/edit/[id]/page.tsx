@@ -33,6 +33,7 @@ import {
 } from "@/lib/dhundhotsav-service";
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
+import { resolvePhotoUrl } from "@/lib/utils";
 
 export default function EditDhundhotsavPage() {
   const params = useParams();
@@ -63,6 +64,7 @@ export default function EditDhundhotsavPage() {
     applicationDate: string;
     dhundhDate: string;
     childName: string;
+    benefitDuration: string;
     applicantName: string;
     fatherName: string;
     husbandName: string;
@@ -94,6 +96,7 @@ export default function EditDhundhotsavPage() {
     applicationDate: "",
     dhundhDate: "",
     childName: "",
+    benefitDuration: "",
     applicantName: "",
     fatherName: "",
     husbandName: "",
@@ -124,6 +127,9 @@ export default function EditDhundhotsavPage() {
   // Photo / Document state
   const [passportPhotoBase64, setPassportPhotoBase64] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [nomineePhotoBase64, setNomineePhotoBase64] = useState<string | null>(null);
+  const [existingNomineePhotoUrl, setExistingNomineePhotoUrl] = useState<string | null>(null);
+  const [nomineePhotoPreview, setNomineePhotoPreview] = useState<string | null>(null);
   const [documentBase64, setDocumentBase64] = useState<string | null>(null);
 
   // Load Record Data
@@ -156,12 +162,20 @@ export default function EditDhundhotsavPage() {
           ""
         ).trim();
 
+        const rawDuration = String(
+          reg.benefitDuration ||
+          (reg as any).benefit_duration ||
+          (reg as any).duration ||
+          ""
+        ).trim();
+
         setFormData({
           formNumber: reg.formNumber || (reg as any).form_number || "",
           offlineFormNumber: offNo,
           applicationDate: appDate,
           dhundhDate: dhDate,
           childName: reg.childName || (reg as any).child_name || "",
+          benefitDuration: rawDuration,
           applicantName: reg.applicantName || (reg as any).applicant_name || "",
           fatherName: reg.fatherName || (reg as any).father_name || "",
           husbandName: reg.husbandName || (reg as any).husband_name || "",
@@ -190,7 +204,20 @@ export default function EditDhundhotsavPage() {
         });
 
         if (reg.passportPhotoUrl) {
-          setPhotoPreview(reg.passportPhotoUrl);
+          setPhotoPreview(resolvePhotoUrl(reg.passportPhotoUrl) || reg.passportPhotoUrl);
+        }
+
+        const rawNomineePhoto =
+          reg.nomineePhotoUrl ||
+          (reg as any).nominee_photo_url ||
+          (reg as any).nomineePhoto ||
+          (reg as any).nominee_photo ||
+          (reg as any).nomineePassportPhoto ||
+          (reg as any).nomineeImageData ||
+          null;
+        if (rawNomineePhoto) {
+          setExistingNomineePhotoUrl(rawNomineePhoto);
+          setNomineePhotoPreview(resolvePhotoUrl(rawNomineePhoto) || rawNomineePhoto);
         }
       } else {
         toast.error("पंजीकरण विवरण नहीं मिला / Registration details not found");
@@ -313,6 +340,24 @@ export default function EditDhundhotsavPage() {
     reader.readAsDataURL(file);
   };
 
+  const handleNomineePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("नॉमिनी फोटो का आकार 2MB से कम होना चाहिए / Nominee photo size must be under 2MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const b64 = reader.result as string;
+      setNomineePhotoBase64(b64);
+      setNomineePhotoPreview(b64);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -396,6 +441,8 @@ export default function EditDhundhotsavPage() {
 
     try {
       const trimmedOffline = (formData.offlineFormNumber || "").trim();
+      const trimmedDuration = (formData.benefitDuration || "").trim();
+      const resolvedNomineePhoto = nomineePhotoBase64 || existingNomineePhotoUrl || null;
       const payload: UpdateDhundhotsavPayload = {
         offlineFormNumber: trimmedOffline || null,
         offline_form_number: trimmedOffline || null,
@@ -414,11 +461,15 @@ export default function EditDhundhotsavPage() {
         state: formData.state.trim() || "Rajasthan",
         childName: formData.childName.trim() || null,
         dhundhDate: formData.dhundhDate || null,
+        benefitDuration: trimmedDuration || null,
+        duration: trimmedDuration || null,
         nomineeName: formData.nomineeName.trim() || null,
         nomineeRelation: formData.nomineeRelation.trim() || null,
         nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || null,
         nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || null,
         passportPhotoUrl: passportPhotoBase64 || undefined,
+        nomineePhotoUrl: resolvedNomineePhoto || undefined,
+        nomineePhoto: resolvedNomineePhoto || undefined,
         documentUrl: documentBase64 || undefined,
         gender: formData.gender,
         category: formData.category,
@@ -502,7 +553,7 @@ export default function EditDhundhotsavPage() {
           <div className="px-6 py-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Application Details Section with System & Offline Form Numbers */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 p-4 bg-muted/30 rounded-lg border">
                 <div>
                   <Label htmlFor="formNumber">आवेदन क्र. / Form No. (System)</Label>
                   <Input
@@ -535,6 +586,26 @@ export default function EditDhundhotsavPage() {
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     भौतिक फॉर्म नंबर (वैकल्पिक) / Physical form number
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="benefitDuration">लाभ अवधि / Benefit Duration</Label>
+                  <Input
+                    id="benefitDuration"
+                    name="benefitDuration"
+                    value={formData.benefitDuration}
+                    placeholder="उदा. बारह महीने / 12 महीने"
+                    className="bg-background mt-1 font-medium"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        benefitDuration: e.target.value,
+                      }))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ऐच्छिक (उदा. बारह महीने) / Optional
                   </p>
                 </div>
 
@@ -910,9 +981,9 @@ export default function EditDhundhotsavPage() {
               )}
 
               {/* Photo & Document Upload Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="passportPhoto">पासपोर्ट साइज रंगीन फोटो / Passport Photo (&lt; 2MB)</Label>
+                  <Label htmlFor="passportPhoto">फोटो / Applicant Photo (&lt; 2MB)</Label>
                   <Input
                     id="passportPhoto"
                     type="file"
@@ -921,11 +992,43 @@ export default function EditDhundhotsavPage() {
                     className="mt-1 text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted"
                   />
                   {photoPreview && (
-                    <img
-                      src={photoPreview}
-                      alt="पासपोर्ट फोटो प्रीव्यू"
-                      className="mt-2 h-24 w-24 object-cover rounded border"
-                    />
+                    <div className="mt-2 space-y-1">
+                      <img
+                        src={photoPreview}
+                        alt="आवेदक फोटो प्रीव्यू"
+                        className="mt-2 h-24 w-24 object-cover rounded border"
+                      />
+                      {passportPhotoBase64 ? (
+                        <p className="text-[11px] text-emerald-600 font-medium">नई फोटो चयनित / New photo selected</p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">वर्तमान फोटो / Current photo</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="nomineePhoto">नॉमिनी फोटो / Nominee Photo (&lt; 2MB)</Label>
+                  <Input
+                    id="nomineePhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleNomineePhotoUpload}
+                    className="mt-1 text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted"
+                  />
+                  {nomineePhotoPreview && (
+                    <div className="mt-2 space-y-1">
+                      <img
+                        src={nomineePhotoPreview}
+                        alt="नॉमिनी फोटो प्रीव्यू"
+                        className="mt-2 h-24 w-24 object-cover rounded border"
+                      />
+                      {nomineePhotoBase64 ? (
+                        <p className="text-[11px] text-emerald-600 font-medium">नई फोटो चयनित / New photo selected</p>
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground">वर्तमान फोटो / Current photo</p>
+                      )}
+                    </div>
                   )}
                 </div>
 

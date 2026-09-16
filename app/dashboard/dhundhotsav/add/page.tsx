@@ -47,6 +47,7 @@ export default function AddDhundhotsavPage() {
     offlineFormNumber: string;
     dhundhDate: string;
     childName: string;
+    benefitDuration: string;
     applicantName: string;
     fatherName: string;
     husbandName: string;
@@ -79,6 +80,7 @@ export default function AddDhundhotsavPage() {
     offlineFormNumber: "",
     dhundhDate: "",
     childName: "",
+    benefitDuration: "",
     applicantName: "",
     fatherName: "",
     husbandName: "",
@@ -111,6 +113,8 @@ export default function AddDhundhotsavPage() {
   // Photo / Document state
   const [passportPhotoBase64, setPassportPhotoBase64] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [nomineePhotoBase64, setNomineePhotoBase64] = useState<string | null>(null);
+  const [nomineePhotoPreview, setNomineePhotoPreview] = useState<string | null>(null);
   const [documentBase64, setDocumentBase64] = useState<string | null>(null);
 
   // E-PIN Validation State
@@ -216,6 +220,24 @@ export default function AddDhundhotsavPage() {
     reader.readAsDataURL(file);
   };
 
+  const handleNomineePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("नॉमिनी फोटो का आकार 2MB से कम होना चाहिए / Nominee photo size must be under 2MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const b64 = reader.result as string;
+      setNomineePhotoBase64(b64);
+      setNomineePhotoPreview(b64);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -300,12 +322,15 @@ export default function AddDhundhotsavPage() {
 
     try {
       const trimmedOffline = (formData.offlineFormNumber || "").trim();
+      const trimmedDuration = (formData.benefitDuration || "").trim();
       const payload: CreateDhundhotsavPayload = {
         applicationDate: formData.applicationDate,
         offlineFormNumber: trimmedOffline || undefined,
         offline_form_number: trimmedOffline || undefined,
         dhundhDate: formData.dhundhDate || undefined,
         childName: formData.childName.trim() || undefined,
+        benefitDuration: trimmedDuration || undefined,
+        duration: trimmedDuration || undefined,
         applicantName: formData.applicantName.trim(),
         fatherName: formData.fatherName.trim(),
         husbandName: formData.husbandName.trim() || undefined,
@@ -324,6 +349,8 @@ export default function AddDhundhotsavPage() {
         nomineeRelation: formData.nomineeRelation.trim() || undefined,
         nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || undefined,
         nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || undefined,
+        nomineePhotoUrl: nomineePhotoBase64 || undefined,
+        nomineePhoto: nomineePhotoBase64 || undefined,
         passportPhotoUrl: passportPhotoBase64 || undefined,
         documentUrl: documentBase64 || undefined,
         gender: formData.gender,
@@ -422,7 +449,7 @@ export default function AddDhundhotsavPage() {
           <div className="px-6 py-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Application Details Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg border">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 p-4 bg-muted/30 rounded-lg border">
                 <div>
                   <Label htmlFor="applicationDate">आवेदन दिनांक / Application Date <span className="text-destructive">*</span></Label>
                   <Input
@@ -453,6 +480,26 @@ export default function AddDhundhotsavPage() {
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     भौतिक फॉर्म नंबर (वैकल्पिक) / Physical form number
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="benefitDuration">लाभ अवधि / Benefit Duration</Label>
+                  <Input
+                    id="benefitDuration"
+                    name="benefitDuration"
+                    value={formData.benefitDuration}
+                    placeholder="उदा. बारह महीने / 12 महीने"
+                    className="bg-background mt-1"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        benefitDuration: e.target.value,
+                      }))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ऐच्छिक (उदा. बारह महीने) / Optional
                   </p>
                 </div>
 
@@ -803,9 +850,9 @@ export default function AddDhundhotsavPage() {
               )}
 
               {/* Photo & Document Upload Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="passportPhoto">पासपोर्ट साइज रंगीन फोटो / Passport Photo (&lt; 2MB)</Label>
+                  <Label htmlFor="passportPhoto">फोटो / Applicant Photo (&lt; 2MB)</Label>
                   <Input
                     id="passportPhoto"
                     type="file"
@@ -816,7 +863,25 @@ export default function AddDhundhotsavPage() {
                   {photoPreview && (
                     <img
                       src={photoPreview}
-                      alt="पासपोर्ट फोटो प्रीव्यू"
+                      alt="आवेदक फोटो प्रीव्यू"
+                      className="mt-2 h-24 w-24 object-cover rounded border"
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="nomineePhoto">नॉमिनी फोटो / Nominee Photo (&lt; 2MB)</Label>
+                  <Input
+                    id="nomineePhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleNomineePhotoUpload}
+                    className="mt-1 text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted"
+                  />
+                  {nomineePhotoPreview && (
+                    <img
+                      src={nomineePhotoPreview}
+                      alt="नॉमिनी फोटो प्रीव्यू"
                       className="mt-2 h-24 w-24 object-cover rounded border"
                     />
                   )}

@@ -43,7 +43,7 @@ import {
   DhundhotsavRegistration,
   DhundhotsavInstallment,
 } from "@/lib/dhundhotsav-service";
-import { formatDate } from "@/lib/utils";
+import { formatDate, resolvePhotoUrl } from "@/lib/utils";
 
 export default function DhundhotsavDetailsPage() {
   const params = useParams();
@@ -360,6 +360,12 @@ export default function DhundhotsavDetailsPage() {
                   </div>
                 </div>
                 <div>
+                  <span className="text-muted-foreground">लाभ अवधि (Duration):</span>
+                  <div className="font-semibold text-foreground mt-0.5">
+                    {record.benefitDuration || (record as any).duration || "-"}
+                  </div>
+                </div>
+                <div>
                   <span className="text-muted-foreground">ढूंढ दिनांक:</span>
                   <div className="font-semibold text-foreground mt-0.5">
                     {record.dhundhDate ? formatDate(record.dhundhDate) : "-"}
@@ -398,9 +404,18 @@ export default function DhundhotsavDetailsPage() {
               </div>
 
               <div className="border-t border-border/60 pt-4">
-                <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1.5 mb-2">
-                  <Users className="h-3.5 w-3.5" /> नॉमिनी (वारिसदार) विवरण:
-                </span>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5" /> नॉमिनी (वारिसदार) विवरण:
+                  </span>
+                  {(record.nomineePhotoUrl || (record as any).nomineePhoto) && (
+                    <img
+                      src={resolvePhotoUrl(record.nomineePhotoUrl || (record as any).nomineePhoto)}
+                      alt="नॉमिनी फोटो"
+                      className="h-12 w-12 rounded-lg object-cover border border-border"
+                    />
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
                   <div>
                     <span className="text-muted-foreground">नॉमिनी का नाम:</span>

@@ -44,6 +44,39 @@ interface EligibleSenior {
   status?: string;
 }
 
+const VALIDATION_MESSAGE_MAP: Record<string, string> = {
+  "Password must be at least 6 characters": "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए",
+  "Mobile number must contain digits only": "मोबाइल नंबर में केवल अंक होने चाहिए",
+  "Mobile number must be at least 10 digits": "मोबाइल नंबर कम से कम 10 अंकों का होना चाहिए",
+  "Name must be at least 2 characters": "नाम कम से कम 2 अक्षरों का होना चाहिए",
+  "Invalid enum value. Expected 'Male' | 'Female' | 'Other', received ''": "कृपया जेंडर चुनें",
+  "Invalid email format": "ईमेल का फॉर्मेट सही नहीं है",
+};
+
+function formatValidationErrorMessage(error: any, defaultFallback: string): string {
+  const validationErrors = error?.response?.data?.errors;
+
+  if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+    const messages = validationErrors
+      .map((item: any) => {
+        const rawMsg = (item?.message || (typeof item === "string" ? item : "")).trim();
+        if (!rawMsg) return "";
+        return VALIDATION_MESSAGE_MAP[rawMsg] || rawMsg;
+      })
+      .filter(Boolean);
+
+    if (messages.length === 1) {
+      return messages[0];
+    }
+    if (messages.length > 1) {
+      const uniqueMessages = Array.from(new Set(messages));
+      return `कृपया जानकारी सही करें:\n• ${uniqueMessages.join("\n• ")}`;
+    }
+  }
+
+  return error?.response?.data?.message || error?.message || defaultFallback;
+}
+
 const initialState = {
   date: "",
   offlineFormNumber: "",
@@ -253,7 +286,7 @@ export default function AddAgentPage() {
       }
     } catch (error: any) {
       console.error("Error creating agent:", error);
-      const errorMessage = error?.response?.data?.message || error?.message || "एजेंट जोड़ने में त्रुटि";
+      const errorMessage = formatValidationErrorMessage(error, "एजेंट जोड़ने में त्रुटि");
       toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);

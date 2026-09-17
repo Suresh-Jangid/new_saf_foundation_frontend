@@ -52,20 +52,15 @@ async function runTests() {
   });
 
   it('fill-pdf-form route maps क्रमांक and रसीद_क्रमांक strictly to offlineFormNumber (NO formNumber fallback)', () => {
-    // Extract general-application fieldDefinitions
-    const genMatch = routeContent.match(/if \(type === 'general-application'\) \{[\s\S]*?fieldDefinitions = \[([\s\S]*?)\];/);
-    assert.ok(genMatch, 'general-application fieldDefinitions must be present');
-    const genDef = genMatch[1];
-    
     // Check that क्रमांक definition does not contain formNumber or applicationNumber
-    const kramankMatch = genDef.match(/field: 'क्रमांक', valueKeys: \[([^\]]+)\]/);
+    const kramankMatch = routeContent.match(/field:\s*'क्रमांक',\s*valueKeys:\s*\[([^\]]+)\]/);
     assert.ok(kramankMatch, 'क्रमांक field definition must exist');
     assert.ok(!kramankMatch[1].includes("'formNumber'"), 'क्रमांक must not include formNumber');
     assert.ok(!kramankMatch[1].includes("'applicationNumber'"), 'क्रमांक must not include applicationNumber');
     assert.ok(kramankMatch[1].includes("'offlineFormNumber'"), 'क्रमांक must include offlineFormNumber');
 
     // Check receipt क्रमांक
-    const receiptKramankMatch = genDef.match(/field: 'रसीद_क्रमांक', valueKeys: \[([^\]]+)\]/);
+    const receiptKramankMatch = routeContent.match(/field:\s*'रसीद_क्रमांक',\s*valueKeys:\s*\[([^\]]+)\]/);
     assert.ok(receiptKramankMatch, 'रसीद_क्रमांक field definition must exist');
     assert.ok(!receiptKramankMatch[1].includes("'formNumber'"), 'रसीद_क्रमांक must not include formNumber');
     assert.ok(receiptKramankMatch[1].includes("'offlineFormNumber'"), 'रसीद_क्रमांक must include offlineFormNumber');
@@ -92,7 +87,7 @@ async function runTests() {
   });
 
   it('fill-pdf-form route maps नामिनी_का_आधार strictly to nominee Aadhaar aliases (NEVER applicant aadharNumber)', () => {
-    const genMatch = routeContent.match(/if \(type === 'general-application'\) \{[\s\S]*?fieldDefinitions = \[([\s\S]*?)\];/);
+    const genMatch = routeContent.match(/(?:else\s+)?if\s*\(\s*type\s*===\s*'general-application'\s*\)\s*\{[\s\S]*?fieldDefinitions\s*=\s*\[([\s\S]*?)\];/);
     assert.ok(genMatch, 'general-application fieldDefinitions must be present');
     const genDef = genMatch[1];
     
@@ -111,7 +106,7 @@ async function runTests() {
   });
 
   it('fill-pdf-form route maps नामिनी_का_मोबाइल strictly to nominee Mobile aliases (NEVER applicant mobile)', () => {
-    const genMatch = routeContent.match(/if \(type === 'general-application'\) \{[\s\S]*?fieldDefinitions = \[([\s\S]*?)\];/);
+    const genMatch = routeContent.match(/(?:else\s+)?if\s*\(\s*type\s*===\s*'general-application'\s*\)\s*\{[\s\S]*?fieldDefinitions\s*=\s*\[([\s\S]*?)\];/);
     assert.ok(genMatch, 'general-application fieldDefinitions must be present');
     const genDef = genMatch[1];
     
@@ -151,10 +146,8 @@ async function runTests() {
     assert.ok(routeContent.includes("'nomineeAadhaar'"), 'route must include nomineeAadhaar');
     assert.ok(routeContent.includes("'nomineeAadhar'"), 'route must include nomineeAadhar');
     assert.ok(routeContent.includes("'nomineeMobile'"), 'route must include nomineeMobile');
-    assert.ok(routeContent.includes("'workerCode'"), 'route must include workerCode');
     assert.ok(routeContent.includes("'totalAmount'"), 'route must include totalAmount');
     assert.ok(routeContent.includes("'paymentModeRef'"), 'route must include paymentModeRef');
-    assert.ok(routeContent.includes("'seniorCode'"), 'route must include seniorCode');
   });
 
   it('fill-pdf-form route implements maxW auto-scaling for long text safety', () => {

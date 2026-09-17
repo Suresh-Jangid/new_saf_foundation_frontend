@@ -142,6 +142,7 @@ export async function POST(request: NextRequest) {
     // Embed Devanagari font; fallback to Helvetica
     let font;
     const fontCandidates = [
+      path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-SemiBold.ttf'),
       path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf'),
       path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari.ttf'),
     ];
@@ -156,13 +157,32 @@ export async function POST(request: NextRequest) {
       font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     }
 
-    // Helper for drawing text at top-left coordinates
-    const drawTextAt = (text: string | number | undefined | null, x: number, topY: number, size = 10, color = rgb(0.1, 0.1, 0.1)) => {
+    // Helper for drawing text at top-left coordinates with optional maxW auto-scaling
+    const drawTextAt = (
+      text: string | number | undefined | null,
+      x: number,
+      topY: number,
+      size = 11,
+      color = rgb(0.1, 0.1, 0.1),
+      maxW?: number
+    ) => {
       if (text === undefined || text === null || String(text).trim() === '') return;
-      firstPage.drawText(String(text).trim(), {
+      const str = String(text).trim();
+      let fontSize = size;
+      if (maxW && (font as any).widthOfTextAtSize) {
+        try {
+          const textWidth = (font as any).widthOfTextAtSize(str, fontSize);
+          if (textWidth > maxW) {
+            fontSize = Math.max(6.0, fontSize * (maxW / textWidth));
+          }
+        } catch {
+          // fallback if widthOfTextAtSize fails
+        }
+      }
+      firstPage.drawText(str, {
         x,
         y: pageHeight - topY,
-        size,
+        size: fontSize,
         font,
         color,
       });
@@ -251,59 +271,59 @@ export async function POST(request: NextRequest) {
       durationText = 'बारह महीने';
     }
 
-    // 1. कार्यकर्ता कोड
-    drawTextAt(workerCode, 160, 125, 10, rgb(0.8, 0, 0));
+    // 1. कार्यकर्ता कोड (label rightX: 146.61, blY: 713.66 -> topY: 128.23)
+    drawTextAt(workerCode, 153, 128.23, 11, rgb(0.8, 0, 0), 60);
 
-    // 2. सीनियर कार्यकर्ता कोड
-    drawTextAt(seniorCode, 480, 125, 10, rgb(0.8, 0, 0));
+    // 2. सीनियर कार्यकर्ता कोड (label rightX: 448.97, blY: 714.80 -> topY: 127.09)
+    drawTextAt(seniorCode, 455, 127.09, 11, rgb(0.8, 0, 0), 60);
 
-    // 3. आवेदन क्र.
-    drawTextAt(applicationOfflineNo, 123, 159, 10, rgb(0, 0.15, 0.6));
+    // 3. आवेदन क्र. (label rightX: 84.94, blY: 683.22 -> topY: 158.67)
+    drawTextAt(applicationOfflineNo, 91, 158.67, 11, rgb(0, 0.15, 0.6), 75);
 
-    // 4. सदस्यता क्र.
-    drawTextAt(membershipNo, 330, 153, 10, rgb(0, 0.15, 0.6));
+    // 4. सदस्यता क्र. (label rightX: 305.54, blY: 685.04 -> topY: 156.85)
+    drawTextAt(membershipNo, 312, 156.85, 10.5, rgb(0, 0.15, 0.6), 85);
 
-    // 5. आवेदन दि.
-    drawTextAt(applicationDate, 474, 153, 10, rgb(0, 0.15, 0.6));
+    // 5. आवेदन दि. (label rightX: 467.72, blY: 682.70 -> topY: 159.19)
+    drawTextAt(applicationDate, 474, 159.19, 10.5, rgb(0, 0.15, 0.6), 75);
 
-    // 6. नाम
-    drawTextAt(applicantName, 93, 196, 10);
+    // 6. नाम (label rightX: 52.37, blY: 647.99 -> topY: 193.90)
+    drawTextAt(applicantName, 59, 193.90, 11, undefined, 160);
 
-    // 7. पिता/पति का नाम
-    drawTextAt(fatherName, 311, 196, 10);
+    // 7. पिता/पति का नाम (label rightX: 306.05, blY: 646.59 -> topY: 195.30)
+    drawTextAt(fatherName, 313, 195.30, 11, undefined, 230);
 
-    // 8. जाति (Displays Gotra value)
-    drawTextAt(gotra, 93, 220, 10);
+    // 8. जाति (Displays Gotra value) (label rightX: 57.13, blY: 623.77 -> topY: 218.12)
+    drawTextAt(gotra, 64, 218.12, 11, undefined, 155);
 
-    // 9. गांव
-    drawTextAt(village, 256, 217, 10);
+    // 9. गांव (label rightX: 242.35, blY: 622.68 -> topY: 219.21)
+    drawTextAt(village, 249, 219.21, 11, undefined, 195);
 
-    // 10. वारिसदार
-    drawTextAt(warisdar, 112, 245, 10);
+    // 10. वारिसदार (label rightX: 75.08, blY: 599.54 -> topY: 242.35)
+    drawTextAt(warisdar, 82, 242.35, 11, undefined, 138);
 
-    // 11. जिला
-    drawTextAt(district, 256, 242, 10);
+    // 11. जिला (label rightX: 249.09, blY: 598.76 -> topY: 243.12)
+    drawTextAt(district, 256, 243.12, 11, undefined, 190);
 
-    // 12. एजेन्ट मो. नं.
-    drawTextAt(agentMobile, 132, 269, 10);
+    // 12. एजेन्ट मो. नं. (label rightX: 91.66, blY: 575.31 -> topY: 266.58)
+    drawTextAt(agentMobile, 98, 266.58, 10.5, undefined, 120);
 
-    // 13. राज्य
-    drawTextAt(state, 256, 266, 10);
+    // 13. राज्य (label rightX: 245.48, blY: 574.85 -> topY: 267.04)
+    drawTextAt(state, 252, 267.04, 11, undefined, 190);
 
-    // 14. आधार नं.
-    drawTextAt(applicantAadhaar, 110, 294, 10);
+    // 14. आधार नं. (label rightX: 77.16, blY: 551.08 -> topY: 290.81)
+    drawTextAt(applicantAadhaar, 84, 290.81, 10.5, undefined, 135);
 
-    // 15. सम्बन्ध
-    drawTextAt(relation, 270, 291, 10);
+    // 15. सम्बन्ध (label rightX: 256.11, blY: 550.94 -> topY: 290.95)
+    drawTextAt(relation, 263, 290.95, 11, undefined, 180);
 
-    // 16. नॉमिनी आधार नं.
-    drawTextAt(nomineeAadhaar, 152, 318, 10);
+    // 16. नॉमिनी आधार नं. (label rightX: 111.30, blY: 526.85 -> topY: 315.04)
+    drawTextAt(nomineeAadhaar, 118, 315.04, 10.5, undefined, 105);
 
-    // 17. नॉमिनी मो. नं.
-    drawTextAt(nomineeMobile, 304, 315, 10);
+    // 17. नॉमिनी मो. नं. (label rightX: 285.89, blY: 527.02 -> topY: 314.87)
+    drawTextAt(nomineeMobile, 293, 314.87, 10.5, undefined, 150);
 
-    // 18. लाभ अवधि ("आपको विवाह योजना का लाभ ... के बाद मिलेगा ।")
-    drawTextAt(durationText, 280, 363, 10, rgb(0.8, 0, 0));
+    // 18. लाभ अवधि ("आपको विवाह योजना का लाभ ... के बाद मिलेगा ।") (label rightX: 279.10, blY: 473.89 -> topY: 368.00)
+    drawTextAt(durationText, 285, 368.00, 11, rgb(0.8, 0, 0), 80);
 
     // Serialize the PDF
     const pdfBytes = await pdfDoc.save();

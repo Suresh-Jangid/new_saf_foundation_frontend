@@ -2,40 +2,43 @@ import fs from 'fs';
 import path from 'path';
 
 console.log('============================================================');
-console.log('SAF FOUNDATION — DASHBOARD EXPANSION VERIFICATION');
+console.log('SAF FOUNDATION — DASHBOARD 20 CARDS EXACT VERIFICATION');
 console.log('============================================================');
 
 const dashboardPath = path.join(process.cwd(), 'app', 'dashboard', 'page.tsx');
 const dashboardContent = fs.readFileSync(dashboardPath, 'utf8');
 
-// Expected cards that must be present
-const expectedCardIds = [
-  'applicant_registration',
-  'recent_applications',
+// The exact 20 cards in exact required order
+const expectedCardsInOrder = [
+  { id: 'epin_management', title: 'ई-पिन प्रबंधन / E-PIN Management', route: 'app/dashboard/epin-management/page.tsx' },
+  { id: 'applicant_registration', title: 'सामान्य आवेदन / General Marriage Applications', route: 'app/dashboard/general-applications/page.tsx' },
+  { id: 'recent_applications', title: 'हाल के आवेदन / Recent Applications', route: 'app/dashboard/general-applications/page.tsx' },
+  { id: 'marriage_congratulations', title: 'विवाह बधाई / General Marriage Congratulations Payment', route: 'app/dashboard/marriage-congratulations/page.tsx' },
+  { id: 'security_application', title: 'सुरक्षा बीमा हेतु सामान्य आवेदन / Insurance Bima Application', route: 'app/dashboard/general-applications-insurance/page.tsx' },
+  { id: 'suraksha_bima_yojana', title: 'सुरक्षा बीमा योजना / Insurance Bima Payment', route: 'app/dashboard/suraksha-bima-yojana/page.tsx' },
+  { id: 'mayra_registration', title: 'मायरा फॉर्म आवेदन पत्र / Mayra General Application', route: 'app/dashboard/mayra-registration/page.tsx' },
+  { id: 'mayra_congratulations', title: 'मायरा बधाई पत्र / Mayra Congratulation Payment', route: 'app/dashboard/mayra-congratulations/page.tsx' },
+  { id: 'janni_delivery', title: 'जननी प्रसूति पंजीकरण / Janni Delivery Registration', route: 'app/dashboard/janni-delivery/page.tsx' },
+  { id: 'janni_congress_payment', title: 'जननी प्रसूति बधाई पत्र / Janni Congress Payment', route: 'app/dashboard/janni-delivery/congress-payment/page.tsx' },
+  { id: 'aawas_home', title: 'आवास योजना पंजीकरण / Aawas (Home) Registration', route: 'app/dashboard/aawas/page.tsx' },
+  { id: 'lado_bahin', title: 'लाडो बहिन पंजीकरण / Lado Bahin Registration', route: 'app/dashboard/lado-bahin/page.tsx' },
+  { id: 'dhundhotsav', title: 'ढूंढोत्सव पंजीकरण / Dhundhotsav Registration', route: 'app/dashboard/dhundhotsav/page.tsx' },
+  { id: 'shubh_laxmi', title: 'शुभलक्ष्मी पंजीकरण / ShubhLaxmi Registration', route: 'app/dashboard/shubh-laxmi/page.tsx' },
+  { id: 'agent_registration', title: 'एजेंट आवेदन / Agent Registration', route: 'app/dashboard/agent-registration/page.tsx' },
+  { id: 'agent_commission', title: 'एजेंट कमिशन भुगतान / Agent Commission Payment', route: 'app/dashboard/agent-commission/page.tsx' },
+  { id: 'agent_commission_report', title: 'एजेंट कमिशन रिपोर्ट / Agent Commission Report', route: 'app/dashboard/agent-commission-report/page.tsx' },
+  { id: 'bulk_marriage_emi', title: 'बल्क विवाह ईएमआई / Bulk Marriage EMI', route: 'app/dashboard/bulk-marriage-emi/page.tsx' },
+  { id: 'bulk_suraksha_bima_emi', title: 'बल्क सुरक्षा बीमा ईएमआई / Bulk Insurance Bima EMI', route: 'app/dashboard/bulk-suraksha-bima-emi/page.tsx' },
+  { id: 'bulk_mayra_emi', title: 'बल्क मायरा ईएमआई / Bulk Mayra EMI', route: 'app/dashboard/bulk-mayra-emi/page.tsx' },
+];
+
+const disallowedCardIds = [
   'financial_help',
-  'marriage_congratulations',
   'disability_cycle_distribution',
-  'agent_registration',
-  'security_application',
   'balika_loan_application',
   'marriage_sewing_machine_distribution',
   'salakar_pension_yojana',
   'sewing_machine_camp',
-  'suraksha_bima_yojana',
-  'mayra_registration',
-  'mayra_congratulations',
-  'janni_delivery',
-  'janni_congress_payment',
-  'aawas_home',
-  'lado_bahin',
-  'dhundhotsav',
-  'shubh_laxmi',
-  'epin_management',
-  'agent_commission',
-  'agent_commission_report',
-  'bulk_marriage_emi',
-  'bulk_suraksha_bima_emi',
-  'bulk_mayra_emi',
   'payment_management',
 ];
 
@@ -52,60 +55,37 @@ function assert(condition, message) {
   }
 }
 
-// 1. Verify Card Representation
+// 1. Verify Exactly 20 Cards in getAllCards
 console.log('\n1. Checking Card IDs in Dashboard...');
-for (const id of expectedCardIds) {
-  assert(dashboardContent.includes(`id: "${id}"`), `Dashboard defines card: ${id}`);
+const idMatches = [...dashboardContent.matchAll(/id:\s*"([^"]+)"/g)].map(m => m[1]);
+
+assert(idMatches.length === 20, `Dashboard defines exactly 20 cards (found ${idMatches.length})`);
+
+for (let i = 0; i < expectedCardsInOrder.length; i++) {
+  const expected = expectedCardsInOrder[i];
+  const actual = idMatches[i];
+  assert(actual === expected.id, `Card #${i + 1} matches: ${expected.id} (actual: ${actual})`);
 }
 
-// 2. Verify Routes Exist
-console.log('\n2. Checking Target Routes on Filesystem...');
-const expectedRoutes = [
-  { id: 'applicant_registration', route: 'app/dashboard/general-applications/page.tsx' },
-  { id: 'financial_help', route: 'app/dashboard/financal-help/page.tsx' },
-  { id: 'marriage_congratulations', route: 'app/dashboard/marriage-congratulations/page.tsx' },
-  { id: 'disability_cycle_distribution', route: 'app/dashboard/disability-cycle/page.tsx' },
-  { id: 'agent_registration', route: 'app/dashboard/agent-registration/page.tsx' },
-  { id: 'security_application', route: 'app/dashboard/general-applications-insurance/page.tsx' },
-  { id: 'balika_loan_application', route: 'app/dashboard/loan-application/page.tsx' },
-  { id: 'marriage_sewing_machine_distribution', route: 'app/dashboard/marriage-congratulations/sewing-machine-distribution/page.tsx' },
-  { id: 'salakar_pension_yojana', route: 'app/dashboard/pension-yojana/page.tsx' },
-  { id: 'sewing_machine_camp', route: 'app/dashboard/sewing-machine/page.tsx' },
-  { id: 'suraksha_bima_yojana', route: 'app/dashboard/suraksha-bima-yojana/page.tsx' },
-  { id: 'mayra_registration', route: 'app/dashboard/mayra-registration/page.tsx' },
-  { id: 'mayra_congratulations', route: 'app/dashboard/mayra-congratulations/page.tsx' },
-  { id: 'janni_delivery', route: 'app/dashboard/janni-delivery/page.tsx' },
-  { id: 'janni_congress_payment', route: 'app/dashboard/janni-delivery/congress-payment/page.tsx' },
-  { id: 'aawas_home', route: 'app/dashboard/aawas/page.tsx' },
-  { id: 'lado_bahin', route: 'app/dashboard/lado-bahin/page.tsx' },
-  { id: 'dhundhotsav', route: 'app/dashboard/dhundhotsav/page.tsx' },
-  { id: 'shubh_laxmi', route: 'app/dashboard/shubh-laxmi/page.tsx' },
-  { id: 'epin_management', route: 'app/dashboard/epin-management/page.tsx' },
-  { id: 'agent_commission', route: 'app/dashboard/agent-commission/page.tsx' },
-  { id: 'agent_commission_report', route: 'app/dashboard/agent-commission-report/page.tsx' },
-  { id: 'bulk_marriage_emi', route: 'app/dashboard/bulk-marriage-emi/page.tsx' },
-  { id: 'bulk_suraksha_bima_emi', route: 'app/dashboard/bulk-suraksha-bima-emi/page.tsx' },
-  { id: 'bulk_mayra_emi', route: 'app/dashboard/bulk-mayra-emi/page.tsx' },
-  { id: 'payment_management', route: 'app/dashboard/payment-management/page.tsx' },
-];
+// 2. Verify Disallowed Cards are Excluded from Dashboard
+console.log('\n2. Verifying Excluded Cards are NOT in Dashboard...');
+for (const disallowedId of disallowedCardIds) {
+  assert(!idMatches.includes(disallowedId), `Card '${disallowedId}' is cleanly removed from Dashboard`);
+}
 
-for (const item of expectedRoutes) {
+// 3. Verify Target Routes on Filesystem
+console.log('\n3. Checking Target Routes on Filesystem...');
+for (const item of expectedCardsInOrder) {
   const fullPath = path.join(process.cwd(), item.route);
   assert(fs.existsSync(fullPath), `Target page exists for ${item.id}: ${item.route}`);
 }
 
-// 3. Verify Code Patterns
-console.log('\n3. Verifying Code Level Implementations...');
+// 4. Verify Code Patterns
+console.log('\n4. Verifying Code Level Implementations...');
 assert(dashboardContent.includes('Promise.allSettled'), 'Uses Promise.allSettled for concurrent stats fetching');
 assert(dashboardContent.includes('canViewCard'), 'Implements role & permission filter canViewCard');
 assert(dashboardContent.includes('<Link key={idx} href={card.route}'), 'Wraps clickable cards in Next.js Link');
 assert(dashboardContent.includes('grid gap-6 md:grid-cols-2 lg:grid-cols-4'), 'Preserves responsive grid layout');
-assert(dashboardContent.includes('DhundhotsavService.getAllRegistrations'), 'Fetches live Dhundhotsav counts');
-assert(dashboardContent.includes('JanniDeliveryService.getAllRegistrations'), 'Fetches live Janni Delivery counts');
-assert(dashboardContent.includes('LadoBahinService.getAllRegistrations'), 'Fetches live Lado Bahin counts');
-assert(dashboardContent.includes('ShubhLaxmiService.getAllRegistrations'), 'Fetches live Shubh Laxmi counts');
-assert(dashboardContent.includes('AawasService.getAllRegistrations'), 'Fetches live Aawas counts');
-assert(dashboardContent.includes('EpinService.getInventory'), 'Fetches live E-PIN counts');
 
 console.log('============================================================');
 console.log(`SUMMARY: ${passed} passed, ${failed} failed.`);

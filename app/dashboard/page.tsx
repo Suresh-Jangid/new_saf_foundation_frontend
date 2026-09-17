@@ -193,212 +193,10 @@ export default function DashboardPage() {
     return agentInfo.permissions[permissionKey]?.includes("view") || hasModulePermission(permissionKey, "view")
   }
 
-  // Define the complete list of cards with authentic counts, bilingual titles, and routes
+  // Define the complete list of 20 requested cards with authentic counts, bilingual titles, and routes
   const getAllCards = () => {
     return [
-      // 1. Existing Base Cards
-      {
-        id: "applicant_registration",
-        title: formatBilingual("dashboard.generalApplications"),
-        value: counts.totalCounts.applications,
-        icon: <FileText className="h-5 w-5 text-primary" />,
-        color: "border-primary/10",
-        subtitle: formatBilingual("dashboard.generalApplications"),
-        route: "/dashboard/general-applications",
-        permissionKey: "applicant_registration",
-      },
-      {
-        id: "recent_applications",
-        title: formatBilingual("dashboard.recentApplications"),
-        value: counts.last7DaysCount,
-        icon: <Handshake className="h-5 w-5 text-green-500" />,
-        color: "border-green-500/10",
-        subtitle: formatBilingual("dashboard.last7Days"),
-        route: "/dashboard/general-applications",
-        permissionKey: "dashboard",
-      },
-      {
-        id: "financial_help",
-        title: formatBilingual("dashboard.financialHelp"),
-        value: counts.totalCounts.financial_help,
-        icon: <Gift className="h-5 w-5 text-yellow-500" />,
-        color: "border-yellow-500/10",
-        subtitle: formatBilingual("dashboard.financialHelp"),
-        route: "/dashboard/financal-help",
-        permissionKey: "financial_help",
-      },
-      {
-        id: "marriage_congratulations",
-        title: formatBilingual("dashboard.marriageCongratulations"),
-        value: counts.totalCounts.marriage_congratulations,
-        icon: <Award className="h-5 w-5 text-purple-500" />,
-        color: "border-purple-500/10",
-        subtitle: formatBilingual("dashboard.marriageCongratulations"),
-        route: "/dashboard/marriage-congratulations",
-        permissionKey: "marriage_congratulations",
-      },
-      {
-        id: "disability_cycle_distribution",
-        title: formatBilingual("dashboard.disabilityCycle"),
-        value: counts.totalCounts.disability_cycle,
-        icon: <Bike className="h-5 w-5 text-blue-500" />,
-        color: "border-blue-500/10",
-        subtitle: formatBilingual("dashboard.disabilityCycle"),
-        route: "/dashboard/disability-cycle",
-        permissionKey: "disability_cycle_distribution",
-      },
-      {
-        id: "agent_registration",
-        title: "एजेंट आवेदन / Agent Registration",
-        value: counts.totalCounts.agent_registration,
-        icon: <UserPlus className="h-5 w-5 text-lime-500" />,
-        color: "border-lime-500/10",
-        subtitle: "एजेंट पंजीकरण / Agent Registration",
-        route: "/dashboard/agent-registration",
-        permissionKey: "agent_registration",
-      },
-      {
-        id: "security_application",
-        title: "सुरक्षा बीमा हेतु सामान्य आवेदन / Insurance Bima Application",
-        value: counts.totalCounts.application_insurance,
-        icon: <Shield className="h-5 w-5 text-indigo-500" />,
-        color: "border-indigo-500/10",
-        subtitle: "सुरक्षा बीमा आवेदन / Insurance Bima Application",
-        route: "/dashboard/general-applications-insurance",
-        permissionKey: "security_application",
-      },
-      {
-        id: "balika_loan_application",
-        title: "बालिका ऋण आवेदन / Balika Loan Application",
-        value: counts.totalCounts.loan_applications,
-        icon: <Receipt className="h-5 w-5 text-orange-500" />,
-        color: "border-orange-500/10",
-        subtitle: "बालिका ऋण आवेदन फॉर्म / Loan Application Payment",
-        route: "/dashboard/loan-application",
-        permissionKey: "balika_loan_application",
-      },
-      {
-        id: "marriage_sewing_machine_distribution",
-        title: "विवाह सिलाई मशीन वितरण / Marriage Sewing Machine",
-        value: counts.totalCounts.marriage_sewing_machine,
-        icon: <Gauge className="h-5 w-5 text-pink-500" />,
-        color: "border-pink-500/10",
-        subtitle: "सिलाई मशीन वितरण / Marriage Sewing Machine",
-        route: "/dashboard/marriage-congratulations/sewing-machine-distribution",
-        permissionKey: "marriage_sewing_machine_distribution",
-      },
-      {
-        id: "salakar_pension_yojana",
-        title: "सहलाकर पेंशन योजना / Pension Yojana Application Payment",
-        value: counts.totalCounts.pension_yojana,
-        icon: <BadgeCheck className="h-5 w-5 text-teal-500" />,
-        color: "border-teal-500/10",
-        subtitle: "पेंशन योजना आवेदन / Pension Yojana Payment",
-        route: "/dashboard/pension-yojana",
-        permissionKey: "salakar_pension_yojana",
-      },
-      {
-        id: "sewing_machine_camp",
-        title: "निशुल्क सिलाई मशीन शिविर / Sewing Machine Camp",
-        value: counts.totalCounts.sewing_machine_camp,
-        icon: <Scissors className="h-5 w-5 text-pink-500" />,
-        color: "border-pink-500/10",
-        subtitle: "सिलाई मशीन शिविर कैम्प / Sewing Machine Camp",
-        route: "/dashboard/sewing-machine",
-        permissionKey: "sewing_machine_camp",
-      },
-      {
-        id: "suraksha_bima_yojana",
-        title: "सुरक्षा बीमा योजना / Insurance Bima Payment",
-        value: counts.totalCounts.suraksha_bima_yojana,
-        icon: <Wallet className="h-5 w-5 text-blue-500" />,
-        color: "border-blue-500/10",
-        subtitle: "सुरक्षा बीमा किस्त भुगतान / Insurance Bima Payment",
-        route: "/dashboard/suraksha-bima-yojana",
-        permissionKey: "suraksha_bima_yojana",
-      },
-
-      // 2. Additional Active Scheme / Yojana Modules
-      {
-        id: "mayra_registration",
-        title: "मायरा फॉर्म आवेदन पत्र / Mayra General Application",
-        value: counts.totalCounts.mayra_registration,
-        icon: <FileText className="h-5 w-5 text-amber-500" />,
-        color: "border-amber-500/10",
-        subtitle: "मायरा सामान्य आवेदन / Mayra Registration",
-        route: "/dashboard/mayra-registration",
-        permissionKey: "mayra_registration",
-      },
-      {
-        id: "mayra_congratulations",
-        title: "मायरा बधाई पत्र / Mayra Congratulation Payment",
-        value: counts.totalCounts.mayra_congratulations,
-        icon: <Gift className="h-5 w-5 text-rose-500" />,
-        color: "border-rose-500/10",
-        subtitle: "मायरा विवाह बधाई पत्र / Mayra Congratulation",
-        route: "/dashboard/mayra-congratulations",
-        permissionKey: "mayra_registration",
-      },
-      {
-        id: "janni_delivery",
-        title: "जननी प्रसूति पंजीकरण / Janni Delivery Registration",
-        value: counts.totalCounts.janni_delivery,
-        icon: <HeartHandshake className="h-5 w-5 text-red-500" />,
-        color: "border-red-500/10",
-        subtitle: "जननी प्रसूति आवेदन / Janni Delivery Application",
-        route: "/dashboard/janni-delivery",
-        permissionKey: "janni_delivery",
-      },
-      {
-        id: "janni_congress_payment",
-        title: "जननी प्रसूति बधाई पत्र / Janni Congress Payment",
-        value: counts.totalCounts.janni_congress_payment,
-        icon: <Gift className="h-5 w-5 text-pink-500" />,
-        color: "border-pink-500/10",
-        subtitle: "जननी प्रसूति सहायता भुगतान / Janni Congress Payment",
-        route: "/dashboard/janni-delivery/congress-payment",
-        permissionKey: "janni_delivery",
-      },
-      {
-        id: "aawas_home",
-        title: "आवास योजना पंजीकरण / Aawas (Home) Registration",
-        value: counts.totalCounts.aawas_home,
-        icon: <Home className="h-5 w-5 text-sky-500" />,
-        color: "border-sky-500/10",
-        subtitle: "गृह प्रवेश आवास योजना / Aawas Registration",
-        route: "/dashboard/aawas",
-        permissionKey: "aawas_home",
-      },
-      {
-        id: "lado_bahin",
-        title: "लाडो बहिन पंजीकरण / Lado Bahin Registration",
-        value: counts.totalCounts.lado_bahin,
-        icon: <Sparkles className="h-5 w-5 text-violet-500" />,
-        color: "border-violet-500/10",
-        subtitle: "लाडो बहिन आवेदन / Lado Bahin Application",
-        route: "/dashboard/lado-bahin",
-        permissionKey: "lado_bahin",
-      },
-      {
-        id: "dhundhotsav",
-        title: "ढूंढोत्सव पंजीकरण / Dhundhotsav Registration",
-        value: counts.totalCounts.dhundhotsav,
-        icon: <Gift className="h-5 w-5 text-orange-500" />,
-        color: "border-orange-500/10",
-        subtitle: "ढूंढोत्सव आवेदन / Dhundhotsav Application",
-        route: "/dashboard/dhundhotsav",
-        permissionKey: "dhundhotsav",
-      },
-      {
-        id: "shubh_laxmi",
-        title: "शुभलक्ष्मी पंजीकरण / ShubhLaxmi Registration",
-        value: counts.totalCounts.shubh_laxmi,
-        icon: <Sparkles className="h-5 w-5 text-emerald-500" />,
-        color: "border-emerald-500/10",
-        subtitle: "शुभलक्ष्मी आवेदन / ShubhLaxmi Application",
-        route: "/dashboard/shubh-laxmi",
-        permissionKey: "shubh_laxmi",
-      },
+      // 1. ई-पिन प्रबंधन / E-PIN Management
       {
         id: "epin_management",
         title: "ई-पिन प्रबंधन / E-PIN Management",
@@ -410,7 +208,175 @@ export default function DashboardPage() {
         permissionKey: "epin_management",
       },
 
-      // 3. Financial, Bulk EMI & Management Modules
+      // 2. सामान्य आवेदन / General Marriage Applications
+      {
+        id: "applicant_registration",
+        title: "सामान्य आवेदन / General Marriage Applications",
+        value: counts.totalCounts.applications,
+        icon: <FileText className="h-5 w-5 text-primary" />,
+        color: "border-primary/10",
+        subtitle: "सामान्य आवेदन / General Marriage Applications",
+        route: "/dashboard/general-applications",
+        permissionKey: "applicant_registration",
+      },
+
+      // 3. हाल के आवेदन / Recent Applications
+      {
+        id: "recent_applications",
+        title: "हाल के आवेदन / Recent Applications",
+        value: counts.last7DaysCount,
+        icon: <Handshake className="h-5 w-5 text-green-500" />,
+        color: "border-green-500/10",
+        subtitle: "पिछले 7 दिन / Last 7 Days",
+        route: "/dashboard/general-applications",
+        permissionKey: "dashboard",
+      },
+
+      // 4. विवाह बधाई / General Marriage Congratulations Payment
+      {
+        id: "marriage_congratulations",
+        title: "विवाह बधाई / General Marriage Congratulations Payment",
+        value: counts.totalCounts.marriage_congratulations,
+        icon: <Award className="h-5 w-5 text-purple-500" />,
+        color: "border-purple-500/10",
+        subtitle: "विवाह बधाई / General Marriage Congratulations Payment",
+        route: "/dashboard/marriage-congratulations",
+        permissionKey: "marriage_congratulations",
+      },
+
+      // 5. सुरक्षा बीमा हेतु सामान्य आवेदन / Insurance Bima Application
+      {
+        id: "security_application",
+        title: "सुरक्षा बीमा हेतु सामान्य आवेदन / Insurance Bima Application",
+        value: counts.totalCounts.application_insurance,
+        icon: <Shield className="h-5 w-5 text-indigo-500" />,
+        color: "border-indigo-500/10",
+        subtitle: "सुरक्षा बीमा आवेदन / Insurance Bima Application",
+        route: "/dashboard/general-applications-insurance",
+        permissionKey: "security_application",
+      },
+
+      // 6. सुरक्षा बीमा योजना / Insurance Bima Payment
+      {
+        id: "suraksha_bima_yojana",
+        title: "सुरक्षा बीमा योजना / Insurance Bima Payment",
+        value: counts.totalCounts.suraksha_bima_yojana,
+        icon: <Wallet className="h-5 w-5 text-blue-500" />,
+        color: "border-blue-500/10",
+        subtitle: "सुरक्षा बीमा किस्त भुगतान / Insurance Bima Payment",
+        route: "/dashboard/suraksha-bima-yojana",
+        permissionKey: "suraksha_bima_yojana",
+      },
+
+      // 7. मायरा फॉर्म आवेदन पत्र / Mayra General Application
+      {
+        id: "mayra_registration",
+        title: "मायरा फॉर्म आवेदन पत्र / Mayra General Application",
+        value: counts.totalCounts.mayra_registration,
+        icon: <FileText className="h-5 w-5 text-amber-500" />,
+        color: "border-amber-500/10",
+        subtitle: "मायरा सामान्य आवेदन / Mayra Registration",
+        route: "/dashboard/mayra-registration",
+        permissionKey: "mayra_registration",
+      },
+
+      // 8. मायरा बधाई पत्र / Mayra Congratulation Payment
+      {
+        id: "mayra_congratulations",
+        title: "मायरा बधाई पत्र / Mayra Congratulation Payment",
+        value: counts.totalCounts.mayra_congratulations,
+        icon: <Gift className="h-5 w-5 text-rose-500" />,
+        color: "border-rose-500/10",
+        subtitle: "मायरा विवाह बधाई पत्र / Mayra Congratulation",
+        route: "/dashboard/mayra-congratulations",
+        permissionKey: "mayra_registration",
+      },
+
+      // 9. जननी प्रसूति पंजीकरण / Janni Delivery Registration
+      {
+        id: "janni_delivery",
+        title: "जननी प्रसूति पंजीकरण / Janni Delivery Registration",
+        value: counts.totalCounts.janni_delivery,
+        icon: <HeartHandshake className="h-5 w-5 text-red-500" />,
+        color: "border-red-500/10",
+        subtitle: "जननी प्रसूति आवेदन / Janni Delivery Application",
+        route: "/dashboard/janni-delivery",
+        permissionKey: "janni_delivery",
+      },
+
+      // 10. जननी प्रसूति बधाई पत्र / Janni Congress Payment
+      {
+        id: "janni_congress_payment",
+        title: "जननी प्रसूति बधाई पत्र / Janni Congress Payment",
+        value: counts.totalCounts.janni_congress_payment,
+        icon: <Gift className="h-5 w-5 text-pink-500" />,
+        color: "border-pink-500/10",
+        subtitle: "जननी प्रसूति सहायता भुगतान / Janni Congress Payment",
+        route: "/dashboard/janni-delivery/congress-payment",
+        permissionKey: "janni_delivery",
+      },
+
+      // 11. आवास योजना पंजीकरण / Aawas (Home) Registration
+      {
+        id: "aawas_home",
+        title: "आवास योजना पंजीकरण / Aawas (Home) Registration",
+        value: counts.totalCounts.aawas_home,
+        icon: <Home className="h-5 w-5 text-sky-500" />,
+        color: "border-sky-500/10",
+        subtitle: "गृह प्रवेश आवास योजना / Aawas Registration",
+        route: "/dashboard/aawas",
+        permissionKey: "aawas_home",
+      },
+
+      // 12. लाडो बहिन पंजीकरण / Lado Bahin Registration
+      {
+        id: "lado_bahin",
+        title: "लाडो बहिन पंजीकरण / Lado Bahin Registration",
+        value: counts.totalCounts.lado_bahin,
+        icon: <Sparkles className="h-5 w-5 text-violet-500" />,
+        color: "border-violet-500/10",
+        subtitle: "लाडो बहिन आवेदन / Lado Bahin Application",
+        route: "/dashboard/lado-bahin",
+        permissionKey: "lado_bahin",
+      },
+
+      // 13. ढूंढोत्सव पंजीकरण / Dhundhotsav Registration
+      {
+        id: "dhundhotsav",
+        title: "ढूंढोत्सव पंजीकरण / Dhundhotsav Registration",
+        value: counts.totalCounts.dhundhotsav,
+        icon: <Gift className="h-5 w-5 text-orange-500" />,
+        color: "border-orange-500/10",
+        subtitle: "ढूंढोत्सव आवेदन / Dhundhotsav Application",
+        route: "/dashboard/dhundhotsav",
+        permissionKey: "dhundhotsav",
+      },
+
+      // 14. शुभलक्ष्मी पंजीकरण / ShubhLaxmi Registration
+      {
+        id: "shubh_laxmi",
+        title: "शुभलक्ष्मी पंजीकरण / ShubhLaxmi Registration",
+        value: counts.totalCounts.shubh_laxmi,
+        icon: <Sparkles className="h-5 w-5 text-emerald-500" />,
+        color: "border-emerald-500/10",
+        subtitle: "शुभलक्ष्मी आवेदन / ShubhLaxmi Application",
+        route: "/dashboard/shubh-laxmi",
+        permissionKey: "shubh_laxmi",
+      },
+
+      // 15. एजेंट आवेदन / Agent Registration
+      {
+        id: "agent_registration",
+        title: "एजेंट आवेदन / Agent Registration",
+        value: counts.totalCounts.agent_registration,
+        icon: <UserPlus className="h-5 w-5 text-lime-500" />,
+        color: "border-lime-500/10",
+        subtitle: "एजेंट पंजीकरण / Agent Registration",
+        route: "/dashboard/agent-registration",
+        permissionKey: "agent_registration",
+      },
+
+      // 16. एजेंट कमिशन भुगतान / Agent Commission Payment
       {
         id: "agent_commission",
         title: "एजेंट कमिशन भुगतान / Agent Commission Payment",
@@ -421,6 +387,8 @@ export default function DashboardPage() {
         route: "/dashboard/agent-commission",
         permissionKey: "agent_commission",
       },
+
+      // 17. एजेंट कमिशन रिपोर्ट / Agent Commission Report
       {
         id: "agent_commission_report",
         title: "एजेंट कमिशन रिपोर्ट / Agent Commission Report",
@@ -431,6 +399,8 @@ export default function DashboardPage() {
         route: "/dashboard/agent-commission-report",
         permissionKey: "agent_commission_report",
       },
+
+      // 18. बल्क विवाह ईएमआई / Bulk Marriage EMI
       {
         id: "bulk_marriage_emi",
         title: "बल्क विवाह ईएमआई / Bulk Marriage EMI",
@@ -441,6 +411,8 @@ export default function DashboardPage() {
         route: "/dashboard/bulk-marriage-emi",
         permissionKey: "bulk_marriage_emi",
       },
+
+      // 19. बल्क सुरक्षा बीमा ईएमआई / Bulk Insurance Bima EMI
       {
         id: "bulk_suraksha_bima_emi",
         title: "बल्क सुरक्षा बीमा ईएमआई / Bulk Insurance Bima EMI",
@@ -451,6 +423,8 @@ export default function DashboardPage() {
         route: "/dashboard/bulk-suraksha-bima-emi",
         permissionKey: "bulk_suraksha_bima_emi",
       },
+
+      // 20. बल्क मायरा ईएमआई / Bulk Mayra EMI
       {
         id: "bulk_mayra_emi",
         title: "बल्क मायरा ईएमआई / Bulk Mayra EMI",
@@ -460,16 +434,6 @@ export default function DashboardPage() {
         subtitle: "बल्क मायरा ईएमआई प्रबंधन / Bulk Mayra EMI",
         route: "/dashboard/bulk-mayra-emi",
         permissionKey: "bulk_mayra_emi",
-      },
-      {
-        id: "payment_management",
-        title: "भुगतान प्रबंधन / Payment Management",
-        value: counts.totalCounts.payment_management,
-        icon: <BriefcaseBusiness className="h-5 w-5 text-emerald-600" />,
-        color: "border-emerald-600/10",
-        subtitle: "संपूर्ण भुगतान प्रबंधन / Payment Management",
-        route: "/dashboard/payment-management",
-        permissionKey: "payment_management",
       },
     ]
   }

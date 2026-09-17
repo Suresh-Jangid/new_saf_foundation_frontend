@@ -78,23 +78,22 @@ export async function POST(request: NextRequest) {
 
     console.log('Generating Insurance Bond PDF for:', record?.applicantName || record?.formNumber || 'Unknown');
 
-    // Canonical official template paths for Insurance Parivar Kalyan Bond
+    // Canonical official common template for all Insurance Bima Applications (both male & female)
     const candidateTemplates = [
       path.join(process.cwd(), 'public', 'pdf', 'general_insurance_application', 'bond', 'saf_parivar_kalyan_bond.pdf'),
       path.join(process.cwd(), 'public', 'pdf', 'general_insurance_application', 'saf_parivar_kalyan_bond.pdf'),
-      path.join(process.cwd(), 'public', 'pdf', 'general_insurance_application', 'bond', 'female_suraksha_bond.pdf'),
     ];
 
     const templatePath = candidateTemplates.find((p) => fs.existsSync(p));
 
     if (!templatePath || !fs.existsSync(templatePath)) {
       return NextResponse.json(
-        { error: `Insurance bond template not found. Candidates: ${candidateTemplates.join(', ')}` },
+        { error: `Official Insurance bond template not found. Expected: saf_parivar_kalyan_bond.pdf` },
         { status: 500 }
       );
     }
 
-    console.log('Using Insurance Bond template:', templatePath);
+    console.log('Using Official Common Insurance Bond template:', templatePath);
 
     // Load existing PDF template
     const existingPdfBytes = fs.readFileSync(templatePath);
@@ -152,20 +151,6 @@ export async function POST(request: NextRequest) {
         await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 461.2, 247.2, 82.0, 89.2, 'cover');
       } catch (err) {
         console.warn('Could not embed nominee photo in Insurance Bond:', err);
-      }
-    }
-
-    // Embed director signature if available
-    const directorSignatureSource = pickPhotoSource(
-      body?.directorSignature,
-      record?.directorSignature,
-      record?.authorizedSignature
-    );
-    if (directorSignatureSource) {
-      try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, directorSignatureSource, 440, 750, 80, 30);
-      } catch (err) {
-        console.warn('Could not embed director signature in Insurance Bond:', err);
       }
     }
 

@@ -45,6 +45,41 @@ function sanitizeValue(val: any): string {
   return str;
 }
 
+// Helper to resolve authoritative installment category text for the Kanyadaan line
+function resolveInstallmentCategoryText(rec: any): string {
+  const rawAmt =
+    rec?.installmentAmount ??
+    rec?.installment_amount ??
+    rec?.installment ??
+    rec?.monthlyInstallment ??
+    rec?.monthly_installment ??
+    rec?.installmentCategory ??
+    rec?.installment_category ??
+    rec?.planAmount ??
+    rec?.plan_amount ??
+    '';
+
+  if (!rawAmt) {
+    const catStr = String(rec?.category || rec?.plan || '').trim();
+    if (catStr.includes('300')) return '₹300 किस्त';
+    if (catStr.includes('1000') || catStr.includes('1,000')) return '₹1,000 किस्त';
+    return '';
+  }
+
+  const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(String(rawAmt).replace(/[^\d.]/g, ''));
+  if (num === 300) {
+    return '₹300 किस्त';
+  }
+  if (num === 1000) {
+    return '₹1,000 किस्त';
+  }
+  const str = String(rawAmt).trim();
+  if (str.includes('300')) return '₹300 किस्त';
+  if (str.includes('1000') || str.includes('1,000')) return '₹1,000 किस्त';
+
+  return '';
+}
+
 // Add OPTIONS method to handle CORS preflight requests
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
@@ -118,16 +153,16 @@ export async function POST(request: NextRequest) {
         }
 
         if (image) {
-          // Precise passport photo box dimensions for official saf_vivah_bond.pdf
-          const imageX = 448.5;
-          const imageY = 226;
-          const imageWidth = 87.5;
-          const imageHeight = 95;
+          // Precise passport photo box dimensions for official saf_vivah_bond.pdf [453.47–540.30] x [519.44–624.84]
+          const imageX = 454.5;
+          const imageY = 520.5;
+          const imageWidth = 84.8;
+          const imageHeight = 103.3;
 
-          // Draw the image on the PDF (converted to bottom-left coordinate system)
+          // Draw the image on the PDF directly using bottom-left coordinates
           firstPage.drawImage(image, {
             x: imageX,
-            y: pageHeight - imageY - imageHeight,
+            y: imageY,
             width: imageWidth,
             height: imageHeight,
           });
@@ -157,14 +192,14 @@ export async function POST(request: NextRequest) {
       font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     }
 
-    // Helper for drawing text at top-left coordinates with optional maxW auto-scaling
-    const drawTextAt = (
+    // Helper for drawing bounded text directly on baseline Y (blY)
+    const drawBounded = (
       text: string | number | undefined | null,
       x: number,
-      topY: number,
-      size = 11,
-      color = rgb(0.1, 0.1, 0.1),
-      maxW?: number
+      blY: number,
+      size = 10.5,
+      maxW?: number,
+      color = rgb(0.1, 0.1, 0.1)
     ) => {
       if (text === undefined || text === null || String(text).trim() === '') return;
       const str = String(text).trim();
@@ -181,11 +216,49 @@ export async function POST(request: NextRequest) {
       }
       firstPage.drawText(str, {
         x,
-        y: pageHeight - topY,
+        y: blY,
         size: fontSize,
         font,
         color,
       });
+    };
+
+    // Helper for drawing horizontally centered text within a defined box
+    const drawCenteredInBox = (
+      text: string | number | undefined | null,
+      minX: number,
+      maxX: number,
+      blY: number,
+      size = 10.5,
+      color = rgb(0, 0.15, 0.6)
+    ) => {
+      if (text === undefined || text === null || String(text).trim() === '') return;
+      const str = String(text).trim();
+      let fontSize = size;
+      const boxW = maxX - minX - 4;
+      try {
+        let textW = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(str, fontSize) : 0;
+        if (boxW > 0 && textW > boxW) {
+          fontSize = Math.max(6.0, fontSize * (boxW / textW));
+          textW = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(str, fontSize) : 0;
+        }
+        const x = minX + Math.max(0, (maxX - minX - textW) / 2);
+        firstPage.drawText(str, {
+          x,
+          y: blY,
+          size: fontSize,
+          font,
+          color,
+        });
+      } catch {
+        firstPage.drawText(str, {
+          x: minX + 2,
+          y: blY,
+          size: fontSize,
+          font,
+          color,
+        });
+      }
     };
 
     // Extract & sanitize dynamic field values
@@ -208,7 +281,7 @@ export async function POST(request: NextRequest) {
       ''
     );
 
-    // आवेदन क्र. - Use application's offlineFormNumber only; blank if missing
+    // फॉर्म नं. - Application offline form number only; blank if missing (never internal UUID/ID)
     const applicationOfflineNo = sanitizeValue(
       record?.offlineFormNumber ||
       record?.offline_form_number ||
@@ -223,6 +296,7 @@ export async function POST(request: NextRequest) {
       record?.membership_number ||
       record?.memberNumber ||
       record?.member_number ||
+      record?.formNumber ||
       ''
     );
 
@@ -240,7 +314,7 @@ export async function POST(request: NextRequest) {
       record?.गोत्र ||
       ''
     );
-    const village = sanitizeValue(record?.address || record?.village || record?.गाँव || record?.पता || '');
+    const village = sanitizeValue(record?.village || record?.गाँव || record?.address || record?.पता || '');
     const warisdar = sanitizeValue(record?.nomineeName || record?.nominee_name || record?.warisdar || record?.वारिसदार || record?.नामिनी_का_नाम || '');
     const district = sanitizeValue(record?.district || record?.जिला || '');
     const agentMobile = sanitizeValue(record?.agentMobile || record?.workerMobile || record?.agent_mobile || record?.worker_mobile || record?.added_mobile || record?.कार्यकर्ता_का_मोबाइल || '');
@@ -266,64 +340,71 @@ export async function POST(request: NextRequest) {
       ''
     );
 
+    // Installment category text for Kanyadaan line (₹300 किस्त / ₹1,000 किस्त)
+    const kanyadaanInstallment = resolveInstallmentCategoryText(record);
+
+    // Benefit duration text for bottom line
     let durationText = duration || record?.duration || record?.durationText || 'बारह महीने';
     if (durationText === 'अठारह महीने' || durationText === '18 महीने' || !durationText) {
       durationText = 'बारह महीने';
     }
 
-    // 1. कार्यकर्ता कोड (label rightX: 146.61, blY: 713.66 -> topY: 128.23)
-    drawTextAt(workerCode, 153, 128.23, 11, rgb(0.8, 0, 0), 60);
+    // =========================================================================
+    // 1. TOP HEADER BOXES (Official saf_vivah_bond.pdf vector box coordinates)
+    // =========================================================================
 
-    // 2. सीनियर कार्यकर्ता कोड (label rightX: 448.97, blY: 714.80 -> topY: 127.09)
-    drawTextAt(seniorCode, 455, 127.09, 11, rgb(0.8, 0, 0), 60);
+    // 1.1 फॉर्म नं. (Box 1 Left: minX=113.57, maxX=202.02, minY=689.90, maxY=710.76)
+    drawCenteredInBox(applicationOfflineNo, 113.57, 202.02, 696.5, 11, rgb(0, 0.15, 0.6));
 
-    // 3. आवेदन क्र. (label rightX: 84.94, blY: 683.22 -> topY: 158.67)
-    drawTextAt(applicationOfflineNo, 91, 158.67, 11, rgb(0, 0.15, 0.6), 75);
+    // 1.2 एजेंट कोड (Box 2 Left: minX=113.57, maxX=202.02, minY=663.76, maxY=684.63)
+    drawCenteredInBox(workerCode, 113.57, 202.02, 670.5, 11, rgb(0.8, 0, 0));
 
-    // 4. सदस्यता क्र. (label rightX: 305.54, blY: 685.04 -> topY: 156.85)
-    drawTextAt(membershipNo, 312, 156.85, 10.5, rgb(0, 0.15, 0.6), 85);
+    // 1.3 अपलाईन कोड (Box 3 Left: minX=113.57, maxX=202.02, minY=638.78, maxY=659.64)
+    drawCenteredInBox(seniorCode, 113.57, 202.02, 645.5, 11, rgb(0.8, 0, 0));
 
-    // 5. आवेदन दि. (label rightX: 467.72, blY: 682.70 -> topY: 159.19)
-    drawTextAt(applicationDate, 474, 159.19, 10.5, rgb(0, 0.15, 0.6), 75);
+    // 1.4 आवेदन दि. (Box 1 Right: minX=451.84, maxX=540.30, minY=689.90, maxY=710.76)
+    drawCenteredInBox(applicationDate, 451.84, 540.30, 696.5, 10.5, rgb(0, 0.15, 0.6));
 
-    // 6. नाम (label rightX: 52.37, blY: 647.99 -> topY: 193.90)
-    drawTextAt(applicantName, 59, 193.90, 11, undefined, 160);
+    // 1.5 सदस्यता क्र. (Box 2 Right: minX=451.84, maxX=540.30, minY=657.72, maxY=678.59)
+    drawCenteredInBox(membershipNo, 451.84, 540.30, 664.5, 10.5, rgb(0, 0.15, 0.6));
 
-    // 7. पिता/पति का नाम (label rightX: 306.05, blY: 646.59 -> topY: 195.30)
-    drawTextAt(fatherName, 313, 195.30, 11, undefined, 230);
+    // =========================================================================
+    // 2. MIDDLE TABLE SECTION (Two columns, Rows 1-6)
+    // =========================================================================
 
-    // 8. जाति (Displays Gotra value) (label rightX: 57.13, blY: 623.77 -> topY: 218.12)
-    drawTextAt(gotra, 64, 218.12, 11, undefined, 155);
+    // Row 1: नाम :- (blY: 612.34) | नॉमिनी नाम :- (blY: 611.98)
+    drawBounded(applicantName, 72, 612.34, 10.5, 190);
+    drawBounded(warisdar, 340, 611.98, 10.5, 108);
 
-    // 9. गांव (label rightX: 242.35, blY: 622.68 -> topY: 219.21)
-    drawTextAt(village, 249, 219.21, 11, undefined, 195);
+    // Row 2: पिता/पति का नाम :- (blY: 589.11) | नॉमिनी आधार नं. :- (blY: 588.81)
+    drawBounded(fatherName, 136, 589.11, 10.5, 126);
+    drawBounded(nomineeAadhaar, 364, 588.81, 10, 84);
 
-    // 10. वारिसदार (label rightX: 75.08, blY: 599.54 -> topY: 242.35)
-    drawTextAt(warisdar, 82, 242.35, 11, undefined, 138);
+    // Row 3: आधार नं. :- (blY: 565.88) | नॉमिनी मो. नं. :- (blY: 565.64)
+    drawBounded(applicantAadhaar, 96, 565.88, 10.5, 166);
+    drawBounded(nomineeMobile, 350, 565.64, 10, 98);
 
-    // 11. जिला (label rightX: 249.09, blY: 598.76 -> topY: 243.12)
-    drawTextAt(district, 256, 243.12, 11, undefined, 190);
+    // Row 4: जाति :- (blY: 542.65) | एजेंट मो. नं. :- (blY: 542.48)
+    drawBounded(gotra, 76, 542.65, 10.5, 186);
+    drawBounded(agentMobile, 344, 542.48, 10, 104);
 
-    // 12. एजेन्ट मो. नं. (label rightX: 91.66, blY: 575.31 -> topY: 266.58)
-    drawTextAt(agentMobile, 98, 266.58, 10.5, undefined, 120);
+    // Row 5: गांव :- (blY: 519.42) | सम्बन्ध :- (blY: 519.31)
+    drawBounded(village, 74, 519.42, 10.5, 188);
+    drawBounded(relation, 320, 519.31, 10.5, 128);
 
-    // 13. राज्य (label rightX: 245.48, blY: 574.85 -> topY: 267.04)
-    drawTextAt(state, 252, 267.04, 11, undefined, 190);
+    // Row 6: जिला :- (blY: 496.20) | राज्य :- (blY: 496.14)
+    drawBounded(district, 78, 496.20, 10.5, 184);
+    drawBounded(state, 310, 496.14, 10.5, 230);
 
-    // 14. आधार नं. (label rightX: 77.16, blY: 551.08 -> topY: 290.81)
-    drawTextAt(applicantAadhaar, 84, 290.81, 10.5, undefined, 135);
+    // =========================================================================
+    // 3. BOTTOM SECTION (Installment category on Kanyadaan line, Duration below)
+    // =========================================================================
 
-    // 15. सम्बन्ध (label rightX: 256.11, blY: 550.94 -> topY: 290.95)
-    drawTextAt(relation, 263, 290.95, 11, undefined, 180);
+    // 3.1 कन्यादान ... रूपये प्रत्येक विवाह पर लागू (Installment Category: ₹300 किस्त / ₹1,000 किस्त)
+    drawCenteredInBox(kanyadaanInstallment, 212, 278, 471.56, 11, rgb(0, 0.15, 0.6));
 
-    // 16. नॉमिनी आधार नं. (label rightX: 111.30, blY: 526.85 -> topY: 315.04)
-    drawTextAt(nomineeAadhaar, 118, 315.04, 10.5, undefined, 105);
-
-    // 17. नॉमिनी मो. नं. (label rightX: 285.89, blY: 527.02 -> topY: 314.87)
-    drawTextAt(nomineeMobile, 293, 314.87, 10.5, undefined, 150);
-
-    // 18. लाभ अवधि ("आपको विवाह योजना का लाभ ... के बाद मिलेगा ।") (label rightX: 279.10, blY: 473.89 -> topY: 368.00)
-    drawTextAt(durationText, 285, 368.00, 11, rgb(0.8, 0, 0), 80);
+    // 3.2 आपको विवाह योजना का लाभ ... के बाद मिलेगा । (Duration Text: बारह महीने)
+    drawCenteredInBox(durationText, 284, 365, 448.09, 11, rgb(0.8, 0, 0));
 
     // Serialize the PDF
     const pdfBytes = await pdfDoc.save();

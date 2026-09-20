@@ -51,31 +51,23 @@ function resolveInstallmentCategoryText(rec: any): string {
     rec?.installmentAmount ??
     rec?.installment_amount ??
     rec?.installment ??
-    rec?.monthlyInstallment ??
-    rec?.monthly_installment ??
-    rec?.installmentCategory ??
-    rec?.installment_category ??
-    rec?.planAmount ??
-    rec?.plan_amount ??
     '';
 
-  if (!rawAmt) {
-    const catStr = String(rec?.category || rec?.plan || '').trim();
-    if (catStr.includes('300')) return '₹300 किस्त';
-    if (catStr.includes('1000') || catStr.includes('1,000')) return '₹1,000 किस्त';
+  if (rawAmt === undefined || rawAmt === null || rawAmt === '') {
     return '';
   }
 
   const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(String(rawAmt).replace(/[^\d.]/g, ''));
   if (num === 300) {
-    return '₹300 किस्त';
+    return '300 किस्त';
   }
   if (num === 1000) {
-    return '₹1,000 किस्त';
+    return '1000 किस्त';
   }
+
   const str = String(rawAmt).trim();
-  if (str.includes('300')) return '₹300 किस्त';
-  if (str.includes('1000') || str.includes('1,000')) return '₹1,000 किस्त';
+  if (str === '300' || str === '300 किस्त') return '300 किस्त';
+  if (str === '1000' || str === '1,000' || str === '1000 किस्त' || str === '1,000 किस्त') return '1000 किस्त';
 
   return '';
 }

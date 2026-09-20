@@ -303,40 +303,36 @@ async function runBondTestSuite() {
       rec?.installmentAmount ??
       rec?.installment_amount ??
       rec?.installment ??
-      rec?.monthlyInstallment ??
-      rec?.monthly_installment ??
-      rec?.installmentCategory ??
-      rec?.installment_category ??
-      rec?.planAmount ??
-      rec?.plan_amount ??
       '';
 
-    if (!rawAmt) {
-      const catStr = String(rec?.category || rec?.plan || '').trim();
-      if (catStr.includes('300')) return '₹300 किस्त';
-      if (catStr.includes('1000') || catStr.includes('1,000')) return '₹1,000 किस्त';
+    if (rawAmt === undefined || rawAmt === null || rawAmt === '') {
       return '';
     }
 
     const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(String(rawAmt).replace(/[^\d.]/g, ''));
     if (num === 300) {
-      return '₹300 किस्त';
+      return '300 किस्त';
     }
     if (num === 1000) {
-      return '₹1,000 किस्त';
+      return '1000 किस्त';
     }
+
     const str = String(rawAmt).trim();
-    if (str.includes('300')) return '₹300 किस्त';
-    if (str.includes('1000') || str.includes('1,000')) return '₹1,000 किस्त';
+    if (str === '300' || str === '300 किस्त') return '300 किस्त';
+    if (str === '1000' || str === '1,000' || str === '1000 किस्त' || str === '1,000 किस्त') return '1000 किस्त';
 
     return '';
   }
 
-  assert(resolveInstallmentCategoryText({ installmentAmount: 300 }) === "₹300 किस्त", `₹300 installment maps to "₹300 किस्त"`);
-  assert(resolveInstallmentCategoryText({ installmentAmount: 1000 }) === "₹1,000 किस्त", `₹1,000 installment maps to "₹1,000 किस्त"`);
-  assert(resolveInstallmentCategoryText({ installment_amount: "300" }) === "₹300 किस्त", `String "300" installment maps to "₹300 किस्त"`);
-  assert(resolveInstallmentCategoryText({ installment_amount: "1000" }) === "₹1,000 किस्त", `String "1000" installment maps to "₹1,000 किस्त"`);
+  assert(resolveInstallmentCategoryText({ installmentAmount: 300 }) === "300 किस्त", `₹300 installment maps to "300 किस्त"`);
+  assert(resolveInstallmentCategoryText({ installmentAmount: 1000 }) === "1000 किस्त", `₹1,000 installment maps to "1000 किस्त"`);
+  assert(resolveInstallmentCategoryText({ installment_amount: "300" }) === "300 किस्त", `String "300" installment maps to "300 किस्त"`);
+  assert(resolveInstallmentCategoryText({ installment_amount: "1000" }) === "1000 किस्त", `String "1000" installment maps to "1000 किस्त"`);
+  assert(resolveInstallmentCategoryText({ installmentAmount: null }) === "", `null historical application installment maps to blank`);
+  assert(resolveInstallmentCategoryText({ installmentAmount: undefined }) === "", `undefined historical application installment maps to blank`);
   assert(resolveInstallmentCategoryText({}) === "", `Missing installment category is blank`);
+  assert(resolveInstallmentCategoryText({ category: "OBC", plan: "Standard" }) === "", `Category/plan without installmentAmount is strictly blank (no fallback)`);
+  assert(resolveInstallmentCategoryText({ installmentAmount: 300, isDeepawali: true, deepawaliOffer: true }) === "300 किस्त", `₹300 Deepawali application maps to "300 किस्त" without inferring Deepawali from installment`);
   assert(resolveInstallmentCategoryText({ benefitDuration: "12 महीने" }) === "", `Duration is never mapped to Kanyadaan installment category`);
   assert(resolveInstallmentCategoryText({ ageSlab: "A", benefitAmount: 21000 }) === "", `Age slab / benefit amount is not mapped to Kanyadaan installment category`);
 

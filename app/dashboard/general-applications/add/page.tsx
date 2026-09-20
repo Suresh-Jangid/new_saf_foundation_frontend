@@ -71,6 +71,7 @@ export default function AddGeneralApplicationPage() {
     selectedAgentId?: string;
     epinCode?: string;
     epinNumber?: string;
+    installmentAmount?: string;
   }>({
     // Auto-fill today's date on the add form (same behaviour as Mayra registration)
     applicationDate: formatDate(new Date()),
@@ -101,7 +102,8 @@ export default function AddGeneralApplicationPage() {
     pendingAmount: '',
     selectedAgentId: "",
     epinCode: "", // E-PIN Voucher Code (e.g. EPIN-7VWF-U9PE-STWA)
-    epinNumber: ""
+    epinNumber: "",
+    installmentAmount: ""
   })
 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
@@ -246,6 +248,13 @@ export default function AddGeneralApplicationPage() {
       apiFormData.append("affidavit", formData.affidavit)
       apiFormData.append("gender", formData.gender)
       apiFormData.append("category", formData.category)
+
+      // Include installment selection if selected
+      if (formData.installmentAmount) {
+        apiFormData.append("installmentAmount", formData.installmentAmount)
+        apiFormData.append("installment_amount", formData.installmentAmount)
+        apiFormData.append("installment", formData.installmentAmount)
+      }
 
       // Include computed fee as totalAmount for API consumption
       if (fee) {
@@ -689,8 +698,8 @@ export default function AddGeneralApplicationPage() {
                 </div>
               </div>
 
-              {/* Gender, Category, and Fee Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Gender, Category, Fee, and Installment Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="gender">लिंग / Gender</Label>
                   <select
@@ -728,6 +737,19 @@ export default function AddGeneralApplicationPage() {
                     placeholder="शुल्क / Fee"
                     disabled
                   />
+                </div>
+                <div>
+                  <Label htmlFor="installmentAmount">किस्त / Installment</Label>
+                  <select
+                    id="installmentAmount"
+                    className="w-full border rounded px-3 py-2 mt-1"
+                    value={formData.installmentAmount || ""}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, installmentAmount: e.target.value }))}
+                  >
+                    <option value="">कोई नहीं / None (लागू नहीं)</option>
+                    <option value="300">300 किस्त (₹300)</option>
+                    <option value="1000">1000 किस्त (₹1,000)</option>
+                  </select>
                 </div>
               </div>
 

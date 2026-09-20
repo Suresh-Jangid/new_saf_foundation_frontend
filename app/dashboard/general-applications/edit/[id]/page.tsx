@@ -64,6 +64,7 @@ export type GeneralApplicationFormData = {
   paymentDate?: string;
   pendingAmount?: string;
   selectedAgentId?: string;
+  installmentAmount?: string;
 };
 
 export default function EditGeneralApplicationPage() {
@@ -102,6 +103,7 @@ export default function EditGeneralApplicationPage() {
     paymentDate: "",
     pendingAmount: "",
     selectedAgentId: "",
+    installmentAmount: "",
   })
 
   const [initialOfflineFormNumber, setInitialOfflineFormNumber] = useState<string>("")
@@ -322,6 +324,7 @@ export default function EditGeneralApplicationPage() {
             paymentDate: record.paymentDate || "",
             pendingAmount: record.pendingAmount || "",
             selectedAgentId: agentId,
+            installmentAmount: record.installmentAmount ? String(record.installmentAmount) : record.installment_amount ? String(record.installment_amount) : record.installment ? String(record.installment) : "",
           });
 
           setInitialOfflineFormNumber(offNo);
@@ -461,6 +464,9 @@ export default function EditGeneralApplicationPage() {
         affidavit: formData.affidavit,
         gender: formData.gender,
         category: formData.category,
+        installmentAmount: formData.installmentAmount ? formData.installmentAmount : undefined,
+        installment_amount: formData.installmentAmount ? formData.installmentAmount : undefined,
+        installment: formData.installmentAmount ? formData.installmentAmount : undefined,
         selectedAgentId: formData.selectedAgentId,
         passportPhoto: formData.passportPhoto ?? undefined,
         existingPhotoUrl: !formData.passportPhoto && existingPhotoUrl ? existingPhotoUrl : undefined,
@@ -693,8 +699,8 @@ export default function EditGeneralApplicationPage() {
                 </div>
               </div>
 
-              {/* Gender, Category, and Fee Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Gender, Category, Fee, and Installment Section */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="gender">लिंग / Gender</Label>
                   <select
@@ -732,6 +738,19 @@ export default function EditGeneralApplicationPage() {
                     placeholder="शुल्क / Fee"
                     disabled
                   />
+                </div>
+                <div>
+                  <Label htmlFor="installmentAmount">किस्त / Installment</Label>
+                  <select
+                    id="installmentAmount"
+                    className="w-full border rounded px-3 py-2 mt-1"
+                    value={formData.installmentAmount || ""}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, installmentAmount: e.target.value }))}
+                  >
+                    <option value="">कोई नहीं / None (लागू नहीं)</option>
+                    <option value="300">300 किस्त (₹300)</option>
+                    <option value="1000">1000 किस्त (₹1,000)</option>
+                  </select>
                 </div>
               </div>
 

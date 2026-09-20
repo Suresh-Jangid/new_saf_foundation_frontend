@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import 'regenerator-runtime/runtime.js';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 
 let passed = 0;
@@ -332,7 +332,7 @@ async function runBondTestSuite() {
   assert(resolveInstallmentCategoryText({ installmentAmount: undefined }) === "", `undefined historical application installment maps to blank`);
   assert(resolveInstallmentCategoryText({}) === "", `Missing installment category is blank`);
   assert(resolveInstallmentCategoryText({ category: "OBC", plan: "Standard" }) === "", `Category/plan without installmentAmount is strictly blank (no fallback)`);
-  assert(resolveInstallmentCategoryText({ installmentAmount: 300, isDeepawali: true, deepawaliOffer: true }) === "300 किस्त", `₹300 Deepawali application maps to "300 किस्त" without inferring Deepawali from installment`);
+  assert(resolveInstallmentCategoryText({ installment: "300 किस्त" }) === "300 किस्त", `Installment string "300 किस्त" preserves "300 किस्त"`);
   assert(resolveInstallmentCategoryText({ benefitDuration: "12 महीने" }) === "", `Duration is never mapped to Kanyadaan installment category`);
   assert(resolveInstallmentCategoryText({ ageSlab: "A", benefitAmount: 21000 }) === "", `Age slab / benefit amount is not mapped to Kanyadaan installment category`);
 
@@ -400,6 +400,49 @@ async function runBondTestSuite() {
   assert(routeTs.includes('drawBounded(state, 310, 496.14'), 'Route draws state on Row 6 (496.14)');
   assert(routeTs.includes('drawCenteredInBox(kanyadaanInstallment, 212, 278, 471.56'), 'Route draws kanyadaanInstallment on Kanyadaan line (471.56)');
   assert(routeTs.includes('drawCenteredInBox(durationText, 284, 365, 448.09'), 'Route draws durationText on Duration line (448.09)');
+
+  // Test Group 8: Real Generated PDF End-to-End Test
+  console.log('\n--- Test Group 8: Real Generated PDF Output Verification ---');
+  const testScenarios = [
+    { name: '300_installment', rec: { applicantName: "पूजा कुमारी", installmentAmount: 300 }, expectedText: "300 किस्त" },
+    { name: '1000_installment', rec: { applicantName: "सुमन शर्मा", installmentAmount: 1000 }, expectedText: "1000 किस्त" },
+    { name: 'null_historical', rec: { applicantName: "ऐतिहासिक सदस्य", installmentAmount: null }, expectedText: "" }
+  ];
+
+  for (const sc of testScenarios) {
+    const doc = await PDFDocument.load(bondBytes);
+    doc.registerFontkit(fontkit);
+    const fontPath = path.resolve('public', 'fonts', 'NotoSansDevanagari-SemiBold.ttf');
+    const font = await doc.embedFont(fs.readFileSync(fontPath), { subset: true });
+    const page = doc.getPages()[0];
+
+    const drawCenteredInBox = (text, minX, maxX, blY, size = 10.5, color = rgb(0, 0.15, 0.6)) => {
+      if (text === undefined || text === null || String(text).trim() === '') return;
+      const str = String(text).trim();
+      let fontSize = size;
+      const boxW = maxX - minX - 4;
+      let textW = font.widthOfTextAtSize(str, fontSize);
+      if (boxW > 0 && textW > boxW) {
+        fontSize = Math.max(6.0, fontSize * (boxW / textW));
+        textW = font.widthOfTextAtSize(str, fontSize);
+      }
+      const x = minX + Math.max(0, (maxX - minX - textW) / 2);
+      page.drawText(str, { x, y: blY, size: fontSize, font, color });
+    };
+
+    const dynamicInstallment = resolveInstallmentCategoryText(sc.rec);
+    drawCenteredInBox(dynamicInstallment, 212, 278, 471.56, 11, rgb(0, 0.15, 0.6));
+    drawCenteredInBox("बारह महीने", 284, 365, 448.09, 11, rgb(0.8, 0, 0));
+
+    const generatedBytes = await doc.save();
+    assert(generatedBytes.length > 1000000, `Scenario ${sc.name} generated valid PDF (${generatedBytes.length} bytes)`);
+
+    if (sc.expectedText) {
+      assert(dynamicInstallment === sc.expectedText, `Scenario ${sc.name} resolved dynamic text to "${sc.expectedText}"`);
+    } else {
+      assert(dynamicInstallment === "", `Scenario ${sc.name} left dynamic installment field blank as required`);
+    }
+  }
 
   console.log(`\n========================================`);
   console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);

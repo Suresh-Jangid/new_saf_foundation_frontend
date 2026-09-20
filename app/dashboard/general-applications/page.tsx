@@ -101,6 +101,9 @@ interface GeneralApplicationRecord {
   utr_no?: string
   transaction_id?: string
   education?: string
+  installmentAmount?: string | number
+  installment_amount?: string | number
+  installment?: string | number
   addedby_id?: string
   addedById?: string
   addedBy?: {
@@ -423,6 +426,7 @@ function mapApplicationRecord(item: GeneralApplicationRecord & Record<string, an
     totalAmount: String(totalAmount),
     amount: String(totalAmount),
     paymentModeRef,
+    installmentAmount: item.installmentAmount ?? item.installment_amount ?? item.installment ?? "",
     passportPhoto: item.passportPhoto || item.passport_photo || item.passportPhotoUrl,
   };
 }
@@ -828,6 +832,7 @@ export default function GeneralApplicationsPage() {
 
       const enrichedRecord = {
         ...record,
+        installmentAmount: record.installmentAmount ?? (record as any).installment_amount ?? (record as any).installment ?? "",
         workerOfflineFormNumber,
         seniorOfflineFormNumber,
         workerMobile: workerMobile || (record as any).workerMobile || "",

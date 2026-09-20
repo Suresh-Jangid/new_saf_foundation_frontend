@@ -178,13 +178,13 @@ export async function POST(request: NextRequest) {
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
     // ── Measured Photo Boxes on Official A4 Template (595.28 x 841.89 pt) ─
-    // Top Photo Box (खाताधारक का फोटो):   x = 252.0, y = 579.0, w = 87.0, h = 80.0 (yFromTop = 182.89)
-    // Bottom Photo Box (नॉमिनी का फोटो): x = 252.0, y = 474.5, w = 87.0, h = 80.0 (yFromTop = 287.39)
+    // Top Photo Box (खाताधारक का फोटो):   x = 252.35, y = 578.75, w = 86.40, h = 80.18 (yFromTop = 182.96)
+    // Bottom Photo Box (नॉमिनी का फोटो): x = 252.35, y = 474.42, w = 86.40, h = 80.17 (yFromTop = 287.30)
     if (applicantPhotoSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 252.0, 182.89, 87.0, 80.0, 'cover');
+      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 252.35, 182.96, 86.40, 80.18, 'cover');
     }
     if (nomineePhotoSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 252.0, 287.39, 87.0, 80.0, 'cover');
+      await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 252.35, 287.30, 86.40, 80.17, 'cover');
     }
 
     // ── Typography Setup ──────────────────────────────────────────────────
@@ -201,6 +201,43 @@ export async function POST(request: NextRequest) {
     // Color definitions
     const navyColor = rgb(0.0, 0.15, 0.58);       // #002694 (Matches template navy)
     const charcoalColor = rgb(0.12, 0.14, 0.18);  // #1f242e (Matches body text)
+
+    // Helper to draw text horizontally and vertically centered inside a box
+    const drawCenteredInBox = (
+      text: string | number | undefined | null,
+      boxX: number,
+      boxY: number, // bottom of box in PDF coords
+      boxW: number,
+      boxH: number,
+      size = 11.0,
+      color = navyColor
+    ) => {
+      if (text === undefined || text === null) return;
+      const str = String(text).trim();
+      if (!str) return;
+
+      let fontSize = size;
+      let textWidth = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(str, fontSize) : str.length * fontSize * 0.6;
+      const maxW = boxW - 4;
+      if (textWidth > maxW && (font as any).widthOfTextAtSize) {
+        fontSize = Math.max(7.0, size * (maxW / textWidth));
+        textWidth = (font as any).widthOfTextAtSize(str, fontSize);
+      }
+
+      const drawX = boxX + (boxW - textWidth) / 2;
+      // Optical vertical centering: capHeight is approx 0.72 of font size
+      const capHeight = fontSize * 0.72;
+      const boxMidY = boxY + boxH / 2;
+      const drawY = boxMidY - capHeight / 2;
+
+      firstPage.drawText(str, {
+        x: drawX,
+        y: drawY,
+        size: fontSize,
+        font,
+        color,
+      });
+    };
 
     // Drawing helper with baseline alignment and proportional bounds fitting
     const drawBounded = (
@@ -331,14 +368,23 @@ export async function POST(request: NextRequest) {
     // 4. Bottom Mayra Amount: "मायरा ...... रुपये प्रत्येक मायरा पर लागू"
     const mayraAmountText = resolveMayraAmountText(record);
 
-    // ── Draw Text on Official Calibrated Template Baselines ───────────────
-    // TOP HEADER META FIELDS (Font size 11.0 pt, Navy)
-    drawBounded(formNumber, 75.0, 685.48, 11.0, 150, navyColor);
-    drawBounded(applicationDate, 456.0, 683.37, 11.0, 100, navyColor);
-    drawBounded(agentCode, 92.0, 656.99, 11.0, 135, navyColor);
-    drawBounded(membershipNo, 456.0, 658.37, 11.0, 100, navyColor);
-    drawBounded(uplineCode, 107.0, 634.24, 11.0, 120, navyColor);
+    // ── Draw Header Meta Fields Centered inside their respective boxes ────
+    // 1. Form No Box [X: 109.31, Y: 680.13, W: 88.45, H: 20.86]
+    drawCenteredInBox(formNumber, 109.31, 680.13, 88.45, 20.86, 11.0, navyColor);
 
+    // 2. Application Date Box [X: 457.94, Y: 680.13, W: 88.45, H: 20.86]
+    drawCenteredInBox(applicationDate, 457.94, 680.13, 88.45, 20.86, 11.0, navyColor);
+
+    // 3. Agent Code Box [X: 109.31, Y: 653.99, W: 88.45, H: 20.86]
+    drawCenteredInBox(agentCode, 109.31, 653.99, 88.45, 20.86, 11.0, navyColor);
+
+    // 4. Membership No Box [X: 457.94, Y: 653.99, W: 88.45, H: 20.86]
+    drawCenteredInBox(membershipNo, 457.94, 653.99, 88.45, 20.86, 11.0, navyColor);
+
+    // 5. Upline Code Box [X: 109.31, Y: 629.01, W: 88.45, H: 20.86]
+    drawCenteredInBox(uplineCode, 109.31, 629.01, 88.45, 20.86, 11.0, navyColor);
+
+    // ── Draw Column Body Fields on Official Calibrated Template Baselines ─
     // LEFT COLUMN: भाणेज-भाणजी का विवरण (Font size 10.5 pt, Charcoal)
     drawBounded(applicantName, 96.0, 592.43, 10.5, 150, charcoalColor);
     drawBounded(applicantAadhaar, 75.0, 567.20, 10.5, 170, charcoalColor);

@@ -2,7 +2,7 @@ import 'regenerator-runtime/runtime.js';
 import fs from 'fs';
 import path from 'path';
 import assert from 'assert';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, pushGraphicsState, popGraphicsState, clip, endPath, rectangle } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 
 console.log('============================================================');
@@ -26,7 +26,6 @@ function it(desc, fn) {
 
 async function runTests() {
   const primaryTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'mayra_bond', 'mayra_bond.pdf');
-  const fallbackTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'mayra', 'mayra_bond.pdf');
   const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-SemiBold.ttf');
 
   console.log('1. Template & Asset Integrity Checks...');
@@ -96,9 +95,10 @@ async function runTests() {
     assert.ok(!membershipLine[1].includes('pinNumber'), 'pinNumber must not leak into membershipNo');
   });
 
-  it('10. फॉर्म नं. maps to offlineFormNumber / formNumber', () => {
+  it('10. फॉर्म नं. maps to offlineFormNumber / formNumber and preserves string format (e.g. "002")', () => {
     assert.ok(routeContent.includes('offlineFormNumber'), 'offlineFormNumber mapped');
     assert.ok(routeContent.includes('formNumber'), 'formNumber mapped');
+    assert.ok(!routeContent.includes('parseInt(rawFormNumber)'), 'formNumber must not strip leading zeros with parseInt');
   });
 
   it('11. एजेंट कोड maps to workerCode / agentCode with sanitization', () => {
@@ -110,7 +110,13 @@ async function runTests() {
     assert.ok(routeContent.includes('seniorCode') || routeContent.includes('uplineCode'), 'uplineCode mapped');
   });
 
-  it('13. भाणेज-भाणजी का विवरण fields map correctly (applicantName, aadharNumber, fatherName, gotra, address, relation)', () => {
+  it('13. Header meta fields use drawCenteredInBox with box bounds', () => {
+    assert.ok(routeContent.includes('drawCenteredInBox'), 'drawCenteredInBox helper exists');
+    assert.ok(routeContent.includes('drawCenteredInBox(formNumber, 109.31, 680.13, 88.45, 20.86'), 'Form No box bounds matched');
+    assert.ok(routeContent.includes('drawCenteredInBox(applicationDate, 457.94, 680.13, 88.45, 20.86'), 'Date box bounds matched');
+  });
+
+  it('14. भाणेज-भाणजी का विवरण fields map correctly (applicantName, aadharNumber, fatherName, gotra, address, relation)', () => {
     assert.ok(routeContent.includes('applicantName'), 'applicantName mapped');
     assert.ok(routeContent.includes('applicantAadhaar'), 'applicantAadhaar mapped');
     assert.ok(routeContent.includes('fatherName'), 'fatherName mapped');
@@ -119,7 +125,7 @@ async function runTests() {
     assert.ok(routeContent.includes('nomineeRelation'), 'nomineeRelation mapped');
   });
 
-  it('14. नॉमिनी का विवरण fields map correctly (nomineeName, nomineeAadhaar, nomineeFathername, nomineeGotra, age, nomineeAddress, nomineeMobile, agentMobile)', () => {
+  it('15. नॉमिनी का विवरण fields map correctly (nomineeName, nomineeAadhaar, nomineeFathername, nomineeGotra, age, nomineeAddress, nomineeMobile, agentMobile)', () => {
     assert.ok(routeContent.includes('nomineeName'), 'nomineeName mapped');
     assert.ok(routeContent.includes('nomineeAadhaar'), 'nomineeAadhaar mapped');
     assert.ok(routeContent.includes('nomineeFathername'), 'nomineeFathername mapped');
@@ -130,40 +136,39 @@ async function runTests() {
     assert.ok(routeContent.includes('agentMobile'), 'agentMobile mapped');
   });
 
-  it('15. Bottom Mayra amount maps to authoritative amount (300 किस्त / 1000 किस्त / numeric amount)', () => {
+  it('16. Bottom Mayra amount maps to authoritative amount (300 किस्त / 1000 किस्त / numeric amount)', () => {
     assert.ok(routeContent.includes('resolveMayraAmountText'), 'resolveMayraAmountText mapped');
     assert.ok(routeContent.includes('300 किस्त'), '300 installment handled');
     assert.ok(routeContent.includes('1000 किस्त'), '1000 installment handled');
   });
 
-  it('16. Applicant Photo is embedded in top box (X: 252, Y: 579, W: 87, H: 80)', () => {
+  it('17. Applicant Photo is embedded in top box (X: 252.35, Y: 578.75, W: 86.40, H: 80.18)', () => {
     assert.ok(routeContent.includes('applicantPhotoSource'), 'applicantPhotoSource checked');
-    assert.ok(routeContent.includes('252.0, 182.89, 87.0, 80.0'), 'Applicant photo positioned at top box');
+    assert.ok(routeContent.includes('252.35, 182.96, 86.40, 80.18'), 'Applicant photo positioned at top box');
   });
 
-  it('17. Nominee Photo is embedded in bottom box (X: 252, Y: 474.5, W: 87, H: 80)', () => {
+  it('18. Nominee Photo is embedded in bottom box (X: 252.35, Y: 474.42, W: 86.40, H: 80.17)', () => {
     assert.ok(routeContent.includes('nomineePhotoSource'), 'nomineePhotoSource checked');
-    assert.ok(routeContent.includes('252.0, 287.39, 87.0, 80.0'), 'Nominee photo positioned at bottom box');
+    assert.ok(routeContent.includes('252.35, 287.30, 86.40, 80.17'), 'Nominee photo positioned at bottom box');
   });
 
-  it('18. SemiBold Devanagari font is used for visual matching with KrutiDev labels', () => {
+  it('19. SemiBold Devanagari font is used for visual matching with KrutiDev labels', () => {
     assert.ok(routeContent.includes('NotoSansDevanagari-SemiBold.ttf'), 'NotoSansDevanagari-SemiBold font configured');
   });
 
   console.log('\n4. Multi-Case PDF Generation & Data Assertion Testing...');
   const fontBytes = fs.readFileSync(fontPath);
-  const devanagariFont = await pdfDoc.embedFont(fontBytes, { subset: false });
 
   // Test Case Matrix
   const testCases = [
     {
-      name: 'Case 1: Normal Complete Real Record',
+      name: 'Case 1: "002" Form No and "20/09/2026" Date Centering Record',
       data: {
         membershipNumber: 'M-2026-089',
-        offlineFormNumber: 'OFF-501',
-        applicationDate: '17/09/2026',
-        workerCode: '106',
-        seniorCode: '102',
+        offlineFormNumber: '002',
+        applicationDate: '20/09/2026',
+        workerCode: 'AGT-4012',
+        seniorCode: 'SEN-1008',
         applicantName: 'कविता कुमारी',
         aadharNumber: '1234 5678 9012',
         fatherName: 'रमेश कुमार',
@@ -282,6 +287,24 @@ async function runTests() {
       const f = await doc.embedFont(fontBytes, { subset: false });
       const p = doc.getPages()[0];
 
+      const drawCenteredInBox = (text, boxX, boxY, boxW, boxH, size = 11.0) => {
+        if (!text) return;
+        const str = String(text).trim();
+        if (!str) return;
+        let fontSize = size;
+        let textWidth = f.widthOfTextAtSize(str, fontSize);
+        const maxW = boxW - 4;
+        if (textWidth > maxW) {
+          fontSize = Math.max(7.0, size * (maxW / textWidth));
+          textWidth = f.widthOfTextAtSize(str, fontSize);
+        }
+        const drawX = boxX + (boxW - textWidth) / 2;
+        const capHeight = fontSize * 0.72;
+        const boxMidY = boxY + boxH / 2;
+        const drawY = boxMidY - capHeight / 2;
+        p.drawText(str, { x: drawX, y: drawY, size: fontSize, font: f, color: rgb(0.0, 0.15, 0.58) });
+      };
+
       const draw = (val, x, y, size, maxW) => {
         if (!val) return;
         let s = size;
@@ -292,11 +315,11 @@ async function runTests() {
         p.drawText(String(val), { x, y, size: s, font: f, color: rgb(0.12, 0.14, 0.18) });
       };
 
-      draw(tc.data.offlineFormNumber, 75.0, 685.48, 11.0, 150);
-      draw(tc.data.applicationDate, 456.0, 683.37, 11.0, 100);
-      draw(tc.data.workerCode, 92.0, 656.99, 11.0, 135);
-      draw(tc.data.membershipNumber, 456.0, 658.37, 11.0, 100);
-      draw(tc.data.seniorCode, 107.0, 634.24, 11.0, 120);
+      drawCenteredInBox(tc.data.offlineFormNumber, 109.31, 680.13, 88.45, 20.86, 11.0);
+      drawCenteredInBox(tc.data.applicationDate, 457.94, 680.13, 88.45, 20.86, 11.0);
+      drawCenteredInBox(tc.data.workerCode, 109.31, 653.99, 88.45, 20.86, 11.0);
+      drawCenteredInBox(tc.data.membershipNumber, 457.94, 653.99, 88.45, 20.86, 11.0);
+      drawCenteredInBox(tc.data.seniorCode, 109.31, 629.01, 88.45, 20.86, 11.0);
 
       draw(tc.data.applicantName, 96.0, 592.43, 10.5, 150);
       draw(tc.data.aadharNumber, 75.0, 567.20, 10.5, 170);

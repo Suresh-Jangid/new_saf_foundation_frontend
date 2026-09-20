@@ -6,7 +6,7 @@ import { Plus, FileSpreadsheet } from "lucide-react"
 import { DataTable } from "@/components/data-table"
 import { useRouter } from "next/navigation"
 import { useCRUD } from "@/hooks/use-crud"
-import { API_ENDPOINTS, mayraApplicationAPI } from "@/lib/api"
+import { API_ENDPOINTS, mayraApplicationAPI, agentRegistrationAPI } from "@/lib/api"
 import { toast } from "sonner"
 import {
   AlertDialog,
@@ -24,6 +24,152 @@ import { getCurrentUserInfo, MAYRA_ASSOCIATION_DURATION_HI, parseDateFromDDMMYYY
 import { getPhotoDataUrl } from "@/lib/utils"
 import * as XLSX from "xlsx"
 import { BulkUploadButton } from "@/components/bulk-upload-button"
+
+interface ResolvedAgentOfflineNumbers {
+  workerOfflineFormNumber: string
+  seniorOfflineFormNumber: string
+  workerMobile: string
+}
+
+function resolveAgentOfflineNumbers(
+  record: MayraRegistrationRecord & Record<string, any>,
+  agentsList: any[] = []
+): ResolvedAgentOfflineNumbers {
+  let workerOffline = String(
+    record.workerOfflineFormNumber ||
+    record.worker_offline_form_number ||
+    record.agentOfflineFormNumber ||
+    record.agent_offline_form_number ||
+    ""
+  ).trim();
+
+  let seniorOffline = String(
+    record.seniorOfflineFormNumber ||
+    record.senior_offline_form_number ||
+    record.seniorAgentOfflineFormNumber ||
+    record.senior_agent_offline_form_number ||
+    ""
+  ).trim();
+
+  let workerMobile = String(
+    record.workerMobile ||
+    record.worker_mobile ||
+    record.agentMobile ||
+    record.agent_mobile ||
+    ""
+  ).trim();
+
+  if (!agentsList || agentsList.length === 0) {
+    return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline, workerMobile };
+  }
+
+  const agentById = new Map<string, any>();
+  const agentByCode = new Map<string, any>();
+  const agentByName = new Map<string, any>();
+
+  for (const agent of agentsList) {
+    const id = String(agent.id || "").trim();
+    const empId = String(
+      agent.employeeId ||
+      agent.employee_id ||
+      agent.agentProfile?.employeeId ||
+      agent.agent_profile?.employee_id ||
+      ""
+    ).trim();
+    const name = String(agent.name || "").trim().toLowerCase();
+
+    if (id) agentById.set(id, agent);
+    if (empId) agentByCode.set(empId.toUpperCase(), agent);
+    if (name && name !== "default agent" && name !== "admin") agentByName.set(name, agent);
+  }
+
+  const targetWorkerId = String(
+    record.addedById ||
+    record.addedby_id ||
+    record.selectedAgentId ||
+    record.agentId ||
+    record.addedBy?.id ||
+    record.agent?.id ||
+    ""
+  ).trim();
+
+  const targetWorkerCode = String(
+    record.workerCode ||
+    record.worker_code ||
+    record.agentCode ||
+    record.agent_code ||
+    record.added_code ||
+    record.addedBy?.agentCode ||
+    record.addedBy?.code ||
+    ""
+  ).trim().toUpperCase();
+
+  const targetWorkerName = String(
+    record.workerName ||
+    record.worker_name ||
+    record.added_name ||
+    ""
+  ).trim().toLowerCase();
+
+  const workerAgent =
+    (targetWorkerId && agentById.get(targetWorkerId)) ||
+    (targetWorkerCode && agentByCode.get(targetWorkerCode)) ||
+    (targetWorkerName && agentByName.get(targetWorkerName));
+
+  if (workerAgent) {
+    if (!workerOffline) {
+      workerOffline = String(
+        workerAgent.offlineFormNumber ||
+        workerAgent.offline_form_number ||
+        workerAgent.agentProfile?.offlineFormNumber ||
+        workerAgent.agent_profile?.offline_form_number ||
+        workerAgent.employeeId ||
+        workerAgent.employee_id ||
+        ""
+      ).trim();
+    }
+    if (!workerMobile) {
+      workerMobile = String(workerAgent.mobile || workerAgent.phone || "").trim();
+    }
+
+    const parentSeniorId = String(
+      workerAgent.parentAgentId ||
+      workerAgent.parent_agent_id ||
+      workerAgent.seniorId ||
+      workerAgent.senior_id ||
+      ""
+    ).trim();
+
+    const parentSeniorCode = String(
+      workerAgent.seniorEmployeeId ||
+      workerAgent.senior_employee_id ||
+      workerAgent.parentEmployeeId ||
+      workerAgent.seniorCode ||
+      ""
+    ).trim().toUpperCase();
+
+    let seniorAgent: any = null;
+    if (parentSeniorId && agentById.has(parentSeniorId)) {
+      seniorAgent = agentById.get(parentSeniorId);
+    } else if (parentSeniorCode && parentSeniorCode !== "ADMIN" && parentSeniorCode !== "SUPER ADMIN" && agentByCode.has(parentSeniorCode)) {
+      seniorAgent = agentByCode.get(parentSeniorCode);
+    }
+
+    if (seniorAgent && !seniorOffline) {
+      seniorOffline = String(
+        seniorAgent.offlineFormNumber ||
+        seniorAgent.offline_form_number ||
+        seniorAgent.agentProfile?.offlineFormNumber ||
+        seniorAgent.agent_profile?.offline_form_number ||
+        seniorAgent.employeeId ||
+        seniorAgent.employee_id ||
+        ""
+      ).trim();
+    }
+  }
+
+  return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline, workerMobile };
+}
 
 // Helper to format dates to YYYY-MM-DD
 function formatExcelDate(val: any): string {
@@ -97,7 +243,29 @@ export default function MayraRegistrationPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null)
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
+  const [agentsList, setAgentsList] = useState<any[]>([])
   const router = useRouter()
+
+  useEffect(() => {
+    let isMounted = true;
+    agentRegistrationAPI
+      .getAll()
+      .then((res: any) => {
+        if (!isMounted) return;
+        if (res && res.status && Array.isArray(res.data)) {
+          setAgentsList(res.data);
+        } else if (Array.isArray(res)) {
+          setAgentsList(res);
+        }
+      })
+      .catch((err) => {
+        console.warn("Failed to load agents list for Mayra page:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const { 
     records, 
@@ -238,12 +406,27 @@ export default function MayraRegistrationPage() {
     }
   }
 
-  const handleGenerateBond = async (record: MayraRegistrationRecord) => {
+  const handleGenerateBond = async (rawRecord: MayraRegistrationRecord) => {
     try {
       const [imageData, nomineeImageData] = await Promise.all([
-        fetchPhotoAsDataUrl(record.passportPhoto),
-        fetchPhotoAsDataUrl(record.nomineePassportPhoto || record.nomineePhoto),
+        fetchPhotoAsDataUrl(rawRecord.passportPhoto),
+        fetchPhotoAsDataUrl(rawRecord.nomineePassportPhoto || rawRecord.nomineePhoto),
       ])
+
+      const { workerOfflineFormNumber, seniorOfflineFormNumber, workerMobile } = resolveAgentOfflineNumbers(
+        rawRecord,
+        agentsList
+      );
+
+      const record = {
+        ...rawRecord,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+        workerCode: workerOfflineFormNumber || (rawRecord as any).workerCode || "",
+        seniorCode: seniorOfflineFormNumber || (rawRecord as any).seniorCode || "",
+        workerMobile: workerMobile || rawRecord.workerMobile || "",
+        offlineFormNumber: rawRecord.offlineFormNumber || rawRecord.offline_form_number || rawRecord.formNumber || "",
+      };
 
       const response = await fetch('/api/generate-mayra-bond-pdf', {
         method: 'POST',
@@ -265,7 +448,7 @@ export default function MayraRegistrationPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `MAYRA_BOND_${record.applicantName}.pdf`
+      a.download = `MAYRA_BOND_${rawRecord.applicantName || 'Mayra'}.pdf`
       document.body.appendChild(a)
       a.click()
       a.remove()

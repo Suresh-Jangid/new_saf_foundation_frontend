@@ -248,6 +248,31 @@ async function runTests() {
         installmentAmount: null,
       },
     },
+    {
+      name: 'Case 5: Realistic Audit Verification Record (MY-TEST-001)',
+      data: {
+        offlineFormNumber: 'MY-TEST-001',
+        applicationDate: '20/09/2026',
+        workerCode: '106',
+        membershipNumber: 'M-2026-089',
+        seniorCode: '102',
+        applicantName: 'new.test',
+        aadharNumber: '023145678920',
+        fatherName: 'new.test father',
+        gotra: 'suthar',
+        address: 'balotra',
+        nomineeRelation: 'भांजा',
+        nomineeName: 'abc',
+        nomineeAadhar: 'valid test value',
+        nomineeFatherName: 'xyz',
+        nomineeGotra: 'suthar',
+        nomineeAddress: 'samdari',
+        nomineeMobile: '9950730637',
+        age: '17',
+        workerMobile: '8888888888',
+        installmentAmount: 300,
+      },
+    },
   ];
 
   for (const tc of testCases) {

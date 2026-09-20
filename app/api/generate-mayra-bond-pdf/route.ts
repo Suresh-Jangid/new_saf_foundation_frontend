@@ -14,16 +14,19 @@ function sanitizeOfflineNumber(val: any): string {
   const str = String(val).trim();
   const upper = str.toUpperCase();
   if (
-    upper.startsWith('EMP-') ||
-    upper.startsWith('EMP_') ||
-    upper === 'EMP' ||
-    upper === 'ADMIN' ||
-    upper === 'SUPER ADMIN' ||
+    upper === 'DEFAULT AGENT' ||
+    upper === 'DEFAULT' ||
+    upper === 'UNKNOWN' ||
     upper === 'N/A' ||
     upper === 'NA' ||
     upper === 'NULL' ||
     upper === 'UNDEFINED' ||
     upper === 'UUID' ||
+    upper === 'ADMIN' ||
+    upper === 'SUPER ADMIN' ||
+    upper.startsWith('EMP-') ||
+    upper.startsWith('EMP_') ||
+    upper === 'EMP' ||
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
   ) {
     return '';
@@ -39,7 +42,8 @@ function sanitizeValue(val: any): string {
     upper === 'NULL' ||
     upper === 'UNDEFINED' ||
     upper === 'N/A' ||
-    upper === 'NA'
+    upper === 'NA' ||
+    upper === 'DEFAULT AGENT'
   ) {
     return '';
   }
@@ -85,11 +89,8 @@ function resolveMayraAmountText(rec: any): string {
   const rawAmt =
     rec?.installmentAmount ??
     rec?.installment_amount ??
-    rec?.totalAmount ??
-    rec?.total_amount ??
-    rec?.fee ??
     rec?.mayraAmount ??
-    rec?.amount ??
+    rec?.mayra_amount ??
     '';
 
   if (rawAmt === undefined || rawAmt === null || rawAmt === '') {
@@ -252,13 +253,14 @@ export async function POST(request: NextRequest) {
 
     const rawAgentCode = getField(
       record,
+      'workerOfflineFormNumber',
+      'worker_offline_form_number',
+      'agentOfflineFormNumber',
+      'agent_offline_form_number',
       'workerCode',
       'worker_code',
       'agentCode',
       'agent_code',
-      'workerId',
-      'agentId',
-      'workerName',
     );
     const agentCode = sanitizeOfflineNumber(rawAgentCode);
 
@@ -268,12 +270,15 @@ export async function POST(request: NextRequest) {
 
     const rawUplineCode = getField(
       record,
+      'seniorOfflineFormNumber',
+      'senior_offline_form_number',
+      'seniorAgentOfflineFormNumber',
+      'senior_agent_offline_form_number',
       'seniorCode',
       'senior_code',
       'uplineCode',
       'upline_code',
       'seniorAgentCode',
-      'addedby_id',
     );
     const uplineCode = sanitizeOfflineNumber(rawUplineCode);
 
@@ -292,26 +297,35 @@ export async function POST(request: NextRequest) {
     // 3. Right Column: नॉमिनी का विवरण (Nominee)
     const nomineeName = sanitizeValue(getField(record, 'nomineeName', 'nominee_name'));
     const nomineeAadhaar = sanitizeValue(
-      getField(record, 'nomineeAadhaar', 'nominee_aadhar', 'nomineeAadharNumber', 'nominee_aadhar_number', 'nomineeAadhar'),
+      getField(
+        record,
+        'nomineeAadhar',
+        'nominee_aadhar',
+        'nomineeAadhaar',
+        'nominee_aadhaar',
+        'nomineeAadharNumber',
+        'nominee_aadhar_number',
+      ),
     );
     const nomineeFathername = sanitizeValue(
       getField(
         record,
+        'nomineeFatherName',
         'nomineeFathername',
         'nominee_father_name',
         'nominee_fathername',
-        'nomineeFatherName',
+        'nomineeParentName',
         'nomineeHusbandName',
         'nominee_husband_name',
       ),
     );
-    const nomineeGotra = sanitizeValue(getField(record, 'nomineeGotra', 'nominee_gotra'));
+    const nomineeGotra = sanitizeValue(getField(record, 'nomineeGotra', 'nominee_gotra', 'nomineeCaste', 'nominee_caste'));
     const rawAge = getField(record, 'age');
     const age = rawAge ? (/^\d+$/.test(rawAge) ? `${rawAge} वर्ष` : rawAge) : '';
     const nomineeAddress = sanitizeValue(getField(record, 'nomineeAddress', 'nominee_address'));
     const nomineeMobile = sanitizeValue(getField(record, 'nomineeMobile', 'nominee_mobile', 'mobile'));
     const agentMobile = sanitizeValue(
-      getField(record, 'workerMobile', 'worker_mobile', 'agentMobile', 'agent_mobile'),
+      getField(record, 'workerMobile', 'worker_mobile', 'agentMobile', 'agent_mobile', 'added_mobile'),
     );
 
     // 4. Bottom Mayra Amount: "मायरा ...... रुपये प्रत्येक मायरा पर लागू"

@@ -1,12 +1,74 @@
 import 'regenerator-runtime/runtime';
 import { NextRequest, NextResponse } from 'next/server';
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 
 export const runtime = 'nodejs';
+
+// Sanitize agent/upline/offline numbers to prevent leaking dummy UUIDs or placeholder strings
+function sanitizeOfflineNumber(val: any): string {
+  if (!val) return '';
+  const str = String(val).trim();
+  const upper = str.toUpperCase();
+  if (
+    upper.startsWith('EMP-') ||
+    upper.startsWith('EMP_') ||
+    upper === 'EMP' ||
+    upper === 'ADMIN' ||
+    upper === 'SUPER ADMIN' ||
+    upper === 'N/A' ||
+    upper === 'NA' ||
+    upper === 'NULL' ||
+    upper === 'UNDEFINED' ||
+    upper === 'UUID' ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+  ) {
+    return '';
+  }
+  return str;
+}
+
+function sanitizeValue(val: any): string {
+  if (!val) return '';
+  const str = String(val).trim();
+  const upper = str.toUpperCase();
+  if (
+    upper === 'NULL' ||
+    upper === 'UNDEFINED' ||
+    upper === 'N/A' ||
+    upper === 'NA'
+  ) {
+    return '';
+  }
+  return str;
+}
+
+function formatDateDisplay(val: any): string {
+  if (!val) return '';
+  const str = String(val).trim();
+  if (!str) return '';
+  // If already in DD/MM/YYYY or DD-MM-YYYY format
+  if (/^\d{2}[\/\-]\d{2}[\/\-]\d{4}$/.test(str)) {
+    const parts = str.split(/[\/\-]/);
+    return `${parts[0]}/${parts[1]}/${parts[2]}`;
+  }
+  // If in YYYY-MM-DD format
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+    const parts = str.split('T')[0].split('-');
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  return str;
+}
 
 function getField(record: Record<string, any>, ...keys: string[]): string {
   for (const key of keys) {
@@ -16,6 +78,49 @@ function getField(record: Record<string, any>, ...keys: string[]): string {
     }
   }
   return '';
+}
+
+// Resolve authoritative Mayra dynamic amount for bottom line: "मायरा ...... रुपये प्रत्येक मायरा पर लागू"
+function resolveMayraAmountText(rec: any): string {
+  const rawAmt =
+    rec?.installmentAmount ??
+    rec?.installment_amount ??
+    rec?.totalAmount ??
+    rec?.total_amount ??
+    rec?.fee ??
+    rec?.mayraAmount ??
+    rec?.amount ??
+    '';
+
+  if (rawAmt === undefined || rawAmt === null || rawAmt === '') {
+    return '';
+  }
+
+  const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(String(rawAmt).replace(/[^\d.]/g, ''));
+  if (!isNaN(num) && num > 0) {
+    if (num === 300) return '300 किस्त';
+    if (num === 1000) return '1000 किस्त';
+    return String(num);
+  }
+
+  const str = String(rawAmt).trim();
+  if (str === '300' || str === '300 किस्त') return '300 किस्त';
+  if (str === '1000' || str === '1000 किस्त') return '1000 किस्त';
+
+  return sanitizeValue(str);
+}
+
+// OPTIONS method to handle CORS preflight requests
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -69,111 +174,180 @@ export async function POST(request: NextRequest) {
     }
 
     const firstPage = pages[0];
-    const pageHeight = firstPage.getSize().height;
+    const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
-    // Measured Photo Boxes from official mayra_bond.pdf template (612 x 792):
-    // Nominee Photo Box (Top):          x = 295.5, yFromTop = 131.0, w = 46.0, h = 53.0 (y in PDF: 608 to 661)
-    // Account-holder Photo Box (Bottom): x = 295.5, yFromTop = 200.5, w = 46.0, h = 53.0 (y in PDF: 538.5 to 591.5)
-    if (nomineePhotoSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 295.5, 131.0, 46.0, 53.0);
-    }
+    // ── Measured Photo Boxes on Official A4 Template (595.28 x 841.89 pt) ─
+    // Top Photo Box (खाताधारक का फोटो):   x = 252.0, y = 579.0, w = 87.0, h = 80.0 (yFromTop = 182.89)
+    // Bottom Photo Box (नॉमिनी का फोटो): x = 252.0, y = 474.5, w = 87.0, h = 80.0 (yFromTop = 287.39)
     if (applicantPhotoSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 295.5, 200.5, 46.0, 53.0);
+      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 252.0, 182.89, 87.0, 80.0, 'cover');
+    }
+    if (nomineePhotoSource) {
+      await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 252.0, 287.39, 87.0, 80.0, 'cover');
     }
 
-    const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf');
-    const font = fs.existsSync(fontPath)
-      ? await pdfDoc.embedFont(fs.readFileSync(fontPath), { subset: false })
-      : await pdfDoc.embedFont('Helvetica');
+    // ── Typography Setup ──────────────────────────────────────────────────
+    const fontCandidates = [
+      path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-SemiBold.ttf'),
+      path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf'),
+      path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari.ttf'),
+    ];
+    const devanagariFontPath = fontCandidates.find((p) => fs.existsSync(p));
+    const font = devanagariFontPath
+      ? await pdfDoc.embedFont(fs.readFileSync(devanagariFontPath), { subset: false })
+      : await pdfDoc.embedFont(StandardFonts.Helvetica);
 
+    // Color definitions
+    const navyColor = rgb(0.0, 0.15, 0.58);       // #002694 (Matches template navy)
+    const charcoalColor = rgb(0.12, 0.14, 0.18);  // #1f242e (Matches body text)
+
+    // Drawing helper with baseline alignment and proportional bounds fitting
     const drawBounded = (
-      text: string,
+      text: string | number | undefined | null,
       x: number,
-      y: number,
-      size: number = 9.5,
+      blY: number,
+      size = 10.5,
       maxW?: number,
-      color = rgb(0, 0, 0)
+      color = charcoalColor
     ) => {
-      if (!text) return;
+      if (text === undefined || text === null) return;
       const str = String(text).trim();
       if (!str) return;
-      let s = size;
-      if (maxW && font.widthOfTextAtSize) {
-        const w = font.widthOfTextAtSize(str, size);
-        if (w > maxW) {
-          s = Math.max(6.0, size * (maxW / w));
+
+      let fontSize = size;
+      if (maxW && (font as any).widthOfTextAtSize) {
+        try {
+          const textWidth = (font as any).widthOfTextAtSize(str, size);
+          if (textWidth > maxW) {
+            fontSize = Math.max(6.0, size * (maxW / textWidth));
+          }
+        } catch {
+          // If measurement fails, fallback to default size
         }
       }
+
       firstPage.drawText(str, {
         x,
-        y,
-        size: s,
+        y: blY,
+        size: fontSize,
         font,
         color,
       });
     };
 
-    // ── Field Extraction According to Project Rules ──────────────────────
-    // 1. Membership number MUST use ONLY record.membershipNumber / membership_number
-    const membershipNo = getField(record, 'membershipNumber', 'membership_number');
-
-    // 2. Application number maps to authoritative Mayra application/form-number field ONLY
-    const applicationNo = getField(
+    // ── Field Extraction According to Authoritative Project Rules ─────────
+    // 1. Header Meta Fields
+    const rawFormNumber = getField(
       record,
+      'offlineFormNumber',
+      'offline_form_number',
+      'offlineFormNo',
       'formNumber',
       'form_number',
-      'applicationNumber',
-      'application_number',
-      'applicationNo',
-      'mayraNumber',
-      'mayra_number',
     );
+    const formNumber = sanitizeOfflineNumber(rawFormNumber);
 
-    // 3. Nominee details (Left Section: "नॉमिनी का विवरण")
-    const nomineeName = getField(record, 'nomineeName', 'nominee_name');
-    const nomineeFathername = getField(
+    const rawAppDate = getField(record, 'applicationDate', 'application_date', 'createdAt', 'created_at');
+    const applicationDate = formatDateDisplay(rawAppDate);
+
+    const rawAgentCode = getField(
       record,
-      'nomineeFathername',
-      'nominee_father_name',
-      'nominee_fathername',
-      'nomineeFather',
-      'nominee_fathers_name',
-      'nomineeHusbandName',
-      'nominee_husband_name',
+      'workerCode',
+      'worker_code',
+      'agentCode',
+      'agent_code',
+      'workerId',
+      'agentId',
+      'workerName',
     );
-    const nomineeGotra = getField(record, 'nomineeGotra', 'nominee_gotra', 'gotra');
-    const nomineeAddress = getField(record, 'nomineeAddress', 'nominee_address', 'address');
+    const agentCode = sanitizeOfflineNumber(rawAgentCode);
 
-    // 4. Account holder / Bhanej-Bhanji details (Right Section: "भाणेज-भाणजी का विवरण")
-    const applicantName = getField(record, 'applicantName', 'applicant_name');
-    const fatherName = getField(record, 'fatherName', 'father_name', 'parentName', 'parent_name');
-    const gotra = getField(record, 'gotra', 'gotra_name');
+    // STRICT: Membership number ONLY queries membershipNumber
+    const rawMembership = getField(record, 'membershipNumber', 'membership_number');
+    const membershipNo = sanitizeOfflineNumber(rawMembership);
+
+    const rawUplineCode = getField(
+      record,
+      'seniorCode',
+      'senior_code',
+      'uplineCode',
+      'upline_code',
+      'seniorAgentCode',
+      'addedby_id',
+    );
+    const uplineCode = sanitizeOfflineNumber(rawUplineCode);
+
+    // 2. Left Column: भाणेज-भाणजी का विवरण (Child / Account Holder)
+    const applicantName = sanitizeValue(getField(record, 'applicantName', 'applicant_name'));
+    const applicantAadhaar = sanitizeValue(
+      getField(record, 'aadharNumber', 'aadhar_number', 'applicantAadhaar', 'aadhaarNumber'),
+    );
+    const fatherName = sanitizeValue(
+      getField(record, 'fatherName', 'father_name', 'parentName', 'parent_name'),
+    );
+    const gotra = sanitizeValue(getField(record, 'gotra', 'gotra_name', 'caste'));
+    const address = sanitizeValue(getField(record, 'address', 'applicant_address'));
+    const nomineeRelation = sanitizeValue(getField(record, 'nomineeRelation', 'nominee_relation', 'relation'));
+
+    // 3. Right Column: नॉमिनी का विवरण (Nominee)
+    const nomineeName = sanitizeValue(getField(record, 'nomineeName', 'nominee_name'));
+    const nomineeAadhaar = sanitizeValue(
+      getField(record, 'nomineeAadhaar', 'nominee_aadhar', 'nomineeAadharNumber', 'nominee_aadhar_number', 'nomineeAadhar'),
+    );
+    const nomineeFathername = sanitizeValue(
+      getField(
+        record,
+        'nomineeFathername',
+        'nominee_father_name',
+        'nominee_fathername',
+        'nomineeFatherName',
+        'nomineeHusbandName',
+        'nominee_husband_name',
+      ),
+    );
+    const nomineeGotra = sanitizeValue(getField(record, 'nomineeGotra', 'nominee_gotra'));
     const rawAge = getField(record, 'age');
     const age = rawAge ? (/^\d+$/.test(rawAge) ? `${rawAge} वर्ष` : rawAge) : '';
-    const address = getField(record, 'address', 'applicant_address');
+    const nomineeAddress = sanitizeValue(getField(record, 'nomineeAddress', 'nominee_address'));
+    const nomineeMobile = sanitizeValue(getField(record, 'nomineeMobile', 'nominee_mobile', 'mobile'));
+    const agentMobile = sanitizeValue(
+      getField(record, 'workerMobile', 'worker_mobile', 'agentMobile', 'agent_mobile'),
+    );
 
-    // ── Draw Text on Official Template Coordinates ───────────────────────
-    // TOP HEADER INPUT BOXES
-    drawBounded(membershipNo, 160, 669.5, 10, 80);
-    drawBounded(applicationNo, 442, 669.5, 10, 84);
+    // 4. Bottom Mayra Amount: "मायरा ...... रुपये प्रत्येक मायरा पर लागू"
+    const mayraAmountText = resolveMayraAmountText(record);
 
-    // LEFT SECTION: नॉमिनी का विवरण
-    drawBounded(nomineeName, 132, 625.5, 9.5, 150);
-    drawBounded(nomineeFathername, 152, 604.5, 9.5, 130);
-    drawBounded(nomineeGotra, 122, 583.5, 9.5, 160);
-    drawBounded(nomineeAddress, 130, 557.0, 9.0, 118);
+    // ── Draw Text on Official Calibrated Template Baselines ───────────────
+    // TOP HEADER META FIELDS (Font size 11.0 pt, Navy)
+    drawBounded(formNumber, 75.0, 685.48, 11.0, 150, navyColor);
+    drawBounded(applicationDate, 456.0, 683.37, 11.0, 100, navyColor);
+    drawBounded(agentCode, 92.0, 656.99, 11.0, 135, navyColor);
+    drawBounded(membershipNo, 456.0, 658.37, 11.0, 100, navyColor);
+    drawBounded(uplineCode, 107.0, 634.24, 11.0, 120, navyColor);
 
-    // RIGHT SECTION: भाणेज-भाणजी का विवरण
-    drawBounded(applicantName, 396, 625.5, 9.5, 128);
-    drawBounded(fatherName, 392, 606.0, 9.5, 132);
-    drawBounded(gotra, 374, 586.5, 9.5, 62);
-    drawBounded(age, 460, 586.5, 9.5, 64);
-    drawBounded(address, 385, 567.5, 9.0, 138);
+    // LEFT COLUMN: भाणेज-भाणजी का विवरण (Font size 10.5 pt, Charcoal)
+    drawBounded(applicantName, 96.0, 592.43, 10.5, 150, charcoalColor);
+    drawBounded(applicantAadhaar, 75.0, 567.20, 10.5, 170, charcoalColor);
+    drawBounded(fatherName, 110.0, 541.97, 10.5, 135, charcoalColor);
+    drawBounded(gotra, 58.0, 516.74, 10.5, 185, charcoalColor);
+    drawBounded(address, 65.0, 491.51, 10.5, 135, charcoalColor);
+    drawBounded(nomineeRelation, 117.0, 466.29, 10.5, 33, charcoalColor);
 
-    // Fixed statement: "इस योजना का लाभ एक वर्ष के बाद मिलेगा" is pre-printed on template.
+    // RIGHT COLUMN: नॉमिनी का विवरण (Font size 10.5 pt, Charcoal)
+    drawBounded(nomineeName, 390.0, 604.28, 10.5, 165, charcoalColor);
+    drawBounded(nomineeAadhaar, 387.0, 580.82, 10.5, 168, charcoalColor);
+    drawBounded(nomineeFathername, 387.0, 557.35, 10.5, 168, charcoalColor);
+    drawBounded(nomineeGotra, 370.0, 533.88, 10.5, 72, charcoalColor);
+    drawBounded(age, 463.0, 533.88, 10.5, 90, charcoalColor);
+    drawBounded(nomineeAddress, 378.0, 510.41, 10.5, 177, charcoalColor);
+    drawBounded(nomineeMobile, 404.0, 486.94, 10.5, 150, charcoalColor);
+    drawBounded(agentMobile, 400.0, 463.47, 10.5, 154, charcoalColor);
+
+    // BOTTOM MAYRA AMOUNT (Font size 11.0 pt, Navy)
+    drawBounded(mayraAmountText, 223.0, 437.40, 11.0, 65, navyColor);
 
     const pdfBytes = await pdfDoc.save();
-    const rawSafeName = applicantName || membershipNo || applicationNo || record?.id || 'bond';
+    const rawSafeName = applicantName || membershipNo || formNumber || record?.id || 'bond';
     const safeName = String(rawSafeName).trim().replace(/[^a-zA-Z0-9_\-\u0900-\u097F]/g, '_');
 
     return new Response(Buffer.from(pdfBytes), {

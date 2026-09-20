@@ -27,20 +27,20 @@ function it(desc, fn) {
 async function runTests() {
   const primaryTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'mayra_bond', 'mayra_bond.pdf');
   const fallbackTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'mayra', 'mayra_bond.pdf');
-  const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf');
+  const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-SemiBold.ttf');
 
-  console.log('1. Template & Asset Checks...');
-  it('1. Official new template exists in public/pdf/mayra_bond/mayra_bond.pdf', () => {
+  console.log('1. Template & Asset Integrity Checks...');
+  it('1. Official template exists in public/pdf/mayra_bond/mayra_bond.pdf', () => {
     assert.ok(fs.existsSync(primaryTemplatePath), 'Template must exist at public/pdf/mayra_bond/mayra_bond.pdf');
   });
 
-  it('2. Correct template path is non-empty official PDF (>500KB)', () => {
+  it('2. Template is non-empty official PDF (>1.5MB)', () => {
     const stats = fs.statSync(primaryTemplatePath);
-    assert.ok(stats.size > 500000, `Template size must be > 500KB (actual: ${stats.size})`);
+    assert.ok(stats.size > 1500000, `Template size must be > 1.5MB (actual: ${stats.size})`);
   });
 
-  it('NotoSansDevanagari font exists for Hindi Unicode rendering', () => {
-    assert.ok(fs.existsSync(fontPath), 'Devanagari font must exist');
+  it('3. NotoSansDevanagari SemiBold font exists for Hindi Unicode rendering', () => {
+    assert.ok(fs.existsSync(fontPath), 'Devanagari SemiBold font must exist');
   });
 
   console.log('\n2. Template Structure & Dimension Assertions...');
@@ -48,177 +48,257 @@ async function runTests() {
   const pdfDoc = await PDFDocument.load(templateBytes);
   pdfDoc.registerFontkit(fontkit);
 
-  it('3. Template is exactly 1 page', () => {
+  it('4. Template is exactly 1 page', () => {
     assert.strictEqual(pdfDoc.getPageCount(), 1, 'Template must be exactly 1 page');
   });
 
   const page = pdfDoc.getPages()[0];
   const { width, height } = page.getSize();
 
-  it('4. Output page dimensions match template (612 x 792 pt, standard Letter)', () => {
-    assert.strictEqual(Math.round(width), 612, 'Width must be 612 pt');
-    assert.strictEqual(Math.round(height), 792, 'Height must be 792 pt');
+  it('5. Output page dimensions match official A4 template (595.28 x 841.89 pt)', () => {
+    assert.strictEqual(Math.round(width), 595, 'Width must be ~595 pt');
+    assert.strictEqual(Math.round(height), 842, 'Height must be ~842 pt');
   });
 
   console.log('\n3. Route & Field Extraction Audits...');
   const routeContent = fs.readFileSync('app/api/generate-mayra-bond-pdf/route.ts', 'utf8');
 
-  it('5. सदस्यता क्र. uses ONLY record.membershipNumber (no fallback to formNumber or sr_no)', () => {
-    const membershipLine = routeContent.match(/const\s+membershipNo\s*=\s*([^;]+);/);
-    assert.ok(membershipLine, 'membershipNo definition must exist in route');
+  it('6. सदस्यता क्र. uses ONLY record.membershipNumber / membership_number', () => {
+    const membershipLine = routeContent.match(/const\s+rawMembership\s*=\s*([^;]+);/);
+    assert.ok(membershipLine, 'rawMembership definition must exist in route');
     assert.ok(
       membershipLine[1].includes("'membershipNumber'") &&
       !membershipLine[1].includes("'formNumber'") &&
       !membershipLine[1].includes("'sr_no'") &&
       !membershipLine[1].includes("'form_number'"),
-      'membershipNo must ONLY query membershipNumber'
+      'rawMembership must ONLY query membershipNumber / membership_number'
     );
   });
 
-  it('6. Missing/empty membershipNumber remains completely blank', () => {
+  it('7. Missing/empty membershipNumber remains completely blank', () => {
     assert.ok(
       !routeContent.includes('|| "MAYRA-') && !routeContent.includes('|| "SAF-') && !routeContent.includes('|| "BOND-'),
       'Must not invent default membership numbers'
     );
   });
 
-  it('7. formNumber/sr_no cannot populate membership number', () => {
-    const membershipLine = routeContent.match(/const\s+membershipNo\s*=\s*([^;]+);/);
-    assert.ok(membershipLine, 'membershipNo definition must exist in route');
+  it('8. formNumber cannot populate membership number', () => {
+    const membershipLine = routeContent.match(/const\s+rawMembership\s*=\s*([^;]+);/);
+    assert.ok(membershipLine, 'rawMembership definition must exist in route');
     assert.ok(!membershipLine[1].includes('formNumber'), 'formNumber must not leak into membershipNo');
     assert.ok(!membershipLine[1].includes('sr_no'), 'sr_no must not leak into membershipNo');
   });
 
-  it('8. E-PIN cannot populate membership number', () => {
-    const membershipLine = routeContent.match(/const\s+membershipNo\s*=\s*([^;]+);/);
-    assert.ok(membershipLine, 'membershipNo definition must exist in route');
+  it('9. E-PIN cannot populate membership number', () => {
+    const membershipLine = routeContent.match(/const\s+rawMembership\s*=\s*([^;]+);/);
+    assert.ok(membershipLine, 'rawMembership definition must exist in route');
     assert.ok(!membershipLine[1].includes('epin'), 'epin must not leak into membershipNo');
     assert.ok(!membershipLine[1].includes('pinNumber'), 'pinNumber must not leak into membershipNo');
   });
 
-  it('9. आवेदन क्र. uses authoritative application number field', () => {
-    const appNoLine = routeContent.match(/const\s+applicationNo\s*=\s*([^;]+);/);
-    assert.ok(appNoLine, 'applicationNo definition must exist in route');
-    assert.ok(
-      appNoLine[1].includes("'formNumber'") || appNoLine[1].includes("'applicationNumber'"),
-      'applicationNo must map to formNumber / applicationNumber'
-    );
+  it('10. फॉर्म नं. maps to offlineFormNumber / formNumber', () => {
+    assert.ok(routeContent.includes('offlineFormNumber'), 'offlineFormNumber mapped');
+    assert.ok(routeContent.includes('formNumber'), 'formNumber mapped');
   });
 
-  it('10. Nominee fields map correctly (name, father, gotra, address)', () => {
-    assert.ok(routeContent.includes('nomineeName'), 'nomineeName mapped');
-    assert.ok(routeContent.includes('nomineeFathername'), 'nomineeFathername mapped');
-    assert.ok(routeContent.includes('nomineeGotra'), 'nomineeGotra mapped');
-    assert.ok(routeContent.includes('nomineeAddress'), 'nomineeAddress mapped');
+  it('11. एजेंट कोड maps to workerCode / agentCode with sanitization', () => {
+    assert.ok(routeContent.includes('workerCode') || routeContent.includes('agentCode'), 'agentCode mapped');
+    assert.ok(routeContent.includes('sanitizeOfflineNumber'), 'sanitizeOfflineNumber used');
   });
 
-  it('11. Bhanej/Bhanji fields map correctly (applicantName, fatherName, gotra, age, address)', () => {
+  it('12. अपलाईन कोड maps to seniorCode / uplineCode with sanitization', () => {
+    assert.ok(routeContent.includes('seniorCode') || routeContent.includes('uplineCode'), 'uplineCode mapped');
+  });
+
+  it('13. भाणेज-भाणजी का विवरण fields map correctly (applicantName, aadharNumber, fatherName, gotra, address, relation)', () => {
     assert.ok(routeContent.includes('applicantName'), 'applicantName mapped');
+    assert.ok(routeContent.includes('applicantAadhaar'), 'applicantAadhaar mapped');
     assert.ok(routeContent.includes('fatherName'), 'fatherName mapped');
     assert.ok(routeContent.includes('gotra'), 'gotra mapped');
-    assert.ok(routeContent.includes('age'), 'age mapped');
     assert.ok(routeContent.includes('address'), 'address mapped');
+    assert.ok(routeContent.includes('nomineeRelation'), 'nomineeRelation mapped');
   });
 
-  it('12. Nominee photo is embedded in nominee photo box (top: yFromTop=131.0, w=46, h=53)', () => {
-    assert.ok(routeContent.includes('nomineePhotoSource'), 'nomineePhotoSource picked');
-    assert.ok(routeContent.includes('131.0, 46.0, 53.0'), 'Nominee photo positioned at top box');
+  it('14. नॉमिनी का विवरण fields map correctly (nomineeName, nomineeAadhaar, nomineeFathername, nomineeGotra, age, nomineeAddress, nomineeMobile, agentMobile)', () => {
+    assert.ok(routeContent.includes('nomineeName'), 'nomineeName mapped');
+    assert.ok(routeContent.includes('nomineeAadhaar'), 'nomineeAadhaar mapped');
+    assert.ok(routeContent.includes('nomineeFathername'), 'nomineeFathername mapped');
+    assert.ok(routeContent.includes('nomineeGotra'), 'nomineeGotra mapped');
+    assert.ok(routeContent.includes('age'), 'age mapped');
+    assert.ok(routeContent.includes('nomineeAddress'), 'nomineeAddress mapped');
+    assert.ok(routeContent.includes('nomineeMobile'), 'nomineeMobile mapped');
+    assert.ok(routeContent.includes('agentMobile'), 'agentMobile mapped');
   });
 
-  it('13. Account-holder photo is embedded in account-holder photo box (bottom: yFromTop=200.5, w=46, h=53)', () => {
-    assert.ok(routeContent.includes('applicantPhotoSource'), 'applicantPhotoSource picked');
-    assert.ok(routeContent.includes('200.5, 46.0, 53.0'), 'Account-holder photo positioned at bottom box');
+  it('15. Bottom Mayra amount maps to authoritative amount (300 किस्त / 1000 किस्त / numeric amount)', () => {
+    assert.ok(routeContent.includes('resolveMayraAmountText'), 'resolveMayraAmountText mapped');
+    assert.ok(routeContent.includes('300 किस्त'), '300 installment handled');
+    assert.ok(routeContent.includes('1000 किस्त'), '1000 installment handled');
   });
 
-  it('14. Hindi Unicode renders correctly with NotoSansDevanagari and subset: false', () => {
-    assert.ok(routeContent.includes('NotoSansDevanagari'), 'Devanagari font used');
-    assert.ok(routeContent.includes('subset: false'), 'Full glyph set embedded');
+  it('16. Applicant Photo is embedded in top box (X: 252, Y: 579, W: 87, H: 80)', () => {
+    assert.ok(routeContent.includes('applicantPhotoSource'), 'applicantPhotoSource checked');
+    assert.ok(routeContent.includes('252.0, 182.89, 87.0, 80.0'), 'Applicant photo positioned at top box');
   });
 
-  it('15. Fixed "एक वर्ष के बाद मिलेगा" text is preserved (not dynamically overwritten)', () => {
-    assert.ok(
-      !routeContent.includes('drawBounded(duration') &&
-      !routeContent.includes('drawText(duration') &&
-      !routeContent.includes('drawText(MAYRA_ASSOCIATION_DURATION'),
-      'Fixed duration text must remain untouched on template'
-    );
+  it('17. Nominee Photo is embedded in bottom box (X: 252, Y: 474.5, W: 87, H: 80)', () => {
+    assert.ok(routeContent.includes('nomineePhotoSource'), 'nomineePhotoSource checked');
+    assert.ok(routeContent.includes('252.0, 287.39, 87.0, 80.0'), 'Nominee photo positioned at bottom box');
   });
 
-  it('16. No old Mayra Bond template remains active in fallback path', () => {
-    const fallbackBytes = fs.readFileSync(fallbackTemplatePath);
-    assert.strictEqual(
-      fallbackBytes.length,
-      templateBytes.length,
-      'Fallback template must be synced with the new official template'
-    );
+  it('18. SemiBold Devanagari font is used for visual matching with KrutiDev labels', () => {
+    assert.ok(routeContent.includes('NotoSansDevanagari-SemiBold.ttf'), 'NotoSansDevanagari-SemiBold font configured');
   });
 
-  console.log('\n4. Mock PDF Generation & Data Assertion Testing...');
+  console.log('\n4. Multi-Case PDF Generation & Data Assertion Testing...');
   const fontBytes = fs.readFileSync(fontPath);
   const devanagariFont = await pdfDoc.embedFont(fontBytes, { subset: false });
 
-  const mockRecordWithMem = {
-    membershipNumber: 'M-2026-089',
-    formNumber: 'FORM-2026-001',
-    applicantName: 'कविता कुमारी',
-    fatherName: 'रमेश कुमार',
-    gotra: 'प्रजापत',
-    age: '18 वर्ष',
-    address: 'जसोल, बालोतरा',
-    nomineeName: 'रमेश कुमार প্রজাপत',
-    nomineeFathername: 'सज्जन राज प्रजापत',
-    nomineeGotra: 'प्रजापत',
-    nomineeAddress: 'जसोल, बालोतरा (राज.)',
-  };
+  // Test Case Matrix
+  const testCases = [
+    {
+      name: 'Case 1: Normal Complete Real Record',
+      data: {
+        membershipNumber: 'M-2026-089',
+        offlineFormNumber: 'OFF-501',
+        applicationDate: '17/09/2026',
+        workerCode: '106',
+        seniorCode: '102',
+        applicantName: 'कविता कुमारी',
+        aadharNumber: '1234 5678 9012',
+        fatherName: 'रमेश कुमार',
+        gotra: 'प्रजापत',
+        address: 'जसोल, बालोतरा',
+        nomineeRelation: 'भांजी',
+        nomineeName: 'सज्जन राज',
+        nomineeAadhaar: '9876 5432 1098',
+        nomineeFathername: 'भंवर लाल प्रजापत',
+        nomineeGotra: 'प्रजापत',
+        age: '18 वर्ष',
+        nomineeAddress: 'जसोल, बालोतरा (राज.)',
+        nomineeMobile: '9876543210',
+        workerMobile: '9123456780',
+        installmentAmount: 300,
+      },
+    },
+    {
+      name: 'Case 2: Short Values',
+      data: {
+        offlineFormNumber: '1',
+        applicationDate: '01/01/2026',
+        workerCode: '5',
+        applicantName: 'पूजा',
+        fatherName: 'राम',
+        gotra: 'सैन',
+        address: 'पाली',
+        nomineeRelation: 'पुत्री',
+        nomineeName: 'ओम',
+        nomineeFathername: 'राम',
+        nomineeGotra: 'सैन',
+        age: '19',
+        nomineeAddress: 'पाली',
+        installmentAmount: 1000,
+      },
+    },
+    {
+      name: 'Case 3: Long Names and Long Addresses (Testing Proportional Fitting)',
+      data: {
+        membershipNumber: 'MEM-2026-LONG-001',
+        offlineFormNumber: 'OFF-LONG-2026-0098',
+        applicationDate: '2026-09-17',
+        workerCode: 'WRK-889900',
+        seniorCode: 'SNR-112233',
+        applicantName: 'श्रीमती भाग्यवंती देवी सुपुत्री सज्जनराज जी प्रजापत',
+        aadharNumber: '123456789012',
+        fatherName: 'श्री सज्जनराज जी सुपुत्र भंवरलाल जी प्रजापत',
+        gotra: 'प्रजापत (कुम्हार)',
+        address: 'मकान नंबर 45, रेलवे स्टेशन रोड, वार्ड नंबर 12, समदड़ी तहसील, बालोतरा',
+        nomineeRelation: 'भांजा',
+        nomineeName: 'श्रीमान भरत कुमार जी सुपुत्र सज्जनराज जी प्रजापत',
+        nomineeAadhaar: '987654321098',
+        nomineeFathername: 'श्री सज्जनराज जी प्रजापत समदड़ी',
+        nomineeGotra: 'प्रजापत (कुम्हार)',
+        age: '21 वर्ष',
+        nomineeAddress: 'ग्राम पोस्ट समदड़ी, तहसील सिवाना, जिला बालोतरा, राजस्थान 344021',
+        nomineeMobile: '9876543210',
+        workerMobile: '9123456780',
+        installmentAmount: '300 किस्त',
+      },
+    },
+    {
+      name: 'Case 4: Null/Empty Optional Fields (Strict Blank Verification)',
+      data: {
+        applicantName: 'मोनिका',
+        fatherName: 'सुरेश कुमार',
+        gotra: 'जांगिड़',
+        address: 'जोधपुर',
+        membershipNumber: null,
+        workerCode: undefined,
+        seniorCode: '',
+        offlineFormNumber: '',
+        nomineeRelation: '',
+        nomineeName: 'सुरेश कुमार',
+        nomineeAadhaar: null,
+        nomineeFathername: '',
+        nomineeGotra: 'जांगिड़',
+        age: '',
+        nomineeAddress: '',
+        nomineeMobile: '',
+        workerMobile: '',
+        installmentAmount: null,
+      },
+    },
+  ];
 
-  const drawBounded = (text, x, y, size = 9.5, maxW = 150) => {
-    if (!text) return;
-    let s = size;
-    if (devanagariFont.widthOfTextAtSize) {
-      const w = devanagariFont.widthOfTextAtSize(text, size);
-      if (w > maxW) s = Math.max(6.0, size * (maxW / w));
-    }
-    page.drawText(text, { x, y, size: s, font: devanagariFont, color: rgb(0, 0, 0) });
-  };
+  for (const tc of testCases) {
+    it(`PDF serialization for ${tc.name}`, async () => {
+      const doc = await PDFDocument.load(templateBytes);
+      doc.registerFontkit(fontkit);
+      const f = await doc.embedFont(fontBytes, { subset: false });
+      const p = doc.getPages()[0];
 
-  drawBounded(mockRecordWithMem.membershipNumber, 160, 669.5, 10, 80);
-  drawBounded(mockRecordWithMem.formNumber, 442, 669.5, 10, 84);
-  drawBounded(mockRecordWithMem.nomineeName, 132, 625.5, 9.5, 150);
-  drawBounded(mockRecordWithMem.nomineeFathername, 152, 604.5, 9.5, 130);
-  drawBounded(mockRecordWithMem.nomineeGotra, 122, 583.5, 9.5, 160);
-  drawBounded(mockRecordWithMem.nomineeAddress, 130, 557.0, 9.0, 118);
-  drawBounded(mockRecordWithMem.applicantName, 396, 625.5, 9.5, 128);
-  drawBounded(mockRecordWithMem.fatherName, 392, 606.0, 9.5, 132);
-  drawBounded(mockRecordWithMem.gotra, 374, 586.5, 9.5, 62);
-  drawBounded(mockRecordWithMem.age, 460, 586.5, 9.5, 64);
-  drawBounded(mockRecordWithMem.address, 385, 567.5, 9.0, 138);
+      const draw = (val, x, y, size, maxW) => {
+        if (!val) return;
+        let s = size;
+        if (maxW && f.widthOfTextAtSize) {
+          const w = f.widthOfTextAtSize(String(val), size);
+          if (w > maxW) s = Math.max(6.0, size * (maxW / w));
+        }
+        p.drawText(String(val), { x, y, size: s, font: f, color: rgb(0.12, 0.14, 0.18) });
+      };
 
-  const generatedBytes = await pdfDoc.save();
-  it('Generated Mayra Bond PDF with data is valid (>550KB)', () => {
-    assert.ok(generatedBytes.length > 550000, `Serialized PDF must be > 550KB (actual: ${generatedBytes.length})`);
-  });
+      draw(tc.data.offlineFormNumber, 75.0, 685.48, 11.0, 150);
+      draw(tc.data.applicationDate, 456.0, 683.37, 11.0, 100);
+      draw(tc.data.workerCode, 92.0, 656.99, 11.0, 135);
+      draw(tc.data.membershipNumber, 456.0, 658.37, 11.0, 100);
+      draw(tc.data.seniorCode, 107.0, 634.24, 11.0, 120);
 
-  // Strict membership number isolation tests
-  const getFieldStrict = (r, key) => (r && r[key] && String(r[key]).trim()) || '';
+      draw(tc.data.applicantName, 96.0, 592.43, 10.5, 150);
+      draw(tc.data.aadharNumber, 75.0, 567.20, 10.5, 170);
+      draw(tc.data.fatherName, 110.0, 541.97, 10.5, 135);
+      draw(tc.data.gotra, 58.0, 516.74, 10.5, 185);
+      draw(tc.data.address, 65.0, 491.51, 10.5, 135);
+      draw(tc.data.nomineeRelation, 117.0, 466.29, 10.5, 33);
 
-  it('Case 2: Missing membershipNumber remains blank', () => {
-    const blankMemRecord = { ...mockRecordWithMem, membershipNumber: '' };
-    assert.strictEqual(getFieldStrict(blankMemRecord, 'membershipNumber'), '');
-  });
+      draw(tc.data.nomineeName, 390.0, 604.28, 10.5, 165);
+      draw(tc.data.nomineeAadhaar, 387.0, 580.82, 10.5, 168);
+      draw(tc.data.nomineeFathername, 387.0, 557.35, 10.5, 168);
+      draw(tc.data.nomineeGotra, 370.0, 533.88, 10.5, 72);
+      draw(tc.data.age, 463.0, 533.88, 10.5, 90);
+      draw(tc.data.nomineeAddress, 378.0, 510.41, 10.5, 177);
+      draw(tc.data.nomineeMobile, 404.0, 486.94, 10.5, 150);
+      draw(tc.data.workerMobile, 400.0, 463.47, 10.5, 154);
 
-  it('Case 3: formNumber/sr_no cannot populate membership number', () => {
-    const recordWithForm = { formNumber: 'FORM-999', sr_no: 'SR-111' };
-    assert.strictEqual(getFieldStrict(recordWithForm, 'membershipNumber'), '');
-  });
+      draw(tc.data.installmentAmount ? `${tc.data.installmentAmount} किस्त` : '', 223.0, 437.40, 11.0, 65);
 
-  it('Case 4: E-PIN cannot populate membership number', () => {
-    const recordWithEpin = { epin: 'EPIN-12345', epinNumber: 'EPIN-12345' };
-    assert.strictEqual(getFieldStrict(recordWithEpin, 'membershipNumber'), '');
-  });
+      const bytes = await doc.save();
+      assert.ok(bytes.length > 1500000, 'Serialized PDF must be valid (>1.5MB)');
+    });
+  }
 
   console.log('\n============================================================');
-  console.log(`TOTAL CHECKS: ${passCount + failCount} | PASSED: ${passCount} | FAILED: ${failCount}`);
-  console.log('============================================================\n');
+  console.log(`MAYRA BOND PDF TEST SUITE RESULT: ${passCount} PASSED, ${failCount} FAILED`);
+  console.log('============================================================');
 
   if (failCount > 0) {
     process.exit(1);

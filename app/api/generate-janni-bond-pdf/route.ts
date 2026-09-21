@@ -378,11 +378,11 @@ export async function POST(request: NextRequest) {
 
     // ── 5. Draw Benefit Duration Line ──
     // "आपको विवाह योजना का लाभ [ नौ माह ] के बाद मिलेगा ।"
-    // Dotted line runs from X: 245.0 to 330.0 (W: 85.0) at baseline yTop: 425.0
+    // Dotted line runs from X: 236.0 to 330.0 (W: 94.0) at baseline yTop: 405.0
     if (duration) {
       const durW = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(duration, 10.5) : 35.0;
-      const durX = 245.0 + Math.max(0, (85.0 - durW) / 2);
-      drawBounded(duration, durX, 425.0, 10.5, 80, redColor);
+      const durX = 236.0 + Math.max(0, (94.0 - durW) / 2);
+      drawBounded(duration, durX, 405.0, 10.5, 80, redColor);
     }
 
     const pdfBytes = await pdfDoc.save();

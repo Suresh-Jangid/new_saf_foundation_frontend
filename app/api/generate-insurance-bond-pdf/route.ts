@@ -122,12 +122,18 @@ export async function POST(request: NextRequest) {
 
     const nomineePhotoSource = pickPhotoSource(
       body?.nomineeImageData,
+      body?.nomineePhotoData,
+      body?.nomineePhoto,
+      body?.nomineePhotoUrl,
+      body?.nomineePassportPhoto,
       record?.nomineeImageData,
       record?.nomineePhotoData,
       record?.nomineePassportPhoto,
       record?.nominee_passport_photo,
       record?.nomineePhoto,
       record?.nominee_photo,
+      record?.nomineePhotoUrl,
+      record?.nominee_photo_url,
       record?.spousePhotoUrl
     );
 
@@ -334,8 +340,38 @@ export async function POST(request: NextRequest) {
       record['नॉमिनी_का_नाम'] ||
       ''
     );
-    const nomineeAadhar = sanitizeValue(record.nomineeAadhar || record.nomineeAadhaar || record.nominee_aadhar || '');
-    const nomineeMobile = sanitizeValue(record.nomineeMobile || record.nomineePhone || record.nominee_mobile || '');
+    const nomineeAadhar = sanitizeValue(
+      record.nomineeAadhaarNumber ||
+      record.nomineeAadharNumber ||
+      record.nominee_aadhaar_number ||
+      record.nominee_aadhar_number ||
+      record.nomineeAadhaar ||
+      record.nomineeAadhar ||
+      record.nominee_aadhaar ||
+      record.nominee_aadhar ||
+      record.nomineeAadhaarNo ||
+      record.nomineeAadharNo ||
+      record.nominee_aadhaar_no ||
+      record.nominee_aadhar_no ||
+      record['नॉमिनी_आधार_नं'] ||
+      record['नॉमिनी_आधार'] ||
+      record['वारिसदार_आधार'] ||
+      ''
+    );
+    const nomineeMobile = sanitizeValue(
+      record.nomineeMobileNumber ||
+      record.nominee_mobile_number ||
+      record.nomineeMobile ||
+      record.nominee_mobile ||
+      record.nomineeMobileNo ||
+      record.nominee_mobile_no ||
+      record.nomineePhone ||
+      record.nominee_phone ||
+      record['नॉमिनी_मोबाइल_नं'] ||
+      record['नॉमिनी_मोबाइल'] ||
+      record['वारिसदार_मोबाइल'] ||
+      ''
+    );
     // Agent Mobile must come ONLY from the assigned Agent/Worker's authoritative mobile field.
     // Allowed resolution:
     // 1. agentMobileNumber / agent_mobile_number
@@ -366,27 +402,41 @@ export async function POST(request: NextRequest) {
     const state = sanitizeValue(record.state || 'राजस्थान');
 
     // 8. Bottom Insurance Scheme Amount: "परिवार कल्याण बीमा [ AMOUNT ] रुपये प्रत्येक बीमा पर लागू"
+    // Strict rules:
+    // If installmentAmount === 300 -> EXACT TEXT: "300 किस्त"
+    // If installmentAmount === 1000 -> EXACT TEXT: "1000 किस्त"
+    // If installmentAmount is null/undefined/empty -> BLANK ""
     const rawAmt =
       record?.installmentAmount ??
       record?.installment_amount ??
-      record?.insuranceAmount ??
-      record?.insurance_amount ??
+      record?.insuranceInstallment ??
+      record?.insurance_installment ??
+      record?.monthly_installment ??
+      record?.monthlyInstallment ??
+      record?.premiumAmount ??
+      record?.premium_amount ??
       record?.paymentAmount ??
       record?.payment_amount ??
       record?.amount ??
       '';
     let insuranceAmountText = '';
     if (rawAmt !== undefined && rawAmt !== null && rawAmt !== '') {
-      const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(String(rawAmt).replace(/[^\d.]/g, ''));
+      const cleanAmtStr = String(rawAmt).trim();
+      const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(cleanAmtStr.replace(/[^\d.]/g, ''));
       if (!isNaN(num) && num > 0) {
-        if (num === 300) insuranceAmountText = '300 किस्त';
-        else if (num === 1000) insuranceAmountText = '1000 किस्त';
-        else insuranceAmountText = String(num);
-      } else {
-        const str = String(rawAmt).trim();
-        if (str === '300' || str === '300 किस्त') insuranceAmountText = '300 किस्त';
-        else if (str === '1000' || str === '1000 किस्त') insuranceAmountText = '1000 किस्त';
-        else insuranceAmountText = sanitizeValue(str);
+        if (num === 300) {
+          insuranceAmountText = '300 किस्त';
+        } else if (num === 1000) {
+          insuranceAmountText = '1000 किस्त';
+        } else if (cleanAmtStr.includes('किस्त')) {
+          insuranceAmountText = cleanAmtStr;
+        } else {
+          insuranceAmountText = `${num} किस्त`;
+        }
+      } else if (cleanAmtStr === '300' || cleanAmtStr === '300 किस्त') {
+        insuranceAmountText = '300 किस्त';
+      } else if (cleanAmtStr === '1000' || cleanAmtStr === '1000 किस्त') {
+        insuranceAmountText = '1000 किस्त';
       }
     }
 

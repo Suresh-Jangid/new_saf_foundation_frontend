@@ -82,6 +82,24 @@ interface GeneralInsuranceApplicationRecord {
   state: string
   nomineeName: string
   nomineeRelation: string
+  nomineeAadhar?: string | null
+  nomineeAadhaar?: string | null
+  nomineeAadhaarNumber?: string | null
+  nomineeAadharNumber?: string | null
+  nominee_aadhar?: string | null
+  nominee_aadhaar?: string | null
+  nominee_aadhar_number?: string | null
+  nominee_aadhaar_number?: string | null
+  nomineeMobile?: string | null
+  nomineeMobileNumber?: string | null
+  nominee_mobile?: string | null
+  nominee_mobile_number?: string | null
+  nomineePhoto?: string | null
+  nomineePassportPhoto?: string | null
+  nominee_photo?: string | null
+  nominee_passport_photo?: string | null
+  installmentAmount?: string | number | null
+  installment_amount?: string | number | null
   workerName: string
   workerMobile: string
   affidavit: string
@@ -299,42 +317,52 @@ export default function GeneralInsuranceApplicationsPage() {
           const offlineFormNumber = item.offline_form_number || item.offlineFormNumber || ""
 
           return {
-          id: item.id || item.insurance_id,
-          formNumber: item.form_number || item.formNumber,
-          offlineFormNumber,
-          offline_form_number: offlineFormNumber,
-          applicationDate: item.application_date || item.applicationDate,
-          applicantName: item.applicant_name || item.applicantName,
-          fatherName: item.father_name || item.fatherName,
-          wifeName: item.wife_name || item.wifeName,
-          motherName: item.mother_name || item.motherName,
-          dateOfBirth,
-          aadharNumber: item.aadhar_number || item.aadharNumber,
-          gotra: item.gotra,
-          age: computedAge != null ? String(computedAge) : "",
-          gender: item.gender,
-          category: item.category,
-          mobile: item.mobile,
-          address: item.address,
-          pinCode: item.pin_code || item.pinCode,
-          tehsil: item.tehsil,
-          district: item.district,
-          state: item.state,
-          nomineeName: item.nominee_name || item.nomineeName,
-          nomineeRelation: item.nominee_relation || item.nomineeRelation,
-          workerName: item.added_name || item.workerName || item.addedBy?.name,
-          workerMobile: item.added_mobile || item.workerMobile || item.addedBy?.mobile,
-          affidavit: item.affidavit || item.affidavitUrl,
-          passportPhoto: item.passport_photo || item.passportPhoto || item.passportPhotoUrl,
-          paymentAmount: item.payment_amount || item.paymentAmount,
-          paymentMode: item.payment_mode || item.paymentMode,
-          paymentDate: item.payment_date || item.paymentDate,
-          transactionId: item.transaction_id || item.transactionId,
-          createdAt: item.created_at || item.createdAt,
-          is_active:
-            item.is_active ??
-            (item.isActive === true || item.isActive === 1 ? 1 : 0),
-        }})
+            ...item,
+            id: item.id || item.insurance_id,
+            formNumber: item.form_number || item.formNumber,
+            offlineFormNumber,
+            offline_form_number: offlineFormNumber,
+            applicationDate: item.application_date || item.applicationDate,
+            applicantName: item.applicant_name || item.applicantName,
+            fatherName: item.father_name || item.fatherName,
+            wifeName: item.wife_name || item.wifeName,
+            motherName: item.mother_name || item.motherName,
+            dateOfBirth,
+            aadharNumber: item.aadhar_number || item.aadharNumber,
+            gotra: item.gotra,
+            age: computedAge != null ? String(computedAge) : "",
+            gender: item.gender,
+            category: item.category,
+            mobile: item.mobile,
+            address: item.address,
+            pinCode: item.pin_code || item.pinCode,
+            tehsil: item.tehsil,
+            district: item.district,
+            state: item.state,
+            nomineeName: item.nominee_name || item.nomineeName,
+            nomineeRelation: item.nominee_relation || item.nomineeRelation,
+            nomineeAadhar: item.nominee_aadhar || item.nomineeAadhar || item.nominee_aadhaar || item.nomineeAadhaar || item.nominee_aadhaar_number || item.nomineeAadhaarNumber || item.nominee_aadhar_number || item.nomineeAadharNumber,
+            nomineeAadhaarNumber: item.nominee_aadhaar_number || item.nomineeAadhaarNumber || item.nominee_aadhar_number || item.nomineeAadharNumber || item.nominee_aadhar || item.nomineeAadhar,
+            nomineeMobile: item.nominee_mobile || item.nomineeMobile || item.nominee_mobile_number || item.nomineeMobileNumber || item.nomineePhone || item.nominee_phone,
+            nomineeMobileNumber: item.nominee_mobile_number || item.nomineeMobileNumber || item.nominee_mobile || item.nomineeMobile,
+            nomineePhoto: item.nominee_photo || item.nomineePhoto || item.nominee_photo_url || item.nomineePhotoUrl || item.nomineePassportPhoto || item.nominee_passport_photo,
+            nomineePassportPhoto: item.nominee_passport_photo || item.nomineePassportPhoto || item.nominee_photo || item.nomineePhoto,
+            installmentAmount: item.installment_amount ?? item.installmentAmount ?? item.insurance_amount ?? item.insuranceAmount ?? item.payment_amount ?? item.paymentAmount,
+            installment_amount: item.installment_amount ?? item.installmentAmount,
+            workerName: item.added_name || item.workerName || item.addedBy?.name,
+            workerMobile: item.added_mobile || item.workerMobile || item.addedBy?.mobile,
+            affidavit: item.affidavit || item.affidavitUrl,
+            passportPhoto: item.passport_photo || item.passportPhoto || item.passportPhotoUrl,
+            paymentAmount: item.payment_amount || item.paymentAmount,
+            paymentMode: item.payment_mode || item.paymentMode,
+            paymentDate: item.payment_date || item.paymentDate,
+            transactionId: item.transaction_id || item.transactionId,
+            createdAt: item.created_at || item.createdAt,
+            is_active:
+              item.is_active ??
+              (item.isActive === true || item.isActive === 1 ? 1 : 0),
+          };
+        })
         setRecords(transformedData)
       } else {
         toast.error(response.message || "Failed to fetch insurance applications")
@@ -537,8 +565,13 @@ export default function GeneralInsuranceApplicationsPage() {
 
   const handleGenerateBond = async (rawRecord: GeneralInsuranceApplicationRecord) => {
     try {
-      // Get image data if available
-      const imageData = await processImageData(rawRecord.passportPhoto);
+      // Get applicant image data if available
+      const applicantPhotoPath = rawRecord.passportPhoto || (rawRecord as any).applicantPhoto || (rawRecord as any).applicant_photo || (rawRecord as any).passport_photo;
+      const imageData = await processImageData(applicantPhotoPath);
+
+      // Get nominee image data if available
+      const nomineePhotoPath = (rawRecord as any).nomineePhoto || (rawRecord as any).nominee_photo || (rawRecord as any).nomineePassportPhoto || (rawRecord as any).nominee_passport_photo || (rawRecord as any).nomineePhotoUrl || (rawRecord as any).nominee_photo_url;
+      const nomineeImageData = await processImageData(nomineePhotoPath);
 
       const { workerOfflineFormNumber, seniorOfflineFormNumber, workerMobile } = resolveAgentOfflineNumbers(
         rawRecord,
@@ -555,6 +588,12 @@ export default function GeneralInsuranceApplicationsPage() {
         agentMobile: workerMobile || "",
         workerMobile: workerMobile || "",
         offlineFormNumber: rawRecord.offlineFormNumber || rawRecord.offline_form_number || rawRecord.formNumber || "",
+        nomineeAadhar: (rawRecord as any).nomineeAadhar || (rawRecord as any).nomineeAadhaar || (rawRecord as any).nominee_aadhar || (rawRecord as any).nominee_aadhaar || (rawRecord as any).nomineeAadhaarNumber || (rawRecord as any).nomineeAadharNumber || (rawRecord as any).nominee_aadhaar_number || (rawRecord as any).nominee_aadhar_number || "",
+        nomineeAadhaarNumber: (rawRecord as any).nomineeAadhaarNumber || (rawRecord as any).nomineeAadharNumber || (rawRecord as any).nomineeAadhar || (rawRecord as any).nomineeAadhaar || (rawRecord as any).nominee_aadhar || "",
+        nomineeMobile: (rawRecord as any).nomineeMobile || (rawRecord as any).nominee_mobile || (rawRecord as any).nomineeMobileNumber || (rawRecord as any).nominee_mobile_number || (rawRecord as any).nomineePhone || "",
+        nomineeMobileNumber: (rawRecord as any).nomineeMobileNumber || (rawRecord as any).nominee_mobile_number || (rawRecord as any).nomineeMobile || (rawRecord as any).nominee_mobile || "",
+        installmentAmount: (rawRecord as any).installmentAmount ?? (rawRecord as any).installment_amount ?? (rawRecord as any).paymentAmount ?? (rawRecord as any).payment_amount,
+        installment_amount: (rawRecord as any).installment_amount ?? (rawRecord as any).installmentAmount ?? (rawRecord as any).payment_amount,
       };
 
       const response = await fetch('/api/generate-insurance-bond-pdf', {
@@ -562,7 +601,7 @@ export default function GeneralInsuranceApplicationsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ record, imageData, daysText: "90 दिन" }),
+        body: JSON.stringify({ record, imageData, nomineeImageData, daysText: "90 दिन" }),
       });
 
       if (!response.ok) {

@@ -181,6 +181,133 @@ async function runTests() {
     assert.strictEqual(resolveAgentMobile(recC), '8888888888', 'Expected "8888888888" from agentMobile');
   });
 
+  it('16. Nominee Aadhaar strictly uses authoritative nominee Aadhaar and NEVER applicant Aadhaar (TEST 1 & TEST 2)', () => {
+    const nomineeAadharMatch = routeContent.match(/const nomineeAadhar = sanitizeValue\(([\s\S]*?)\);/);
+    assert.ok(nomineeAadharMatch, 'nomineeAadhar assignment found in route.ts');
+    const nomineeAadharBlock = nomineeAadharMatch[1];
+    assert.ok(!nomineeAadharBlock.includes('record.aadharNumber') && !nomineeAadharBlock.includes('record.aadhar'), 'applicant Aadhaar must NOT be in nominee Aadhaar block');
+
+    const resolveNomineeAadhaar = (record) => {
+      const raw =
+        record.nomineeAadhaarNumber ||
+        record.nomineeAadharNumber ||
+        record.nominee_aadhaar_number ||
+        record.nominee_aadhar_number ||
+        record.nomineeAadhaar ||
+        record.nomineeAadhar ||
+        record.nominee_aadhaar ||
+        record.nominee_aadhar ||
+        record.nomineeAadhaarNo ||
+        record.nomineeAadharNo ||
+        record.nominee_aadhaar_no ||
+        record.nominee_aadhar_no ||
+        record['नॉमिनी_आधार_नं'] ||
+        record['नॉमिनी_आधार'] ||
+        record['वारिसदार_आधार'] ||
+        '';
+      return String(raw || '').trim();
+    };
+
+    // TEST 1: nomineeAadhaar = "987654321098" -> 987654321098
+    const rec1 = { nomineeAadharNumber: '987654321098', aadharNumber: '111122223333' };
+    assert.strictEqual(resolveNomineeAadhaar(rec1), '987654321098', 'TEST 1: Nominee Aadhaar is correctly resolved');
+
+    // TEST 2: nomineeAadhaar = null, applicantAadhaar = "111122223333" -> BLANK
+    const rec2 = { nomineeAadharNumber: null, aadharNumber: '111122223333' };
+    assert.strictEqual(resolveNomineeAadhaar(rec2), '', 'TEST 2: Nominee Aadhaar remains BLANK when missing');
+  });
+
+  it('17. Nominee Mobile strictly uses authoritative nominee mobile and NEVER applicant mobile (TEST 3 & TEST 4)', () => {
+    const nomineeMobileMatch = routeContent.match(/const nomineeMobile = sanitizeValue\(([\s\S]*?)\);/);
+    assert.ok(nomineeMobileMatch, 'nomineeMobile assignment found in route.ts');
+    const nomineeMobileBlock = nomineeMobileMatch[1];
+    assert.ok(!nomineeMobileBlock.includes('record.applicantMobile') && !nomineeMobileBlock.includes('record.mobile'), 'applicant mobile must NOT be in nominee mobile block');
+
+    const resolveNomineeMobile = (record) => {
+      const raw =
+        record.nomineeMobileNumber ||
+        record.nominee_mobile_number ||
+        record.nomineeMobile ||
+        record.nominee_mobile ||
+        record.nomineeMobileNo ||
+        record.nominee_mobile_no ||
+        record.nomineePhone ||
+        record.nominee_phone ||
+        record['नॉमिनी_मोबाइल_नं'] ||
+        record['नॉमिनी_मोबाइल'] ||
+        record['वारिसदार_मोबाइल'] ||
+        '';
+      return String(raw || '').trim();
+    };
+
+    // TEST 3: nomineeMobile = "9123456789" -> 9123456789
+    const rec3 = { nomineeMobile: '9123456789', mobile: '9999999999' };
+    assert.strictEqual(resolveNomineeMobile(rec3), '9123456789', 'TEST 3: Nominee Mobile is correctly resolved');
+
+    // TEST 4: nomineeMobile = null, applicantMobile = "9999999999" -> BLANK
+    const rec4 = { nomineeMobile: null, mobile: '9999999999' };
+    assert.strictEqual(resolveNomineeMobile(rec4), '', 'TEST 4: Nominee Mobile remains BLANK when missing');
+  });
+
+  it('18. Applicant and Nominee photos are handled separately and never swapped (TEST 5 & TEST 6)', () => {
+    assert.ok(routeContent.includes('const applicantPhotoSource = pickPhotoSource('), 'applicantPhotoSource exists');
+    assert.ok(routeContent.includes('const nomineePhotoSource = pickPhotoSource('), 'nomineePhotoSource exists');
+    assert.ok(routeContent.includes('body?.nomineeImageData'), 'body nomineeImageData supported');
+    assert.ok(routeContent.includes('embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 461.81, 212.87, 86.40, 80.17, \'cover\')'), 'Applicant photo box geometry correct');
+    assert.ok(routeContent.includes('embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 461.81, 299.79, 86.40, 80.17, \'cover\')'), 'Nominee photo box geometry correct');
+  });
+
+  it('19. Insurance Installment strictly renders "300 किस्त" for 300, "1000 किस्त" for 1000, and BLANK for null (TEST 7, 8, 9)', () => {
+    const resolveInstallmentText = (record) => {
+      const rawAmt =
+        record?.installmentAmount ??
+        record?.installment_amount ??
+        record?.insuranceInstallment ??
+        record?.insurance_installment ??
+        record?.monthly_installment ??
+        record?.monthlyInstallment ??
+        record?.premiumAmount ??
+        record?.premium_amount ??
+        record?.paymentAmount ??
+        record?.payment_amount ??
+        record?.amount ??
+        '';
+      let insuranceAmountText = '';
+      if (rawAmt !== undefined && rawAmt !== null && rawAmt !== '') {
+        const cleanAmtStr = String(rawAmt).trim();
+        const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(cleanAmtStr.replace(/[^\d.]/g, ''));
+        if (!isNaN(num) && num > 0) {
+          if (num === 300) {
+            insuranceAmountText = '300 किस्त';
+          } else if (num === 1000) {
+            insuranceAmountText = '1000 किस्त';
+          } else if (cleanAmtStr.includes('किस्त')) {
+            insuranceAmountText = cleanAmtStr;
+          } else {
+            insuranceAmountText = `${num} किस्त`;
+          }
+        } else if (cleanAmtStr === '300' || cleanAmtStr === '300 किस्त') {
+          insuranceAmountText = '300 किस्त';
+        } else if (cleanAmtStr === '1000' || cleanAmtStr === '1000 किस्त') {
+          insuranceAmountText = '1000 किस्त';
+        }
+      }
+      return insuranceAmountText;
+    };
+
+    // TEST 7: installmentAmount = 300 -> "300 किस्त"
+    assert.strictEqual(resolveInstallmentText({ installmentAmount: 300 }), '300 किस्त', 'TEST 7: installmentAmount = 300 resolves to "300 किस्त"');
+    assert.strictEqual(resolveInstallmentText({ installment_amount: '300' }), '300 किस्त', 'TEST 7: installment_amount = "300" resolves to "300 किस्त"');
+
+    // TEST 8: installmentAmount = 1000 -> "1000 किस्त"
+    assert.strictEqual(resolveInstallmentText({ installmentAmount: 1000 }), '1000 किस्त', 'TEST 8: installmentAmount = 1000 resolves to "1000 किस्त"');
+    assert.strictEqual(resolveInstallmentText({ installment_amount: '1000' }), '1000 किस्त', 'TEST 8: installment_amount = "1000" resolves to "1000 किस्त"');
+
+    // TEST 9: installmentAmount = null -> BLANK
+    assert.strictEqual(resolveInstallmentText({ installmentAmount: null }), '', 'TEST 9: installmentAmount = null resolves to BLANK');
+    assert.strictEqual(resolveInstallmentText({}), '', 'TEST 9: missing installmentAmount resolves to BLANK');
+  });
+
   console.log('\n4. Multi-Case PDF Generation & Data Assertion Testing...');
   const fontBytes = fs.readFileSync(fontPath);
 

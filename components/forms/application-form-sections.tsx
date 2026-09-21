@@ -280,6 +280,40 @@ export const NomineeInfoSection = memo<FormSectionProps>(({
           onChange={(value) => updateField("nomineeRelation", value)}
         />
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <InputField
+          id="nomineeAadhar"
+          label="नॉमिनी आधार संख्या / Nominee Aadhaar Number"
+          placeholder="नॉमिनी आधार संख्या दर्ज करें"
+          value={formData.nomineeAadhar || ""}
+          onChange={(value) => updateField("nomineeAadhar", value)}
+          type="number"
+          inputMode="numeric"
+          maxLength={12}
+        />
+
+        <InputField
+          id="nomineeMobile"
+          label="नॉमिनी मोबाइल नंबर / Nominee Mobile Number"
+          placeholder="नॉमिनी मोबाइल नंबर दर्ज करें"
+          value={formData.nomineeMobile || ""}
+          onChange={(value) => updateField("nomineeMobile", value)}
+          type="number"
+          inputMode="numeric"
+          maxLength={10}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FileUploadField
+          id="nomineePhoto"
+          label="नॉमिनी का फोटो / Nominee Photo"
+          accept="image/*"
+          value={formData.nomineePhoto}
+          onChange={(file) => updateField("nomineePhoto", file)}
+        />
+      </div>
     </div>
   )
 })

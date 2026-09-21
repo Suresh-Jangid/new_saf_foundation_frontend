@@ -20,6 +20,9 @@ export interface FormData {
   state: string
   nomineeName: string
   nomineeRelation: string
+  nomineeAadhar?: string
+  nomineeMobile?: string
+  nomineePhoto?: File | null
   selectedAgentId?: string
   affidavit: string
   passportPhoto: File | null
@@ -49,6 +52,9 @@ const initialFormData: FormData = {
   state: "",
   nomineeName: "",
   nomineeRelation: "",
+  nomineeAadhar: "",
+  nomineeMobile: "",
+  nomineePhoto: null,
   selectedAgentId: "",
   affidavit: "",
   passportPhoto: null,

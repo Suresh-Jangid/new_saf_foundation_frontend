@@ -17,7 +17,7 @@ import { CalendarDays, CalendarIcon } from "lucide-react"
 import APIService from "@/lib/services"
 import { post } from "@/lib/api"
 import { toast } from "sonner"
-import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, getApplicantPhotoPath, getProxiedPhotoSrc, getRecordField, unwrapApiRecordById } from "@/lib/utils"
+import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, getApplicantPhotoPath, getNomineePhotoPath, getProxiedPhotoSrc, getRecordField, unwrapApiRecordById } from "@/lib/utils"
 import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode, GENDER_OPTIONS } from "@/lib/form-values"
 import { formatBilingual } from '@/lib/translations'
 import { RazorpayPayment } from "@/components/razorpay-payment"
@@ -53,6 +53,10 @@ export type GeneralApplicationFormData = {
   state: string;
   nomineeName: string;
   nomineeRelation: string;
+  nomineeAadhar?: string;
+  nomineeMobile?: string;
+  nomineePhoto?: File | null;
+  existingNomineePhoto?: string;
   affidavit: string;
   selectedAgentId?: string;
   remarks: string;
@@ -112,6 +116,10 @@ export default function EditGeneralInsuranceApplicationPage() {
     state: "",
     nomineeName: "",
     nomineeRelation: "",
+    nomineeAadhar: "",
+    nomineeMobile: "",
+    nomineePhoto: null,
+    existingNomineePhoto: "",
     affidavit: "",
     selectedAgentId: "",
     remarks: "",
@@ -258,6 +266,10 @@ export default function EditGeneralInsuranceApplicationPage() {
           const offNo = getRecordField(record, "offlineFormNumber", "offline_form_number", "offlineFormNo") || ""
           setInitialOfflineFormNumber(offNo)
 
+          const nomineePhotoPath = getNomineePhotoPath(record)
+          const nomineeAadhar = getRecordField(record, "nomineeAadhar", "nominee_aadhar", "nomineeAadhaar", "nominee_aadhaar")
+          const nomineeMobile = getRecordField(record, "nomineeMobile", "nominee_mobile")
+
           setFormData({
             formNumber: getRecordField(record, "formNumber", "form_number"),
             offlineFormNumber: offNo,
@@ -277,6 +289,10 @@ export default function EditGeneralInsuranceApplicationPage() {
             state: getRecordField(record, "state"),
             nomineeName: getRecordField(record, "nomineeName", "nominee_name"),
             nomineeRelation: getRecordField(record, "nomineeRelation", "nominee_relation"),
+            nomineeAadhar,
+            nomineeMobile,
+            nomineePhoto: null,
+            existingNomineePhoto: nomineePhotoPath,
             affidavit: getRecordField(record, "affidavit", "affidavitUrl"),
             selectedAgentId: agentId,
             remarks: getRecordField(record, "remarks"),
@@ -331,6 +347,8 @@ export default function EditGeneralInsuranceApplicationPage() {
 
       const mobileDigits = (formData.mobile || "").replace(/\D/g, "")
       const aadharDigits = (formData.aadharNumber || "").replace(/\D/g, "")
+      const nomineeAadharDigits = (formData.nomineeAadhar || "").replace(/\D/g, "")
+      const nomineeMobileDigits = (formData.nomineeMobile || "").replace(/\D/g, "")
 
       const updateData = {
         applicationDate: formatDateForAPI(applicationDateObj),
@@ -350,6 +368,8 @@ export default function EditGeneralInsuranceApplicationPage() {
         state: formData.state,
         nomineeName: formData.nomineeName,
         nomineeRelation: formData.nomineeRelation,
+        nomineeAadhar: nomineeAadharDigits,
+        nomineeMobile: nomineeMobileDigits,
         gender: formData.gender,
         category: formData.category || category,
         selectedAgentId: formData.selectedAgentId,
@@ -357,6 +377,11 @@ export default function EditGeneralInsuranceApplicationPage() {
         existingPassportPhoto:
           !formData.passportPhoto && formData.existingPassportPhoto
             ? formData.existingPassportPhoto
+            : undefined,
+        nomineePhoto: formData.nomineePhoto ?? undefined,
+        existingNomineePhoto:
+          !formData.nomineePhoto && formData.existingNomineePhoto
+            ? formData.existingNomineePhoto
             : undefined,
       }
       const response = await APIService.updateInsuranceApplication(id, updateData)
@@ -887,6 +912,37 @@ export default function EditGeneralInsuranceApplicationPage() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="nomineeAadhar">नॉमिनी आधार संख्या / Nominee Aadhaar Number</Label>
+                <Input
+                  id="nomineeAadhar"
+                  type="number"
+                  inputMode="numeric"
+                  value={formData.nomineeAadhar || ""}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 12)
+                    setFormData((prev) => ({ ...prev, nomineeAadhar: digits }))
+                  }}
+                  placeholder="नॉमिनी आधार संख्या दर्ज करें"
+                />
+              </div>
+              <div>
+                <Label htmlFor="nomineeMobile">नॉमिनी मोबाइल नंबर / Nominee Mobile Number</Label>
+                <Input
+                  id="nomineeMobile"
+                  type="number"
+                  inputMode="numeric"
+                  value={formData.nomineeMobile || ""}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 10)
+                    setFormData((prev) => ({ ...prev, nomineeMobile: digits }))
+                  }}
+                  placeholder="नॉमिनी मोबाइल नंबर दर्ज करें"
+                />
+              </div>
+            </div>
+
             <div>
               <Label htmlFor="selectedAgentId">कार्यकर्ता का नाम / Worker Name</Label>
               <select
@@ -933,7 +989,7 @@ export default function EditGeneralInsuranceApplicationPage() {
 
 
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="passportPhoto">पासपोर्ट साइज रंगीन फोटो / Passport Size Color Photo</Label>
                 <Input
@@ -956,6 +1012,27 @@ export default function EditGeneralInsuranceApplicationPage() {
                 )}
               </div>
 
+              <div>
+                <Label htmlFor="nomineePhoto">नॉमिनी का फोटो / Nominee Photo</Label>
+                <Input
+                  id="nomineePhoto"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      nomineePhoto: e.target.files?.[0] || null,
+                    }))
+                  }
+                />
+                {(formData.nomineePhoto || formData.existingNomineePhoto) && (
+                  <img
+                    src={formData.nomineePhoto ? URL.createObjectURL(formData.nomineePhoto) : getProxiedPhotoSrc(formData.existingNomineePhoto)}
+                    alt="नॉमिनी फोटो प्रीव्यू"
+                    className="mt-2 h-24 rounded border"
+                  />
+                )}
+              </div>
             </div>
 
             <div className="flex justify-end space-x-2">

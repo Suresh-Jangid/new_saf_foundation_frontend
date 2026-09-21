@@ -89,8 +89,14 @@ export interface InsuranceApplication {
   state: string;
   nomineeName: string;
   nomineeRelation: string;
+  nomineeAadhar?: string;
+  nomineeMobile?: string;
+  nomineePhoto?: File | string;
+  nomineePhotoUrl?: string;
+  existingNomineePhoto?: string;
   affidavit: string;
   passportPhoto?: File | string;
+  existingPassportPhoto?: string;
   gender: string;
   category: string;
   paymentAmount: string;

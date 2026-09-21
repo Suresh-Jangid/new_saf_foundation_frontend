@@ -9,6 +9,7 @@ import Link from "next/link"
 import { DataTable } from "@/components/data-table"
 import { useRouter } from "next/navigation"
 import APIService from "@/lib/services"
+import { agentRegistrationAPI } from "@/lib/api"
 import { toast } from "sonner"
 import { getCurrentUserInfo, calculateAge, getPhotoDataUrl } from "@/lib/utils"
 import { isMale, isFemale } from "@/lib/form-values"
@@ -95,6 +96,152 @@ interface GeneralInsuranceApplicationRecord {
   added_mobile?: string
 }
 
+interface ResolvedAgentOfflineNumbers {
+  workerOfflineFormNumber: string
+  seniorOfflineFormNumber: string
+  workerMobile: string
+}
+
+function resolveAgentOfflineNumbers(
+  record: GeneralInsuranceApplicationRecord & Record<string, any>,
+  agentsList: any[] = []
+): ResolvedAgentOfflineNumbers {
+  let workerOffline = String(
+    record.workerOfflineFormNumber ||
+    record.worker_offline_form_number ||
+    record.agentOfflineFormNumber ||
+    record.agent_offline_form_number ||
+    ""
+  ).trim();
+
+  let seniorOffline = String(
+    record.seniorOfflineFormNumber ||
+    record.senior_offline_form_number ||
+    record.seniorAgentOfflineFormNumber ||
+    record.senior_agent_offline_form_number ||
+    ""
+  ).trim();
+
+  let workerMobile = String(
+    record.workerMobile ||
+    record.worker_mobile ||
+    record.agentMobile ||
+    record.agent_mobile ||
+    ""
+  ).trim();
+
+  if (!agentsList || agentsList.length === 0) {
+    return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline, workerMobile };
+  }
+
+  const agentById = new Map<string, any>();
+  const agentByCode = new Map<string, any>();
+  const agentByName = new Map<string, any>();
+
+  for (const agent of agentsList) {
+    const id = String(agent.id || "").trim();
+    const empId = String(
+      agent.employeeId ||
+      agent.employee_id ||
+      agent.agentProfile?.employeeId ||
+      agent.agent_profile?.employee_id ||
+      ""
+    ).trim();
+    const name = String(agent.name || "").trim().toLowerCase();
+
+    if (id) agentById.set(id, agent);
+    if (empId) agentByCode.set(empId.toUpperCase(), agent);
+    if (name && name !== "default agent" && name !== "admin") agentByName.set(name, agent);
+  }
+
+  const targetWorkerId = String(
+    record.addedById ||
+    record.addedby_id ||
+    record.selectedAgentId ||
+    record.agentId ||
+    record.addedBy?.id ||
+    record.agent?.id ||
+    ""
+  ).trim();
+
+  const targetWorkerCode = String(
+    record.workerCode ||
+    record.worker_code ||
+    record.agentCode ||
+    record.agent_code ||
+    record.added_code ||
+    record.addedBy?.agentCode ||
+    record.addedBy?.code ||
+    ""
+  ).trim().toUpperCase();
+
+  const targetWorkerName = String(
+    record.workerName ||
+    record.worker_name ||
+    record.added_name ||
+    ""
+  ).trim().toLowerCase();
+
+  const workerAgent =
+    (targetWorkerId && agentById.get(targetWorkerId)) ||
+    (targetWorkerCode && agentByCode.get(targetWorkerCode)) ||
+    (targetWorkerName && agentByName.get(targetWorkerName));
+
+  if (workerAgent) {
+    if (!workerOffline) {
+      workerOffline = String(
+        workerAgent.offlineFormNumber ||
+        workerAgent.offline_form_number ||
+        workerAgent.agentProfile?.offlineFormNumber ||
+        workerAgent.agent_profile?.offline_form_number ||
+        workerAgent.employeeId ||
+        workerAgent.employee_id ||
+        ""
+      ).trim();
+    }
+    if (!workerMobile) {
+      workerMobile = String(workerAgent.mobile || workerAgent.phone || "").trim();
+    }
+
+    const parentSeniorId = String(
+      workerAgent.parentAgentId ||
+      workerAgent.parent_agent_id ||
+      workerAgent.seniorId ||
+      workerAgent.senior_id ||
+      ""
+    ).trim();
+
+    const parentSeniorCode = String(
+      workerAgent.seniorEmployeeId ||
+      workerAgent.senior_employee_id ||
+      workerAgent.parentEmployeeId ||
+      workerAgent.seniorCode ||
+      ""
+    ).trim().toUpperCase();
+
+    let seniorAgent: any = null;
+    if (parentSeniorId && agentById.has(parentSeniorId)) {
+      seniorAgent = agentById.get(parentSeniorId);
+    } else if (parentSeniorCode && parentSeniorCode !== "ADMIN" && parentSeniorCode !== "SUPER ADMIN" && agentByCode.has(parentSeniorCode)) {
+      seniorAgent = agentByCode.get(parentSeniorCode);
+    }
+
+    if (seniorAgent && !seniorOffline) {
+      seniorOffline = String(
+        seniorAgent.offlineFormNumber ||
+        seniorAgent.offline_form_number ||
+        seniorAgent.agentProfile?.offlineFormNumber ||
+        seniorAgent.agent_profile?.offline_form_number ||
+        seniorAgent.employeeId ||
+        seniorAgent.employee_id ||
+        ""
+      ).trim();
+    }
+  }
+
+  return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline, workerMobile };
+}
+
 // Helper to calculate category based on gender and age
 function calculateCategory(gender: string, age: number) {
   if (isFemale(gender)) {
@@ -122,6 +269,7 @@ export default function GeneralInsuranceApplicationsPage() {
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null)
+  const [agentsList, setAgentsList] = useState<any[]>([])
   const router = useRouter();
   const uniqueTehsils = Array.from(new Set(records.map(r => r.tehsil).filter(Boolean))).sort()
   const uniqueAddresses = Array.from(new Set(records.map(r => r.address).filter(Boolean))).sort()
@@ -205,6 +353,19 @@ export default function GeneralInsuranceApplicationsPage() {
 
   useEffect(() => {
     fetchInsuranceApplications()
+    let isMounted = true;
+    agentRegistrationAPI
+      .getAll()
+      .then((res: any) => {
+        if (!isMounted) return;
+        if (res && res.status && Array.isArray(res.data)) {
+          setAgentsList(res.data);
+        } else if (Array.isArray(res)) {
+          setAgentsList(res);
+        }
+      })
+      .catch((err) => console.error("Error fetching agents for offline resolution:", err));
+
     const fetchAgents = async () => {
       try {
         const response = await APIService.getAgents()
@@ -220,6 +381,10 @@ export default function GeneralInsuranceApplicationsPage() {
       }
     }
     fetchAgents()
+
+    return () => {
+      isMounted = false;
+    };
   }, [])
 
   // Handle gender filter change
@@ -370,10 +535,27 @@ export default function GeneralInsuranceApplicationsPage() {
  
 
 
-  const handleGenerateBond = async (record: GeneralInsuranceApplicationRecord) => {
+  const handleGenerateBond = async (rawRecord: GeneralInsuranceApplicationRecord) => {
     try {
       // Get image data if available
-      const imageData = await processImageData(record.passportPhoto);
+      const imageData = await processImageData(rawRecord.passportPhoto);
+
+      const { workerOfflineFormNumber, seniorOfflineFormNumber, workerMobile } = resolveAgentOfflineNumbers(
+        rawRecord,
+        agentsList
+      );
+
+      const record = {
+        ...rawRecord,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+        workerCode: workerOfflineFormNumber || (rawRecord as any).workerCode || "",
+        seniorCode: seniorOfflineFormNumber || (rawRecord as any).seniorCode || "",
+        agentMobileNumber: workerMobile || "",
+        agentMobile: workerMobile || "",
+        workerMobile: workerMobile || "",
+        offlineFormNumber: rawRecord.offlineFormNumber || rawRecord.offline_form_number || rawRecord.formNumber || "",
+      };
 
       const response = await fetch('/api/generate-insurance-bond-pdf', {
         method: 'POST',
@@ -395,7 +577,7 @@ export default function GeneralInsuranceApplicationsPage() {
       const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `INSURANCE_BOND_${record.applicantName || record.formNumber || 'bond'}.pdf`;
+      a.download = `INSURANCE_BOND_${rawRecord.applicantName || rawRecord.formNumber || 'bond'}.pdf`;
       document.body.appendChild(a);
       a.click();
       
@@ -404,9 +586,9 @@ export default function GeneralInsuranceApplicationsPage() {
       window.URL.revokeObjectURL(url);
 
       toast.success('Insurance Bond PDF generated successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating insurance bond PDF:', error);
-      toast.error('Failed to generate insurance bond PDF');
+      toast.error(error?.message || 'Failed to generate insurance bond PDF');
     }
   };
 

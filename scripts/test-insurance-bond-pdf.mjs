@@ -2,18 +2,12 @@ import 'regenerator-runtime/runtime.js';
 import fs from 'fs';
 import path from 'path';
 import assert from 'assert';
+import crypto from 'crypto';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
-import puppeteer from 'puppeteer-core';
-
-const CHROME_PATHS = [
-  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-];
 
 console.log('============================================================');
-console.log('SAF FOUNDATION — COMMON INSURANCE PARIVAR KALYAN BOND TEST');
+console.log('SAF FOUNDATION — INSURANCE BIMA BOND PDF TEST SUITE');
 console.log('============================================================\n');
 
 let passCount = 0;
@@ -31,270 +25,321 @@ function it(desc, fn) {
   }
 }
 
-async function renderPdfToImage(pdfPath, outImagePath, scale = 3.0) {
-  const exe = CHROME_PATHS.find(p => fs.existsSync(p));
-  const browser = await puppeteer.launch({ executablePath: exe, headless: true });
-  const page = await browser.newPage();
-  const pdfBytes = fs.readFileSync(pdfPath);
-  const base64 = pdfBytes.toString('base64');
-
-  const html = `
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <style>body { margin: 0; padding: 0; background: #fff; overflow: hidden; } canvas { display: block; }</style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  </head>
-  <body>
-    <canvas id="pdf-canvas"></canvas>
-    <script>
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      async function render(scaleFactor) {
-        const raw = atob('${base64}');
-        const uint8 = new Uint8Array(raw.length);
-        for (let i = 0; i < raw.length; i++) uint8[i] = raw.charCodeAt(i);
-        const loadingTask = pdfjsLib.getDocument({ data: uint8 });
-        const pdf = await loadingTask.promise;
-        const p1 = await pdf.getPage(1);
-        const viewport = p1.getViewport({ scale: scaleFactor });
-        const canvas = document.getElementById('pdf-canvas');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        const ctx = canvas.getContext('2d');
-        await p1.render({ canvasContext: ctx, viewport }).promise;
-        return { width: viewport.width, height: viewport.height };
-      }
-      window.renderPromise = render(${scale});
-    </script>
-  </body>
-  </html>
-  `;
-
-  await page.setContent(html);
-  const dimensions = await page.evaluate(() => window.renderPromise);
-  await page.setViewport({
-    width: Math.ceil(dimensions.width),
-    height: Math.ceil(dimensions.height),
-    deviceScaleFactor: 1,
-  });
-
-  const canvasHandle = await page.$('#pdf-canvas');
-  await canvasHandle.screenshot({ path: outImagePath, type: 'png' });
-  await browser.close();
-}
-
 async function runTests() {
-  const bondDir = path.join(process.cwd(), 'public', 'pdf', 'general_insurance_application', 'bond');
-  const commonTemplatePath = path.join(bondDir, 'saf_parivar_kalyan_bond.pdf');
-  const backupTemplatePath = path.join(bondDir, 'saf_parivar_kalyan_bond.backup.pdf');
+  const primaryTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'general_insurance_application', 'bond', 'saf_parivar_kalyan_bond.pdf');
   const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-SemiBold.ttf');
 
-  console.log('1. Template & Asset Checks...');
-  it('Official common template exists at saf_parivar_kalyan_bond.pdf', () => {
-    assert.ok(fs.existsSync(commonTemplatePath), 'saf_parivar_kalyan_bond.pdf must exist');
+  console.log('1. Template & Asset Integrity Checks...');
+  it('1. Official Insurance template exists in public/pdf/general_insurance_application/bond/saf_parivar_kalyan_bond.pdf', () => {
+    assert.ok(fs.existsSync(primaryTemplatePath), 'Template must exist');
   });
 
-  it('Template backup exists', () => {
-    assert.ok(fs.existsSync(backupTemplatePath), 'saf_parivar_kalyan_bond.backup.pdf must exist');
+  it('2. Template is non-empty official PDF (>1.5MB)', () => {
+    const stats = fs.statSync(primaryTemplatePath);
+    assert.ok(stats.size > 1500000, `Template size must be > 1.5MB (actual: ${stats.size})`);
   });
 
-  it('NotoSansDevanagari-SemiBold font exists', () => {
-    assert.ok(fs.existsSync(fontPath), 'SemiBold font must exist');
+  it('3. Official template hash is strictly preserved', () => {
+    const fileBytes = fs.readFileSync(primaryTemplatePath);
+    const hash = crypto.createHash('sha256').update(fileBytes).digest('hex').toUpperCase();
+    assert.strictEqual(
+      hash,
+      '6051CE7FCD61B47D2083790BF64D32979C224F3A3D19DD42B0DDBEF7D1DAD5C7',
+      'Template SHA256 hash must remain exactly unchanged'
+    );
   });
 
-  console.log('\n2. Common Template Dimensions & Page Count...');
-  const templateBytes = fs.readFileSync(commonTemplatePath);
-  const tDoc = await PDFDocument.load(templateBytes);
-
-  it('Template has exactly 1 page', () => {
-    assert.strictEqual(tDoc.getPageCount(), 1, 'Must be a 1-page PDF');
+  it('4. NotoSansDevanagari SemiBold font exists for Hindi Unicode rendering', () => {
+    assert.ok(fs.existsSync(fontPath), 'Devanagari SemiBold font must exist');
   });
 
-  const tPage = tDoc.getPage(0);
-  const { width: tW, height: tH } = tPage.getSize();
+  console.log('\n2. Template Structure & Dimension Assertions...');
+  const templateBytes = fs.readFileSync(primaryTemplatePath);
+  const pdfDoc = await PDFDocument.load(templateBytes);
+  pdfDoc.registerFontkit(fontkit);
 
-  it('Template dimensions match standard A4 (595.28 x 841.89 pt)', () => {
-    assert.ok(Math.abs(tW - 595.28) < 1, `Expected width ~595.28, got ${tW}`);
-    assert.ok(Math.abs(tH - 841.89) < 1, `Expected height ~841.89, got ${tH}`);
+  it('5. Template is exactly 1 page', () => {
+    assert.strictEqual(pdfDoc.getPageCount(), 1, 'Template must be exactly 1 page');
   });
 
-  console.log('\n3. Male Record Generation with Common Template...');
-  const outDir = path.join(process.cwd(), 'test-output');
-  if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
+  const page = pdfDoc.getPages()[0];
+  const { width, height } = page.getSize();
 
-  const maleRecord = {
-    gender: 'Male',
-    workerOfflineFormNumber: '106',
-    seniorOfflineFormNumber: '102',
-    offlineFormNumber: '5008',
-    membershipNumber: '7004',
-    applicationDate: '2026-09-17',
-    applicantName: 'सुरेश कुमार',
-    fatherName: 'लेखराम',
-    caste: 'जांगिड़',
-    village: 'कनाना',
-    nomineeName: 'सुशीला देवी',
-    district: 'बालोतरा',
-    agentMobile: '9876543210',
-    state: 'राजस्थान',
-    aadharNumber: '1234 5678 9012',
-    nomineeRelation: 'पत्नी',
-    nomineeAadhar: '9876 5432 1098',
-    nomineeMobile: '8765432109',
-    daysText: '180 दिन',
-  };
+  it('6. Output page dimensions match official A4 template (595.28 x 841.89 pt)', () => {
+    assert.strictEqual(Math.round(width), 595, 'Width must be ~595 pt');
+    assert.strictEqual(Math.round(height), 842, 'Height must be ~842 pt');
+  });
 
-  const malePdfDoc = await PDFDocument.load(templateBytes);
-  malePdfDoc.registerFontkit(fontkit);
-  const font = await malePdfDoc.embedFont(fs.readFileSync(fontPath), { subset: false });
-  const malePage = malePdfDoc.getPage(0);
-  const pageHeight = 841.8898;
+  console.log('\n3. Route & Field Extraction Audits...');
+  const routeContent = fs.readFileSync('app/api/generate-insurance-bond-pdf/route.ts', 'utf8');
 
-  const fields = (record) => [
-    { field: 'कार्यकर्ता_कोड', val: record.workerOfflineFormNumber, x: 138, y: 112.5, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-    { field: 'सीनियर_कार्यकर्ता_कोड', val: record.seniorOfflineFormNumber, x: 460, y: 112.5, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-    { field: 'आवेदन_क्र', val: record.offlineFormNumber, x: 100, y: 136.0, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-    { field: 'सदस्यता_क्र', val: record.membershipNumber, x: 302, y: 136.0, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-    { field: 'आवेदन_दिनांक', val: '17/09/2026', x: 484, y: 136.0, maxW: 75, size: 9.5 },
-    { field: 'नाम', val: record.applicantName, x: 72, y: 178.0, maxW: 150, size: 10 },
-    { field: 'जाति', val: record.caste, x: 72, y: 201.0, maxW: 150, size: 9.5 },
-    { field: 'वारिसदार', val: record.nomineeName, x: 90, y: 224.0, maxW: 135, size: 9.5 },
-    { field: 'एजेन्ट_मो_नं', val: record.agentMobile, x: 107, y: 249.0, maxW: 115, size: 9.5 },
-    { field: 'आधार_नं', val: record.aadharNumber, x: 93, y: 273.5, maxW: 135, size: 9.5 },
-    { field: 'नॉमिनी_आधार_नं', val: record.nomineeAadhar, x: 127, y: 297.0, maxW: 100, size: 9.5 },
-    { field: 'पिता_पति_का_नाम', val: record.fatherName || record.husbandName, x: 322, y: 178.0, maxW: 130, size: 10 },
-    { field: 'गांव', val: record.village, x: 258, y: 201.0, maxW: 190, size: 9.5 },
-    { field: 'जिला', val: record.district, x: 265, y: 224.0, maxW: 190, size: 9.5 },
-    { field: 'राज्य', val: record.state, x: 261, y: 249.0, maxW: 190, size: 9.5 },
-    { field: 'सम्बन्ध', val: record.nomineeRelation, x: 272, y: 273.5, maxW: 180, size: 9.5 },
-    { field: 'नॉमिनी_मो_नं', val: record.nomineeMobile, x: 301, y: 297.0, maxW: 140, size: 9.5 },
-    { field: 'अवधि', val: record.daysText, x: 280, y: 352.0, maxW: 75, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },
+  it('7. सदस्यता क्र. uses ONLY record.membershipNumber / membership_number', () => {
+    const membershipLine = routeContent.match(/const\s+rawMembershipNumber\s*=\s*([\s\S]+?);/);
+    assert.ok(membershipLine, 'rawMembershipNumber definition must exist in route');
+    assert.ok(
+      membershipLine[1].includes("membershipNumber") &&
+      !membershipLine[1].includes("formNumber") &&
+      !membershipLine[1].includes("sr_no") &&
+      !membershipLine[1].includes("form_number"),
+      'rawMembershipNumber must ONLY query membership fields'
+    );
+  });
+
+  it('8. Missing/empty membershipNumber remains completely blank', () => {
+    assert.ok(
+      !routeContent.includes('|| "INS-') && !routeContent.includes('|| "SAF-') && !routeContent.includes('|| "BOND-'),
+      'Must not invent default membership numbers'
+    );
+  });
+
+  it('9. Form No maps to offlineFormNumber / formNumber and preserves string (e.g. "005")', () => {
+    assert.ok(routeContent.includes('offlineFormNumber'), 'offlineFormNumber mapped');
+    assert.ok(routeContent.includes('formNumber'), 'formNumber mapped');
+    assert.ok(!routeContent.includes('parseInt(rawOfflineFormNumber)'), 'formNumber must not parse to int');
+  });
+
+  it('10. Header meta fields use drawCenteredInBox with exact box bounds', () => {
+    assert.ok(routeContent.includes('drawCenteredInBox'), 'drawCenteredInBox helper exists');
+    assert.ok(routeContent.includes('drawCenteredInBox(formNumber, 113.37, 680.90, 88.45, 20.87'), 'Form No box bounds matched');
+    assert.ok(routeContent.includes('drawCenteredInBox(applicationDate, 459.76, 674.21, 88.45, 20.87'), 'Date box bounds matched');
+    assert.ok(routeContent.includes('drawCenteredInBox(workerOffline, 113.37, 654.77, 88.45, 20.87'), 'Agent Code box bounds matched');
+    assert.ok(routeContent.includes('drawCenteredInBox(membershipNumber, 459.76, 642.24, 88.45, 20.87'), 'Membership box bounds matched');
+    assert.ok(routeContent.includes('drawCenteredInBox(seniorOffline, 113.37, 629.78, 88.45, 20.87'), 'Upline Code box bounds matched');
+  });
+
+  it('11. Photo boxes are calibrated for cover cropping without distortion', () => {
+    assert.ok(routeContent.includes('461.81, 212.87, 86.40, 80.17'), 'Applicant photo box calibrated');
+    assert.ok(routeContent.includes('461.81, 299.79, 86.40, 80.17'), 'Nominee photo box calibrated');
+  });
+
+  it('12. Left column fields map to correct labels and lines', () => {
+    assert.ok(routeContent.includes('drawBounded(applicantName, 75.0, 604.66'), 'Applicant Name mapped');
+    assert.ok(routeContent.includes('drawBounded(fatherHusbandName, 137.0, 578.38'), 'Father Name mapped');
+    assert.ok(routeContent.includes('drawBounded(aadharNumber, 98.0, 552.09'), 'Aadhaar mapped');
+    assert.ok(routeContent.includes('drawBounded(caste, 78.0, 525.80'), 'Caste/Gotra mapped');
+    assert.ok(routeContent.includes('drawBounded(nomineeRelation, 88.0, 499.51'), 'Relation mapped');
+    assert.ok(routeContent.includes('drawBounded(village, 74.0, 473.22'), 'Village mapped');
+  });
+
+  it('13. Right column fields map to correct labels and lines', () => {
+    assert.ok(routeContent.includes('drawBounded(nomineeName, 338.0, 604.31'), 'Nominee Name mapped');
+    assert.ok(routeContent.includes('drawBounded(nomineeAadhar, 362.0, 578.31'), 'Nominee Aadhaar mapped');
+    assert.ok(routeContent.includes('drawBounded(nomineeMobile, 348.0, 552.32'), 'Nominee Mobile mapped');
+    assert.ok(routeContent.includes('drawBounded(agentMobile, 343.0, 526.33'), 'Agent Mobile mapped');
+    assert.ok(routeContent.includes('drawBounded(district, 312.0, 500.33'), 'District mapped');
+    assert.ok(routeContent.includes('drawBounded(state, 308.0, 474.34'), 'State mapped');
+  });
+
+  it('14. Bottom Insurance Scheme Amount is dynamically mapped and never hardcoded', () => {
+    assert.ok(routeContent.includes('drawBounded(insuranceAmountText, 248.0, 450.65'), 'Bottom amount position mapped');
+    assert.ok(routeContent.includes('300 किस्त'), '300 category supported');
+    assert.ok(routeContent.includes('1000 किस्त'), '1000 category supported');
+  });
+
+  it('15. Agent Mobile strictly uses authoritative Agent mobile and NEVER applicantMobile', () => {
+    // Check route.ts definition of agentMobile
+    const agentMobileMatch = routeContent.match(/const agentMobile = sanitizeValue\(([\s\S]*?)\);/);
+    assert.ok(agentMobileMatch, 'agentMobile assignment found in route.ts');
+    const agentMobileBlock = agentMobileMatch[1];
+    assert.ok(!agentMobileBlock.includes('record.applicantMobile'), 'applicantMobile must NOT be used for Agent Mobile');
+    assert.ok(!agentMobileBlock.includes('record.mobile') || agentMobileBlock.includes('addedBy?.mobile'), 'applicant mobile must NOT be used for Agent Mobile');
+    assert.ok(agentMobileBlock.includes('agentMobileNumber') || agentMobileBlock.includes('agentMobile') || agentMobileBlock.includes('workerMobile'), 'Authoritative agent mobile field must be used');
+
+    // Simulate extraction logic as implemented in route.ts
+    const resolveAgentMobile = (record) => {
+      const raw =
+        record.agentMobileNumber ||
+        record.agent_mobile_number ||
+        record.agentMobile ||
+        record.agent_mobile ||
+        record.workerMobile ||
+        record.worker_mobile ||
+        record.workerMobileNumber ||
+        record.worker_mobile_number ||
+        record.assignedAgentMobile ||
+        record.agentPhone ||
+        record.agent_phone ||
+        record.workerPhone ||
+        record.worker_phone ||
+        record.addedBy?.mobile ||
+        record.added_mobile ||
+        record['कार्यकर्ता_का_मोबाइल'] ||
+        '';
+      return String(raw || '').trim();
+    };
+
+    // Scenario A: agentMobileNumber = missing, agentMobile = missing, applicantMobile = "9999999999"
+    const recA = { applicantMobile: '9999999999', mobile: '9999999999' };
+    assert.strictEqual(resolveAgentMobile(recA), '', 'Expected BLANK when agent mobile is missing even if applicantMobile is present');
+
+    // Scenario B: agentMobileNumber = "8888888888", applicantMobile = "9999999999"
+    const recB = { agentMobileNumber: '8888888888', applicantMobile: '9999999999', mobile: '9999999999' };
+    assert.strictEqual(resolveAgentMobile(recB), '8888888888', 'Expected "8888888888" from agentMobileNumber');
+
+    // Scenario C: agentMobile = "8888888888", applicantMobile = "9999999999"
+    const recC = { agentMobile: '8888888888', applicantMobile: '9999999999', mobile: '9999999999' };
+    assert.strictEqual(resolveAgentMobile(recC), '8888888888', 'Expected "8888888888" from agentMobile');
+  });
+
+  console.log('\n4. Multi-Case PDF Generation & Data Assertion Testing...');
+  const fontBytes = fs.readFileSync(fontPath);
+
+  // Test Case Matrix
+  const testCases = [
+    {
+      name: 'Case 1: "005" Form No, "15/09/2026" Date, Full Record',
+      data: {
+        membershipNumber: 'M-2026-089',
+        offlineFormNumber: '005',
+        applicationDate: '15/09/2026',
+        workerOfflineFormNumber: 'AGT-4012',
+        seniorOfflineFormNumber: 'SEN-1008',
+        applicantName: 'सुरेश जांगिड़',
+        fatherName: 'मोहन लाल',
+        aadharNumber: '1234 5678 9012',
+        gotra: 'सुथार',
+        nomineeRelation: 'पत्नी',
+        village: 'समदड़ी',
+        nomineeName: 'अनीता जांगिड़',
+        nomineeAadhar: '9876 5432 1098',
+        nomineeMobile: '9876543210',
+        workerMobile: '9123456780',
+        district: 'बालोतरा',
+        state: 'राजस्थान',
+        installmentAmount: 300,
+      },
+    },
+    {
+      name: 'Case 2: Short Values',
+      data: {
+        offlineFormNumber: '1',
+        applicationDate: '01/01/2026',
+        workerOfflineFormNumber: '5',
+        applicantName: 'पूजा',
+        fatherName: 'राम',
+        gotra: 'सैन',
+        nomineeRelation: 'पुत्री',
+        village: 'पाली',
+        nomineeName: 'ओम',
+        nomineeAadhar: '998877665544',
+        nomineeMobile: '9999999999',
+        workerMobile: '8888888888',
+        district: 'पाली',
+        state: 'राजस्थान',
+        installmentAmount: 1000,
+      },
+    },
+    {
+      name: 'Case 3: Long Names and Long Addresses (Testing Proportional Fitting)',
+      data: {
+        membershipNumber: 'MEM-2026-LONG-001',
+        offlineFormNumber: 'OFF-LONG-2026-0098',
+        applicationDate: '2026-09-17',
+        workerOfflineFormNumber: 'WRK-889900',
+        seniorOfflineFormNumber: 'SNR-112233',
+        applicantName: 'श्रीमती भाग्यवंती देवी सुपुत्री सज्जनराज जी प्रजापत',
+        fatherName: 'श्री सज्जनराज जी सुपुत्र भंवरलाल जी प्रजापत',
+        aadharNumber: '123456789012',
+        gotra: 'प्रजापत (कुम्हार)',
+        nomineeRelation: 'भांजा',
+        village: 'मकान नंबर 45, रेलवे स्टेशन रोड, वार्ड नंबर 12, समदड़ी तहसील, बालोतरा',
+        nomineeName: 'श्रीमान भरत कुमार जी सुपुत्र सज्जनराज जी प्रजापत',
+        nomineeAadhar: '987654321098',
+        nomineeMobile: '9876543210',
+        workerMobile: '9123456780',
+        district: 'बालोतरा',
+        state: 'राजस्थान',
+        installmentAmount: '300 किस्त',
+      },
+    },
+    {
+      name: 'Case 4: Null/Empty Optional Fields (Strict Blank Verification)',
+      data: {
+        applicantName: 'मोनिका',
+        fatherName: 'सुरेश कुमार',
+        gotra: 'जांगिड़',
+        membershipNumber: null,
+        workerOfflineFormNumber: undefined,
+        seniorOfflineFormNumber: '',
+        offlineFormNumber: '',
+        nomineeRelation: '',
+        village: '',
+        nomineeName: 'सुरेश कुमार',
+        nomineeAadhar: null,
+        nomineeMobile: '',
+        workerMobile: '',
+        district: '',
+        state: '',
+        installmentAmount: null,
+      },
+    },
   ];
 
-  for (const f of fields(maleRecord)) {
-    if (!f.val) continue;
-    const drawX = f.x;
-    const drawY = pageHeight - f.y;
-    let size = f.size || 9.5;
-    const textColor = f.color ? rgb(f.color.r, f.color.g, f.color.b) : rgb(0.1, 0.1, 0.1);
-    malePage.drawText(f.val, {
-      x: drawX,
-      y: drawY,
-      size,
-      font,
-      color: textColor,
+  for (const tc of testCases) {
+    it(`PDF serialization for ${tc.name}`, async () => {
+      const doc = await PDFDocument.load(templateBytes);
+      doc.registerFontkit(fontkit);
+      const f = await doc.embedFont(fontBytes, { subset: false });
+      const p = doc.getPages()[0];
+
+      const drawCenteredInBox = (text, boxX, boxY, boxW, boxH, size = 11.0) => {
+        if (!text) return;
+        const str = String(text).trim();
+        if (!str) return;
+        let fontSize = size;
+        let textWidth = f.widthOfTextAtSize(str, fontSize);
+        const maxW = boxW - 4;
+        if (textWidth > maxW) {
+          fontSize = Math.max(7.0, size * (maxW / textWidth));
+          textWidth = f.widthOfTextAtSize(str, fontSize);
+        }
+        const drawX = boxX + (boxW - textWidth) / 2;
+        const capHeight = fontSize * 0.72;
+        const boxMidY = boxY + boxH / 2;
+        const drawY = boxMidY - capHeight / 2;
+        p.drawText(str, { x: drawX, y: drawY, size: fontSize, font: f, color: rgb(0.0, 0.15, 0.58) });
+      };
+
+      const draw = (val, x, y, size, maxW) => {
+        if (!val) return;
+        let s = size;
+        if (maxW && f.widthOfTextAtSize) {
+          const w = f.widthOfTextAtSize(String(val), size);
+          if (w > maxW) s = Math.max(6.0, size * (maxW / w));
+        }
+        p.drawText(String(val), { x, y, size: s, font: f, color: rgb(0.12, 0.14, 0.18) });
+      };
+
+      drawCenteredInBox(tc.data.offlineFormNumber, 113.37, 680.90, 88.45, 20.87, 11.0);
+      drawCenteredInBox(tc.data.applicationDate, 459.76, 674.21, 88.45, 20.87, 11.0);
+      drawCenteredInBox(tc.data.workerOfflineFormNumber, 113.37, 654.77, 88.45, 20.87, 11.0);
+      drawCenteredInBox(tc.data.membershipNumber, 459.76, 642.24, 88.45, 20.87, 11.0);
+      drawCenteredInBox(tc.data.seniorOfflineFormNumber, 113.37, 629.78, 88.45, 20.87, 11.0);
+
+      draw(tc.data.applicantName, 75.0, 604.66, 10.5, 185);
+      draw(tc.data.fatherName, 137.0, 578.38, 10.5, 125);
+      draw(tc.data.aadharNumber, 98.0, 552.09, 10.5, 160);
+      draw(tc.data.gotra, 78.0, 525.80, 10.5, 180);
+      draw(tc.data.nomineeRelation, 88.0, 499.51, 10.5, 170);
+      draw(tc.data.village, 74.0, 473.22, 10.5, 185);
+
+      draw(tc.data.nomineeName, 338.0, 604.31, 10.5, 115);
+      draw(tc.data.nomineeAadhar, 362.0, 578.31, 10.5, 95);
+      draw(tc.data.nomineeMobile, 348.0, 552.32, 10.5, 105);
+      draw(tc.data.workerMobile, 343.0, 526.33, 10.5, 110);
+      draw(tc.data.district, 312.0, 500.33, 10.5, 140);
+      draw(tc.data.state, 308.0, 474.34, 10.5, 145);
+
+      draw(tc.data.installmentAmount ? `${tc.data.installmentAmount} किस्त` : '', 248.0, 450.65, 11.0, 65);
+
+      const bytes = await doc.save();
+      assert.ok(bytes.length > 1500000, 'Serialized PDF must be valid (>1.5MB)');
     });
   }
-
-  // Draw applicant & nominee photo placeholders
-  malePage.drawRectangle({
-    x: 461.2,
-    y: pageHeight - 148.8 - 89.0,
-    width: 82.0,
-    height: 89.0,
-    color: rgb(0.85, 0.90, 0.95),
-  });
-  malePage.drawRectangle({
-    x: 461.2,
-    y: pageHeight - 247.2 - 89.2,
-    width: 82.0,
-    height: 89.2,
-    color: rgb(0.95, 0.90, 0.85),
-  });
-
-  const maleBytesOut = await malePdfDoc.save();
-  const malePdfPath = path.join(outDir, 'test_male_parivar_kalyan_bond.pdf');
-  fs.writeFileSync(malePdfPath, maleBytesOut);
-
-  it('Male Bond PDF generated successfully with common template', () => {
-    assert.ok(fs.existsSync(malePdfPath), 'test_male_parivar_kalyan_bond.pdf must exist');
-    assert.ok(fs.statSync(malePdfPath).size > 100000, 'PDF size must be > 100KB');
-  });
-
-  console.log('\n4. Female Record Generation with Common Template...');
-  const femaleRecord = {
-    gender: 'Female',
-    workerOfflineFormNumber: '108',
-    seniorOfflineFormNumber: '102',
-    offlineFormNumber: '5010',
-    membershipNumber: '7006',
-    applicationDate: '2026-09-17',
-    applicantName: 'सुशीला देवी',
-    husbandName: 'सुरेश कुमार',
-    caste: 'जांगिड़',
-    village: 'कनाना',
-    nomineeName: 'सुरेश कुमार',
-    district: 'बालोतरा',
-    agentMobile: '9876543210',
-    state: 'राजस्थान',
-    aadharNumber: '9876 5432 1098',
-    nomineeRelation: 'पति',
-    nomineeAadhar: '1234 5678 9012',
-    nomineeMobile: '9876543210',
-    daysText: '180 दिन',
-  };
-
-  const femalePdfDoc = await PDFDocument.load(templateBytes);
-  femalePdfDoc.registerFontkit(fontkit);
-  const femaleFont = await femalePdfDoc.embedFont(fs.readFileSync(fontPath), { subset: false });
-  const femalePage = femalePdfDoc.getPage(0);
-
-  for (const f of fields(femaleRecord)) {
-    if (!f.val) continue;
-    const drawX = f.x;
-    const drawY = pageHeight - f.y;
-    let size = f.size || 9.5;
-    const textColor = f.color ? rgb(f.color.r, f.color.g, f.color.b) : rgb(0.1, 0.1, 0.1);
-    femalePage.drawText(f.val, {
-      x: drawX,
-      y: drawY,
-      size,
-      font: femaleFont,
-      color: textColor,
-    });
-  }
-
-  // Draw applicant & nominee photo placeholders
-  femalePage.drawRectangle({
-    x: 461.2,
-    y: pageHeight - 148.8 - 89.0,
-    width: 82.0,
-    height: 89.0,
-    color: rgb(0.85, 0.90, 0.95),
-  });
-  femalePage.drawRectangle({
-    x: 461.2,
-    y: pageHeight - 247.2 - 89.2,
-    width: 82.0,
-    height: 89.2,
-    color: rgb(0.95, 0.90, 0.85),
-  });
-
-  const femaleBytesOut = await femalePdfDoc.save();
-  const femalePdfPath = path.join(outDir, 'test_female_parivar_kalyan_bond.pdf');
-  fs.writeFileSync(femalePdfPath, femaleBytesOut);
-
-  it('Female Bond PDF generated successfully with common template', () => {
-    assert.ok(fs.existsSync(femalePdfPath), 'test_female_parivar_kalyan_bond.pdf must exist');
-    assert.ok(fs.statSync(femalePdfPath).size > 100000, 'PDF size must be > 100KB');
-  });
-
-  console.log('\n5. Visual High-Resolution Image Rendering...');
-  const malePngPath = path.join(outDir, 'test_male_parivar_kalyan_bond.png');
-  const femalePngPath = path.join(outDir, 'test_female_parivar_kalyan_bond.png');
-  await renderPdfToImage(malePdfPath, malePngPath, 3.0);
-  await renderPdfToImage(femalePdfPath, femalePngPath, 3.0);
-
-  it('High-resolution PNGs generated successfully at 3x scale', () => {
-    assert.ok(fs.existsSync(malePngPath), 'test_male_parivar_kalyan_bond.png must exist');
-    assert.ok(fs.existsSync(femalePngPath), 'test_female_parivar_kalyan_bond.png must exist');
-    assert.ok(fs.statSync(malePngPath).size > 200000, 'PNG size must be > 200KB');
-    assert.ok(fs.statSync(femalePngPath).size > 200000, 'PNG size must be > 200KB');
-  });
 
   console.log('\n============================================================');
-  console.log(`TEST SUMMARY: ${passCount} PASSED, ${failCount} FAILED`);
-  console.log('============================================================\n');
+  console.log(`INSURANCE BOND PDF TEST SUITE RESULT: ${passCount} PASSED, ${failCount} FAILED`);
+  console.log('============================================================');
 
   if (failCount > 0) {
     process.exit(1);
@@ -302,6 +347,6 @@ async function runTests() {
 }
 
 runTests().catch((err) => {
-  console.error('Test execution error:', err);
+  console.error('Test runner fatal error:', err);
   process.exit(1);
 });

@@ -131,16 +131,12 @@ export async function POST(request: NextRequest) {
       record?.spousePhotoUrl
     );
 
-    // Embed photos inside calibrated photo boxes on official A4 template:
-    // Top Photo Box (Applicant):
-    //   Outer Black Border: x = 460.2, yFromTop = 147.8, w = 84.0, h = 91.0
-    //   Inner Image Box:    x = 461.2, yFromTop = 148.8, w = 82.0, h = 89.0
-    // Bottom Photo Box (Nominee):
-    //   Outer Black Border: x = 460.2, yFromTop = 246.2, w = 84.0, h = 91.2
-    //   Inner Image Box:    x = 461.2, yFromTop = 247.2, w = 82.0, h = 89.2
+    // Embed photos inside calibrated photo boxes on official A4 template (595.28 x 841.89 pt):
+    // Top Photo Box (खाताधारक का फोटो):   x = 461.81, y = 548.85, w = 86.40, h = 80.17 (yFromTop = 212.87)
+    // Bottom Photo Box (नॉमिनी का फोटो): x = 461.81, y = 461.93, w = 86.40, h = 80.17 (yFromTop = 299.79)
     if (applicantPhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 461.2, 148.8, 82.0, 89.0, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 461.81, 212.87, 86.40, 80.17, 'cover');
       } catch (err) {
         console.warn('Could not embed applicant photo in Insurance Bond:', err);
       }
@@ -148,7 +144,7 @@ export async function POST(request: NextRequest) {
 
     if (nomineePhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 461.2, 247.2, 82.0, 89.2, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 461.81, 299.79, 86.40, 80.17, 'cover');
       } catch (err) {
         console.warn('Could not embed nominee photo in Insurance Bond:', err);
       }
@@ -165,8 +161,103 @@ export async function POST(request: NextRequest) {
       ? await pdfDoc.embedFont(fs.readFileSync(devanagariFontPath), { subset: false })
       : await pdfDoc.embedFont('Helvetica-Bold');
 
+    const navyColor = rgb(0.0, 0.15, 0.58);       // #002694
+    const charcoalColor = rgb(0.12, 0.14, 0.18);  // #1f242e
+
+    // Helper to draw text horizontally and vertically centered inside a rectangular box
+    const drawCenteredInBox = (
+      text: string | number | undefined | null,
+      boxX: number,
+      boxY: number, // bottom of box in PDF coords
+      boxW: number,
+      boxH: number,
+      size = 11.0,
+      color = navyColor
+    ) => {
+      if (text === undefined || text === null) return;
+      const str = String(text).trim();
+      if (!str) return;
+
+      let fontSize = size;
+      let textWidth = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(str, fontSize) : str.length * fontSize * 0.6;
+      const maxW = boxW - 4;
+      if (textWidth > maxW && (font as any).widthOfTextAtSize) {
+        fontSize = Math.max(7.0, size * (maxW / textWidth));
+        textWidth = (font as any).widthOfTextAtSize(str, fontSize);
+      }
+
+      const drawX = boxX + (boxW - textWidth) / 2;
+      // Optical vertical centering: capHeight is approx 0.72 of font size
+      const capHeight = fontSize * 0.72;
+      const boxMidY = boxY + boxH / 2;
+      const drawY = boxMidY - capHeight / 2;
+
+      firstPage.drawText(str, {
+        x: drawX,
+        y: drawY,
+        size: fontSize,
+        font,
+        color,
+      });
+    };
+
+    // Drawing helper with baseline alignment and proportional bounds fitting
+    const drawBounded = (
+      text: string | number | undefined | null,
+      x: number,
+      blY: number,
+      size = 10.5,
+      maxW?: number,
+      color = charcoalColor
+    ) => {
+      if (text === undefined || text === null) return;
+      const str = String(text).trim();
+      if (!str) return;
+
+      let fontSize = size;
+      if (maxW && (font as any).widthOfTextAtSize) {
+        try {
+          const textWidth = (font as any).widthOfTextAtSize(str, size);
+          if (textWidth > maxW) {
+            fontSize = Math.max(6.0, size * (maxW / textWidth));
+          }
+        } catch {
+          // Fallback if measurement fails
+        }
+      }
+
+      firstPage.drawText(str, {
+        x,
+        y: blY,
+        size: fontSize,
+        font,
+        color,
+      });
+    };
+
     // Extract dynamic fields adhering strictly to business rules:
-    // 1. Worker offline number (sanitized) - from assigned Agent Registration
+    // 1. Form Number / Offline Form Number (preserves leading zeros e.g. "005")
+    const rawOfflineFormNumber =
+      record.offlineFormNumber ||
+      record.offline_form_number ||
+      record.offlineFormNo ||
+      record.offline_form_no ||
+      record.formNumber ||
+      record.form_number ||
+      '';
+    const formNumber = sanitizeOfflineNumber(rawOfflineFormNumber);
+
+    // 2. Application Date formatting (DD/MM/YYYY)
+    const rawDate =
+      record.applicationDate ||
+      record.application_date ||
+      record.created_at ||
+      record.createdAt ||
+      record.date ||
+      '';
+    const applicationDate = rawDate ? formatDateToDDMMYYYY(String(rawDate)) : '';
+
+    // 3. Worker offline number (sanitized) - from assigned Agent Registration
     const rawWorkerOffline =
       record.workerOfflineFormNumber ||
       record.worker_offline_form_number ||
@@ -180,7 +271,15 @@ export async function POST(request: NextRequest) {
       '';
     const workerOffline = sanitizeOfflineNumber(rawWorkerOffline);
 
-    // 2. Senior offline number (sanitized) - from parent Level-1 Senior Agent
+    // 4. Membership Number - strictly real authoritative membershipNumber only, else blank
+    const rawMembershipNumber =
+      record.membershipNumber ||
+      record.membership_number ||
+      record.membershipNo ||
+      '';
+    const membershipNumber = sanitizeOfflineNumber(rawMembershipNumber);
+
+    // 5. Senior offline number (sanitized) - from parent Level-1 Senior Agent
     const rawSeniorOffline =
       record.seniorOfflineFormNumber ||
       record.senior_offline_form_number ||
@@ -194,37 +293,7 @@ export async function POST(request: NextRequest) {
       '';
     const seniorOffline = sanitizeOfflineNumber(rawSeniorOffline);
 
-    // 3. Application number - strictly Offline Form No., leave blank if absent (never fallback to system formNumber)
-    const rawOfflineFormNumber =
-      record.offlineFormNumber ||
-      record.offline_form_number ||
-      record.offlineFormNo ||
-      record.offline_form_no ||
-      '';
-    const applicationNo = sanitizeOfflineNumber(rawOfflineFormNumber);
-
-    // 4. Membership Number - strictly real authoritative membershipNumber only, else blank
-    const rawMembershipNumber =
-      record.membershipNumber ||
-      record.membership_number ||
-      record.memberNumber ||
-      record.member_number ||
-      record.membershipNo ||
-      record.receiptNumber ||
-      record.receipt_number ||
-      '';
-    const membershipNumber = sanitizeOfflineNumber(rawMembershipNumber);
-
-    // 5. Date formatting
-    const rawDate =
-      record.applicationDate ||
-      record.created_at ||
-      record.createdAt ||
-      record.date ||
-      '';
-    const applicationDate = rawDate ? formatDateToDDMMYYYY(String(rawDate)) : '';
-
-    // 6. Applicant info & Strict Field Separations
+    // 6. Left Column: Applicant Info & Strict Field Separations
     const applicantName = sanitizeValue(record.applicantName || record.name || '');
     const fatherHusbandName = sanitizeValue(
       record.husbandName ||
@@ -233,8 +302,7 @@ export async function POST(request: NextRequest) {
       record.wifeName ||
       ''
     );
-
-    // PDF 'जाति' strictly preserves Insurance's existing source contract
+    const aadharNumber = sanitizeValue(record.aadharNumber || record.aadhar || record.applicantAadhar || '');
     const caste = sanitizeValue(
       record.gotra ||
       record.gotraName ||
@@ -245,38 +313,6 @@ export async function POST(request: NextRequest) {
       record.category ||
       ''
     );
-
-    const village = sanitizeValue(record.village || record.address || record.tehsil || '');
-
-    // Nominee Name (वारिसदार)
-    const nomineeName = sanitizeValue(
-      record.nomineeName ||
-      record.nominee_name ||
-      record.nominee ||
-      record['वारिसदार'] ||
-      record['नामिनी_का_नाम'] ||
-      record['नॉमिनी_का_नाम'] ||
-      ''
-    );
-
-    const district = sanitizeValue(record.district || '');
-
-    // Assigned Agent's mobile (एजेन्ट मो. नं.) - strictly assigned worker/agent mobile, NEVER applicant mobile
-    const agentMobile = sanitizeValue(
-      record.agentMobile ||
-      record.workerMobile ||
-      record.agentPhone ||
-      record.workerPhone ||
-      record.addedBy?.mobile ||
-      record.added_mobile ||
-      record['कार्यकर्ता_का_मोबाइल'] ||
-      ''
-    );
-
-    const state = sanitizeValue(record.state || 'राजस्थान');
-    const aadharNumber = sanitizeValue(record.aadharNumber || record.aadhar || record.applicantAadhar || '');
-
-    // Nominee Relation (सम्बन्ध)
     const nomineeRelation = sanitizeValue(
       record.nomineeRelation ||
       record.nominee_relation ||
@@ -286,72 +322,139 @@ export async function POST(request: NextRequest) {
       record['नॉमिनी_का_सम्बन्ध'] ||
       ''
     );
+    const village = sanitizeValue(record.village || record.address || record.tehsil || '');
 
+    // 7. Right Column: Nominee & Other Info
+    const nomineeName = sanitizeValue(
+      record.nomineeName ||
+      record.nominee_name ||
+      record.nominee ||
+      record['वारिसदार'] ||
+      record['नामिनी_का_नाम'] ||
+      record['नॉमिनी_का_नाम'] ||
+      ''
+    );
     const nomineeAadhar = sanitizeValue(record.nomineeAadhar || record.nomineeAadhaar || record.nominee_aadhar || '');
     const nomineeMobile = sanitizeValue(record.nomineeMobile || record.nomineePhone || record.nominee_mobile || '');
+    // Agent Mobile must come ONLY from the assigned Agent/Worker's authoritative mobile field.
+    // Allowed resolution:
+    // 1. agentMobileNumber / agent_mobile_number
+    // 2. agentMobile / agent_mobile / workerMobile / worker_mobile / workerMobileNumber / assignedAgentMobile
+    // 3. resolved assigned Agent/Worker profile mobile (addedBy?.mobile, added_mobile, agentPhone, workerPhone)
+    // If no valid assigned Agent mobile exists: BLANK.
+    // NEVER use applicantMobile, nomineeMobile, applicant's phone, user phone, or arbitrary contact number.
+    const agentMobile = sanitizeValue(
+      record.agentMobileNumber ||
+      record.agent_mobile_number ||
+      record.agentMobile ||
+      record.agent_mobile ||
+      record.workerMobile ||
+      record.worker_mobile ||
+      record.workerMobileNumber ||
+      record.worker_mobile_number ||
+      record.assignedAgentMobile ||
+      record.agentPhone ||
+      record.agent_phone ||
+      record.workerPhone ||
+      record.worker_phone ||
+      record.addedBy?.mobile ||
+      record.added_mobile ||
+      record['कार्यकर्ता_का_मोबाइल'] ||
+      ''
+    );
+    const district = sanitizeValue(record.district || '');
+    const state = sanitizeValue(record.state || 'राजस्थान');
 
-    // Calibrated dynamic field positions on official 1-page Insurance Parivar Kalyan Bond template (595.28 x 841.89 pt)
-    // Y coordinates are calibrated to match each template label's visual baseline
-    const fields = [
-      // Top Code fields (label baseline ≈ 112.5 from top)
-      { field: 'कार्यकर्ता_कोड', val: workerOffline, x: 138, y: 112.5, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 460, y: 112.5, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-
-      // Numbers & Date row (label baseline ≈ 136.0 from top)
-      { field: 'आवेदन_क्र', val: applicationNo, x: 100, y: 136.0, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सदस्यता_क्र', val: membershipNumber, x: 302, y: 136.0, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'आवेदन_दिनांक', val: applicationDate, x: 484, y: 136.0, maxW: 75, size: 9.5 },
-
-      // Left Column Fields (baselines measured per row from template labels)
-      { field: 'नाम', val: applicantName, x: 72, y: 178.0, maxW: 150, size: 10 },
-      { field: 'जाति', val: caste, x: 72, y: 201.0, maxW: 150, size: 9.5 },
-      { field: 'वारिसदार', val: nomineeName, x: 90, y: 224.0, maxW: 135, size: 9.5 },
-      { field: 'एजेन्ट_मो_नं', val: agentMobile, x: 107, y: 249.0, maxW: 115, size: 9.5 },
-      { field: 'आधार_नं', val: aadharNumber, x: 93, y: 273.5, maxW: 135, size: 9.5 },
-      { field: 'नॉमिनी_आधार_नं', val: nomineeAadhar, x: 127, y: 297.0, maxW: 100, size: 9.5 },
-
-      // Center Column Fields (same row baselines as left column)
-      { field: 'पिता_पति_का_नाम', val: fatherHusbandName, x: 322, y: 178.0, maxW: 130, size: 10 },
-      { field: 'गांव', val: village, x: 258, y: 201.0, maxW: 190, size: 9.5 },
-      { field: 'जिला', val: district, x: 265, y: 224.0, maxW: 190, size: 9.5 },
-      { field: 'राज्य', val: state, x: 261, y: 249.0, maxW: 190, size: 9.5 },
-      { field: 'सम्बन्ध', val: nomineeRelation, x: 272, y: 273.5, maxW: 180, size: 9.5 },
-      { field: 'नॉमिनी_मो_नं', val: nomineeMobile, x: 301, y: 297.0, maxW: 140, size: 9.5 },
-
-      // Benefit Duration Clause (label baseline ≈ 352 from top)
-      { field: 'अवधि', val: String(daysText).trim(), x: 280, y: 352.0, maxW: 75, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },
-    ];
-
-    for (const f of fields) {
-      if (!f.val) continue;
-      const drawX = f.x;
-      const drawY = pageHeight - f.y;
-      let size = f.size || 9.5;
-      if (f.maxW && (font as any).widthOfTextAtSize) {
-        const w = (font as any).widthOfTextAtSize(f.val, size);
-        if (w > f.maxW) {
-          size = Math.max(6.0, size * (f.maxW / w));
-        }
+    // 8. Bottom Insurance Scheme Amount: "परिवार कल्याण बीमा [ AMOUNT ] रुपये प्रत्येक बीमा पर लागू"
+    const rawAmt =
+      record?.installmentAmount ??
+      record?.installment_amount ??
+      record?.insuranceAmount ??
+      record?.insurance_amount ??
+      record?.paymentAmount ??
+      record?.payment_amount ??
+      record?.amount ??
+      '';
+    let insuranceAmountText = '';
+    if (rawAmt !== undefined && rawAmt !== null && rawAmt !== '') {
+      const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(String(rawAmt).replace(/[^\d.]/g, ''));
+      if (!isNaN(num) && num > 0) {
+        if (num === 300) insuranceAmountText = '300 किस्त';
+        else if (num === 1000) insuranceAmountText = '1000 किस्त';
+        else insuranceAmountText = String(num);
+      } else {
+        const str = String(rawAmt).trim();
+        if (str === '300' || str === '300 किस्त') insuranceAmountText = '300 किस्त';
+        else if (str === '1000' || str === '1000 किस्त') insuranceAmountText = '1000 किस्त';
+        else insuranceAmountText = sanitizeValue(str);
       }
-      const textColor = f.color ? rgb(f.color.r, f.color.g, f.color.b) : rgb(0.1, 0.1, 0.1);
-      firstPage.drawText(f.val, {
-        x: drawX,
-        y: drawY,
-        size,
-        font,
-        color: textColor,
-      });
     }
+
+    // ── Draw Header Meta Fields Centered inside their respective pre-printed boxes ──
+    // 1. Form No Box [X: 113.37, Y: 680.90, W: 88.45, H: 20.87]
+    drawCenteredInBox(formNumber, 113.37, 680.90, 88.45, 20.87, 11.0, navyColor);
+
+    // 2. Application Date Box [X: 459.76, Y: 674.21, W: 88.45, H: 20.87]
+    drawCenteredInBox(applicationDate, 459.76, 674.21, 88.45, 20.87, 11.0, navyColor);
+
+    // 3. Agent Code Box [X: 113.37, Y: 654.77, W: 88.45, H: 20.87]
+    drawCenteredInBox(workerOffline, 113.37, 654.77, 88.45, 20.87, 11.0, navyColor);
+
+    // 4. Membership No Box [X: 459.76, Y: 642.24, W: 88.45, H: 20.87]
+    drawCenteredInBox(membershipNumber, 459.76, 642.24, 88.45, 20.87, 11.0, navyColor);
+
+    // 5. Upline Code Box [X: 113.37, Y: 629.78, W: 88.45, H: 20.87]
+    drawCenteredInBox(seniorOffline, 113.37, 629.78, 88.45, 20.87, 11.0, navyColor);
+
+    // ── Draw Left Column Fields (खाताधारक विवरण) on Calibrated Baselines ──
+    // नाम %& (Applicant Name) - baseline y = 604.66
+    drawBounded(applicantName, 75.0, 604.66, 10.5, 185, charcoalColor);
+
+    // पिता/पति का नाम %& (Father/Husband Name) - baseline y = 578.38
+    drawBounded(fatherHusbandName, 137.0, 578.38, 10.5, 125, charcoalColor);
+
+    // आधार नं. %& (Applicant Aadhaar) - baseline y = 552.09
+    drawBounded(aadharNumber, 98.0, 552.09, 10.5, 160, charcoalColor);
+
+    // जाति %& (Caste/Gotra) - baseline y = 525.80
+    drawBounded(caste, 78.0, 525.80, 10.5, 180, charcoalColor);
+
+    // सम्बन्ध %& (Nominee Relation) - baseline y = 499.51
+    drawBounded(nomineeRelation, 88.0, 499.51, 10.5, 170, charcoalColor);
+
+    // गांव %& (Village/Address) - baseline y = 473.22
+    drawBounded(village, 74.0, 473.22, 10.5, 185, charcoalColor);
+
+    // ── Draw Right Column Fields (नॉमिनी एवं अन्य विवरण) on Calibrated Baselines ──
+    // नॉमिनी नाम %& (Nominee Name) - baseline y = 604.31
+    drawBounded(nomineeName, 338.0, 604.31, 10.5, 115, charcoalColor);
+
+    // नॉमिनी आधार नं. %& (Nominee Aadhaar) - baseline y = 578.31
+    drawBounded(nomineeAadhar, 362.0, 578.31, 10.5, 95, charcoalColor);
+
+    // नॉमिनी मो. नं. %& (Nominee Mobile) - baseline y = 552.32
+    drawBounded(nomineeMobile, 348.0, 552.32, 10.5, 105, charcoalColor);
+
+    // एजेंट मो. नं. %& (Agent Mobile) - baseline y = 526.33
+    drawBounded(agentMobile, 343.0, 526.33, 10.5, 110, charcoalColor);
+
+    // जिला %& (District) - baseline y = 500.33
+    drawBounded(district, 312.0, 500.33, 10.5, 140, charcoalColor);
+
+    // राज्य %& (State) - baseline y = 474.34
+    drawBounded(state, 308.0, 474.34, 10.5, 145, charcoalColor);
+
+    // ── Draw Bottom Insurance Amount on Dotted Line ──
+    // "परिवार कल्याण बीमा [ 300 किस्त ] रुपये प्रत्येक बीमा पर लागू"
+    drawBounded(insuranceAmountText, 248.0, 450.65, 11.0, 65, navyColor);
 
     const pdfBytes = await pdfDoc.save();
 
-    const safeName = (record.applicantName || record.formNumber || 'bond')
-      .replace(/[^\x00-\x7F]/g, '')
-      .replace(/[^a-zA-Z0-9\s-_]/g, '')
-      .trim()
-      .replace(/\s+/g, '_');
+    const safeName = (applicantName || membershipNumber || formNumber || record?.id || 'bond')
+      .replace(/[^a-zA-Z0-9_\-\u0900-\u097F]/g, '_')
+      .trim();
 
-    const filename = `INSURANCE_BOND_${safeName || applicationNo || 'document'}.pdf`;
+    const filename = `INSURANCE_BOND_${encodeURIComponent(safeName || 'document')}.pdf`;
 
     return new NextResponse(pdfBytes.buffer as ArrayBuffer, {
       headers: {

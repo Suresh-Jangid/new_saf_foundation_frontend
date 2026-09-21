@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     const record = body?.record || body?.data || (body && typeof body === 'object' && !Array.isArray(body) ? body : {});
-    const duration = body?.duration || record?.duration || 'नौ माह';
+    const duration = sanitizeValue(body?.duration || record?.duration || record?.benefitDuration || 'नौ माह');
 
     console.log('Generating Janni Delivery Bond PDF for:', record?.applicantName || record?.formNumber || 'Unknown');
 
@@ -91,8 +91,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-
-    console.log('Using Janni Bond template:', templatePath);
 
     // Load existing PDF template
     const existingPdfBytes = fs.readFileSync(templatePath);
@@ -130,26 +128,15 @@ export async function POST(request: NextRequest) {
       record?.spousePhotoUrl
     );
 
-    // Embed photos inside calibrated photo boxes on official A4 template:
-    // Top Photo Box (Applicant):
-    //   Outer Black Border: x = 460.2, yFromTop = 147.8, w = 84.0, h = 91.0
-    //   Inner Image Box:    x = 461.2, yFromTop = 148.8, w = 82.0, h = 89.0
-    // Bottom Photo Box (Nominee):
-    //   Outer Black Border: x = 460.2, yFromTop = 246.2, w = 84.0, h = 91.2
-    //   Inner Image Box:    x = 461.2, yFromTop = 247.2, w = 82.0, h = 89.2
-    if (applicantPhotoSource) {
+    // Embed photo in the single calibrated right-hand photo box on official Janni Delivery Bond:
+    // Outer Charcoal Border: x = 448.0, yFromTop = 234.0, w = 86.5, h = 105.0
+    // Inner Image Box:       x = 449.0, yFromTop = 235.0, w = 84.5, h = 103.0 (1.0pt inset keeps border visible)
+    const photoToEmbed = applicantPhotoSource || nomineePhotoSource;
+    if (photoToEmbed) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 461.2, 148.8, 82.0, 89.0, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, photoToEmbed, 449.0, 235.0, 84.5, 103.0, 'cover');
       } catch (err) {
-        console.warn('Could not embed applicant photo in Janni Bond:', err);
-      }
-    }
-
-    if (nomineePhotoSource) {
-      try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 461.2, 247.2, 82.0, 89.2, 'cover');
-      } catch (err) {
-        console.warn('Could not embed nominee photo in Janni Bond:', err);
+        console.warn('Could not embed photo in Janni Bond:', err);
       }
     }
 
@@ -249,7 +236,7 @@ export async function POST(request: NextRequest) {
 
     const village = sanitizeValue(record.village || record.address || record.tehsil || '');
 
-    // Nominee Name (वारिसदार)
+    // Nominee Name (वारिसदार / नॉमिनी नाम)
     const nomineeName = sanitizeValue(
       record.nomineeName ||
       record.nominee_name ||
@@ -291,61 +278,115 @@ export async function POST(request: NextRequest) {
     const nomineeAadhar = sanitizeValue(record.nomineeAadhar || record.nomineeAadhaar || record.nominee_aadhar || '');
     const nomineeMobile = sanitizeValue(record.nomineeMobile || record.nomineePhone || record.nominee_mobile || '');
 
-    // Calibrated dynamic field positions on official 1-page Janni Delivery Bond template (595.28 x 841.89 pt)
-    // Y coordinates are calibrated to match each template label's visual baseline (measured via pixel analysis at 3x scale)
-    const fields = [
-      // Top Code fields (label baseline ≈ 112.5 from top)
-      { field: 'कार्यकर्ता_कोड', val: workerOffline, x: 138, y: 112.5, maxW: 85, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 460, y: 112.5, maxW: 80, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
+    // Scheme grant amount (default ₹11,000 for Janni Delivery)
+    const rawAmt =
+      record.janniAmount ||
+      record.grantAmount ||
+      record.paymentAmount ||
+      record.totalAmount ||
+      record.amount ||
+      record.deliveryAmount ||
+      '11000';
+    const janniAmount = sanitizeValue(String(rawAmt).replace(/[^\d.]/g, '')) || '11000';
 
-      // Numbers & Date row (label baseline ≈ 136.0 from top)
-      { field: 'आवेदन_क्र', val: applicationNo, x: 102, y: 136.0, maxW: 130, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सदस्यता_क्र', val: membershipNumber, x: 304, y: 136.0, maxW: 115, size: 10, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'आवेदन_दिनांक', val: applicationDate, x: 485, y: 136.0, maxW: 75, size: 9.5 },
+    const navyColor = rgb(0.04, 0.15, 0.58);
+    const darkColor = rgb(0.12, 0.12, 0.12);
+    const redColor = rgb(0.75, 0.08, 0.08);
 
-      // Left Column Fields (baselines measured per row from template labels)
-      { field: 'नाम', val: applicantName, x: 75, y: 178.0, maxW: 150, size: 10 },
-      { field: 'जाति', val: caste, x: 75, y: 201.0, maxW: 150, size: 9.5 },
-      { field: 'वारिसदार', val: nomineeName, x: 95, y: 224.0, maxW: 135, size: 9.5 },
-      { field: 'एजेन्ट_मो_नं', val: agentMobile, x: 110, y: 249.0, maxW: 115, size: 9.5 },
-      { field: 'आधार_नं', val: aadharNumber, x: 95, y: 273.5, maxW: 135, size: 9.5 },
-      { field: 'नॉमिनी_आधार_नं', val: nomineeAadhar, x: 128, y: 297.0, maxW: 100, size: 9.5 },
+    // Helper to draw centered text in box
+    const drawCenteredInBox = (text: string, boxX: number, boxYTop: number, boxW: number, boxH: number, fontSize: number, color: any) => {
+      if (!text) return;
+      let size = fontSize;
+      if ((font as any).widthOfTextAtSize) {
+        let textW = (font as any).widthOfTextAtSize(text, size);
+        if (textW > boxW - 6) {
+          size = Math.max(7.0, size * ((boxW - 6) / textW));
+          textW = (font as any).widthOfTextAtSize(text, size);
+        }
+        const x = boxX + (boxW - textW) / 2;
+        const y = pageHeight - (boxYTop + boxH / 2 + size * 0.35);
+        firstPage.drawText(text, { x, y, size, font, color });
+      } else {
+        const x = boxX + 6;
+        const y = pageHeight - (boxYTop + boxH / 2 + size * 0.35);
+        firstPage.drawText(text, { x, y, size, font, color });
+      }
+    };
 
-      // Center Column Fields (same row baselines as left column)
-      { field: 'पिता_पति_का_नाम', val: fatherHusbandName, x: 325, y: 178.0, maxW: 130, size: 10 },
-      { field: 'गांव', val: village, x: 262, y: 201.0, maxW: 190, size: 9.5 },
-      { field: 'जिला', val: district, x: 268, y: 224.0, maxW: 190, size: 9.5 },
-      { field: 'राज्य', val: state, x: 265, y: 249.0, maxW: 190, size: 9.5 },
-      { field: 'सम्बन्ध', val: nomineeRelation, x: 275, y: 273.5, maxW: 180, size: 9.5 },
-      { field: 'नॉमिनी_मो_नं', val: nomineeMobile, x: 302, y: 297.0, maxW: 140, size: 9.5 },
-
-      // Benefit Duration Clause (label baseline ≈ 352 from top)
-      { field: 'अवधि', val: String(duration || 'नौ माह').trim(), x: 282, y: 352.0, maxW: 75, size: 9.5, color: { r: 0.8, g: 0.1, b: 0.1 } },
-    ];
-
-    for (const f of fields) {
-      if (!f.val) continue;
-      const drawX = f.x;
-      const drawY = pageHeight - f.y;
-      let size = f.size || 9.5;
-      if (f.maxW && (font as any).widthOfTextAtSize) {
-        const w = (font as any).widthOfTextAtSize(f.val, size);
-        if (w > f.maxW) {
-          size = Math.max(6.0, size * (f.maxW / w));
+    // Helper to draw bounded text at baseline
+    const drawBounded = (text: string, x: number, yTop: number, fontSize: number, maxW: number, color: any) => {
+      if (!text) return;
+      let size = fontSize;
+      if ((font as any).widthOfTextAtSize) {
+        const textW = (font as any).widthOfTextAtSize(text, size);
+        if (textW > maxW) {
+          size = Math.max(6.5, size * (maxW / textW));
         }
       }
-      const textColor = f.color ? rgb(f.color.r, f.color.g, f.color.b) : rgb(0.1, 0.1, 0.1);
-      firstPage.drawText(f.val, {
-        x: drawX,
-        y: drawY,
-        size,
-        font,
-        color: textColor,
-      });
+      const y = pageHeight - yTop;
+      firstPage.drawText(text, { x, y, size, font, color });
+    };
+
+    // ── 1. Draw Header Boxes (Top 5 blue boxes) ──
+    // Form No: box at x=108.0, y=148.5, w=88.5, h=20.5
+    drawCenteredInBox(applicationNo, 108.0, 148.5, 88.5, 20.5, 10.5, navyColor);
+    // Agent Code: box at x=108.0, y=174.5, w=88.5, h=20.5
+    drawCenteredInBox(workerOffline, 108.0, 174.5, 88.5, 20.5, 10.5, navyColor);
+    // Upline Code: box at x=108.0, y=199.5, w=88.5, h=20.5
+    drawCenteredInBox(seniorOffline, 108.0, 199.5, 88.5, 20.5, 10.5, navyColor);
+    // Application Date: box at x=452.0, y=148.5, w=88.5, h=20.5
+    drawCenteredInBox(applicationDate, 452.0, 148.5, 88.5, 20.5, 10.0, navyColor);
+    // Membership No: box at x=452.0, y=180.5, w=88.5, h=20.5
+    drawCenteredInBox(membershipNumber, 452.0, 180.5, 88.5, 20.5, 10.5, navyColor);
+
+    // ── 2. Draw Left Column Fields ──
+    // नाम :-
+    drawBounded(applicantName, 72.0, 234.0, 10.0, 185, darkColor);
+    // पिता/पति का नाम :-
+    drawBounded(fatherHusbandName, 132.0, 259.5, 10.0, 125, darkColor);
+    // आधार नं. :-
+    drawBounded(aadharNumber, 94.0, 284.5, 10.0, 163, darkColor);
+    // जाति :-
+    drawBounded(caste, 74.0, 309.5, 10.0, 183, darkColor);
+    // सम्बन्ध :-
+    drawBounded(nomineeRelation, 84.0, 335.5, 10.0, 173, darkColor);
+    // गांव :-
+    drawBounded(village, 72.0, 360.5, 10.0, 185, darkColor);
+
+    // ── 3. Draw Center Column Fields ──
+    // नॉमिनी नाम :-
+    drawBounded(nomineeName, 330.0, 234.0, 10.0, 112, darkColor);
+    // नॉमिनी आधार नं. :-
+    drawBounded(nomineeAadhar, 356.0, 259.5, 10.0, 86, darkColor);
+    // नॉमिनी मो. नं. :-
+    drawBounded(nomineeMobile, 348.0, 284.5, 10.0, 94, darkColor);
+    // एजेन्ट मो. नं. :-
+    drawBounded(agentMobile, 336.0, 309.5, 10.0, 106, darkColor);
+    // जिला :-
+    drawBounded(district, 304.0, 335.5, 10.0, 138, darkColor);
+    // राज्य :-
+    drawBounded(state, 304.0, 360.5, 10.0, 138, darkColor);
+
+    // ── 4. Draw Bottom Scheme Amount Line ──
+    // "जननी सुरक्षा प्रसव योजना [ 11000 ] रूपये प्रत्येक डिलीवरी पर लागू"
+    // Dotted line runs from X: 199.0 to 271.9 (W: 72.9) at baseline yTop: 380.0
+    if (janniAmount) {
+      const amtW = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(janniAmount, 11.5) : 30.0;
+      const amtX = 199.0 + Math.max(0, (72.9 - amtW) / 2);
+      drawBounded(janniAmount, amtX, 380.0, 11.5, 70, navyColor);
+    }
+
+    // ── 5. Draw Benefit Duration Line ──
+    // "आपको विवाह योजना का लाभ [ नौ माह ] के बाद मिलेगा ।"
+    // Dotted line runs from X: 245.0 to 330.0 (W: 85.0) at baseline yTop: 425.0
+    if (duration) {
+      const durW = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(duration, 10.5) : 35.0;
+      const durX = 245.0 + Math.max(0, (85.0 - durW) / 2);
+      drawBounded(duration, durX, 425.0, 10.5, 80, redColor);
     }
 
     const pdfBytes = await pdfDoc.save();
-    const filename = `janni_bond_${applicationNo || record.id || 'document'}.pdf`;
+    const filename = `Janni_Bond_${applicationNo || record.formNumber || record.id || 'document'}.pdf`;
 
     return new NextResponse(pdfBytes.buffer as ArrayBuffer, {
       headers: {

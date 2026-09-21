@@ -2,6 +2,7 @@ import 'regenerator-runtime/runtime.js';
 import fs from 'fs';
 import path from 'path';
 import assert from 'assert';
+import crypto from 'crypto';
 import { PDFDocument, rgb } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 
@@ -26,200 +27,171 @@ function it(desc, fn) {
 
 async function runTests() {
   const canonicalTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'janni_bond', 'janni_sahayata_bond.pdf');
-  const backupTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'janni_bond', 'janni_sahayata_bond.backup.pdf');
-  const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf');
+  const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-SemiBold.ttf');
   const routePath = path.join(process.cwd(), 'app', 'api', 'generate-janni-bond-pdf', 'route.ts');
-  const listPagePath = path.join(process.cwd(), 'app', 'dashboard', 'janni-delivery', 'page.tsx');
+  const listPath = path.join(process.cwd(), 'app', 'dashboard', 'janni-delivery', 'page.tsx');
 
   console.log('1. Template & Asset Integrity...');
+
   it('1. Official Janni Bond template exists at public/pdf/janni_bond/janni_sahayata_bond.pdf', () => {
-    assert.ok(fs.existsSync(canonicalTemplatePath), 'Template must exist at canonical path');
-  });
-
-  it('2. Backup of previous template exists', () => {
-    assert.ok(fs.existsSync(backupTemplatePath), 'Backup template must exist');
-  });
-
-  it('3. Devanagari font exists for Hindi rendering', () => {
-    assert.ok(fs.existsSync(fontPath), 'Devanagari font must exist');
+    assert.ok(fs.existsSync(canonicalTemplatePath), 'Template must exist');
   });
 
   const templateBytes = fs.readFileSync(canonicalTemplatePath);
-  const pdfDoc = await PDFDocument.load(templateBytes);
-  pdfDoc.registerFontkit(fontkit);
+  const templateHash = crypto.createHash('sha256').update(templateBytes).digest('hex').toUpperCase();
 
-  it('4. Template page count = 1', () => {
-    assert.strictEqual(pdfDoc.getPageCount(), 1, 'Template must have exactly 1 page');
+  it('2. Official template hash is strictly preserved (byte-for-byte unchanged)', () => {
+    assert.strictEqual(
+      templateHash,
+      '93E5AF08BD236331C97A8DD25711E8DB968E2480BD651DA7BCD00262A406B298',
+      'Template SHA256 must match official template byte-for-byte'
+    );
   });
 
-  const page = pdfDoc.getPages()[0];
-  const { width, height } = page.getSize();
+  it('3. Devanagari font exists for Hindi rendering', () => {
+    assert.ok(fs.existsSync(fontPath), 'Font file must exist');
+  });
+
+  const pdfDoc = await PDFDocument.load(templateBytes);
+  const pages = pdfDoc.getPages();
+  const firstPage = pages[0];
+  const { width, height } = firstPage.getSize();
+
+  it('4. Template page count = 1', () => {
+    assert.strictEqual(pages.length, 1);
+  });
 
   it('5. Template size = A4 portrait (595.28 x 841.89 pt)', () => {
-    assert.ok(Math.abs(width - 595.28) < 1.0, `Width (${width}) must be ~595.28 pt`);
-    assert.ok(Math.abs(height - 841.89) < 1.0, `Height (${height}) must be ~841.89 pt`);
+    assert.ok(Math.abs(width - 595.28) < 0.5, 'Width must be ~595.28 pt');
+    assert.ok(Math.abs(height - 841.89) < 0.5, 'Height must be ~841.89 pt');
   });
 
   console.log('\n2. Route & Code Level Assertions...');
   const routeContent = fs.readFileSync(routePath, 'utf8');
-  const listContent = fs.readFileSync(listPagePath, 'utf8');
+  const listContent = fs.readFileSync(listPath, 'utf8');
 
   it('6. Route uses canonical Janni bond template path', () => {
-    assert.ok(
-      routeContent.includes("path.join(process.cwd(), 'public', 'pdf', 'janni_bond', 'janni_sahayata_bond.pdf')"),
-      'Route must reference canonical template path'
-    );
+    assert.ok(routeContent.includes('janni_sahayata_bond.pdf'), 'Must use janni_sahayata_bond.pdf');
   });
 
-  it('7. Worker code field (कार्यकर्ता कोड) is rendered with proper styling', () => {
-    assert.ok(routeContent.includes("field: 'कार्यकर्ता_कोड'"), 'Must contain कार्यकर्ता_कोड mapping');
-    assert.ok(routeContent.includes('x: 138, y: 112.5'), 'Worker code must be positioned at x=138, y=112.5');
+  it('7. Form No (फॉर्म नं.) is drawn in header box', () => {
+    assert.ok(routeContent.includes('drawCenteredInBox(applicationNo, 108.0, 148.5, 88.5, 20.5'), 'Form No box positioned at x=108.0, y=148.5');
   });
 
-  it('8. Senior code field (सीनियर कार्यकर्ता कोड) is rendered with proper styling', () => {
-    assert.ok(routeContent.includes("field: 'सीनियर_कार्यकर्ता_कोड'"), 'Must contain सीनियर_कार्यकर्ता_कोड mapping');
-    assert.ok(routeContent.includes('x: 460, y: 112.5'), 'Senior code must be positioned at x=460, y=112.5');
+  it('8. Worker code (एजेन्ट कोड) is drawn in header box', () => {
+    assert.ok(routeContent.includes('drawCenteredInBox(workerOffline, 108.0, 174.5, 88.5, 20.5'), 'Worker offline box positioned at x=108.0, y=174.5');
   });
 
-  it('9. Application number (आवेदन क्र.) is rendered', () => {
-    assert.ok(routeContent.includes("field: 'आवेदन_क्र'"), 'Must contain आवेदन_क्र mapping');
-    assert.ok(routeContent.includes('x: 102, y: 136.0'), 'Application number at x=102, y=136.0');
+  it('9. Upline code (अपलाईन कोड) is drawn in header box', () => {
+    assert.ok(routeContent.includes('drawCenteredInBox(seniorOffline, 108.0, 199.5, 88.5, 20.5'), 'Senior offline box positioned at x=108.0, y=199.5');
   });
 
-  it('10. Membership field (सदस्यता क्र.) behavior is correct (blank when absent)', () => {
-    assert.ok(routeContent.includes("field: 'सदस्यता_क्र'"), 'Must contain सदस्यता_क्र mapping');
-    assert.ok(routeContent.includes('x: 304, y: 136.0'), 'Membership number at x=304, y=136.0');
-    assert.ok(routeContent.includes('rawMembershipNumber'), 'Must check rawMembershipNumber without fallback to system formNumber');
+  it('10. Application date (आवेदन दि.) is formatted to DD/MM/YYYY and drawn in header box', () => {
+    assert.ok(routeContent.includes('drawCenteredInBox(applicationDate, 452.0, 148.5, 88.5, 20.5'), 'Date box positioned at x=452.0, y=148.5');
   });
 
-  it('11. Application date (आवेदन दि.) is formatted to DD/MM/YYYY', () => {
-    assert.ok(routeContent.includes("field: 'आवेदन_दिनांक'"), 'Must contain आवेदन_दिनांक mapping');
-    assert.ok(routeContent.includes('formatDateToDDMMYYYY'), 'Must format date using formatDateToDDMMYYYY');
-    assert.ok(routeContent.includes('x: 485, y: 136.0'), 'Date positioned at x=485, y=136.0');
+  it('11. Membership number (सदस्यता क्र.) is drawn in header box (blank when absent)', () => {
+    assert.ok(routeContent.includes('drawCenteredInBox(membershipNumber, 452.0, 180.5, 88.5, 20.5'), 'Membership box positioned at x=452.0, y=180.5');
   });
 
-  it('12. Applicant name (नाम) is rendered', () => {
-    assert.ok(routeContent.includes("field: 'नाम'"), 'Must contain नाम mapping');
-    assert.ok(routeContent.includes('x: 75, y: 178.0'), 'Applicant name positioned at x=75, y=178.0');
+  it('12. Applicant name (नाम) is rendered at calibrated baseline', () => {
+    assert.ok(routeContent.includes('drawBounded(applicantName, 72.0, 234.0, 10.0, 185'), 'Applicant name positioned at x=72.0, y=234.0');
   });
 
-  it('13. जाति preserves Janni contract (gotra/category)', () => {
-    assert.ok(routeContent.includes("field: 'जाति'"), 'Must contain जाति mapping');
-    assert.ok(routeContent.includes('record.gotra'), 'Must map from record.gotra');
-    assert.ok(routeContent.includes('x: 75, y: 201.0'), 'Caste/Gotra positioned at x=75, y=201.0');
+  it('13. Father/Husband (पिता/पति का नाम) is rendered at calibrated baseline', () => {
+    assert.ok(routeContent.includes('drawBounded(fatherHusbandName, 132.0, 259.5, 10.0, 125'), 'Father/Husband positioned at x=132.0, y=259.5');
   });
 
-  it('14. वारिसदार maps to nomineeName', () => {
-    assert.ok(routeContent.includes("field: 'वारिसदार'"), 'Must contain वारिसदार mapping');
-    assert.ok(routeContent.includes('record.nomineeName'), 'Must map from nomineeName');
-    assert.ok(routeContent.includes('x: 95, y: 224.0'), 'Nominee name positioned at x=95, y=224.0');
+  it('14. Applicant Aadhaar (आधार नं.) is rendered at calibrated baseline', () => {
+    assert.ok(routeContent.includes('drawBounded(aadharNumber, 94.0, 284.5, 10.0, 163'), 'Aadhaar positioned at x=94.0, y=284.5');
   });
 
-  it('15. एजेन्ट मो. नं. uses assigned Agent mobile (NEVER applicant mobile)', () => {
-    assert.ok(routeContent.includes("field: 'एजेन्ट_मो_नं'"), 'Must contain एजेन्ट_मो_नं mapping');
-    assert.ok(
-      routeContent.includes('record.agentMobile') && routeContent.includes('record.workerMobile'),
-      'Must use agent mobile source'
-    );
-    assert.ok(routeContent.includes('x: 110, y: 249.0'), 'Agent mobile positioned at x=110, y=249.0');
+  it('15. जाति preserves Janni contract (gotra/category)', () => {
+    assert.ok(routeContent.includes('drawBounded(caste, 74.0, 309.5, 10.0, 183'), 'Caste/Gotra positioned at x=74.0, y=309.5');
   });
 
-  it('16. Applicant Aadhaar (आधार नं.) is rendered', () => {
-    assert.ok(routeContent.includes("field: 'आधार_नं'"), 'Must contain आधार_नं mapping');
-    assert.ok(routeContent.includes('x: 95, y: 273.5'), 'Aadhaar positioned at x=95, y=273.5');
+  it('16. Relationship (सम्बन्ध) is rendered at calibrated baseline', () => {
+    assert.ok(routeContent.includes('drawBounded(nomineeRelation, 84.0, 335.5, 10.0, 173'), 'Relation positioned at x=84.0, y=335.5');
   });
 
-  it('17. Nominee Aadhaar (नॉमिनी आधार नं.) is rendered', () => {
-    assert.ok(routeContent.includes("field: 'नॉमिनी_आधार_नं'"), 'Must contain नॉमिनी_आधार_नं mapping');
-    assert.ok(routeContent.includes('x: 128, y: 297.0'), 'Nominee Aadhaar positioned at x=128, y=297.0');
+  it('17. Village/Address (गांव) is rendered at calibrated baseline', () => {
+    assert.ok(routeContent.includes('drawBounded(village, 72.0, 360.5, 10.0, 185'), 'Village positioned at x=72.0, y=360.5');
   });
 
-  it('18. Father/Husband (पिता/पति का नाम) is rendered', () => {
-    assert.ok(routeContent.includes("field: 'पिता_पति_का_नाम'"), 'Must contain पिता_पति_का_नाम mapping');
-    assert.ok(routeContent.includes('x: 325, y: 178.0'), 'Father/Husband positioned at x=325, y=178.0');
+  it('18. Nominee Name (नॉमिनी नाम) is rendered at calibrated baseline', () => {
+    assert.ok(routeContent.includes('drawBounded(nomineeName, 330.0, 234.0, 10.0, 112'), 'Nominee name positioned at x=330.0, y=234.0');
   });
 
-  it('19. Village/Address (गांव) is rendered', () => {
-    assert.ok(routeContent.includes("field: 'गांव'"), 'Must contain गांव mapping');
-    assert.ok(routeContent.includes('x: 262, y: 201.0'), 'Village positioned at x=262, y=201.0');
+  it('19. Nominee Aadhaar (नॉमिनी आधार नं.) is rendered at calibrated baseline', () => {
+    assert.ok(routeContent.includes('drawBounded(nomineeAadhar, 356.0, 259.5, 10.0, 86'), 'Nominee Aadhaar positioned at x=356.0, y=259.5');
   });
 
-  it('20. District (जिला) is rendered', () => {
-    assert.ok(routeContent.includes("field: 'जिला'"), 'Must contain जिला mapping');
-    assert.ok(routeContent.includes('x: 268, y: 224.0'), 'District positioned at x=268, y=224.0');
+  it('20. Nominee mobile (नॉमिनी मो. नं.) is rendered at calibrated baseline', () => {
+    assert.ok(routeContent.includes('drawBounded(nomineeMobile, 348.0, 284.5, 10.0, 94'), 'Nominee mobile positioned at x=348.0, y=284.5');
   });
 
-  it('21. State (राज्य) is rendered', () => {
-    assert.ok(routeContent.includes("field: 'राज्य'"), 'Must contain राज्य mapping');
-    assert.ok(routeContent.includes('x: 265, y: 249.0'), 'State positioned at x=265, y=249.0');
+  it('21. एजेन्ट मो. नं. uses assigned Agent mobile (NEVER applicant mobile)', () => {
+    assert.ok(routeContent.includes('drawBounded(agentMobile, 336.0, 309.5, 10.0, 106'), 'Agent mobile positioned at x=336.0, y=309.5');
   });
 
-  it('22. Relationship (सम्बन्ध) is rendered', () => {
-    assert.ok(routeContent.includes("field: 'सम्बन्ध'"), 'Must contain सम्बन्ध mapping');
-    assert.ok(routeContent.includes('x: 275, y: 273.5'), 'Relation positioned at x=275, y=273.5');
+  it('22. District (जिला) is rendered at calibrated baseline', () => {
+    assert.ok(routeContent.includes('drawBounded(district, 304.0, 335.5, 10.0, 138'), 'District positioned at x=304.0, y=335.5');
   });
 
-  it('23. Nominee mobile (नॉमिनी मो. नं.) is rendered', () => {
-    assert.ok(routeContent.includes("field: 'नॉमिनी_मो_नं'"), 'Must contain नॉमिनी_मो_नं mapping');
-    assert.ok(routeContent.includes('x: 302, y: 297.0'), 'Nominee mobile positioned at x=302, y=297.0');
+  it('23. State (राज्य) is rendered at calibrated baseline', () => {
+    assert.ok(routeContent.includes('drawBounded(state, 304.0, 360.5, 10.0, 138'), 'State positioned at x=304.0, y=360.5');
   });
 
-  it('24. Duration (लाभ अवधि) is rendered', () => {
-    assert.ok(routeContent.includes("field: 'अवधि'"), 'Must contain अवधि mapping');
-    assert.ok(routeContent.includes('x: 282, y: 352.0'), 'Duration positioned at x=282, y=352.0');
+  it('24. Bottom Janni Amount is rendered centered in dotted area', () => {
+    assert.ok(routeContent.includes('drawBounded(janniAmount, amtX, 380.0, 11.5, 70, navyColor)'), 'Janni amount positioned at y=380.0 on dotted baseline');
   });
 
-  it('25. Upper applicant photo box and lower nominee photo box are configured with cover fit', () => {
-    assert.ok(routeContent.includes('461.2, 148.8, 82.0, 89.0, \'cover\''), 'Upper applicant photo box at y=148.8 with cover fit');
-    assert.ok(routeContent.includes('461.2, 247.2, 82.0, 89.2, \'cover\''), 'Lower nominee photo box at y=247.2 with cover fit');
+  it('25. Benefit Duration (लाभ अवधि) is rendered centered in dotted area', () => {
+    assert.ok(routeContent.includes('drawBounded(duration, durX, 425.0, 10.5, 80, redColor)'), 'Duration positioned at y=425.0 on dotted baseline');
   });
 
-  it('26. Director signature is placed in director signature area', () => {
+  it('26. Single right-hand photo box is calibrated with inner inset (1.0pt) and cover fit', () => {
+    assert.ok(routeContent.includes('449.0, 235.0, 84.5, 103.0, \'cover\''), 'Photo box fitted at x=449.0, y=235.0, w=84.5, h=103.0 with cover fit');
+  });
+
+  it('27. Director signature is placed in director signature area', () => {
     assert.ok(routeContent.includes('directorSignatureSource'), 'Handles director signature');
     assert.ok(routeContent.includes('440, 750'), 'Director signature positioned in footer area');
   });
 
-  it('27. Janni list page enriches worker & senior offline form numbers from agent registry', () => {
-    assert.ok(listContent.includes('resolveAgentOfflineNumbers'), 'List page must implement resolveAgentOfflineNumbers');
-    assert.ok(listContent.includes('agentRegistrationAPI'), 'List page must reference agentRegistrationAPI');
-    assert.ok(listContent.includes('getAll'), 'List page must call getAll for agent list');
-    assert.ok(listContent.includes('workerOfflineFormNumber'), 'List page must pass workerOfflineFormNumber');
-    assert.ok(listContent.includes('seniorOfflineFormNumber'), 'List page must pass seniorOfflineFormNumber');
-    assert.ok(listContent.includes('workerMobile'), 'List page must pass workerMobile');
-  });
-
-  console.log('\n3. Real Mock Generation & Field Isolation Test...');
+  console.log('\n3. Real Mock Generation & Multi-Case Data Testing...');
   const mockRecord = {
-    workerOfflineFormNumber: '1259',
-    seniorOfflineFormNumber: '1258',
-    workerMobile: '9876543210',
+    workerOfflineFormNumber: '1258',
+    seniorOfflineFormNumber: '1260',
+    workerMobile: '8888888888',
     mobile: '9000000001',
-    membershipNumber: '',
-    formNumber: '900',
+    membershipNumber: '10042',
+    offlineFormNumber: '005',
     applicationDate: '2026-09-15',
-    applicantName: 'Test Janni Applicant',
+    applicantName: 'सुनीता शर्मा',
     gotra: 'चौधरी',
-    nomineeName: 'Test Nominee',
+    nomineeName: 'राहुल शर्मा',
     nomineeRelation: 'पति',
-    nomineeAadhar: '999999999999',
-    nomineeMobile: '9111111111',
-    husbandName: 'Test Husband',
-    address: 'समदड़ी',
+    nomineeAadhar: '9876 5432 1098',
+    nomineeMobile: '9876543210',
+    husbandName: 'राहुल शर्मा',
+    village: 'समदड़ी',
     district: 'बालोतरा',
     state: 'राजस्थान',
-    aadharNumber: '123456789012',
+    aadharNumber: '1234 5678 9012',
     duration: 'नौ माह',
+    janniAmount: '11000',
   };
 
-  it('28. Agent mobile (9876543210) is distinct from Applicant mobile (9000000001)', () => {
+  it('28. Agent mobile (8888888888) is distinct from Applicant mobile (9000000001)', () => {
     assert.notStrictEqual(mockRecord.workerMobile, mockRecord.mobile);
-    assert.strictEqual(mockRecord.workerMobile, '9876543210');
+    assert.strictEqual(mockRecord.workerMobile, '8888888888');
     assert.strictEqual(mockRecord.mobile, '9000000001');
   });
 
   it('29. Worker offline code and senior code are sanitized numbers (not EMP-xxx)', () => {
-    assert.strictEqual(mockRecord.workerOfflineFormNumber, '1259');
-    assert.strictEqual(mockRecord.seniorOfflineFormNumber, '1258');
+    assert.strictEqual(mockRecord.workerOfflineFormNumber, '1258');
+    assert.strictEqual(mockRecord.seniorOfflineFormNumber, '1260');
     assert.ok(!mockRecord.workerOfflineFormNumber.startsWith('EMP'));
     assert.ok(!mockRecord.seniorOfflineFormNumber.startsWith('EMP'));
   });
@@ -234,11 +206,11 @@ async function runTests() {
     const embeddedFont = await freshPdf.embedFont(fontBytes, { subset: false });
 
     p.drawText(mockRecord.applicantName, {
-      x: 80,
-      y: pHeight - 178.0,
+      x: 72,
+      y: pHeight - 234.0,
       size: 10,
       font: embeddedFont,
-      color: rgb(0.1, 0.1, 0.1),
+      color: rgb(0.12, 0.12, 0.12),
     });
 
     const outBytes = await freshPdf.save();

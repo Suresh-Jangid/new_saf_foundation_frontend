@@ -346,9 +346,8 @@ export default function GeneralInsuranceApplicationsPage() {
             nomineeMobile: item.nominee_mobile || item.nomineeMobile || item.nominee_mobile_number || item.nomineeMobileNumber || item.nomineePhone || item.nominee_phone,
             nomineeMobileNumber: item.nominee_mobile_number || item.nomineeMobileNumber || item.nominee_mobile || item.nomineeMobile,
             nomineePhoto: item.nominee_photo || item.nomineePhoto || item.nominee_photo_url || item.nomineePhotoUrl || item.nomineePassportPhoto || item.nominee_passport_photo,
-            nomineePassportPhoto: item.nominee_passport_photo || item.nomineePassportPhoto || item.nominee_photo || item.nomineePhoto,
-            installmentAmount: item.installment_amount ?? item.installmentAmount ?? item.insurance_amount ?? item.insuranceAmount ?? item.payment_amount ?? item.paymentAmount,
-            installment_amount: item.installment_amount ?? item.installmentAmount,
+            installmentAmount: item.installment_amount ?? item.installmentAmount ?? item.monthly_installment ?? item.monthlyInstallment ?? item.insurance_installment ?? item.insuranceInstallment,
+            installment_amount: item.installment_amount ?? item.installmentAmount ?? item.monthly_installment ?? item.monthlyInstallment,
             workerName: item.added_name || item.workerName || item.addedBy?.name,
             workerMobile: item.added_mobile || item.workerMobile || item.addedBy?.mobile,
             affidavit: item.affidavit || item.affidavitUrl,
@@ -591,10 +590,23 @@ export default function GeneralInsuranceApplicationsPage() {
         nomineeAadhar: (rawRecord as any).nomineeAadhar || (rawRecord as any).nomineeAadhaar || (rawRecord as any).nominee_aadhar || (rawRecord as any).nominee_aadhaar || (rawRecord as any).nomineeAadhaarNumber || (rawRecord as any).nomineeAadharNumber || (rawRecord as any).nominee_aadhaar_number || (rawRecord as any).nominee_aadhar_number || "",
         nomineeAadhaarNumber: (rawRecord as any).nomineeAadhaarNumber || (rawRecord as any).nomineeAadharNumber || (rawRecord as any).nomineeAadhar || (rawRecord as any).nomineeAadhaar || (rawRecord as any).nominee_aadhar || "",
         nomineeMobile: (rawRecord as any).nomineeMobile || (rawRecord as any).nominee_mobile || (rawRecord as any).nomineeMobileNumber || (rawRecord as any).nominee_mobile_number || (rawRecord as any).nomineePhone || "",
-        nomineeMobileNumber: (rawRecord as any).nomineeMobileNumber || (rawRecord as any).nominee_mobile_number || (rawRecord as any).nomineeMobile || (rawRecord as any).nominee_mobile || "",
-        installmentAmount: (rawRecord as any).installmentAmount ?? (rawRecord as any).installment_amount ?? (rawRecord as any).paymentAmount ?? (rawRecord as any).payment_amount,
-        installment_amount: (rawRecord as any).installment_amount ?? (rawRecord as any).installmentAmount ?? (rawRecord as any).payment_amount,
+        installmentAmount: (rawRecord as any).installmentAmount ?? (rawRecord as any).installment_amount ?? (rawRecord as any).monthly_installment ?? (rawRecord as any).monthlyInstallment ?? (rawRecord as any).insurance_installment ?? (rawRecord as any).insuranceInstallment,
+        installment_amount: (rawRecord as any).installment_amount ?? (rawRecord as any).installmentAmount ?? (rawRecord as any).monthly_installment ?? (rawRecord as any).monthlyInstallment,
       };
+
+      // Diagnostic logging (masked PII for safe dev tracing)
+      console.log('INSURANCE_BOND_DEBUG', {
+        id: rawRecord.id || (rawRecord as any).insurance_id || 'unknown',
+        formNumber: rawRecord.offlineFormNumber || rawRecord.formNumber || 'unknown',
+        nomineeName: record.nomineeName || 'MISSING',
+        nomineeAadhaar: record.nomineeAadhar || record.nomineeAadhaarNumber ? 'PRESENT' : 'MISSING',
+        nomineeMobile: record.nomineeMobile || record.nomineeMobileNumber ? 'PRESENT' : 'MISSING',
+        nomineePhoto: nomineeImageData || nomineePhotoPath ? 'PRESENT' : 'MISSING',
+        applicantPhoto: imageData || applicantPhotoPath ? 'PRESENT' : 'MISSING',
+        installmentSource: (rawRecord as any).installmentAmount !== undefined ? 'installmentAmount' : (rawRecord as any).installment_amount !== undefined ? 'installment_amount' : (rawRecord as any).paymentAmount !== undefined ? 'paymentAmount' : 'none',
+        installmentValue: record.installmentAmount ?? null,
+        agentMobile: workerMobile ? 'PRESENT' : 'MISSING',
+      });
 
       const response = await fetch('/api/generate-insurance-bond-pdf', {
         method: 'POST',

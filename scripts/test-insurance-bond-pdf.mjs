@@ -181,7 +181,7 @@ async function runTests() {
     assert.strictEqual(resolveAgentMobile(recC), '8888888888', 'Expected "8888888888" from agentMobile');
   });
 
-  it('16. Nominee Aadhaar strictly uses authoritative nominee Aadhaar and NEVER applicant Aadhaar (TEST 1 & TEST 2)', () => {
+  it('16. [Test A, B, L] Nominee Aadhaar: Authoritative field resolution, missing is blank, applicant Aadhaar never leaked', () => {
     const nomineeAadharMatch = routeContent.match(/const nomineeAadhar = sanitizeValue\(([\s\S]*?)\);/);
     assert.ok(nomineeAadharMatch, 'nomineeAadhar assignment found in route.ts');
     const nomineeAadharBlock = nomineeAadharMatch[1];
@@ -208,16 +208,20 @@ async function runTests() {
       return String(raw || '').trim();
     };
 
-    // TEST 1: nomineeAadhaar = "987654321098" -> 987654321098
+    // Test A: nominee Aadhaar present -> renders actual value
     const rec1 = { nomineeAadharNumber: '987654321098', aadharNumber: '111122223333' };
-    assert.strictEqual(resolveNomineeAadhaar(rec1), '987654321098', 'TEST 1: Nominee Aadhaar is correctly resolved');
+    assert.strictEqual(resolveNomineeAadhaar(rec1), '987654321098', 'Test A: Nominee Aadhaar is correctly resolved');
 
-    // TEST 2: nomineeAadhaar = null, applicantAadhaar = "111122223333" -> BLANK
+    // Test B: nominee Aadhaar missing -> blank
     const rec2 = { nomineeAadharNumber: null, aadharNumber: '111122223333' };
-    assert.strictEqual(resolveNomineeAadhaar(rec2), '', 'TEST 2: Nominee Aadhaar remains BLANK when missing');
+    assert.strictEqual(resolveNomineeAadhaar(rec2), '', 'Test B: Nominee Aadhaar remains BLANK when missing');
+
+    // Test L: applicant Aadhaar must NEVER become nominee Aadhaar
+    const recL = { aadharNumber: '111122223333', aadhar: '111122223333' };
+    assert.strictEqual(resolveNomineeAadhaar(recL), '', 'Test L: Applicant Aadhaar never leaks into nominee Aadhaar');
   });
 
-  it('17. Nominee Mobile strictly uses authoritative nominee mobile and NEVER applicant mobile (TEST 3 & TEST 4)', () => {
+  it('17. [Test C, D, K] Nominee Mobile: Authoritative field resolution, missing is blank, applicant mobile never leaked', () => {
     const nomineeMobileMatch = routeContent.match(/const nomineeMobile = sanitizeValue\(([\s\S]*?)\);/);
     assert.ok(nomineeMobileMatch, 'nomineeMobile assignment found in route.ts');
     const nomineeMobileBlock = nomineeMobileMatch[1];
@@ -240,24 +244,33 @@ async function runTests() {
       return String(raw || '').trim();
     };
 
-    // TEST 3: nomineeMobile = "9123456789" -> 9123456789
+    // Test C: nominee mobile present -> renders actual value
     const rec3 = { nomineeMobile: '9123456789', mobile: '9999999999' };
-    assert.strictEqual(resolveNomineeMobile(rec3), '9123456789', 'TEST 3: Nominee Mobile is correctly resolved');
+    assert.strictEqual(resolveNomineeMobile(rec3), '9123456789', 'Test C: Nominee Mobile is correctly resolved');
 
-    // TEST 4: nomineeMobile = null, applicantMobile = "9999999999" -> BLANK
+    // Test D: nominee mobile missing -> blank
     const rec4 = { nomineeMobile: null, mobile: '9999999999' };
-    assert.strictEqual(resolveNomineeMobile(rec4), '', 'TEST 4: Nominee Mobile remains BLANK when missing');
+    assert.strictEqual(resolveNomineeMobile(rec4), '', 'Test D: Nominee Mobile remains BLANK when missing');
+
+    // Test K: applicant mobile must NEVER become nominee mobile
+    const recK = { applicantMobile: '9999999999', mobile: '9999999999' };
+    assert.strictEqual(resolveNomineeMobile(recK), '', 'Test K: Applicant mobile never leaks into nominee mobile');
   });
 
-  it('18. Applicant and Nominee photos are handled separately and never swapped (TEST 5 & TEST 6)', () => {
+  it('18. [Test E, F, G, M] Photos: Nominee photo, Applicant photo separation, and no swapping', () => {
     assert.ok(routeContent.includes('const applicantPhotoSource = pickPhotoSource('), 'applicantPhotoSource exists');
     assert.ok(routeContent.includes('const nomineePhotoSource = pickPhotoSource('), 'nomineePhotoSource exists');
     assert.ok(routeContent.includes('body?.nomineeImageData'), 'body nomineeImageData supported');
     assert.ok(routeContent.includes('embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 461.81, 212.87, 86.40, 80.17, \'cover\')'), 'Applicant photo box geometry correct');
     assert.ok(routeContent.includes('embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 461.81, 299.79, 86.40, 80.17, \'cover\')'), 'Nominee photo box geometry correct');
+
+    // Test M: applicant photo must never become nominee photo
+    const nomineePhotoSourceBlock = routeContent.match(/const nomineePhotoSource = pickPhotoSource\(([\s\S]*?)\);/);
+    assert.ok(nomineePhotoSourceBlock, 'nomineePhotoSource block found');
+    assert.ok(!nomineePhotoSourceBlock[1].includes('record?.passportPhoto,') || nomineePhotoSourceBlock[1].includes('nomineePassportPhoto'), 'passportPhoto alone must not be nominee photo');
   });
 
-  it('19. Insurance Installment strictly renders "300 किस्त" for 300, "1000 किस्त" for 1000, and BLANK for null (TEST 7, 8, 9)', () => {
+  it('19. [Test H, I, J] Insurance Installment strictly renders "300 किस्त" for 300, "1000 किस्त" for 1000, and BLANK for null', () => {
     const resolveInstallmentText = (record) => {
       const rawAmt =
         record?.installmentAmount ??
@@ -268,9 +281,6 @@ async function runTests() {
         record?.monthlyInstallment ??
         record?.premiumAmount ??
         record?.premium_amount ??
-        record?.paymentAmount ??
-        record?.payment_amount ??
-        record?.amount ??
         '';
       let insuranceAmountText = '';
       if (rawAmt !== undefined && rawAmt !== null && rawAmt !== '') {
@@ -295,17 +305,17 @@ async function runTests() {
       return insuranceAmountText;
     };
 
-    // TEST 7: installmentAmount = 300 -> "300 किस्त"
-    assert.strictEqual(resolveInstallmentText({ installmentAmount: 300 }), '300 किस्त', 'TEST 7: installmentAmount = 300 resolves to "300 किस्त"');
-    assert.strictEqual(resolveInstallmentText({ installment_amount: '300' }), '300 किस्त', 'TEST 7: installment_amount = "300" resolves to "300 किस्त"');
+    // Test H: installment = 300 -> EXACT "300 किस्त"
+    assert.strictEqual(resolveInstallmentText({ installmentAmount: 300 }), '300 किस्त', 'Test H: installment = 300 resolves to "300 किस्त"');
+    assert.strictEqual(resolveInstallmentText({ installment_amount: '300' }), '300 किस्त', 'Test H: installment_amount = "300" resolves to "300 किस्त"');
 
-    // TEST 8: installmentAmount = 1000 -> "1000 किस्त"
-    assert.strictEqual(resolveInstallmentText({ installmentAmount: 1000 }), '1000 किस्त', 'TEST 8: installmentAmount = 1000 resolves to "1000 किस्त"');
-    assert.strictEqual(resolveInstallmentText({ installment_amount: '1000' }), '1000 किस्त', 'TEST 8: installment_amount = "1000" resolves to "1000 किस्त"');
+    // Test I: installment = 1000 -> EXACT "1000 किस्त"
+    assert.strictEqual(resolveInstallmentText({ installmentAmount: 1000 }), '1000 किस्त', 'Test I: installment = 1000 resolves to "1000 किस्त"');
+    assert.strictEqual(resolveInstallmentText({ installment_amount: '1000' }), '1000 किस्त', 'Test I: installment_amount = "1000" resolves to "1000 किस्त"');
 
-    // TEST 9: installmentAmount = null -> BLANK
-    assert.strictEqual(resolveInstallmentText({ installmentAmount: null }), '', 'TEST 9: installmentAmount = null resolves to BLANK');
-    assert.strictEqual(resolveInstallmentText({}), '', 'TEST 9: missing installmentAmount resolves to BLANK');
+    // Test J: installment = null -> BLANK
+    assert.strictEqual(resolveInstallmentText({ installmentAmount: null }), '', 'Test J: installment = null resolves to BLANK');
+    assert.strictEqual(resolveInstallmentText({}), '', 'Test J: missing installment resolves to BLANK');
   });
 
   console.log('\n4. Multi-Case PDF Generation & Data Assertion Testing...');

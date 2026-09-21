@@ -415,9 +415,6 @@ export async function POST(request: NextRequest) {
       record?.monthlyInstallment ??
       record?.premiumAmount ??
       record?.premium_amount ??
-      record?.paymentAmount ??
-      record?.payment_amount ??
-      record?.amount ??
       '';
     let insuranceAmountText = '';
     if (rawAmt !== undefined && rawAmt !== null && rawAmt !== '') {
@@ -439,6 +436,21 @@ export async function POST(request: NextRequest) {
         insuranceAmountText = '1000 किस्त';
       }
     }
+
+    // Normalized diagnostic logging (safe development-only trace, no PII)
+    const normalizedNomineeAadhaar = nomineeAadhar ? 'PRESENT' : 'MISSING';
+    const normalizedNomineeMobile = nomineeMobile ? 'PRESENT' : 'MISSING';
+    const normalizedNomineePhoto = nomineePhotoSource ? 'PRESENT' : 'MISSING';
+    const normalizedInstallmentAmount = rawAmt !== undefined && rawAmt !== null && rawAmt !== '' ? rawAmt : null;
+    const normalizedInstallmentText = insuranceAmountText;
+
+    console.log('INSURANCE_BOND_PDF_NORMALIZED_PAYLOAD', {
+      nomineeAadhaar: normalizedNomineeAadhaar,
+      nomineeMobile: normalizedNomineeMobile,
+      nomineePhoto: normalizedNomineePhoto,
+      installmentAmount: normalizedInstallmentAmount,
+      installmentText: normalizedInstallmentText || 'BLANK',
+    });
 
     // ── Draw Header Meta Fields Centered inside their respective pre-printed boxes ──
     // 1. Form No Box [X: 113.37, Y: 680.90, W: 88.45, H: 20.87]

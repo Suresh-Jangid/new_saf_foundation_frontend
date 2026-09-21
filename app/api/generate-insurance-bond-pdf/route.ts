@@ -401,11 +401,8 @@ export async function POST(request: NextRequest) {
     const district = sanitizeValue(record.district || '');
     const state = sanitizeValue(record.state || 'राजस्थान');
 
-    // 8. Bottom Insurance Scheme Amount: "परिवार कल्याण बीमा [ AMOUNT ] रुपये प्रत्येक बीमा पर लागू"
-    // Strict rules:
-    // If installmentAmount === 300 -> EXACT TEXT: "300 किस्त"
-    // If installmentAmount === 1000 -> EXACT TEXT: "1000 किस्त"
-    // If installmentAmount is null/undefined/empty -> BLANK ""
+    // 8. Bottom Insurance Scheme Amount: "परिवार कल्याण बीमा [ 300 ] रुपये प्रत्येक बीमा पर लागू"
+    // The Insurance Bima Bond uses a fixed ₹300 monthly installment amount rendered in the dotted blank area.
     const rawAmt =
       record?.installmentAmount ??
       record?.installment_amount ??
@@ -414,26 +411,15 @@ export async function POST(request: NextRequest) {
       record?.monthly_installment ??
       record?.monthlyInstallment ??
       record?.premiumAmount ??
-      record?.premium_amount ??
-      '';
-    let insuranceAmountText = '';
+      record?.premium_amount;
+    let insuranceAmountText = '300';
     if (rawAmt !== undefined && rawAmt !== null && rawAmt !== '') {
       const cleanAmtStr = String(rawAmt).trim();
       const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(cleanAmtStr.replace(/[^\d.]/g, ''));
       if (!isNaN(num) && num > 0) {
-        if (num === 300) {
-          insuranceAmountText = '300 किस्त';
-        } else if (num === 1000) {
-          insuranceAmountText = '1000 किस्त';
-        } else if (cleanAmtStr.includes('किस्त')) {
-          insuranceAmountText = cleanAmtStr;
-        } else {
-          insuranceAmountText = `${num} किस्त`;
-        }
-      } else if (cleanAmtStr === '300' || cleanAmtStr === '300 किस्त') {
-        insuranceAmountText = '300 किस्त';
-      } else if (cleanAmtStr === '1000' || cleanAmtStr === '1000 किस्त') {
-        insuranceAmountText = '1000 किस्त';
+        insuranceAmountText = String(num);
+      } else if (cleanAmtStr && /^\d+$/.test(cleanAmtStr)) {
+        insuranceAmountText = cleanAmtStr;
       }
     }
 
@@ -507,8 +493,11 @@ export async function POST(request: NextRequest) {
     drawBounded(state, 308.0, 474.34, 10.5, 145, charcoalColor);
 
     // ── Draw Bottom Insurance Amount on Dotted Line ──
-    // "परिवार कल्याण बीमा [ 300 किस्त ] रुपये प्रत्येक बीमा पर लागू"
-    drawBounded(insuranceAmountText, 248.0, 450.65, 11.0, 65, navyColor);
+    // "परिवार कल्याण बीमा [ 300 ] रुपये प्रत्येक बीमा पर लागू"
+    // Dotted line runs from X: 246.0 to 315.3 (W: 69.3) at baseline Y: 450.65
+    const amtWidth = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(insuranceAmountText, 12.0) : 22.0;
+    const amtX = 246.0 + Math.max(0, (69.3 - amtWidth) / 2);
+    drawBounded(insuranceAmountText, amtX, 450.65, 12.0, 65, navyColor);
 
     const pdfBytes = await pdfDoc.save();
 

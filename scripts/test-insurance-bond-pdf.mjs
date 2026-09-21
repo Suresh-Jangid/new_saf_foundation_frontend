@@ -130,10 +130,9 @@ async function runTests() {
     assert.ok(routeContent.includes('drawBounded(state, 308.0, 474.34'), 'State mapped');
   });
 
-  it('14. Bottom Insurance Scheme Amount is dynamically mapped and never hardcoded', () => {
-    assert.ok(routeContent.includes('drawBounded(insuranceAmountText, 248.0, 450.65'), 'Bottom amount position mapped');
-    assert.ok(routeContent.includes('300 किस्त'), '300 category supported');
-    assert.ok(routeContent.includes('1000 किस्त'), '1000 category supported');
+  it('14. Bottom Insurance Scheme Amount is mapped and rendered on the dotted line', () => {
+    assert.ok(routeContent.includes('450.65, 12.0, 65, navyColor'), 'Bottom amount position mapped');
+    assert.ok(routeContent.includes("let insuranceAmountText = '300'"), '300 fixed installment supported');
   });
 
   it('15. Agent Mobile strictly uses authoritative Agent mobile and NEVER applicantMobile', () => {
@@ -270,7 +269,7 @@ async function runTests() {
     assert.ok(!nomineePhotoSourceBlock[1].includes('record?.passportPhoto,') || nomineePhotoSourceBlock[1].includes('nomineePassportPhoto'), 'passportPhoto alone must not be nominee photo');
   });
 
-  it('19. [Test H, I, J] Insurance Installment strictly renders "300 किस्त" for 300, "1000 किस्त" for 1000, and BLANK for null', () => {
+  it('19. [Test H, I, J] Insurance Installment strictly renders "300" on the bond', () => {
     const resolveInstallmentText = (record) => {
       const rawAmt =
         record?.installmentAmount ??
@@ -280,42 +279,30 @@ async function runTests() {
         record?.monthly_installment ??
         record?.monthlyInstallment ??
         record?.premiumAmount ??
-        record?.premium_amount ??
-        '';
-      let insuranceAmountText = '';
+        record?.premium_amount;
+      let insuranceAmountText = '300';
       if (rawAmt !== undefined && rawAmt !== null && rawAmt !== '') {
         const cleanAmtStr = String(rawAmt).trim();
         const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(cleanAmtStr.replace(/[^\d.]/g, ''));
         if (!isNaN(num) && num > 0) {
-          if (num === 300) {
-            insuranceAmountText = '300 किस्त';
-          } else if (num === 1000) {
-            insuranceAmountText = '1000 किस्त';
-          } else if (cleanAmtStr.includes('किस्त')) {
-            insuranceAmountText = cleanAmtStr;
-          } else {
-            insuranceAmountText = `${num} किस्त`;
-          }
-        } else if (cleanAmtStr === '300' || cleanAmtStr === '300 किस्त') {
-          insuranceAmountText = '300 किस्त';
-        } else if (cleanAmtStr === '1000' || cleanAmtStr === '1000 किस्त') {
-          insuranceAmountText = '1000 किस्त';
+          insuranceAmountText = String(num);
+        } else if (cleanAmtStr && /^\d+$/.test(cleanAmtStr)) {
+          insuranceAmountText = cleanAmtStr;
         }
       }
       return insuranceAmountText;
     };
 
-    // Test H: installment = 300 -> EXACT "300 किस्त"
-    assert.strictEqual(resolveInstallmentText({ installmentAmount: 300 }), '300 किस्त', 'Test H: installment = 300 resolves to "300 किस्त"');
-    assert.strictEqual(resolveInstallmentText({ installment_amount: '300' }), '300 किस्त', 'Test H: installment_amount = "300" resolves to "300 किस्त"');
+    // Test H: installment = 300 -> renders "300"
+    assert.strictEqual(resolveInstallmentText({ installmentAmount: 300 }), '300', 'Test H: installment = 300 resolves to "300"');
+    assert.strictEqual(resolveInstallmentText({ installment_amount: '300' }), '300', 'Test H: installment_amount = "300" resolves to "300"');
 
-    // Test I: installment = 1000 -> EXACT "1000 किस्त"
-    assert.strictEqual(resolveInstallmentText({ installmentAmount: 1000 }), '1000 किस्त', 'Test I: installment = 1000 resolves to "1000 किस्त"');
-    assert.strictEqual(resolveInstallmentText({ installment_amount: '1000' }), '1000 किस्त', 'Test I: installment_amount = "1000" resolves to "1000 किस्त"');
+    // Test I: installment = 1000 -> renders "1000"
+    assert.strictEqual(resolveInstallmentText({ installmentAmount: 1000 }), '1000', 'Test I: installment = 1000 resolves to "1000"');
 
-    // Test J: installment = null -> BLANK
-    assert.strictEqual(resolveInstallmentText({ installmentAmount: null }), '', 'Test J: installment = null resolves to BLANK');
-    assert.strictEqual(resolveInstallmentText({}), '', 'Test J: missing installment resolves to BLANK');
+    // Test J: installment = missing/null -> defaults safely to "300"
+    assert.strictEqual(resolveInstallmentText({ installmentAmount: null }), '300', 'Test J: installment = null resolves to fixed "300"');
+    assert.strictEqual(resolveInstallmentText({}), '300', 'Test J: missing installment resolves to fixed "300"');
   });
 
   console.log('\n4. Multi-Case PDF Generation & Data Assertion Testing...');

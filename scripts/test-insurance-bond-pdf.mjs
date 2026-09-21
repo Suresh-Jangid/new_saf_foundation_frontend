@@ -108,8 +108,8 @@ async function runTests() {
   });
 
   it('11. Photo boxes are calibrated for cover cropping without distortion', () => {
-    assert.ok(routeContent.includes('461.81, 212.87, 86.40, 80.17'), 'Applicant photo box calibrated');
-    assert.ok(routeContent.includes('461.81, 299.79, 86.40, 80.17'), 'Nominee photo box calibrated');
+    assert.ok(routeContent.includes('462.56, 213.62, 84.90, 78.67'), 'Applicant photo box calibrated');
+    assert.ok(routeContent.includes('462.56, 300.54, 84.90, 78.67'), 'Nominee photo box calibrated');
   });
 
   it('12. Left column fields map to correct labels and lines', () => {
@@ -261,8 +261,8 @@ async function runTests() {
     assert.ok(routeContent.includes('const applicantPhotoSource = pickPhotoSource('), 'applicantPhotoSource exists');
     assert.ok(routeContent.includes('const nomineePhotoSource = pickPhotoSource('), 'nomineePhotoSource exists');
     assert.ok(routeContent.includes('body?.nomineeImageData'), 'body nomineeImageData supported');
-    assert.ok(routeContent.includes('embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 461.81, 212.87, 86.40, 80.17, \'cover\')'), 'Applicant photo box geometry correct');
-    assert.ok(routeContent.includes('embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 461.81, 299.79, 86.40, 80.17, \'cover\')'), 'Nominee photo box geometry correct');
+    assert.ok(routeContent.includes('embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 462.56, 213.62, 84.90, 78.67, \'cover\')'), 'Applicant photo box geometry correct');
+    assert.ok(routeContent.includes('embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 462.56, 300.54, 84.90, 78.67, \'cover\')'), 'Nominee photo box geometry correct');
 
     // Test M: applicant photo must never become nominee photo
     const nomineePhotoSourceBlock = routeContent.match(/const nomineePhotoSource = pickPhotoSource\(([\s\S]*?)\);/);

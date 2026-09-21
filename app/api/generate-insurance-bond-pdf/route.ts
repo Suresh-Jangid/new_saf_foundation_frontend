@@ -137,12 +137,12 @@ export async function POST(request: NextRequest) {
       record?.spousePhotoUrl
     );
 
-    // Embed photos inside calibrated photo boxes on official A4 template (595.28 x 841.89 pt):
-    // Top Photo Box (खाताधारक का फोटो):   x = 461.81, y = 548.85, w = 86.40, h = 80.17 (yFromTop = 212.87)
-    // Bottom Photo Box (नॉमिनी का फोटो): x = 461.81, y = 461.93, w = 86.40, h = 80.17 (yFromTop = 299.79)
+    // Embed photos inside inner photo area of calibrated photo boxes on official A4 template (595.28 x 841.89 pt):
+    // Top Photo Box (खाताधारक का फोटो):   inner x = 462.56, yFromTop = 213.62, w = 84.90, h = 78.67
+    // Bottom Photo Box (नॉमिनी का फोटो): inner x = 462.56, yFromTop = 300.54, w = 84.90, h = 78.67
     if (applicantPhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 461.81, 212.87, 86.40, 80.17, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 462.56, 213.62, 84.90, 78.67, 'cover');
       } catch (err) {
         console.warn('Could not embed applicant photo in Insurance Bond:', err);
       }
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     if (nomineePhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 461.81, 299.79, 86.40, 80.17, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 462.56, 300.54, 84.90, 78.67, 'cover');
       } catch (err) {
         console.warn('Could not embed nominee photo in Insurance Bond:', err);
       }

@@ -147,7 +147,7 @@ async function runTests() {
   });
 
   it('25. Benefit Duration (लाभ अवधि) is rendered centered in dotted area', () => {
-    assert.ok(routeContent.includes('drawBounded(duration, durX, 405.0, 10.5, 80, redColor)'), 'Duration positioned at y=405.0 on dotted baseline');
+    assert.ok(routeContent.includes('drawBounded(duration, durX, 407.58, 10.5, 75, redColor)'), 'Duration positioned at y=407.58 on dotted baseline');
   });
 
   it('26. Single right-hand photo box is calibrated with inner inset (1.0pt) and cover fit', () => {

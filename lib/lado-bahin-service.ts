@@ -43,6 +43,8 @@ export interface LadoBahinRegistration {
   nomineeMobile?: string | null;
   nomineeAadhar?: string | null;
   passportPhotoUrl?: string | null;
+  nomineePhotoUrl?: string | null;
+  nominee_photo_url?: string | null;
   documentUrl?: string | null;
   affidavitUrl?: string | null;
   gender: string;
@@ -99,6 +101,8 @@ export interface CreateLadoBahinPayload {
   nomineeMobile?: string | null;
   nomineeAadhar?: string | null;
   passportPhotoUrl?: string | null;
+  nomineePhotoUrl?: string | null;
+  nominee_photo_url?: string | null;
   documentUrl?: string | null;
   affidavitUrl?: string | null;
   gender?: "Female" | "Male" | "Other";
@@ -141,6 +145,8 @@ export interface UpdateLadoBahinPayload {
   nomineeMobile?: string | null;
   nomineeAadhar?: string | null;
   passportPhotoUrl?: string | null;
+  nomineePhotoUrl?: string | null;
+  nominee_photo_url?: string | null;
   documentUrl?: string | null;
   affidavitUrl?: string | null;
   gender?: "Female" | "Male" | "Other";

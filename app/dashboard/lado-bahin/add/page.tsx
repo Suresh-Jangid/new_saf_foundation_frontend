@@ -140,6 +140,8 @@ export default function AddLadoBahinPage() {
   // Photo state
   const [passportPhotoBase64, setPassportPhotoBase64] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [nomineePhotoBase64, setNomineePhotoBase64] = useState<string | null>(null);
+  const [nomineePhotoPreview, setNomineePhotoPreview] = useState<string | null>(null);
 
   // E-PIN Validation State
   const [epinVerified, setEpinVerified] = useState<EpinValidationResponse | null>(null);
@@ -241,6 +243,34 @@ export default function AddLadoBahinPage() {
     setPhotoPreview(null);
   };
 
+  const handleNomineePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("कृपया केवल इमेज फाइल अपलोड करें (JPEG/PNG) / Please select an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("इमेज का आकार 5MB से कम होना चाहिए / Image must be under 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      setNomineePhotoBase64(result);
+      setNomineePhotoPreview(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeNomineePhoto = () => {
+    setNomineePhotoBase64(null);
+    setNomineePhotoPreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -327,6 +357,8 @@ export default function AddLadoBahinPage() {
         nomineeMobile: formData.nomineeMobile.trim() || null,
         nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || null,
         passportPhotoUrl: passportPhotoBase64 || null,
+        nomineePhotoUrl: nomineePhotoBase64 || null,
+        nominee_photo_url: nomineePhotoBase64 || null,
         gender: "Female",
         category: formData.category,
         schemeType: "LADO_BAHIN",
@@ -989,55 +1021,115 @@ export default function AddLadoBahinPage() {
               </div>
 
               {/* 5. Photo Upload Card */}
-              <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-6">
                 <div className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <Upload className="w-5 h-5 text-primary" />
                   <h2 className="text-base sm:text-lg font-semibold text-foreground">
-                    5. आवेदक फोटो (Applicant Photo)
+                    5. फोटो संलग्न करें (Photo Upload)
                   </h2>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                  {photoPreview ? (
-                    <div className="relative w-28 h-36 rounded-lg border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={photoPreview}
-                        alt="Applicant Preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={removePhoto}
-                        className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 text-xs hover:bg-rose-700 shadow-xs"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="w-28 h-36 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground bg-muted/30">
-                      <User className="w-8 h-8 opacity-40 mb-1" />
-                      <span className="text-[10px]">कोई फोटो नहीं</span>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <Label htmlFor="photo-upload" className="cursor-pointer">
-                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-sm font-medium transition-colors">
-                        <Upload className="w-4 h-4" />
-                        <span>फोटो चुनें / Choose Photo</span>
-                      </div>
-                      <input
-                        id="photo-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handlePhotoUpload}
-                      />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 1. Applicant Photo */}
+                  <div className="space-y-3 p-4 rounded-lg border border-border/40 bg-muted/10">
+                    <Label className="text-xs sm:text-sm font-semibold text-foreground block">
+                      आवेदक फोटो (Applicant Photo)
                     </Label>
-                    <p className="text-xs text-muted-foreground">
-                      पासपोर्ट साइज़ फोटो (JPG, PNG). अधिकतम साइज़: 5MB
-                    </p>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      {photoPreview ? (
+                        <div className="relative w-24 h-32 rounded-lg border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={photoPreview}
+                            alt="Applicant Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={removePhoto}
+                            className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 text-xs hover:bg-rose-700 shadow-xs"
+                            title="फोटो हटाएं / Remove photo"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-24 h-32 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground bg-muted/30 shrink-0">
+                          <User className="w-7 h-7 opacity-40 mb-1" />
+                          <span className="text-[10px]">कोई फोटो नहीं</span>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label htmlFor="photo-upload" className="cursor-pointer inline-block">
+                          <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
+                            <Upload className="w-4 h-4" />
+                            <span>{photoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
+                          </div>
+                          <input
+                            id="photo-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handlePhotoUpload}
+                          />
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground">
+                          पासपोर्ट साइज़ फोटो (JPG, PNG). अधिकतम साइज़: 5MB
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Nominee Photo */}
+                  <div className="space-y-3 p-4 rounded-lg border border-border/40 bg-muted/10">
+                    <Label className="text-xs sm:text-sm font-semibold text-foreground block">
+                      नॉमिनी फोटो (Nominee Photo)
+                    </Label>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                      {nomineePhotoPreview ? (
+                        <div className="relative w-24 h-32 rounded-lg border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={nomineePhotoPreview}
+                            alt="Nominee Preview"
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={removeNomineePhoto}
+                            className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 text-xs hover:bg-rose-700 shadow-xs"
+                            title="नॉमिनी फोटो हटाएं / Remove nominee photo"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-24 h-32 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground bg-muted/30 shrink-0">
+                          <User className="w-7 h-7 opacity-40 mb-1" />
+                          <span className="text-[10px]">कोई फोटो नहीं</span>
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label htmlFor="nominee-photo-upload" className="cursor-pointer inline-block">
+                          <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
+                            <Upload className="w-4 h-4" />
+                            <span>{nomineePhotoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
+                          </div>
+                          <input
+                            id="nominee-photo-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleNomineePhotoUpload}
+                          />
+                        </Label>
+                        <p className="text-[11px] text-muted-foreground">
+                          नॉमिनी पासपोर्ट साइज़ फोटो (JPG, PNG). अधिकतम साइज़: 5MB
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -108,36 +108,30 @@ export async function POST(request: NextRequest) {
     const firstPage = pages[0];
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
-    // 2. Photo Embedding
-    // Calibrated vector photo box in lado_bahin_bond.pdf: [464.83, 579.03] to [551.23, 659.20] (w: 86.40, h: 80.17)
-    // Inset by ~1pt on all sides so the photo fills the interior without covering the black border:
-    // x = 465.8, y = 580.0, width = 84.4, height = 78.2 (yFromTop = pageHeight - y - height = 841.89 - 580.0 - 78.2 = 183.69)
-    // Priority: Nominee Photo -> Applicant Photo fallback
-    const photoSource = pickPhotoSource(
-      record?.nomineePhotoUrl,
-      record?.nominee_photo_url,
-      record?.nomineePhoto,
-      record?.nomineePassportPhoto,
-      body?.imageData,
-      record?.imageData,
-      record?.applicantPhotoData,
+    // 2. Photo Embedding (Template has TWO calibrated vector photo boxes on right side)
+    // Box 1 (Upper Box: Applicant Photo): [464.83, 579.03] to [551.23, 659.20] (w: 86.40, h: 80.17)
+    // Inset by ~1pt on all sides: x = 465.8, yFromTop = 183.69, width = 84.4, height = 78.2
+    const applicantPhotoSource = pickPhotoSource(
       record?.passportPhotoUrl,
       record?.passport_photo_url,
       record?.passportPhoto,
       record?.passport_photo,
       record?.applicantPhoto,
       record?.applicant_photo,
+      record?.applicantPhotoData,
+      body?.imageData,
+      record?.imageData,
       record?.photo,
       record?.photoUrl
     );
 
-    if (photoSource) {
+    if (applicantPhotoSource) {
       try {
         await embedPdfImage(
           pdfDoc,
           firstPage,
           pageHeight,
-          photoSource,
+          applicantPhotoSource,
           465.8,
           183.69,
           84.4,
@@ -145,7 +139,34 @@ export async function POST(request: NextRequest) {
           'cover'
         );
       } catch (err) {
-        console.warn('Could not embed photo in Lado Bahin Bond:', err);
+        console.warn('Could not embed applicant photo in Lado Bahin Bond:', err);
+      }
+    }
+
+    // Box 2 (Lower Box: Nominee Photo): [464.83, 492.11] to [551.23, 572.28] (w: 86.40, h: 80.17)
+    // Inset by ~1pt on all sides: x = 465.8, yFromTop = 270.61, width = 84.4, height = 78.2
+    const nomineePhotoSource = pickPhotoSource(
+      record?.nomineePhotoUrl,
+      record?.nominee_photo_url,
+      record?.nomineePhoto,
+      record?.nomineePassportPhoto
+    );
+
+    if (nomineePhotoSource) {
+      try {
+        await embedPdfImage(
+          pdfDoc,
+          firstPage,
+          pageHeight,
+          nomineePhotoSource,
+          465.8,
+          270.61,
+          84.4,
+          78.2,
+          'cover'
+        );
+      } catch (err) {
+        console.warn('Could not embed nominee photo in Lado Bahin Bond:', err);
       }
     }
 
@@ -225,7 +246,7 @@ export async function POST(request: NextRequest) {
       if (text === undefined || text === null || String(text).trim() === '') return;
       const str = String(text).trim();
       let fontSize = size;
-      const boxW = maxX - minX - 4;
+      const boxW = maxX - minX;
       try {
         let textW = font.widthOfTextAtSize ? font.widthOfTextAtSize(str, fontSize) : 0;
         if (boxW > 0 && textW > boxW) {
@@ -458,9 +479,9 @@ export async function POST(request: NextRequest) {
     drawBounded(state, 287, 508.11, 10.5, 240);
 
     // ── 5.3 Bottom Amount Line ───────────────────────────────────
-    // मुकलावा ... रूपये प्रत्येक मुकलावा पर लागू (blY: 481.68)
+    // मुकलावा ... रूपये प्रत्येक मुकलावा पर लागू (blY: 482.5)
     const installmentText = '300 किस्त';
-    drawCenteredInBox(installmentText, 213.5, 284.66, 481.68, 11, rgb(0, 0.15, 0.6));
+    drawCenteredInBox(installmentText, 213.5, 284.66, 482.5, 10.5, rgb(0, 0.15, 0.6));
 
     // ── 5.4 Bottom Benefit / Muklawa Line ────────────────────────
     // इस योजना का लाभ 01-03-2027 के बाद मिलेगा (blY: 454.85)

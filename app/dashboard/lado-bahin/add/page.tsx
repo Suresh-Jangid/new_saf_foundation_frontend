@@ -312,6 +312,7 @@ export default function AddLadoBahinPage() {
         schemeType: "LADO_BAHIN",
         pool: "FEMALE_POOL",
         accountType: formData.accountType,
+        initialAccountType: formData.accountType,
         membershipFee: 5100,
         grantFee: 5100,
         totalAmount: 5100,

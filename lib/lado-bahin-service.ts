@@ -100,6 +100,7 @@ export interface CreateLadoBahinPayload {
   schemeType?: "LADO_BAHIN";
   pool?: "FEMALE_POOL";
   accountType?: LadoBahinAccountType;
+  initialAccountType?: LadoBahinAccountType;
   membershipFee?: number;
   grantFee?: number;
   totalAmount?: number;

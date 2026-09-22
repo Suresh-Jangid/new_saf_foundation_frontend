@@ -112,11 +112,17 @@ export async function POST(request: NextRequest) {
     // Calibrated vector photo box in lado_bahin_bond.pdf: [464.83, 579.03] to [551.23, 659.20] (w: 86.40, h: 80.17)
     // Inset by ~1pt on all sides so the photo fills the interior without covering the black border:
     // x = 465.8, y = 580.0, width = 84.4, height = 78.2 (yFromTop = pageHeight - y - height = 841.89 - 580.0 - 78.2 = 183.69)
-    const applicantPhotoSource = pickPhotoSource(
+    // Priority: Nominee Photo -> Applicant Photo fallback
+    const photoSource = pickPhotoSource(
+      record?.nomineePhotoUrl,
+      record?.nominee_photo_url,
+      record?.nomineePhoto,
+      record?.nomineePassportPhoto,
       body?.imageData,
       record?.imageData,
       record?.applicantPhotoData,
       record?.passportPhotoUrl,
+      record?.passport_photo_url,
       record?.passportPhoto,
       record?.passport_photo,
       record?.applicantPhoto,
@@ -125,13 +131,13 @@ export async function POST(request: NextRequest) {
       record?.photoUrl
     );
 
-    if (applicantPhotoSource) {
+    if (photoSource) {
       try {
         await embedPdfImage(
           pdfDoc,
           firstPage,
           pageHeight,
-          applicantPhotoSource,
+          photoSource,
           465.8,
           183.69,
           84.4,
@@ -139,7 +145,7 @@ export async function POST(request: NextRequest) {
           'cover'
         );
       } catch (err) {
-        console.warn('Could not embed applicant photo in Lado Bahin Bond:', err);
+        console.warn('Could not embed photo in Lado Bahin Bond:', err);
       }
     }
 
@@ -453,14 +459,13 @@ export async function POST(request: NextRequest) {
 
     // ── 5.3 Bottom Amount Line ───────────────────────────────────
     // मुकलावा ... रूपये प्रत्येक मुकलावा पर लागू (blY: 481.68)
-    const amountStr = record?.totalAmount ? `₹${Number(record.totalAmount).toLocaleString('en-IN')}` : '₹5,100';
-    drawCenteredInBox(amountStr, 213.5, 284.66, 481.68, 11, rgb(0, 0.15, 0.6));
+    const installmentText = '300 किस्त';
+    drawCenteredInBox(installmentText, 213.5, 284.66, 481.68, 11, rgb(0, 0.15, 0.6));
 
     // ── 5.4 Bottom Benefit / Muklawa Line ────────────────────────
-    const benefitText = formattedMuklawa
-      ? formattedMuklawa
-      : (duration || 'मुकलावा');
-    drawCenteredInBox(benefitText, 284.2, 342.84, 454.85, 10.5, rgb(0.8, 0, 0));
+    // इस योजना का लाभ 01-03-2027 के बाद मिलेगा (blY: 454.85)
+    const fixedBenefitDate = '01-03-2027';
+    drawCenteredInBox(fixedBenefitDate, 284.2, 342.84, 454.85, 10.5, rgb(0.8, 0, 0));
 
     // 6. Serialize and Return PDF
     const pdfBytes = await pdfDoc.save();

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -182,7 +181,7 @@ export default function LadoBahinListPage() {
         "तहसील (Tehsil)": r.tehsil || "N/A",
         "राज्य (State)": r.state || "Rajasthan",
         "श्रेणी (Category)": r.category || "A",
-        "मुकलावा दिनांक (Muklawa Date)": r.muklawaDate ? formatDate(r.muklawaDate) : "N/A",
+        "मुकलावा दिनांक (Muklawa Date)": (r.muklawaDate || r.muklawa_date || (r as any).muklawa) ? formatDate(r.muklawaDate || r.muklawa_date || (r as any).muklawa) : "N/A",
         "कुल सहायता राशि (Total Amount)": r.totalAmount || 5100,
         "बकाया राशि (Pending Amount)": r.pendingAmount ?? 0,
         "ई-पिन (E-PIN)": r.epinCode || "N/A",
@@ -252,8 +251,10 @@ export default function LadoBahinListPage() {
       key: "muklawaDate",
       label: "मुकलावा तिथि",
       className: "min-w-[110px]",
-      render: (_: unknown, row: LadoBahinRegistration) =>
-        row.muklawaDate ? formatDate(row.muklawaDate) : "—",
+      render: (_: unknown, row: LadoBahinRegistration) => {
+        const rawDate = row.muklawaDate || row.muklawa_date || (row as any).muklawa;
+        return rawDate ? formatDate(rawDate) : "—";
+      },
     },
     {
       key: "nomineeName",
@@ -280,19 +281,6 @@ export default function LadoBahinListPage() {
       className: "min-w-[100px]",
       render: (_: unknown, row: LadoBahinRegistration) =>
         `₹${Number(row.pendingAmount || 0).toLocaleString("en-IN")}`,
-    },
-    {
-      key: "epinCode",
-      label: "ई-पिन",
-      className: "min-w-[110px]",
-      render: (_: unknown, row: LadoBahinRegistration) =>
-        row.epinCode ? (
-          <Badge className="bg-emerald-100 text-emerald-800 border-none text-[10px]">
-            {row.epinCode}
-          </Badge>
-        ) : (
-          <span className="text-muted-foreground text-xs">—</span>
-        ),
     },
     {
       key: "custom_actions",

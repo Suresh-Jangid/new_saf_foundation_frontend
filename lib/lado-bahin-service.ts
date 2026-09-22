@@ -35,6 +35,7 @@ export interface LadoBahinRegistration {
   district: string;
   state: string;
   muklawaDate?: string | null;
+  muklawa_date?: string | null;
   nomineeName?: string | null;
   nomineeRelation?: string | null;
   nomineeMobile?: string | null;

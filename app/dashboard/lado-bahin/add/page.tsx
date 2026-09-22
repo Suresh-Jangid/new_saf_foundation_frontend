@@ -350,34 +350,68 @@ export default function AddLadoBahinPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {/* Application Date */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                    <Label htmlFor="applicationDate" className="text-xs sm:text-sm font-semibold text-foreground">
                       आवेदन दिनांक (Application Date) <span className="text-rose-500">*</span>
                     </Label>
-                    <Popover open={appDateOpen} onOpenChange={setAppDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal h-10 border-input bg-background"
-                        >
-                          <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
-                          {formData.applicationDate || "दिनांक चुनें / Select Date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={appDateObj}
-                          onSelect={(date) => {
+                    <div className="relative flex gap-2">
+                      <Input
+                        id="applicationDate"
+                        value={formData.applicationDate}
+                        placeholder="dd-mm-yyyy"
+                        className="bg-background pr-10"
+                        onChange={(e) => {
+                          const str = e.target.value;
+                          const date = parseDateFromDDMMYYYY(str);
+                          if (date) {
                             setAppDateObj(date);
-                            if (date) {
-                              handleInputChange("applicationDate", formatDate(date));
-                            }
-                            setAppDateOpen(false);
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                            handleInputChange("applicationDate", formatDate(date));
+                          } else {
+                            setAppDateObj(undefined);
+                            handleInputChange("applicationDate", str);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            setAppDateOpen(true);
+                          }
+                        }}
+                        required
+                      />
+                      <Popover open={appDateOpen} onOpenChange={setAppDateOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="applicationDate-picker"
+                            variant="ghost"
+                            className="absolute top-1/2 right-2 w-8 h-8 p-0 -translate-y-1/2"
+                            tabIndex={-1}
+                            type="button"
+                          >
+                            <CalendarDays className="w-4 h-4" />
+                            <span className="sr-only">Select date</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-auto overflow-hidden p-0"
+                          align="end"
+                          alignOffset={-8}
+                          sideOffset={10}
+                        >
+                          <Calendar
+                            mode="single"
+                            selected={appDateObj}
+                            captionLayout="dropdown"
+                            month={appDateObj}
+                            onMonthChange={setAppDateObj}
+                            onSelect={(date: any) => {
+                              setAppDateObj(date);
+                              handleInputChange("applicationDate", date ? formatDate(date) : "");
+                              setAppDateOpen(false);
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
 
                   {/* Category */}
@@ -512,34 +546,67 @@ export default function AddLadoBahinPage() {
 
                   {/* Date of Birth */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                    <Label htmlFor="dateOfBirth" className="text-xs sm:text-sm font-semibold text-foreground">
                       जन्म दिनांक (Date of Birth)
                     </Label>
-                    <Popover open={dobOpen} onOpenChange={setDobOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal h-10 border-input bg-background"
-                        >
-                          <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
-                          {formData.dateOfBirth || "जन्म दिनांक चुनें"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={dobObj}
-                          onSelect={(date) => {
+                    <div className="relative flex gap-2">
+                      <Input
+                        id="dateOfBirth"
+                        value={formData.dateOfBirth}
+                        placeholder="dd-mm-yyyy"
+                        className="bg-background pr-10"
+                        onChange={(e) => {
+                          const str = e.target.value;
+                          const date = parseDateFromDDMMYYYY(str);
+                          if (date) {
                             setDobObj(date);
-                            if (date) {
-                              handleInputChange("dateOfBirth", formatDate(date));
-                            }
-                            setDobOpen(false);
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                            handleInputChange("dateOfBirth", formatDate(date));
+                          } else {
+                            setDobObj(undefined);
+                            handleInputChange("dateOfBirth", str);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            setDobOpen(true);
+                          }
+                        }}
+                      />
+                      <Popover open={dobOpen} onOpenChange={setDobOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="dateOfBirth-picker"
+                            variant="ghost"
+                            className="absolute top-1/2 right-2 w-8 h-8 p-0 -translate-y-1/2"
+                            tabIndex={-1}
+                            type="button"
+                          >
+                            <CalendarDays className="w-4 h-4" />
+                            <span className="sr-only">Select date</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-auto overflow-hidden p-0"
+                          align="end"
+                          alignOffset={-8}
+                          sideOffset={10}
+                        >
+                          <Calendar
+                            mode="single"
+                            selected={dobObj}
+                            captionLayout="dropdown"
+                            month={dobObj}
+                            onMonthChange={setDobObj}
+                            onSelect={(date: any) => {
+                              setDobObj(date);
+                              handleInputChange("dateOfBirth", date ? formatDate(date) : "");
+                              setDobOpen(false);
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
 
                   {/* Age */}
@@ -602,34 +669,67 @@ export default function AddLadoBahinPage() {
 
                   {/* Muklawa Date */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                    <Label htmlFor="muklawaDate" className="text-xs sm:text-sm font-semibold text-foreground">
                       मुकलावा दिनांक (Muklawa Date)
                     </Label>
-                    <Popover open={muklawaDateOpen} onOpenChange={setMuklawaDateOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal h-10 border-input bg-background"
-                        >
-                          <CalendarDays className="mr-2 h-4 w-4 text-muted-foreground" />
-                          {formData.muklawaDate || "मुकलावा दिनांक चुनें"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={muklawaDateObj}
-                          onSelect={(date) => {
+                    <div className="relative flex gap-2">
+                      <Input
+                        id="muklawaDate"
+                        value={formData.muklawaDate}
+                        placeholder="dd-mm-yyyy"
+                        className="bg-background pr-10"
+                        onChange={(e) => {
+                          const str = e.target.value;
+                          const date = parseDateFromDDMMYYYY(str);
+                          if (date) {
                             setMuklawaDateObj(date);
-                            if (date) {
-                              handleInputChange("muklawaDate", formatDate(date));
-                            }
-                            setMuklawaDateOpen(false);
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                            handleInputChange("muklawaDate", formatDate(date));
+                          } else {
+                            setMuklawaDateObj(undefined);
+                            handleInputChange("muklawaDate", str);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowDown") {
+                            e.preventDefault();
+                            setMuklawaDateOpen(true);
+                          }
+                        }}
+                      />
+                      <Popover open={muklawaDateOpen} onOpenChange={setMuklawaDateOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="muklawaDate-picker"
+                            variant="ghost"
+                            className="absolute top-1/2 right-2 w-8 h-8 p-0 -translate-y-1/2"
+                            tabIndex={-1}
+                            type="button"
+                          >
+                            <CalendarDays className="w-4 h-4" />
+                            <span className="sr-only">Select date</span>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-auto overflow-hidden p-0"
+                          align="end"
+                          alignOffset={-8}
+                          sideOffset={10}
+                        >
+                          <Calendar
+                            mode="single"
+                            selected={muklawaDateObj}
+                            captionLayout="dropdown"
+                            month={muklawaDateObj}
+                            onMonthChange={setMuklawaDateObj}
+                            onSelect={(date: any) => {
+                              setMuklawaDateObj(date);
+                              handleInputChange("muklawaDate", date ? formatDate(date) : "");
+                              setMuklawaDateOpen(false);
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                   </div>
 
                   {/* Gender (Fixed) */}

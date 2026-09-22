@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
     ];
     const devanagariFontPath = fontCandidates.find((p) => fs.existsSync(p));
     const font = devanagariFontPath
-      ? await pdfDoc.embedFont(fs.readFileSync(devanagariFontPath), { subset: false })
+      ? await pdfDoc.embedFont(fs.readFileSync(devanagariFontPath), { subset: true })
       : await pdfDoc.embedFont('Helvetica-Bold');
 
     // Drawing Helpers
@@ -205,22 +205,13 @@ export async function POST(request: NextRequest) {
       color = rgb(0.1, 0.1, 0.1)
     ) => {
       if (text === undefined || text === null || String(text).trim() === '') return;
-      let str = String(text).trim();
+      const str = String(text).trim();
       let fontSize = size;
       if (maxW && font.widthOfTextAtSize) {
         try {
-          let textWidth = font.widthOfTextAtSize(str, fontSize);
+          const textWidth = font.widthOfTextAtSize(str, fontSize);
           if (textWidth > maxW) {
-            fontSize = Math.max(6.5, fontSize * (maxW / textWidth));
-            textWidth = font.widthOfTextAtSize(str, fontSize);
-            while (textWidth > maxW && str.length > 3) {
-              str = str.slice(0, -1).trim();
-              textWidth = font.widthOfTextAtSize(str + '...', fontSize);
-              if (textWidth <= maxW) {
-                str = str + '...';
-                break;
-              }
-            }
+            fontSize = Math.max(6.0, fontSize * (maxW / textWidth));
           }
         } catch {
           // fallback

@@ -73,6 +73,7 @@ export default function AddLadoBahinPage() {
   // Form State
   const [formData, setFormData] = useState<{
     applicationDate: string;
+    offlineFormNumber: string;
     applicantName: string;
     fatherName: string;
     husbandName: string;
@@ -104,6 +105,7 @@ export default function AddLadoBahinPage() {
     epinCode: string;
   }>({
     applicationDate: formatDate(new Date()),
+    offlineFormNumber: "",
     applicantName: "",
     fatherName: "",
     husbandName: "",
@@ -302,6 +304,8 @@ export default function AddLadoBahinPage() {
       const normalizedMuklawa = convertToYYYYMMDD(formData.muklawaDate);
       const payload: CreateLadoBahinPayload = {
         applicationDate: convertToYYYYMMDD(formData.applicationDate) || formatDateForAPI(new Date()),
+        offlineFormNumber: formData.offlineFormNumber.trim() || null,
+        offline_form_number: formData.offlineFormNumber.trim() || null,
         applicantName: formData.applicantName.trim(),
         fatherName: formData.fatherName.trim(),
         husbandName: formData.husbandName.trim() || null,
@@ -457,6 +461,22 @@ export default function AddLadoBahinPage() {
                         </PopoverContent>
                       </Popover>
                     </div>
+                  </div>
+
+                  {/* Offline Form Number */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="offlineFormNumber" className="text-xs sm:text-sm font-semibold text-foreground">
+                      ऑफलाइन फॉर्म नं. (Offline Form No.)
+                    </Label>
+                    <Input
+                      id="offlineFormNumber"
+                      name="offlineFormNumber"
+                      value={formData.offlineFormNumber}
+                      placeholder="उदा. 1259"
+                      maxLength={50}
+                      onChange={(e) => handleInputChange("offlineFormNumber", e.target.value)}
+                      className="h-10"
+                    />
                   </div>
 
                   {/* Category */}

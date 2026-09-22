@@ -81,6 +81,7 @@ export default function EditLadoBahinPage() {
   const [formData, setFormData] = useState<{
     applicationDate: string;
     formNumber: string;
+    offlineFormNumber: string;
     applicantName: string;
     fatherName: string;
     husbandName: string;
@@ -112,6 +113,7 @@ export default function EditLadoBahinPage() {
   }>({
     applicationDate: "",
     formNumber: "",
+    offlineFormNumber: "",
     applicantName: "",
     fatherName: "",
     husbandName: "",
@@ -244,6 +246,7 @@ export default function EditLadoBahinPage() {
         setFormData({
           applicationDate: formattedAppDate,
           formNumber: data.formNumber || "",
+          offlineFormNumber: data.offlineFormNumber || data.offline_form_number || "",
           applicantName: data.applicantName || "",
           fatherName: data.fatherName || "",
           husbandName: data.husbandName || "",
@@ -329,6 +332,8 @@ export default function EditLadoBahinPage() {
     try {
       const normalizedMuklawa = convertToYYYYMMDD(formData.muklawaDate);
       const payload: UpdateLadoBahinPayload = {
+        offlineFormNumber: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : null,
+        offline_form_number: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : null,
         applicantName: formData.applicantName.trim(),
         fatherName: formData.fatherName.trim(),
         husbandName: formData.husbandName.trim() || null,
@@ -514,6 +519,22 @@ export default function EditLadoBahinPage() {
                       value={formData.formNumber}
                       disabled
                       className="h-10 bg-muted text-muted-foreground font-semibold"
+                    />
+                  </div>
+
+                  {/* Offline Form Number */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="offlineFormNumber" className="text-xs sm:text-sm font-semibold text-foreground">
+                      ऑफलाइन फॉर्म नं. (Offline Form No.)
+                    </Label>
+                    <Input
+                      id="offlineFormNumber"
+                      name="offlineFormNumber"
+                      value={formData.offlineFormNumber}
+                      placeholder="उदा. 1259"
+                      maxLength={50}
+                      onChange={(e) => handleInputChange("offlineFormNumber", e.target.value)}
+                      className="h-10"
                     />
                   </div>
 

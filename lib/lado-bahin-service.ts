@@ -19,6 +19,8 @@ export interface LadoBahinInstallment {
 export interface LadoBahinRegistration {
   id: string;
   formNumber: string;
+  offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
   applicationDate: string;
   applicantName: string;
   fatherName: string;
@@ -74,6 +76,8 @@ export interface LadoBahinRegistration {
 
 export interface CreateLadoBahinPayload {
   applicationDate: string;
+  offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
   applicantName: string;
   fatherName: string;
   husbandName?: string | null;
@@ -115,6 +119,8 @@ export interface CreateLadoBahinPayload {
 }
 
 export interface UpdateLadoBahinPayload {
+  offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
   applicantName?: string;
   fatherName?: string;
   husbandName?: string | null;

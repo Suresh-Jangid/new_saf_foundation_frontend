@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { RoleGuard } from "@/components/role-guard";
 import { LadoBahinService, LadoBahinRegistration } from "@/lib/lado-bahin-service";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getPhotoDataUrl } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
 interface Column<T> {
@@ -133,10 +133,17 @@ export default function LadoBahinListPage() {
   const handleGenerateBond = async (record: LadoBahinRegistration) => {
     try {
       toast.loading("बॉन्ड पीडीएफ जनरेट हो रहा है... / Generating Bond PDF...", { id: "bond-pdf" });
+      const photoDataUrl = record.passportPhotoUrl ? await getPhotoDataUrl(record.passportPhotoUrl) : null;
       const response = await fetch("/api/generate-lado-bahin-bond-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ record }),
+        body: JSON.stringify({
+          record: {
+            ...record,
+            imageData: photoDataUrl || (record as any).imageData,
+          },
+          imageData: photoDataUrl || (record as any).imageData,
+        }),
       });
 
       if (!response.ok) {
@@ -148,7 +155,8 @@ export default function LadoBahinListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `lado_bahin_bond_${record.formNumber || record.id}.pdf`;
+      const downloadName = record.offlineFormNumber || record.formNumber || record.id;
+      a.download = `lado_bahin_bond_${downloadName}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -170,6 +178,7 @@ export default function LadoBahinListPage() {
       const dataToExport = registrations.map((r, index) => ({
         "क्र.सं. (Sr No)": index + 1,
         "आवेदन क्र. (Form No)": r.formNumber || "N/A",
+        "ऑफलाइन फॉर्म नं. (Offline Form No)": r.offlineFormNumber || r.offline_form_number || "N/A",
         "दिनांक (Date)": r.applicationDate ? formatDate(r.applicationDate) : "N/A",
         "आवेदक का नाम (Applicant Name)": r.applicantName || "N/A",
         "पिता का नाम (Father Name)": r.fatherName || "N/A",
@@ -209,7 +218,14 @@ export default function LadoBahinListPage() {
       label: "आवेदन क्र.",
       className: "min-w-[120px]",
       render: (_: unknown, row: LadoBahinRegistration) => (
-        <span className="font-semibold text-primary">{row.formNumber || "—"}</span>
+        <div className="flex flex-col">
+          <span className="font-semibold text-primary">{row.formNumber || "—"}</span>
+          {(row.offlineFormNumber || row.offline_form_number) && (
+            <span className="text-xs text-muted-foreground">
+              ऑफलाइन: <span className="font-medium text-foreground">{row.offlineFormNumber || row.offline_form_number}</span>
+            </span>
+          )}
+        </div>
       ),
     },
     {
@@ -378,7 +394,7 @@ export default function LadoBahinListPage() {
           onDelete={handleDeleteClick}
           editUrlPattern="/dashboard/lado-bahin/[id]"
           showActionsColumn={false}
-          searchFields={["applicantName", "fatherName", "husbandName", "mobile", "aadharNumber", "formNumber", "gotra"]}
+          searchFields={["applicantName", "fatherName", "husbandName", "mobile", "aadharNumber", "formNumber", "offlineFormNumber", "gotra"]}
           itemsPerPage={10}
           showGenderFilter={false}
           showAddressFilter={true}

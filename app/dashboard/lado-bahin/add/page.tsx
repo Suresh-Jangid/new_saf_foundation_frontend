@@ -36,7 +36,7 @@ import {
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
-import { formatDate, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
+import { cn, formatDate, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
 
 export default function AddLadoBahinPage() {
   const router = useRouter();
@@ -51,6 +51,10 @@ export default function AddLadoBahinPage() {
   const [dobObj, setDobObj] = useState<Date | undefined>(undefined);
   const [muklawaDateOpen, setMuklawaDateOpen] = useState(false);
   const [muklawaDateObj, setMuklawaDateObj] = useState<Date | undefined>(undefined);
+
+  // Field Validation Error States
+  const [aadharError, setAadharError] = useState("");
+  const [nomineeAadharError, setNomineeAadharError] = useState("");
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -241,8 +245,32 @@ export default function AddLadoBahinPage() {
       toast.error("कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें / Invalid 10-digit mobile number");
       return;
     }
-    if (!formData.aadharNumber.trim() || formData.aadharNumber.replace(/\D/g, "").length !== 12) {
-      toast.error("कृपया 12 अंकों का वैध आधार नंबर दर्ज करें / Invalid 12-digit Aadhaar number");
+    let hasAadhaarError = false;
+    const aadharDigits = (formData.aadharNumber || "").replace(/\D/g, "");
+    const nomineeAadharDigits = (formData.nomineeAadhar || "").replace(/\D/g, "");
+
+    if (!formData.aadharNumber.trim() || aadharDigits.length !== 12) {
+      setAadharError("कृपया 12 अंकों का वैध आधार नंबर दर्ज करें / Please enter a valid 12-digit Aadhaar number");
+      hasAadhaarError = true;
+    } else {
+      setAadharError("");
+    }
+
+    if (formData.nomineeAadhar.trim() && nomineeAadharDigits.length !== 12) {
+      setNomineeAadharError("कृपया 12 अंकों का वैध आधार नंबर दर्ज करें / Please enter a valid 12-digit Aadhaar number");
+      hasAadhaarError = true;
+    } else {
+      setNomineeAadharError("");
+    }
+
+    if (hasAadhaarError) {
+      if ((!formData.aadharNumber.trim() || aadharDigits.length !== 12) && (formData.nomineeAadhar.trim() && nomineeAadharDigits.length !== 12)) {
+        toast.error("कृपया आवेदक और नॉमिनी के 12 अंकों का वैध आधार नंबर दर्ज करें / Please enter valid 12-digit Aadhaar numbers");
+      } else if (!formData.aadharNumber.trim() || aadharDigits.length !== 12) {
+        toast.error("कृपया आवेदक का 12 अंकों का वैध आधार नंबर दर्ज करें / Please enter valid 12-digit Applicant Aadhaar number");
+      } else {
+        toast.error("कृपया नॉमिनी का 12 अंकों का वैध आधार नंबर दर्ज करें / Please enter valid 12-digit Nominee Aadhaar number");
+      }
       return;
     }
     if (!formData.district.trim()) {
@@ -639,17 +667,31 @@ export default function AddLadoBahinPage() {
 
                   {/* Aadhaar Number */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                    <Label htmlFor="aadharNumber" className="text-xs sm:text-sm font-semibold text-foreground">
                       आधार कार्ड संख्या (Aadhaar Number) <span className="text-rose-500">*</span>
                     </Label>
                     <Input
+                      id="aadharNumber"
+                      type="tel"
+                      inputMode="numeric"
                       placeholder="12 अंकों का आधार नंबर"
-                      maxLength={14}
+                      maxLength={12}
                       value={formData.aadharNumber}
-                      onChange={(e) => handleInputChange("aadharNumber", e.target.value)}
-                      className="h-10"
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
+                        handleInputChange("aadharNumber", digits);
+                        if (aadharError) {
+                          if (digits.length === 12) {
+                            setAadharError("");
+                          }
+                        }
+                      }}
+                      className={cn("h-10", aadharError && "border-rose-500 focus-visible:ring-rose-500")}
                       required
                     />
+                    {aadharError && (
+                      <p className="text-xs sm:text-sm text-rose-500 mt-1">{aadharError}</p>
+                    )}
                   </div>
 
                   {/* Mobile Number */}
@@ -881,16 +923,30 @@ export default function AddLadoBahinPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                    <Label htmlFor="nomineeAadhar" className="text-xs sm:text-sm font-semibold text-foreground">
                       नॉमिनी आधार (Aadhaar)
                     </Label>
                     <Input
+                      id="nomineeAadhar"
+                      type="tel"
+                      inputMode="numeric"
                       placeholder="12 अंकों का आधार"
-                      maxLength={14}
+                      maxLength={12}
                       value={formData.nomineeAadhar}
-                      onChange={(e) => handleInputChange("nomineeAadhar", e.target.value)}
-                      className="h-10"
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
+                        handleInputChange("nomineeAadhar", digits);
+                        if (nomineeAadharError) {
+                          if (!digits || digits.length === 12) {
+                            setNomineeAadharError("");
+                          }
+                        }
+                      }}
+                      className={cn("h-10", nomineeAadharError && "border-rose-500 focus-visible:ring-rose-500")}
                     />
+                    {nomineeAadharError && (
+                      <p className="text-xs sm:text-sm text-rose-500 mt-1">{nomineeAadharError}</p>
+                    )}
                   </div>
                 </div>
               </div>

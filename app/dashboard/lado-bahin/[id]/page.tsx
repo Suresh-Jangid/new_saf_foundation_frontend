@@ -36,6 +36,7 @@ import {
   LadoBahinAccountType,
 } from "@/lib/lado-bahin-service";
 import {
+  cn,
   formatDate,
   parseDateFromDDMMYYYY,
   validatePhoneNumber,
@@ -58,6 +59,9 @@ export default function EditLadoBahinPage() {
   const [dobObj, setDobObj] = useState<Date | undefined>(undefined);
   const [muklawaDateOpen, setMuklawaDateOpen] = useState(false);
   const [muklawaDateObj, setMuklawaDateObj] = useState<Date | undefined>(undefined);
+
+  // Field Validation Error States
+  const [nomineeAadharError, setNomineeAadharError] = useState("");
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -294,6 +298,15 @@ export default function EditLadoBahinPage() {
     if (!formData.address.trim()) {
       toast.error("कृपया पता दर्ज करें / Please enter Address");
       return;
+    }
+
+    const nomineeAadharDigits = (formData.nomineeAadhar || "").replace(/\D/g, "");
+    if (formData.nomineeAadhar.trim() && nomineeAadharDigits.length !== 12) {
+      setNomineeAadharError("कृपया 12 अंकों का वैध आधार नंबर दर्ज करें / Please enter a valid 12-digit Aadhaar number");
+      toast.error("कृपया नॉमिनी का 12 अंकों का वैध आधार नंबर दर्ज करें / Invalid 12-digit Nominee Aadhaar number");
+      return;
+    } else {
+      setNomineeAadharError("");
     }
 
     setIsLoading(true);
@@ -934,16 +947,30 @@ export default function EditLadoBahinPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                    <Label htmlFor="nomineeAadhar" className="text-xs sm:text-sm font-semibold text-foreground">
                       नॉमिनी आधार (Aadhaar)
                     </Label>
                     <Input
+                      id="nomineeAadhar"
+                      type="tel"
+                      inputMode="numeric"
                       placeholder="12 अंकों का आधार"
-                      maxLength={14}
+                      maxLength={12}
                       value={formData.nomineeAadhar}
-                      onChange={(e) => handleInputChange("nomineeAadhar", e.target.value)}
-                      className="h-10"
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
+                        handleInputChange("nomineeAadhar", digits);
+                        if (nomineeAadharError) {
+                          if (!digits || digits.length === 12) {
+                            setNomineeAadharError("");
+                          }
+                        }
+                      }}
+                      className={cn("h-10", nomineeAadharError && "border-rose-500 focus-visible:ring-rose-500")}
                     />
+                    {nomineeAadharError && (
+                      <p className="text-xs sm:text-sm text-rose-500 mt-1">{nomineeAadharError}</p>
+                    )}
                   </div>
                 </div>
               </div>

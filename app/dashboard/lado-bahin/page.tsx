@@ -181,7 +181,10 @@ export default function LadoBahinListPage() {
         "तहसील (Tehsil)": r.tehsil || "N/A",
         "राज्य (State)": r.state || "Rajasthan",
         "श्रेणी (Category)": r.category || "A",
-        "मुकलावा दिनांक (Muklawa Date)": (r.muklawaDate || r.muklawa_date || (r as any).muklawa) ? formatDate(r.muklawaDate || r.muklawa_date || (r as any).muklawa) : "N/A",
+        "मुकलावा दिनांक (Muklawa Date)": (() => {
+          const mDate = r.muklawaDate || r.muklawa_date;
+          return mDate ? formatDate(mDate) : "N/A";
+        })(),
         "कुल सहायता राशि (Total Amount)": r.totalAmount || 5100,
         "बकाया राशि (Pending Amount)": r.pendingAmount ?? 0,
         "ई-पिन (E-PIN)": r.epinCode || "N/A",
@@ -252,7 +255,7 @@ export default function LadoBahinListPage() {
       label: "मुकलावा तिथि",
       className: "min-w-[110px]",
       render: (_: unknown, row: LadoBahinRegistration) => {
-        const rawDate = row.muklawaDate || row.muklawa_date || (row as any).muklawa;
+        const rawDate = row.muklawaDate || row.muklawa_date;
         return rawDate ? formatDate(rawDate) : "—";
       },
     },

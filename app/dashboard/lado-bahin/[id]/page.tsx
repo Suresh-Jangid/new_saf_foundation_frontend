@@ -38,6 +38,7 @@ import {
 import {
   cn,
   formatDate,
+  formatDateForAPI,
   parseDateFromDDMMYYYY,
   validatePhoneNumber,
   getProxiedPhotoSrc,
@@ -47,6 +48,19 @@ export default function EditLadoBahinPage() {
   const params = useParams();
   const router = useRouter();
   const id = String(params?.id || "");
+
+  const convertToYYYYMMDD = (dateString?: string | null): string | null => {
+    if (!dateString || !dateString.trim()) return null;
+    const trimmed = dateString.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed)) return trimmed.split("T")[0];
+    const parsedDate = parseDateFromDDMMYYYY(trimmed);
+    if (!parsedDate || isNaN(parsedDate.getTime())) return null;
+    const year = parsedDate.getFullYear();
+    const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(parsedDate.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
@@ -205,7 +219,8 @@ export default function EditLadoBahinPage() {
         // Normalize Dates
         const formattedAppDate = data.applicationDate ? formatDate(data.applicationDate) : "";
         const formattedDob = data.dateOfBirth ? formatDate(data.dateOfBirth) : "";
-        const formattedMuklawa = data.muklawaDate ? formatDate(data.muklawaDate) : "";
+        const rawMuklawa = data.muklawaDate || data.muklawa_date;
+        const formattedMuklawa = rawMuklawa ? formatDate(rawMuklawa) : "";
 
         if (data.applicationDate) {
           const parsed = parseDateFromDDMMYYYY(formattedAppDate);
@@ -215,7 +230,7 @@ export default function EditLadoBahinPage() {
           const parsed = parseDateFromDDMMYYYY(formattedDob);
           if (parsed && !isNaN(parsed.getTime())) setDobObj(parsed);
         }
-        if (data.muklawaDate) {
+        if (rawMuklawa) {
           const parsed = parseDateFromDDMMYYYY(formattedMuklawa);
           if (parsed && !isNaN(parsed.getTime())) setMuklawaDateObj(parsed);
         }
@@ -312,12 +327,13 @@ export default function EditLadoBahinPage() {
     setIsLoading(true);
 
     try {
+      const normalizedMuklawa = convertToYYYYMMDD(formData.muklawaDate);
       const payload: UpdateLadoBahinPayload = {
         applicantName: formData.applicantName.trim(),
         fatherName: formData.fatherName.trim(),
         husbandName: formData.husbandName.trim() || null,
         motherName: formData.motherName.trim() || null,
-        dateOfBirth: formData.dateOfBirth || null,
+        dateOfBirth: convertToYYYYMMDD(formData.dateOfBirth),
         age: formData.age ? Number(formData.age) : null,
         gotra: formData.gotra.trim(),
         mobile: formData.mobile.trim(),
@@ -326,7 +342,8 @@ export default function EditLadoBahinPage() {
         tehsil: formData.tehsil.trim(),
         district: formData.district.trim(),
         state: formData.state.trim() || "Rajasthan",
-        muklawaDate: formData.muklawaDate || null,
+        muklawaDate: normalizedMuklawa,
+        muklawa_date: normalizedMuklawa,
         nomineeName: formData.nomineeName.trim() || null,
         nomineeRelation: formData.nomineeRelation.trim() || null,
         nomineeMobile: formData.nomineeMobile.trim() || null,
@@ -785,8 +802,8 @@ export default function EditLadoBahinPage() {
                             mode="single"
                             selected={muklawaDateObj}
                             captionLayout="dropdown"
-                            month={muklawaDateObj}
-                            onMonthChange={setMuklawaDateObj}
+                            fromYear={1950}
+                            toYear={new Date().getFullYear() + 20}
                             onSelect={(date: any) => {
                               setMuklawaDateObj(date);
                               handleInputChange("muklawaDate", date ? formatDate(date) : "");

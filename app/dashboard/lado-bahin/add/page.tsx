@@ -36,10 +36,24 @@ import {
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
-import { cn, formatDate, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
+import { cn, formatDate, formatDateForAPI, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
 
 export default function AddLadoBahinPage() {
   const router = useRouter();
+
+  const convertToYYYYMMDD = (dateString?: string | null): string | null => {
+    if (!dateString || !dateString.trim()) return null;
+    const trimmed = dateString.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed)) return trimmed.split("T")[0];
+    const parsedDate = parseDateFromDDMMYYYY(trimmed);
+    if (!parsedDate || isNaN(parsedDate.getTime())) return null;
+    const year = parsedDate.getFullYear();
+    const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+    const day = String(parsedDate.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const [isLoading, setIsLoading] = useState(false);
   const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile: string }>>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
@@ -285,13 +299,14 @@ export default function AddLadoBahinPage() {
     setIsLoading(true);
 
     try {
+      const normalizedMuklawa = convertToYYYYMMDD(formData.muklawaDate);
       const payload: CreateLadoBahinPayload = {
-        applicationDate: formData.applicationDate,
+        applicationDate: convertToYYYYMMDD(formData.applicationDate) || formatDateForAPI(new Date()),
         applicantName: formData.applicantName.trim(),
         fatherName: formData.fatherName.trim(),
         husbandName: formData.husbandName.trim() || null,
         motherName: formData.motherName.trim() || null,
-        dateOfBirth: formData.dateOfBirth || null,
+        dateOfBirth: convertToYYYYMMDD(formData.dateOfBirth),
         age: formData.age ? Number(formData.age) : null,
         aadharNumber: formData.aadharNumber.replace(/\D/g, ""),
         gotra: formData.gotra.trim(),
@@ -301,7 +316,8 @@ export default function AddLadoBahinPage() {
         tehsil: formData.tehsil.trim(),
         district: formData.district.trim(),
         state: formData.state.trim() || "Rajasthan",
-        muklawaDate: formData.muklawaDate || null,
+        muklawaDate: normalizedMuklawa,
+        muklawa_date: normalizedMuklawa,
         nomineeName: formData.nomineeName.trim() || null,
         nomineeRelation: formData.nomineeRelation.trim() || null,
         nomineeMobile: formData.nomineeMobile.trim() || null,
@@ -762,8 +778,8 @@ export default function AddLadoBahinPage() {
                             mode="single"
                             selected={muklawaDateObj}
                             captionLayout="dropdown"
-                            month={muklawaDateObj}
-                            onMonthChange={setMuklawaDateObj}
+                            fromYear={1950}
+                            toYear={new Date().getFullYear() + 20}
                             onSelect={(date: any) => {
                               setMuklawaDateObj(date);
                               handleInputChange("muklawaDate", date ? formatDate(date) : "");

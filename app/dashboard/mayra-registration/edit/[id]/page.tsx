@@ -90,18 +90,23 @@ export default function EditMayraRegistrationPage() {
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'failed'>('pending');
   const [paymentData, setPaymentData] = useState<any>(null);
 
-  const selectedAgent = agents.find(a => String(a.id) === String(formData.selectedAgentId));
+  const selectedAgent = agents.find(
+    (a: any) =>
+      String(a.id) === String(formData.selectedAgentId) ||
+      String(a.agentProfile?.id) === String(formData.selectedAgentId) ||
+      String(a.agentProfile?.userId) === String(formData.selectedAgentId)
+  );
   const resolvedWorkerOfflineCode = selectedAgent
     ? String(
         selectedAgent.offlineFormNumber ||
-        selectedAgent.offline_form_number ||
         selectedAgent.agentProfile?.offlineFormNumber ||
+        selectedAgent.offline_form_number ||
         selectedAgent.agent_profile?.offline_form_number ||
         selectedAgent.agentProfile?.offline_form_no ||
         selectedAgent.offlineFormNo ||
+        selectedAgent.agentProfile?.employeeId ||
         selectedAgent.employeeId ||
         selectedAgent.employee_id ||
-        selectedAgent.agentProfile?.employeeId ||
         selectedAgent.agent_profile?.employee_id ||
         selectedAgent.agentCode ||
         selectedAgent.agent_code ||
@@ -112,13 +117,13 @@ export default function EditMayraRegistrationPage() {
 
   const parentSeniorId = selectedAgent
     ? String(
+        selectedAgent.agentProfile?.parentAgentId ||
         selectedAgent.parentAgentId ||
         selectedAgent.parent_agent_id ||
+        selectedAgent.agentProfile?.seniorId ||
+        selectedAgent.agent_profile?.parent_agent_id ||
         selectedAgent.seniorId ||
         selectedAgent.senior_id ||
-        selectedAgent.agentProfile?.parentAgentId ||
-        selectedAgent.agent_profile?.parent_agent_id ||
-        selectedAgent.agentProfile?.seniorId ||
         selectedAgent.agent_profile?.senior_id ||
         ""
       ).trim()
@@ -126,46 +131,74 @@ export default function EditMayraRegistrationPage() {
 
   const parentSeniorCode = selectedAgent
     ? String(
+        selectedAgent.agentProfile?.seniorEmployeeId ||
         selectedAgent.seniorEmployeeId ||
         selectedAgent.senior_employee_id ||
-        selectedAgent.parentEmployeeId ||
-        selectedAgent.parent_employee_id ||
+        selectedAgent.agentProfile?.seniorCode ||
         selectedAgent.seniorCode ||
         selectedAgent.senior_code ||
+        selectedAgent.parentEmployeeId ||
+        selectedAgent.parent_employee_id ||
         selectedAgent.uplineCode ||
         selectedAgent.upline_code ||
-        selectedAgent.agentProfile?.seniorEmployeeId ||
         selectedAgent.agent_profile?.senior_employee_id ||
-        selectedAgent.agentProfile?.seniorCode ||
         selectedAgent.agent_profile?.senior_code ||
         ""
       ).trim().toUpperCase()
     : "";
 
   const seniorAgent = selectedAgent
-    ? (parentSeniorId && agents.find(a => String(a.id).trim() === parentSeniorId)) ||
-      (parentSeniorCode && parentSeniorCode !== "ADMIN" && agents.find(a => String(a.employeeId || a.employee_id || a.agentProfile?.employeeId || a.agentCode || a.code || "").trim().toUpperCase() === parentSeniorCode))
+    ? (parentSeniorId &&
+        agents.find((a: any) => {
+          const candidateIds = [
+            a.id,
+            a.agentProfile?.id,
+            a.agentProfile?.userId,
+            a.agent_profile?.id,
+            a.agent_profile?.userId,
+          ]
+            .map((v) => String(v ?? "").trim())
+            .filter(Boolean);
+          return candidateIds.includes(parentSeniorId);
+        })) ||
+      (parentSeniorCode &&
+        parentSeniorCode !== "ADMIN" &&
+        parentSeniorCode !== "SUPER ADMIN" &&
+        agents.find((a: any) => {
+          const candidateCodes = [
+            a.employeeId,
+            a.employee_id,
+            a.agentProfile?.employeeId,
+            a.agent_profile?.employee_id,
+            a.agentCode,
+            a.agent_code,
+            a.code,
+          ]
+            .map((v) => String(v ?? "").trim().toUpperCase())
+            .filter(Boolean);
+          return candidateCodes.includes(parentSeniorCode);
+        }))
     : null;
 
   const resolvedSeniorName = seniorAgent ? String(seniorAgent.name || "").trim() : "";
   const resolvedSeniorOfflineCode = seniorAgent
     ? String(
         seniorAgent.offlineFormNumber ||
-        seniorAgent.offline_form_number ||
         seniorAgent.agentProfile?.offlineFormNumber ||
+        seniorAgent.offline_form_number ||
         seniorAgent.agent_profile?.offline_form_number ||
         seniorAgent.agentProfile?.offline_form_no ||
         seniorAgent.offlineFormNo ||
+        seniorAgent.agentProfile?.employeeId ||
         seniorAgent.employeeId ||
         seniorAgent.employee_id ||
-        seniorAgent.agentProfile?.employeeId ||
         seniorAgent.agent_profile?.employee_id ||
         seniorAgent.agentCode ||
         seniorAgent.agent_code ||
         seniorAgent.code ||
         ""
       ).trim()
-    : (parentSeniorCode && parentSeniorCode !== "ADMIN" ? parentSeniorCode : "");
+    : (parentSeniorCode && parentSeniorCode !== "ADMIN" && parentSeniorCode !== "SUPER ADMIN" ? parentSeniorCode : "");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -200,9 +233,25 @@ export default function EditMayraRegistrationPage() {
             const workerName = getRecordField(record, "workerName", "worker_name") || "";
             const workerMobile = getRecordField(record, "workerMobile", "worker_mobile") || "";
 
-            if (directAgentId && fetchedAgents.some((a: any) => String(a.id) === directAgentId)) {
-              agentId = directAgentId;
-            } else if (workerName) {
+            if (directAgentId) {
+              const matchedById = fetchedAgents.find((a: any) => {
+                const candidateIds = [
+                  a.id,
+                  a.agentProfile?.id,
+                  a.agentProfile?.userId,
+                  a.agent_profile?.id,
+                  a.agent_profile?.userId,
+                ]
+                  .map((v) => String(v ?? "").trim())
+                  .filter(Boolean);
+                return candidateIds.includes(directAgentId);
+              });
+              if (matchedById) {
+                agentId = String(matchedById.id);
+              }
+            }
+
+            if (!agentId && workerName) {
               const matchedByName = fetchedAgents.find(
                 (a: any) =>
                   String(a.name || "").trim().toLowerCase() === workerName.trim().toLowerCase() ||
@@ -210,6 +259,7 @@ export default function EditMayraRegistrationPage() {
               );
               if (matchedByName) agentId = String(matchedByName.id);
             }
+
             if (!agentId && workerMobile) {
               const cleanMob = workerMobile.replace(/\D/g, "").slice(-10);
               if (cleanMob.length === 10) {
@@ -220,11 +270,23 @@ export default function EditMayraRegistrationPage() {
                 if (matchedByMob) agentId = String(matchedByMob.id);
               }
             }
+
             if (!agentId && directAgentId) {
               agentId = directAgentId;
             }
 
-            if (agentId && !fetchedAgents.some((a: any) => String(a.id) === agentId)) {
+            if (agentId && !fetchedAgents.some((a: any) => {
+              const candidateIds = [
+                a.id,
+                a.agentProfile?.id,
+                a.agentProfile?.userId,
+                a.agent_profile?.id,
+                a.agent_profile?.userId,
+              ]
+                .map((v) => String(v ?? "").trim())
+                .filter(Boolean);
+              return candidateIds.includes(agentId);
+            })) {
               const nameToUse = workerName || "Admin";
               fetchedAgents.push({ id: agentId, name: nameToUse, mobile: "" });
               setAgents([...fetchedAgents]);

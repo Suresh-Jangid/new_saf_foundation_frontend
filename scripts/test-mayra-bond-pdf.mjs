@@ -142,14 +142,14 @@ async function runTests() {
     assert.ok(routeContent.includes('1000 किस्त'), '1000 installment handled');
   });
 
-  it('17. Applicant Photo is embedded in top box (X: 252.35, Y: 578.75, W: 86.40, H: 80.18)', () => {
+  it('17. Applicant Photo is embedded in top box with safe inner inset (X: 252.35, Y: 182.96, W: 86.40, H: 80.18)', () => {
     assert.ok(routeContent.includes('applicantPhotoSource'), 'applicantPhotoSource checked');
-    assert.ok(routeContent.includes('252.35, 182.96, 86.40, 80.18'), 'Applicant photo positioned at top box');
+    assert.ok(routeContent.includes('252.35') && routeContent.includes('182.96') && routeContent.includes('PHOTO_INSET'), 'Applicant photo positioned at top box with inset');
   });
 
-  it('18. Nominee Photo is embedded in bottom box (X: 252.35, Y: 474.42, W: 86.40, H: 80.17)', () => {
+  it('18. Nominee Photo is embedded in bottom box with safe inner inset (X: 252.35, Y: 287.30, W: 86.40, H: 80.17)', () => {
     assert.ok(routeContent.includes('nomineePhotoSource'), 'nomineePhotoSource checked');
-    assert.ok(routeContent.includes('252.35, 287.30, 86.40, 80.17'), 'Nominee photo positioned at bottom box');
+    assert.ok(routeContent.includes('252.35') && routeContent.includes('287.30') && routeContent.includes('PHOTO_INSET'), 'Nominee photo positioned at bottom box with inset');
   });
 
   it('19. SemiBold Devanagari font is used for visual matching with KrutiDev labels', () => {

@@ -89,8 +89,20 @@ function resolveMayraAmountText(rec: any): string {
   const rawAmt =
     rec?.installmentAmount ??
     rec?.installment_amount ??
+    rec?.kistAmount ??
+    rec?.kist_amount ??
+    rec?.schemeAmount ??
+    rec?.scheme_amount ??
     rec?.mayraAmount ??
     rec?.mayra_amount ??
+    rec?.selectedAmount ??
+    rec?.selected_amount ??
+    rec?.amount ??
+    rec?.fee ??
+    rec?.totalAmount ??
+    rec?.total_amount ??
+    rec?.paymentAmount ??
+    rec?.payment_amount ??
     '';
 
   if (rawAmt === undefined || rawAmt === null || rawAmt === '') {
@@ -100,13 +112,17 @@ function resolveMayraAmountText(rec: any): string {
   const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(String(rawAmt).replace(/[^\d.]/g, ''));
   if (!isNaN(num) && num > 0) {
     if (num === 300) return '300 किस्त';
+    if (num === 500) return '500 किस्त';
     if (num === 1000) return '1000 किस्त';
-    return String(num);
+    if (num === 1500) return '1500 किस्त';
+    return `${num} किस्त`;
   }
 
   const str = String(rawAmt).trim();
   if (str === '300' || str === '300 किस्त') return '300 किस्त';
-  if (str === '1000' || str === '1000 किस्त') return '1000 किस्त';
+  if (str === '500' || str === '500 किस्त') return '500 किस्त';
+  if (str === '1000' || str === '1,000' || str === '1000 किस्त' || str === '1,000 किस्त') return '1000 किस्त';
+  if (str === '1500' || str === '1,500' || str === '1500 किस्त' || str === '1,500 किस्त') return '1500 किस्त';
 
   return sanitizeValue(str);
 }
@@ -137,22 +153,29 @@ export async function POST(request: NextRequest) {
     const record = body?.record || body?.data || (body && typeof body === 'object' && !Array.isArray(body) ? body : {});
 
     const applicantPhotoSource = pickPhotoSource(
-      body?.imageData,
-      record?.imageData,
-      record?.applicantPhotoData,
+      record?.passportPhotoUrl,
+      record?.passport_photo_url,
       record?.passportPhoto,
       record?.passport_photo,
       record?.applicantPhoto,
       record?.applicant_photo,
+      record?.applicantPhotoData,
+      body?.imageData,
+      record?.imageData,
+      record?.photo,
+      record?.photoUrl,
+      record?.photo_url,
     );
     const nomineePhotoSource = pickPhotoSource(
-      body?.nomineeImageData,
-      record?.nomineeImageData,
-      record?.nomineePhotoData,
-      record?.nomineePassportPhoto,
-      record?.nominee_passport_photo,
+      record?.nomineePhotoUrl,
+      record?.nominee_photo_url,
       record?.nomineePhoto,
       record?.nominee_photo,
+      record?.nomineePassportPhoto,
+      record?.nominee_passport_photo,
+      record?.nomineePhotoData,
+      body?.nomineeImageData,
+      record?.nomineeImageData,
     );
 
     console.log('Generating Mayra bond PDF for:', record.applicantName || 'Unknown');
@@ -180,11 +203,56 @@ export async function POST(request: NextRequest) {
     // ── Measured Photo Boxes on Official A4 Template (595.28 x 841.89 pt) ─
     // Top Photo Box (खाताधारक का फोटो):   x = 252.35, y = 578.75, w = 86.40, h = 80.18 (yFromTop = 182.96)
     // Bottom Photo Box (नॉमिनी का फोटो): x = 252.35, y = 474.42, w = 86.40, h = 80.17 (yFromTop = 287.30)
+    // Safe inner inset (1.8 pt) ensures photos never touch or overwrite the original PDF borders on all 4 sides
+    const PHOTO_INSET = 1.8;
+    const BOX_X = 252.35;
+    const BOX_W = 86.40;
+    const TOP_BOX_Y_FROM_TOP = 182.96;
+    const TOP_BOX_H = 80.18;
+    const BTM_BOX_Y_FROM_TOP = 287.30;
+    const BTM_BOX_H = 80.17;
+
+    const innerPhotoX = BOX_X + PHOTO_INSET;
+    const innerPhotoW = BOX_W - PHOTO_INSET * 2; // 82.80 pt
+
     if (applicantPhotoSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 252.35, 182.96, 86.40, 80.18, 'cover');
+      try {
+        const applicantInnerYFromTop = TOP_BOX_Y_FROM_TOP + PHOTO_INSET;
+        const applicantInnerH = TOP_BOX_H - PHOTO_INSET * 2; // 76.58 pt
+        await embedPdfImage(
+          pdfDoc,
+          firstPage,
+          pageHeight,
+          applicantPhotoSource,
+          innerPhotoX,
+          applicantInnerYFromTop,
+          innerPhotoW,
+          applicantInnerH,
+          'cover'
+        );
+      } catch (err) {
+        console.warn('Could not embed applicant photo in Mayra Bond:', err);
+      }
     }
+
     if (nomineePhotoSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 252.35, 287.30, 86.40, 80.17, 'cover');
+      try {
+        const nomineeInnerYFromTop = BTM_BOX_Y_FROM_TOP + PHOTO_INSET;
+        const nomineeInnerH = BTM_BOX_H - PHOTO_INSET * 2; // 76.57 pt
+        await embedPdfImage(
+          pdfDoc,
+          firstPage,
+          pageHeight,
+          nomineePhotoSource,
+          innerPhotoX,
+          nomineeInnerYFromTop,
+          innerPhotoW,
+          nomineeInnerH,
+          'cover'
+        );
+      } catch (err) {
+        console.warn('Could not embed nominee photo in Mayra Bond:', err);
+      }
     }
 
     // ── Typography Setup ──────────────────────────────────────────────────
@@ -195,7 +263,7 @@ export async function POST(request: NextRequest) {
     ];
     const devanagariFontPath = fontCandidates.find((p) => fs.existsSync(p));
     const font = devanagariFontPath
-      ? await pdfDoc.embedFont(fs.readFileSync(devanagariFontPath), { subset: false })
+      ? await pdfDoc.embedFont(fs.readFileSync(devanagariFontPath), { subset: true })
       : await pdfDoc.embedFont(StandardFonts.Helvetica);
 
     // Color definitions
@@ -342,6 +410,12 @@ export async function POST(request: NextRequest) {
         'nominee_aadhaar',
         'nomineeAadharNumber',
         'nominee_aadhar_number',
+        'nomineeAadharNo',
+        'nomineeAadhaarNo',
+        'nominee_aadhar_no',
+        'nominee_aadhaar_no',
+        'nomineeAadharCard',
+        'nomineeAadhaarCard',
       ),
     );
     const nomineeFathername = sanitizeValue(

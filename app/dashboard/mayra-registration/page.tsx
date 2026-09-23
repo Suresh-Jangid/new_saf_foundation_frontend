@@ -235,6 +235,16 @@ interface MayraRegistrationRecord {
   passportPhoto?: string
   nomineePassportPhoto?: string
   nomineePhoto?: string
+  nomineeAadhar?: string
+  nomineeAadhaar?: string
+  nominee_aadhar?: string
+  nominee_aadhaar?: string
+  installmentAmount?: string | number
+  installment_amount?: string | number
+  kistAmount?: string | number
+  schemeAmount?: string | number
+  totalAmount?: string | number
+  paymentAmount?: string | number
 }
 
 export default function MayraRegistrationPage() {

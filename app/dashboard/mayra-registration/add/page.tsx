@@ -185,6 +185,7 @@ export default function AddMayraRegistrationPage() {
       apiFormData.append("district", formData.nomineeDistrict)
       apiFormData.append("state", formData.nomineeState)
       apiFormData.append("nomineeName", formData.nomineeName)
+      apiFormData.append("nomineeFatherName", formData.nomineeFathername)
       apiFormData.append("nomineeFathername", formData.nomineeFathername)
       apiFormData.append("nomineeHusbandName", formData.nomineeHusbandName)
       apiFormData.append("nomineeGotra", formData.nomineeGotra)

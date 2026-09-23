@@ -327,6 +327,8 @@ export interface MayraApplication {
   mobile: string;
   nomineeName: string;
   nomineeFathername?: string;
+  nomineeFatherName?: string;
+  nominee_father_name?: string;
   nomineeHusbandName?: string;
   nomineeGotra?: string;
   nomineeAddress?: string;

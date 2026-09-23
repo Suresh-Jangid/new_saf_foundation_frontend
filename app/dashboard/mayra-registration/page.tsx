@@ -219,6 +219,8 @@ interface MayraRegistrationRecord {
   mobile: string
   nomineeName: string
   nomineeFathername?: string
+  nomineeFatherName?: string
+  nominee_father_name?: string
   nomineeHusbandName?: string
   nomineeGotra?: string
   nomineeAddress?: string
@@ -491,7 +493,7 @@ export default function MayraRegistrationPage() {
         "मोबाइल": record.mobile,
         "पता": record.address,
         "नॉमिनी": record.nomineeName,
-        "नॉमिनी के पिता का नाम": record.nomineeFathername || "",
+        "नॉमिनी के पिता का नाम": record.nomineeFatherName || record.nomineeFathername || record.nominee_father_name || "",
         "नॉमिनी के पति का नाम": record.nomineeHusbandName || "",
         "कार्यकर्ता": record.workerName || record.added_name,
         "Active": record.is_active === 1 ? "Yes" : "No",
@@ -673,7 +675,12 @@ export default function MayraRegistrationPage() {
     { key: "mobile", label: "मोबाइल" },
     { key: "address", label: "पता" },
     { key: "nomineeName", label: "नॉमिनी का नाम" },
-    { key: "nomineeFathername", label: "नॉमिनी के पिता का नाम" },
+    {
+      key: "nomineeFathername",
+      label: "नॉमिनी के पिता का नाम",
+      render: (value: string, record: MayraRegistrationRecord) =>
+        record.nomineeFatherName || record.nomineeFathername || record.nominee_father_name || value || "-"
+    },
     { key: "nomineeHusbandName", label: "नॉमिनी के पति का नाम" },
     { 
       key: "workerName", 

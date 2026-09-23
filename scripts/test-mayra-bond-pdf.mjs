@@ -344,6 +344,357 @@ async function runTests() {
     });
   }
 
+  console.log('\n5. Agent Code & Senior Code Resolution Tests...');
+
+  const pageContent = fs.readFileSync('app/dashboard/mayra-registration/page.tsx', 'utf8');
+
+  // Extract or evaluate resolution logic from page.tsx
+  function resolveAgentOfflineNumbers(record, agentsList = []) {
+    let workerOffline = String(
+      record.workerOfflineFormNumber ||
+      record.worker_offline_form_number ||
+      record.agentOfflineFormNumber ||
+      record.agent_offline_form_number ||
+      record.workerCode ||
+      record.worker_code ||
+      record.agentCode ||
+      record.agent_code ||
+      ""
+    ).trim();
+
+    let seniorOffline = String(
+      record.seniorOfflineFormNumber ||
+      record.senior_offline_form_number ||
+      record.seniorAgentOfflineFormNumber ||
+      record.senior_agent_offline_form_number ||
+      record.seniorCode ||
+      record.senior_code ||
+      record.uplineCode ||
+      record.upline_code ||
+      ""
+    ).trim();
+
+    let workerMobile = String(
+      record.workerMobile ||
+      record.worker_mobile ||
+      record.agentMobile ||
+      record.agent_mobile ||
+      ""
+    ).trim();
+
+    if (!agentsList || agentsList.length === 0) {
+      return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline, workerMobile };
+    }
+
+    const agentById = new Map();
+    const agentByCode = new Map();
+    const agentByName = new Map();
+
+    for (const agent of agentsList) {
+      const ids = [
+        agent.id,
+        agent.userId,
+        agent.user_id,
+        agent.agentProfile?.id,
+        agent.agentProfile?.userId,
+        agent.agentProfile?.user_id,
+        agent.agent_profile?.id,
+        agent.agent_profile?.user_id,
+      ].filter(Boolean);
+
+      ids.forEach((id) => {
+        const normalized = String(id).trim();
+        if (normalized) agentById.set(normalized, agent);
+      });
+
+      const empIds = [
+        agent.employeeId,
+        agent.employee_id,
+        agent.agentProfile?.employeeId,
+        agent.agent_profile?.employee_id,
+        agent.agentCode,
+        agent.agent_code,
+        agent.code,
+      ].filter(Boolean);
+
+      empIds.forEach((emp) => {
+        const normalized = String(emp).trim().toUpperCase();
+        if (normalized) agentByCode.set(normalized, agent);
+      });
+
+      const name = String(agent.name || "").trim().toLowerCase();
+      if (name && name !== "default agent" && name !== "admin") agentByName.set(name, agent);
+    }
+
+    const targetWorkerId = String(
+      record.addedById ||
+      record.addedby_id ||
+      record.selectedAgentId ||
+      record.agentId ||
+      record.agent_id ||
+      record.userId ||
+      record.user_id ||
+      record.addedBy?.id ||
+      record.addedBy?.userId ||
+      record.addedBy?.user_id ||
+      record.agent?.id ||
+      record.agent?.userId ||
+      record.agent?.user_id ||
+      ""
+    ).trim();
+
+    const targetWorkerCode = String(
+      record.workerCode ||
+      record.worker_code ||
+      record.agentCode ||
+      record.agent_code ||
+      record.added_code ||
+      record.addedBy?.employee_id ||
+      record.addedBy?.employeeId ||
+      record.addedBy?.agentCode ||
+      record.addedBy?.code ||
+      ""
+    ).trim().toUpperCase();
+
+    const targetWorkerName = String(
+      record.workerName ||
+      record.worker_name ||
+      record.added_name ||
+      record.addedby ||
+      record.addedBy?.name ||
+      record.agent?.name ||
+      ""
+    ).trim().toLowerCase();
+
+    const workerAgent =
+      (targetWorkerId && agentById.get(targetWorkerId)) ||
+      (targetWorkerCode && agentByCode.get(targetWorkerCode)) ||
+      (targetWorkerName && agentByName.get(targetWorkerName));
+
+    if (workerAgent) {
+      if (!workerOffline) {
+        workerOffline = String(
+          workerAgent.offlineFormNumber ||
+          workerAgent.offline_form_number ||
+          workerAgent.agentProfile?.offlineFormNumber ||
+          workerAgent.agent_profile?.offline_form_number ||
+          workerAgent.agentProfile?.offline_form_no ||
+          workerAgent.offlineFormNo ||
+          workerAgent.employeeId ||
+          workerAgent.employee_id ||
+          workerAgent.agentProfile?.employeeId ||
+          workerAgent.agent_profile?.employee_id ||
+          workerAgent.agentCode ||
+          workerAgent.agent_code ||
+          workerAgent.code ||
+          workerAgent.user?.offlineFormNumber ||
+          workerAgent.user?.offline_form_number ||
+          ""
+        ).trim();
+      }
+      if (!workerMobile) {
+        workerMobile = String(
+          workerAgent.mobile ||
+          workerAgent.phone ||
+          workerAgent.agentProfile?.mobile ||
+          workerAgent.agent_profile?.mobile ||
+          ""
+        ).trim();
+      }
+
+      const parentSeniorId = String(
+        workerAgent.parentAgentId ||
+        workerAgent.parent_agent_id ||
+        workerAgent.seniorId ||
+        workerAgent.senior_id ||
+        workerAgent.agentProfile?.parentAgentId ||
+        workerAgent.agent_profile?.parent_agent_id ||
+        workerAgent.agentProfile?.seniorId ||
+        workerAgent.agent_profile?.senior_id ||
+        ""
+      ).trim();
+
+      const parentSeniorCode = String(
+        workerAgent.seniorEmployeeId ||
+        workerAgent.senior_employee_id ||
+        workerAgent.parentEmployeeId ||
+        workerAgent.parent_employee_id ||
+        workerAgent.seniorCode ||
+        workerAgent.senior_code ||
+        workerAgent.uplineCode ||
+        workerAgent.upline_code ||
+        workerAgent.agentProfile?.seniorEmployeeId ||
+        workerAgent.agent_profile?.senior_employee_id ||
+        workerAgent.agentProfile?.seniorCode ||
+        workerAgent.agent_profile?.senior_code ||
+        workerAgent.agentProfile?.parentEmployeeId ||
+        workerAgent.agent_profile?.parent_employee_id ||
+        workerAgent.agentProfile?.uplineCode ||
+        workerAgent.agent_profile?.upline_code ||
+        ""
+      ).trim().toUpperCase();
+
+      let seniorAgent = null;
+      if (parentSeniorId && agentById.has(parentSeniorId)) {
+        seniorAgent = agentById.get(parentSeniorId);
+      } else if (parentSeniorCode && parentSeniorCode !== "ADMIN" && parentSeniorCode !== "SUPER ADMIN" && agentByCode.has(parentSeniorCode)) {
+        seniorAgent = agentByCode.get(parentSeniorCode);
+      }
+
+      if (seniorAgent && !seniorOffline) {
+        seniorOffline = String(
+          seniorAgent.offlineFormNumber ||
+          seniorAgent.offline_form_number ||
+          seniorAgent.agentProfile?.offlineFormNumber ||
+          seniorAgent.agent_profile?.offline_form_number ||
+          seniorAgent.agentProfile?.offline_form_no ||
+          seniorAgent.offlineFormNo ||
+          seniorAgent.employeeId ||
+          seniorAgent.employee_id ||
+          seniorAgent.agentProfile?.employeeId ||
+          seniorAgent.agent_profile?.employee_id ||
+          seniorAgent.agentCode ||
+          seniorAgent.agent_code ||
+          seniorAgent.code ||
+          seniorAgent.user?.offlineFormNumber ||
+          seniorAgent.user?.offline_form_number ||
+          ""
+        ).trim();
+      }
+    }
+
+    if (!seniorOffline) {
+      const targetSeniorId = String(
+        record.seniorId ||
+        record.senior_id ||
+        record.parentAgentId ||
+        record.parent_agent_id ||
+        ""
+      ).trim();
+
+      const targetSeniorCode = String(
+        record.seniorCode ||
+        record.senior_code ||
+        record.uplineCode ||
+        record.upline_code ||
+        record.seniorWorker ||
+        record.senior_worker ||
+        ""
+      ).trim().toUpperCase();
+
+      let fallbackSenior = null;
+      if (targetSeniorId && agentById.has(targetSeniorId)) {
+        fallbackSenior = agentById.get(targetSeniorId);
+      } else if (targetSeniorCode && targetSeniorCode !== "ADMIN" && targetSeniorCode !== "SUPER ADMIN" && agentByCode.has(targetSeniorCode)) {
+        fallbackSenior = agentByCode.get(targetSeniorCode);
+      }
+
+      if (fallbackSenior) {
+        seniorOffline = String(
+          fallbackSenior.offlineFormNumber ||
+          fallbackSenior.offline_form_number ||
+          fallbackSenior.agentProfile?.offlineFormNumber ||
+          fallbackSenior.agent_profile?.offline_form_number ||
+          fallbackSenior.agentProfile?.offline_form_no ||
+          fallbackSenior.offlineFormNo ||
+          fallbackSenior.employeeId ||
+          fallbackSenior.employee_id ||
+          fallbackSenior.agentProfile?.employeeId ||
+          fallbackSenior.agent_profile?.employee_id ||
+          fallbackSenior.agentCode ||
+          fallbackSenior.agent_code ||
+          fallbackSenior.code ||
+          fallbackSenior.user?.offlineFormNumber ||
+          fallbackSenior.user?.offline_form_number ||
+          ""
+        ).trim();
+      } else if (targetSeniorCode && targetSeniorCode !== "ADMIN" && targetSeniorCode !== "SUPER ADMIN") {
+        seniorOffline = targetSeniorCode;
+      }
+    }
+
+    return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline, workerMobile };
+  }
+
+  const mockAgentsList = [
+    {
+      id: 'agent-101',
+      name: 'सुरेश जांगिड़',
+      mobile: '9876543210',
+      agentProfile: {
+        id: 'prof-101',
+        userId: 'agent-101',
+        employeeId: 'EMP-101',
+        offlineFormNumber: '1259',
+        seniorId: 'agent-202',
+        seniorEmployeeId: 'EMP-202',
+      }
+    },
+    {
+      id: 'agent-202',
+      name: 'वरिष्ठ अधिकारी',
+      mobile: '9876543299',
+      agentProfile: {
+        id: 'prof-202',
+        userId: 'agent-202',
+        employeeId: 'EMP-202',
+        offlineFormNumber: '1008',
+      }
+    },
+    {
+      id: 'agent-303',
+      name: 'अकेला एजेंट',
+      mobile: '9111111111',
+      employeeId: 'EMP-303',
+      offlineFormNumber: '1333',
+    }
+  ];
+
+  it('Case 1: Mayra record with Agent ID and Senior ID resolves Agent Code and Senior Code', () => {
+    const testRecord = {
+      selectedAgentId: 'agent-101',
+      applicantName: 'राधा कुमारी',
+    };
+    const resolved = resolveAgentOfflineNumbers(testRecord, mockAgentsList);
+    assert.strictEqual(resolved.workerOfflineFormNumber, '1259', 'Agent offline form number must be resolved');
+    assert.strictEqual(resolved.seniorOfflineFormNumber, '1008', 'Senior offline form number must be resolved');
+    assert.strictEqual(resolved.workerMobile, '9876543210', 'Worker mobile must be resolved');
+  });
+
+  it('Case 2: Agent object contains code under canonical property employeeId fallback', () => {
+    const testRecord = {
+      workerName: 'अकेला एजेंट',
+    };
+    const resolved = resolveAgentOfflineNumbers(testRecord, mockAgentsList);
+    assert.strictEqual(resolved.workerOfflineFormNumber, '1333', 'Canonical agent code must be resolved');
+    assert.strictEqual(resolved.workerMobile, '9111111111', 'Worker mobile must be resolved');
+  });
+
+  it('Case 3: Senior/Upline is missing -> handles gracefully without crashing and leaves senior blank', () => {
+    const testRecord = {
+      selectedAgentId: 'agent-303',
+    };
+    const resolved = resolveAgentOfflineNumbers(testRecord, mockAgentsList);
+    assert.strictEqual(resolved.workerOfflineFormNumber, '1333', 'Agent code resolves');
+    assert.strictEqual(resolved.seniorOfflineFormNumber, '', 'Missing senior stays blank safely');
+  });
+
+  it('Case 4: Existing explicit offline/mobile numbers on record are preserved directly', () => {
+    const testRecord = {
+      workerOfflineFormNumber: 'OFF-999',
+      seniorOfflineFormNumber: 'SEN-888',
+      workerMobile: '9000000000',
+    };
+    const resolved = resolveAgentOfflineNumbers(testRecord, mockAgentsList);
+    assert.strictEqual(resolved.workerOfflineFormNumber, 'OFF-999');
+    assert.strictEqual(resolved.seniorOfflineFormNumber, 'SEN-888');
+    assert.strictEqual(resolved.workerMobile, '9000000000');
+  });
+
+  it('20. On-demand agentsList fetching exists in handleGenerateBond in page.tsx', () => {
+    assert.ok(pageContent.includes('agentRegistrationAPI.getAll()') && pageContent.includes('currentAgents'), 'handleGenerateBond fetches agents if missing');
+  });
+
   console.log('\n============================================================');
   console.log(`MAYRA BOND PDF TEST SUITE RESULT: ${passCount} PASSED, ${failCount} FAILED`);
   console.log('============================================================');

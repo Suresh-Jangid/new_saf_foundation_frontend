@@ -40,6 +40,10 @@ function resolveAgentOfflineNumbers(
     record.worker_offline_form_number ||
     record.agentOfflineFormNumber ||
     record.agent_offline_form_number ||
+    record.workerCode ||
+    record.worker_code ||
+    record.agentCode ||
+    record.agent_code ||
     ""
   ).trim();
 
@@ -48,6 +52,10 @@ function resolveAgentOfflineNumbers(
     record.senior_offline_form_number ||
     record.seniorAgentOfflineFormNumber ||
     record.senior_agent_offline_form_number ||
+    record.seniorCode ||
+    record.senior_code ||
+    record.uplineCode ||
+    record.upline_code ||
     ""
   ).trim();
 
@@ -68,18 +76,38 @@ function resolveAgentOfflineNumbers(
   const agentByName = new Map<string, any>();
 
   for (const agent of agentsList) {
-    const id = String(agent.id || "").trim();
-    const empId = String(
-      agent.employeeId ||
-      agent.employee_id ||
-      agent.agentProfile?.employeeId ||
-      agent.agent_profile?.employee_id ||
-      ""
-    ).trim();
-    const name = String(agent.name || "").trim().toLowerCase();
+    const ids = [
+      agent.id,
+      agent.userId,
+      agent.user_id,
+      agent.agentProfile?.id,
+      agent.agentProfile?.userId,
+      agent.agentProfile?.user_id,
+      agent.agent_profile?.id,
+      agent.agent_profile?.user_id,
+    ].filter(Boolean);
 
-    if (id) agentById.set(id, agent);
-    if (empId) agentByCode.set(empId.toUpperCase(), agent);
+    ids.forEach((id) => {
+      const normalized = String(id).trim();
+      if (normalized) agentById.set(normalized, agent);
+    });
+
+    const empIds = [
+      agent.employeeId,
+      agent.employee_id,
+      agent.agentProfile?.employeeId,
+      agent.agent_profile?.employee_id,
+      agent.agentCode,
+      agent.agent_code,
+      agent.code,
+    ].filter(Boolean);
+
+    empIds.forEach((emp) => {
+      const normalized = String(emp).trim().toUpperCase();
+      if (normalized) agentByCode.set(normalized, agent);
+    });
+
+    const name = String(agent.name || "").trim().toLowerCase();
     if (name && name !== "default agent" && name !== "admin") agentByName.set(name, agent);
   }
 
@@ -88,8 +116,15 @@ function resolveAgentOfflineNumbers(
     record.addedby_id ||
     record.selectedAgentId ||
     record.agentId ||
+    record.agent_id ||
+    record.userId ||
+    record.user_id ||
     record.addedBy?.id ||
+    record.addedBy?.userId ||
+    record.addedBy?.user_id ||
     record.agent?.id ||
+    record.agent?.userId ||
+    record.agent?.user_id ||
     ""
   ).trim();
 
@@ -99,8 +134,10 @@ function resolveAgentOfflineNumbers(
     record.agentCode ||
     record.agent_code ||
     record.added_code ||
-    record.addedBy?.agentCode ||
-    record.addedBy?.code ||
+    record.addedBy?.employee_id ||
+    record.addedBy?.employeeId ||
+    (record.addedBy as any)?.agentCode ||
+    (record.addedBy as any)?.code ||
     ""
   ).trim().toUpperCase();
 
@@ -108,6 +145,9 @@ function resolveAgentOfflineNumbers(
     record.workerName ||
     record.worker_name ||
     record.added_name ||
+    record.addedby ||
+    record.addedBy?.name ||
+    record.agent?.name ||
     ""
   ).trim().toLowerCase();
 
@@ -123,13 +163,28 @@ function resolveAgentOfflineNumbers(
         workerAgent.offline_form_number ||
         workerAgent.agentProfile?.offlineFormNumber ||
         workerAgent.agent_profile?.offline_form_number ||
+        workerAgent.agentProfile?.offline_form_no ||
+        workerAgent.offlineFormNo ||
         workerAgent.employeeId ||
         workerAgent.employee_id ||
+        workerAgent.agentProfile?.employeeId ||
+        workerAgent.agent_profile?.employee_id ||
+        workerAgent.agentCode ||
+        workerAgent.agent_code ||
+        workerAgent.code ||
+        workerAgent.user?.offlineFormNumber ||
+        workerAgent.user?.offline_form_number ||
         ""
       ).trim();
     }
     if (!workerMobile) {
-      workerMobile = String(workerAgent.mobile || workerAgent.phone || "").trim();
+      workerMobile = String(
+        workerAgent.mobile ||
+        workerAgent.phone ||
+        workerAgent.agentProfile?.mobile ||
+        workerAgent.agent_profile?.mobile ||
+        ""
+      ).trim();
     }
 
     const parentSeniorId = String(
@@ -137,6 +192,10 @@ function resolveAgentOfflineNumbers(
       workerAgent.parent_agent_id ||
       workerAgent.seniorId ||
       workerAgent.senior_id ||
+      workerAgent.agentProfile?.parentAgentId ||
+      workerAgent.agent_profile?.parent_agent_id ||
+      workerAgent.agentProfile?.seniorId ||
+      workerAgent.agent_profile?.senior_id ||
       ""
     ).trim();
 
@@ -144,7 +203,19 @@ function resolveAgentOfflineNumbers(
       workerAgent.seniorEmployeeId ||
       workerAgent.senior_employee_id ||
       workerAgent.parentEmployeeId ||
+      workerAgent.parent_employee_id ||
       workerAgent.seniorCode ||
+      workerAgent.senior_code ||
+      workerAgent.uplineCode ||
+      workerAgent.upline_code ||
+      workerAgent.agentProfile?.seniorEmployeeId ||
+      workerAgent.agent_profile?.senior_employee_id ||
+      workerAgent.agentProfile?.seniorCode ||
+      workerAgent.agent_profile?.senior_code ||
+      workerAgent.agentProfile?.parentEmployeeId ||
+      workerAgent.agent_profile?.parent_employee_id ||
+      workerAgent.agentProfile?.uplineCode ||
+      workerAgent.agent_profile?.upline_code ||
       ""
     ).trim().toUpperCase();
 
@@ -161,10 +232,69 @@ function resolveAgentOfflineNumbers(
         seniorAgent.offline_form_number ||
         seniorAgent.agentProfile?.offlineFormNumber ||
         seniorAgent.agent_profile?.offline_form_number ||
+        seniorAgent.agentProfile?.offline_form_no ||
+        seniorAgent.offlineFormNo ||
         seniorAgent.employeeId ||
         seniorAgent.employee_id ||
+        seniorAgent.agentProfile?.employeeId ||
+        seniorAgent.agent_profile?.employee_id ||
+        seniorAgent.agentCode ||
+        seniorAgent.agent_code ||
+        seniorAgent.code ||
+        seniorAgent.user?.offlineFormNumber ||
+        seniorAgent.user?.offline_form_number ||
         ""
       ).trim();
+    }
+  }
+
+  if (!seniorOffline) {
+    const targetSeniorId = String(
+      record.seniorId ||
+      record.senior_id ||
+      record.parentAgentId ||
+      record.parent_agent_id ||
+      ""
+    ).trim();
+
+    const targetSeniorCode = String(
+      record.seniorCode ||
+      record.senior_code ||
+      record.uplineCode ||
+      record.upline_code ||
+      record.seniorWorker ||
+      record.senior_worker ||
+      ""
+    ).trim().toUpperCase();
+
+    let fallbackSenior: any = null;
+    if (targetSeniorId && agentById.has(targetSeniorId)) {
+      fallbackSenior = agentById.get(targetSeniorId);
+    } else if (targetSeniorCode && targetSeniorCode !== "ADMIN" && targetSeniorCode !== "SUPER ADMIN" && agentByCode.has(targetSeniorCode)) {
+      fallbackSenior = agentByCode.get(targetSeniorCode);
+    }
+
+    if (fallbackSenior) {
+      seniorOffline = String(
+        fallbackSenior.offlineFormNumber ||
+        fallbackSenior.offline_form_number ||
+        fallbackSenior.agentProfile?.offlineFormNumber ||
+        fallbackSenior.agent_profile?.offline_form_number ||
+        fallbackSenior.agentProfile?.offline_form_no ||
+        fallbackSenior.offlineFormNo ||
+        fallbackSenior.employeeId ||
+        fallbackSenior.employee_id ||
+        fallbackSenior.agentProfile?.employeeId ||
+        fallbackSenior.agent_profile?.employee_id ||
+        fallbackSenior.agentCode ||
+        fallbackSenior.agent_code ||
+        fallbackSenior.code ||
+        fallbackSenior.user?.offlineFormNumber ||
+        fallbackSenior.user?.offline_form_number ||
+        ""
+      ).trim();
+    } else if (targetSeniorCode && targetSeniorCode !== "ADMIN" && targetSeniorCode !== "SUPER ADMIN") {
+      seniorOffline = targetSeniorCode;
     }
   }
 
@@ -425,18 +555,37 @@ export default function MayraRegistrationPage() {
         fetchPhotoAsDataUrl(rawRecord.nomineePassportPhoto || rawRecord.nomineePhoto),
       ])
 
+      let currentAgents = agentsList;
+      if (!currentAgents || currentAgents.length === 0) {
+        try {
+          const res = await agentRegistrationAPI.getAll();
+          if (res && res.status && Array.isArray(res.data)) {
+            currentAgents = res.data;
+            setAgentsList(res.data);
+          } else if (Array.isArray(res)) {
+            currentAgents = res;
+            setAgentsList(res);
+          }
+        } catch (e) {
+          console.warn("Could not fetch agents for Mayra PDF resolution:", e);
+        }
+      }
+
       const { workerOfflineFormNumber, seniorOfflineFormNumber, workerMobile } = resolveAgentOfflineNumbers(
         rawRecord,
-        agentsList
+        currentAgents
       );
 
       const record = {
         ...rawRecord,
         workerOfflineFormNumber,
         seniorOfflineFormNumber,
-        workerCode: workerOfflineFormNumber || (rawRecord as any).workerCode || "",
-        seniorCode: seniorOfflineFormNumber || (rawRecord as any).seniorCode || "",
+        workerCode: workerOfflineFormNumber || (rawRecord as any).workerCode || (rawRecord as any).agentCode || "",
+        seniorCode: seniorOfflineFormNumber || (rawRecord as any).seniorCode || (rawRecord as any).uplineCode || "",
+        agentCode: workerOfflineFormNumber || (rawRecord as any).agentCode || (rawRecord as any).workerCode || "",
+        uplineCode: seniorOfflineFormNumber || (rawRecord as any).uplineCode || (rawRecord as any).seniorCode || "",
         workerMobile: workerMobile || rawRecord.workerMobile || "",
+        agentMobile: workerMobile || rawRecord.workerMobile || "",
         offlineFormNumber: rawRecord.offlineFormNumber || rawRecord.offline_form_number || rawRecord.formNumber || "",
       };
 

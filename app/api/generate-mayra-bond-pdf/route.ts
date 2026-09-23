@@ -366,6 +366,8 @@ export async function POST(request: NextRequest) {
       'worker_code',
       'agentCode',
       'agent_code',
+      'employeeId',
+      'employee_id',
     );
     const agentCode = sanitizeOfflineNumber(rawAgentCode);
 
@@ -384,6 +386,8 @@ export async function POST(request: NextRequest) {
       'uplineCode',
       'upline_code',
       'seniorAgentCode',
+      'seniorEmployeeId',
+      'senior_employee_id',
     );
     const uplineCode = sanitizeOfflineNumber(rawUplineCode);
 

@@ -324,6 +324,8 @@ export default function EditMayraRegistrationPage() {
         nomineeRelation: formData.nomineeRelation,
         gender: formData.gender,
         selectedAgentId: formData.selectedAgentId || undefined,
+        agentId: formData.selectedAgentId || undefined,
+        addedby_id: formData.selectedAgentId || undefined,
         workerName: selectedAgent?.name,
         workerMobile: (selectedAgent as { mobile?: string } | undefined)?.mobile,
         passportPhoto: formData.passportPhoto ?? undefined,

@@ -206,6 +206,7 @@ export default function AddMayraRegistrationPage() {
         apiFormData.append("workerMobile", (selectedAgent as any).mobile || "")
         apiFormData.append("selectedAgentId", String(selectedAgent.id))
         apiFormData.append("agentId", String(selectedAgent.id))
+        apiFormData.append("addedby_id", String(selectedAgent.id))
       }
 
       if (formData.paymentMode) apiFormData.append("paymentMode", formData.paymentMode)

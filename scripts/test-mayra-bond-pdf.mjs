@@ -355,10 +355,6 @@ async function runTests() {
       record.worker_offline_form_number ||
       record.agentOfflineFormNumber ||
       record.agent_offline_form_number ||
-      record.workerCode ||
-      record.worker_code ||
-      record.agentCode ||
-      record.agent_code ||
       ""
     ).trim();
 
@@ -367,10 +363,6 @@ async function runTests() {
       record.senior_offline_form_number ||
       record.seniorAgentOfflineFormNumber ||
       record.senior_agent_offline_form_number ||
-      record.seniorCode ||
-      record.senior_code ||
-      record.uplineCode ||
-      record.upline_code ||
       ""
     ).trim();
 

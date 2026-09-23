@@ -306,7 +306,6 @@ export default function AddMayraRegistrationPage() {
       apiFormData.append("addedby", addedby)
       apiFormData.append("addedby_id", addedby_id)
 
-      const selectedAgent = agents.find(a => a.id.toString() === formData.selectedAgentId)
       if (selectedAgent) {
         apiFormData.append("workerName", selectedAgent.name)
         apiFormData.append("workerMobile", (selectedAgent as any).mobile || "")

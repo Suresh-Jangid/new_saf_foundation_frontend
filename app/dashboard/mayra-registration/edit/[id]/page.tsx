@@ -44,7 +44,7 @@ export default function EditMayraRegistrationPage() {
   const { id } = useParams()
   const [isLoading, setIsLoading] = useState(false)
   const [isFetching, setIsFetching] = useState(true)
-  const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile?: string }>>([])
+  const [agents, setAgents] = useState<any[]>([])
   const [initialOfflineFormNumber, setInitialOfflineFormNumber] = useState<string>("")
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
 
@@ -90,6 +90,83 @@ export default function EditMayraRegistrationPage() {
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'paid' | 'failed'>('pending');
   const [paymentData, setPaymentData] = useState<any>(null);
 
+  const selectedAgent = agents.find(a => String(a.id) === String(formData.selectedAgentId));
+  const resolvedWorkerOfflineCode = selectedAgent
+    ? String(
+        selectedAgent.offlineFormNumber ||
+        selectedAgent.offline_form_number ||
+        selectedAgent.agentProfile?.offlineFormNumber ||
+        selectedAgent.agent_profile?.offline_form_number ||
+        selectedAgent.agentProfile?.offline_form_no ||
+        selectedAgent.offlineFormNo ||
+        selectedAgent.employeeId ||
+        selectedAgent.employee_id ||
+        selectedAgent.agentProfile?.employeeId ||
+        selectedAgent.agent_profile?.employee_id ||
+        selectedAgent.agentCode ||
+        selectedAgent.agent_code ||
+        selectedAgent.code ||
+        ""
+      ).trim()
+    : "";
+
+  const parentSeniorId = selectedAgent
+    ? String(
+        selectedAgent.parentAgentId ||
+        selectedAgent.parent_agent_id ||
+        selectedAgent.seniorId ||
+        selectedAgent.senior_id ||
+        selectedAgent.agentProfile?.parentAgentId ||
+        selectedAgent.agent_profile?.parent_agent_id ||
+        selectedAgent.agentProfile?.seniorId ||
+        selectedAgent.agent_profile?.senior_id ||
+        ""
+      ).trim()
+    : "";
+
+  const parentSeniorCode = selectedAgent
+    ? String(
+        selectedAgent.seniorEmployeeId ||
+        selectedAgent.senior_employee_id ||
+        selectedAgent.parentEmployeeId ||
+        selectedAgent.parent_employee_id ||
+        selectedAgent.seniorCode ||
+        selectedAgent.senior_code ||
+        selectedAgent.uplineCode ||
+        selectedAgent.upline_code ||
+        selectedAgent.agentProfile?.seniorEmployeeId ||
+        selectedAgent.agent_profile?.senior_employee_id ||
+        selectedAgent.agentProfile?.seniorCode ||
+        selectedAgent.agent_profile?.senior_code ||
+        ""
+      ).trim().toUpperCase()
+    : "";
+
+  const seniorAgent = selectedAgent
+    ? (parentSeniorId && agents.find(a => String(a.id).trim() === parentSeniorId)) ||
+      (parentSeniorCode && parentSeniorCode !== "ADMIN" && agents.find(a => String(a.employeeId || a.employee_id || a.agentProfile?.employeeId || a.agentCode || a.code || "").trim().toUpperCase() === parentSeniorCode))
+    : null;
+
+  const resolvedSeniorName = seniorAgent ? String(seniorAgent.name || "").trim() : "";
+  const resolvedSeniorOfflineCode = seniorAgent
+    ? String(
+        seniorAgent.offlineFormNumber ||
+        seniorAgent.offline_form_number ||
+        seniorAgent.agentProfile?.offlineFormNumber ||
+        seniorAgent.agent_profile?.offline_form_number ||
+        seniorAgent.agentProfile?.offline_form_no ||
+        seniorAgent.offlineFormNo ||
+        seniorAgent.employeeId ||
+        seniorAgent.employee_id ||
+        seniorAgent.agentProfile?.employeeId ||
+        seniorAgent.agent_profile?.employee_id ||
+        seniorAgent.agentCode ||
+        seniorAgent.agent_code ||
+        seniorAgent.code ||
+        ""
+      ).trim()
+    : (parentSeniorCode && parentSeniorCode !== "ADMIN" ? parentSeniorCode : "");
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -98,12 +175,8 @@ export default function EditMayraRegistrationPage() {
         const agentsResponse = await post('?apicall=getAgents')
         const agentsData = agentsResponse.data
         let fetchedAgents: any[] = []
-        if (agentsData.status && agentsData.data) {
-          fetchedAgents = agentsData.data.map((agent: any) => ({
-            id: String(agent.id),
-            name: agent.name,
-            mobile: agent.mobile
-          }))
+        if (agentsData.status && agentsData.data && Array.isArray(agentsData.data)) {
+          fetchedAgents = agentsData.data
           setAgents(fetchedAgents)
         }
 
@@ -117,20 +190,38 @@ export default function EditMayraRegistrationPage() {
               ? record.installments[0]
               : null
 
-            // Match worker/agent by name first, then fall back to addedBy
+            // Match worker/agent by ID, name, or mobile
             let agentId = "";
+            const directAgentId = String(
+              getRecordField(record, "selectedAgentId", "agentId", "agent_id", "addedby_id", "addedById") ||
+              (record.addedBy as { id?: string | number } | undefined)?.id ||
+              ""
+            ).trim();
             const workerName = getRecordField(record, "workerName", "worker_name") || "";
-            if (workerName) {
-              const agentByName = fetchedAgents.find(
-                (a) => a.name === workerName
+            const workerMobile = getRecordField(record, "workerMobile", "worker_mobile") || "";
+
+            if (directAgentId && fetchedAgents.some((a: any) => String(a.id) === directAgentId)) {
+              agentId = directAgentId;
+            } else if (workerName) {
+              const matchedByName = fetchedAgents.find(
+                (a: any) =>
+                  String(a.name || "").trim().toLowerCase() === workerName.trim().toLowerCase() ||
+                  String(a.username || a.user_name || "").trim().toLowerCase() === workerName.trim().toLowerCase()
               );
-              if (agentByName) agentId = String(agentByName.id);
+              if (matchedByName) agentId = String(matchedByName.id);
             }
-            if (!agentId) {
-              const addedBy = record.addedBy as { id?: string | number } | undefined;
-              agentId = String(
-                record.addedById || addedBy?.id || record.addedby_id || ""
-              );
+            if (!agentId && workerMobile) {
+              const cleanMob = workerMobile.replace(/\D/g, "").slice(-10);
+              if (cleanMob.length === 10) {
+                const matchedByMob = fetchedAgents.find((a: any) => {
+                  const m = String(a.mobile || a.phone || a.agentProfile?.mobile || "").replace(/\D/g, "").slice(-10);
+                  return m === cleanMob;
+                });
+                if (matchedByMob) agentId = String(matchedByMob.id);
+              }
+            }
+            if (!agentId && directAgentId) {
+              agentId = directAgentId;
             }
 
             if (agentId && !fetchedAgents.some((a: any) => String(a.id) === agentId)) {
@@ -328,6 +419,11 @@ export default function EditMayraRegistrationPage() {
         addedby_id: formData.selectedAgentId || undefined,
         workerName: selectedAgent?.name,
         workerMobile: (selectedAgent as { mobile?: string } | undefined)?.mobile,
+        workerOfflineFormNumber: resolvedWorkerOfflineCode || undefined,
+        agentOfflineFormNumber: resolvedWorkerOfflineCode || undefined,
+        seniorOfflineFormNumber: resolvedSeniorOfflineCode || undefined,
+        seniorAgentOfflineFormNumber: resolvedSeniorOfflineCode || undefined,
+        seniorWorker: resolvedSeniorName || undefined,
         passportPhoto: formData.passportPhoto ?? undefined,
         nomineePassportPhoto: formData.nomineePassportPhoto ?? undefined,
         existingPassportPhoto:
@@ -770,6 +866,38 @@ export default function EditMayraRegistrationPage() {
                     </select>
                   </div>
                 </div>
+
+                {formData.selectedAgentId && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                    <div>
+                      <Label>एजेंट कोड (Agent Offline Code)</Label>
+                      <Input
+                        readOnly
+                        className="bg-gray-50 mt-1 font-mono font-medium"
+                        value={resolvedWorkerOfflineCode || "—"}
+                        placeholder="Offline Code"
+                      />
+                    </div>
+                    <div>
+                      <Label>सीनियर / अपलाइन (Senior / Upline)</Label>
+                      <Input
+                        readOnly
+                        className="bg-gray-50 mt-1"
+                        value={resolvedSeniorName || "—"}
+                        placeholder="Senior Name"
+                      />
+                    </div>
+                    <div>
+                      <Label>सीनियर कोड (Senior Offline Code)</Label>
+                      <Input
+                        readOnly
+                        className="bg-gray-50 mt-1 font-mono font-medium"
+                        value={resolvedSeniorOfflineCode || "—"}
+                        placeholder="Senior Offline Code"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Section 3: Affidavit */}

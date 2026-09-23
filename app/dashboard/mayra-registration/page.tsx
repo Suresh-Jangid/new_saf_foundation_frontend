@@ -66,6 +66,7 @@ function resolveAgentOfflineNumbers(
   const agentById = new Map<string, any>();
   const agentByCode = new Map<string, any>();
   const agentByName = new Map<string, any>();
+  const agentByMobile = new Map<string, any>();
 
   for (const agent of agentsList) {
     const ids = [
@@ -99,8 +100,39 @@ function resolveAgentOfflineNumbers(
       if (normalized) agentByCode.set(normalized, agent);
     });
 
-    const name = String(agent.name || "").trim().toLowerCase();
-    if (name && name !== "default agent" && name !== "admin") agentByName.set(name, agent);
+    const names = [
+      agent.name,
+      agent.fullName,
+      agent.username,
+      agent.user_name,
+      agent.user?.name,
+      agent.user?.username,
+      agent.agentProfile?.name,
+      agent.agentProfile?.username,
+    ].filter(Boolean);
+
+    names.forEach((n) => {
+      const normalized = String(n).trim().toLowerCase();
+      if (normalized && normalized !== "default agent" && normalized !== "admin") {
+        agentByName.set(normalized, agent);
+      }
+    });
+
+    const mobiles = [
+      agent.mobile,
+      agent.phone,
+      agent.contactNumber,
+      agent.agentProfile?.mobile,
+      agent.agent_profile?.mobile,
+      agent.user?.mobile,
+    ].filter(Boolean);
+
+    mobiles.forEach((m) => {
+      const cleanMob = String(m).replace(/\D/g, "");
+      if (cleanMob && cleanMob.length >= 10) {
+        agentByMobile.set(cleanMob.slice(-10), agent);
+      }
+    });
   }
 
   const targetWorkerId = String(
@@ -143,10 +175,21 @@ function resolveAgentOfflineNumbers(
     ""
   ).trim().toLowerCase();
 
+  const rawTargetMobile = String(
+    record.workerMobile ||
+    record.worker_mobile ||
+    record.agentMobile ||
+    record.agent_mobile ||
+    record.added_mobile ||
+    ""
+  ).replace(/\D/g, "");
+  const targetWorkerMobile = rawTargetMobile.length >= 10 ? rawTargetMobile.slice(-10) : "";
+
   const workerAgent =
     (targetWorkerId && agentById.get(targetWorkerId)) ||
     (targetWorkerCode && agentByCode.get(targetWorkerCode)) ||
-    (targetWorkerName && agentByName.get(targetWorkerName));
+    (targetWorkerName && agentByName.get(targetWorkerName)) ||
+    (targetWorkerMobile && agentByMobile.get(targetWorkerMobile));
 
   if (workerAgent) {
     if (!workerOffline) {

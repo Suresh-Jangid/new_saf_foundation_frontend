@@ -150,7 +150,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const record = body?.record || body?.data || (body && typeof body === 'object' && !Array.isArray(body) ? body : {});
+    const rawRecord = body?.record || body?.data || {};
+    const record = {
+      ...(body && typeof body === 'object' && !Array.isArray(body) ? body : {}),
+      ...(rawRecord && typeof rawRecord === 'object' && !Array.isArray(rawRecord) ? rawRecord : {}),
+    };
+
+    console.log("[MAYRA PDF DEBUG] body keys:", Object.keys(body || {}));
+    console.log("[MAYRA PDF DEBUG] body.workerOfflineFormNumber:", body?.workerOfflineFormNumber);
+    console.log("[MAYRA PDF DEBUG] body.seniorOfflineFormNumber:", body?.seniorOfflineFormNumber);
+    console.log("[MAYRA PDF DEBUG] body.record.workerOfflineFormNumber:", body?.record?.workerOfflineFormNumber);
+    console.log("[MAYRA PDF DEBUG] body.record.seniorOfflineFormNumber:", body?.record?.seniorOfflineFormNumber);
 
     const applicantPhotoSource = pickPhotoSource(
       record?.passportPhotoUrl,
@@ -390,6 +400,10 @@ export async function POST(request: NextRequest) {
       'senior_employee_id',
     );
     const uplineCode = sanitizeOfflineNumber(rawUplineCode);
+    const seniorCode = uplineCode;
+
+    console.log("[MAYRA PDF DEBUG] FINAL agent code:", agentCode);
+    console.log("[MAYRA PDF DEBUG] FINAL senior code:", seniorCode);
 
     // 2. Left Column: भाणेज-भाणजी का विवरण (Child / Account Holder)
     const applicantName = sanitizeValue(getField(record, 'applicantName', 'applicant_name'));

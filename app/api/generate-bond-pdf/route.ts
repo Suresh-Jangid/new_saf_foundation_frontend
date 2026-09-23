@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'vivah_yojana_bond.pdf'),
       path.join(process.cwd(), 'public', 'pdf', 'general_application', 'bond', 'viva yojana bond(1).pdf'),
     ];
-    
+
     const templatePath = candidateTemplates.find((p) => fs.existsSync(p));
 
     if (!templatePath || !fs.existsSync(templatePath)) {
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       try {
         // Convert base64 to Uint8Array
         const imageBytes = Uint8Array.from(atob(imageData.split(',')[1]), c => c.charCodeAt(0));
-        
+
         // Determine image type and embed accordingly
         let image;
         if (imageData.startsWith('data:image/jpeg') || imageData.startsWith('data:image/jpg')) {
@@ -358,7 +358,7 @@ export async function POST(request: NextRequest) {
     drawCenteredInBox(applicationDate, 451.84, 540.30, 696.5, 10.5, rgb(0, 0.15, 0.6));
 
     // 1.5 सदस्यता क्र. (Box 2 Right: minX=451.84, maxX=540.30, minY=657.72, maxY=678.59)
-    drawCenteredInBox(membershipNo, 451.84, 540.30, 664.5, 10.5, rgb(0, 0.15, 0.6));
+    // drawCenteredInBox(membershipNo, 451.84, 540.30, 664.5, 10.5, rgb(0, 0.15, 0.6));
 
     // =========================================================================
     // 2. MIDDLE TABLE SECTION (Two columns, Rows 1-6)
@@ -411,7 +411,7 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-zA-Z0-9\s-_]/g, '')
       .trim()
       .replace(/\s+/g, '_');
-    
+
     // Generate appropriate filename based on gender
     const gender = record?.gender || record?.लिंग;
     let fileName: string;
@@ -440,7 +440,7 @@ export async function POST(request: NextRequest) {
         error: 'Failed to generate General Bond PDF',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
-      { 
+      {
         status: 500,
         headers: {
           'Access-Control-Allow-Origin': '*',

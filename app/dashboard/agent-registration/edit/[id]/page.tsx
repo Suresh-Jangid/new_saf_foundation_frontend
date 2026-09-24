@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, mapAgentFormRecord, unwrapApiRecordById, getProxiedPhotoSrc, fileToBase64, formatAgentLevel } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard";
 import { isAdmin, isAgent } from "@/lib/permissions";
+import { SeniorSearchSelector, EligibleSenior } from "@/components/senior-search-selector";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,23 +28,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-interface EligibleSenior {
-  id?: string;
-  userId?: string;
-  user_id?: string;
-  employee_id?: string;
-  employeeId?: string;
-  employeeCode?: string;
-  code?: string;
-  name?: string;
-  fullName?: string;
-  employeeName?: string;
-  level?: string | number;
-  designation?: string;
-  is_active?: number | boolean;
-  status?: string;
-}
 
 interface AgentRecord {
   id: string;
@@ -721,9 +705,11 @@ export default function EditAgentRegistrationForm() {
                           {currentFormattedLevel}
                         </span>
                       </div>
-                      <Select
+                      <SeniorSearchSelector
                         disabled={isAgent()}
                         value={form.seniorEmployeeId ? form.seniorEmployeeId : "direct_admin"}
+                        excludeId={id}
+                        eligibleSeniors={eligibleSeniors}
                         onValueChange={(val) => {
                           if (val === "direct_admin") {
                             setForm((prev) => ({
@@ -749,34 +735,7 @@ export default function EditAgentRegistrationForm() {
                             }));
                           }
                         }}
-                      >
-                        <SelectTrigger id="seniorEmployeeId">
-                          <SelectValue placeholder="सीनियर कर्मचारी चुनें / Select Senior" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="direct_admin">
-                            सीधे Admin के अंतर्गत / Direct Under Admin (Promote to Level-1 Senior)
-                          </SelectItem>
-                          {eligibleSeniors
-                            .filter((senior) => {
-                              // Cannot select oneself as senior
-                              const sId = String(senior.id || senior.userId || senior.user_id || "");
-                              return sId !== id;
-                            })
-                            .map((senior) => {
-                              const sId = String(senior.id || senior.userId || senior.user_id || senior.employee_id || "");
-                              const sCode = senior.employee_id || senior.employeeId || senior.employeeCode || senior.code || "";
-                              const sName = senior.name || senior.fullName || senior.employeeName || "";
-                              const seniorLvl = formatAgentLevel(senior.level);
-                              const label = sCode ? `${sCode} — ${sName} (${seniorLvl})` : `${sName} (${seniorLvl})`;
-                              return (
-                                <SelectItem key={sId} value={sId}>
-                                  {label}
-                                </SelectItem>
-                              );
-                            })}
-                        </SelectContent>
-                      </Select>
+                      />
                       <div className="text-xs space-y-0.5">
                         <p className={form.seniorEmployeeId ? "text-purple-700 font-medium" : "text-emerald-700 font-medium"}>
                           {form.seniorEmployeeId

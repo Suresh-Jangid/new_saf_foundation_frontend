@@ -920,7 +920,45 @@ export const agentRegistrationAPI = {
   getEligibleSeniors: async (): Promise<ApiResponse<any[]>> => {
     try {
       const response = await api.get("/v1/agents/seniors/eligible");
-      return response.data;
+      const rawData = response.data;
+      const list = Array.isArray(rawData) ? rawData : Array.isArray(rawData?.data) ? rawData.data : [];
+
+      // If offlineFormNumber is not already populated on items, enrich with /v1/agents
+      if (list.length > 0 && list.some((item: any) => !item.offlineFormNumber && !item.offline_form_number)) {
+        try {
+          const allRes = await api.get("/v1/agents");
+          const allAgents = Array.isArray(allRes.data) ? allRes.data : Array.isArray(allRes.data?.data) ? allRes.data.data : [];
+          const profileMap = new Map<string, any>();
+          allAgents.forEach((a: any) => {
+            const off = a.offlineFormNumber || a.offline_form_number || a.agentProfile?.offlineFormNumber || a.agentProfile?.offline_form_number || "";
+            const mob = a.mobile || a.mobileNumber || a.mobile_number || a.agentProfile?.mobile || "";
+            if (a.id) profileMap.set(String(a.id), { offlineFormNumber: off, mobile: mob });
+            if (a.userId) profileMap.set(String(a.userId), { offlineFormNumber: off, mobile: mob });
+            if (a.employeeId) profileMap.set(String(a.employeeId), { offlineFormNumber: off, mobile: mob });
+            if (a.employee_id) profileMap.set(String(a.employee_id), { offlineFormNumber: off, mobile: mob });
+          });
+          const enriched = list.map((item: any) => {
+            const key = String(item.id || item.userId || item.employeeId || item.employee_id || "");
+            const match = profileMap.get(key);
+            const offline = item.offlineFormNumber || item.offline_form_number || match?.offlineFormNumber || "";
+            const mobile = item.mobile || item.mobileNumber || item.mobile_number || match?.mobile || "";
+            return {
+              ...item,
+              offlineFormNumber: offline,
+              offline_form_number: offline,
+              mobile: mobile,
+            };
+          });
+          if (Array.isArray(rawData)) {
+            return enriched as any;
+          } else if (rawData && typeof rawData === "object") {
+            return { ...rawData, data: enriched };
+          }
+        } catch {
+          // Fall back to original response if enrichment fails
+        }
+      }
+      return rawData;
     } catch (error) {
       try {
         const response = await get<ApiResponse<any[]>>(API_ENDPOINTS.GET_ELIGIBLE_SENIORS);
@@ -1542,4 +1580,4 @@ export const shubhLaxmiAPI = {
   },
 };
 
-export default api; 
+export default api;

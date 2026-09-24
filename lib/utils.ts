@@ -600,6 +600,88 @@ export function formatAgentLevel(level: unknown): string {
   return "LEVEL-1";
 }
 
+/**
+ * Format Senior option for dropdown display:
+ * Primary line: OFFLINE-FORM-NO — NAME
+ * Secondary line: LEVEL-N • MOBILE
+ */
+export function formatSeniorOptionLabel(senior: {
+  offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
+  name?: string | null;
+  fullName?: string | null;
+  employeeName?: string | null;
+  level?: unknown;
+  mobile?: string | null;
+  mobileNumber?: string | null;
+  mobile_number?: string | null;
+}): { primary: string; secondary: string; full: string } {
+  const offline = senior.offlineFormNumber || senior.offline_form_number || "";
+  const name = senior.name || senior.fullName || senior.employeeName || "";
+  const level = formatAgentLevel(senior.level);
+  const mobile = senior.mobile || senior.mobileNumber || senior.mobile_number || "";
+
+  const primary = offline ? `${offline} — ${name}` : name;
+  const secondary = mobile ? `${level} • ${mobile}` : level;
+  const full = `${primary} (${level})${mobile ? ` • ${mobile}` : ""}`;
+
+  return { primary, secondary, full };
+}
+
+/**
+ * Multi-field normalized search for eligible senior agents.
+ * Matches across:
+ * 1. Offline Form Number
+ * 2. Agent Name
+ * 3. Mobile Number
+ * 4. Level (supports "LEVEL-3", "level-3", "level 3", "3")
+ */
+export function matchesSeniorSearch(
+  senior: {
+    offlineFormNumber?: string | null;
+    offline_form_number?: string | null;
+    name?: string | null;
+    fullName?: string | null;
+    employeeName?: string | null;
+    level?: unknown;
+    mobile?: string | null;
+    mobileNumber?: string | null;
+    mobile_number?: string | null;
+  },
+  searchTerm: string
+): boolean {
+  if (!searchTerm || !searchTerm.trim()) return true;
+  const term = searchTerm.trim().toLowerCase();
+  const offline = String(senior.offlineFormNumber || senior.offline_form_number || "").toLowerCase();
+  const name = String(senior.name || senior.fullName || senior.employeeName || "").toLowerCase();
+  const mobile = String(senior.mobile || senior.mobileNumber || senior.mobile_number || "").toLowerCase();
+  const rawLevelStr = String(senior.level ?? "1");
+  const levelNum = rawLevelStr.replace(/\D+/g, "") || "1";
+  const levelFormatted = formatAgentLevel(senior.level).toLowerCase(); // "level-3"
+  const levelSpaced = levelFormatted.replace("-", " "); // "level 3"
+
+  // 1. Offline form number
+  if (offline && offline.includes(term)) return true;
+
+  // 2. Name
+  if (name && name.includes(term)) return true;
+
+  // 3. Level matching
+  if (levelFormatted === term || levelSpaced === term || levelFormatted.includes(term)) return true;
+  if (term.startsWith("level") && term.replace(/\s|-/g, "") === `level${levelNum}`) return true;
+  if (term === levelNum) return true;
+
+  // 4. Mobile (only for non-level queries)
+  const isLevelQuery = term.startsWith("level");
+  if (!isLevelQuery && mobile) {
+    if (mobile.includes(term)) return true;
+    const cleanTermDigits = term.replace(/\D+/g, "");
+    if (cleanTermDigits.length >= 3 && mobile.includes(cleanTermDigits)) return true;
+  }
+
+  return false;
+}
+
 /** Normalize agent API rows (flat or nested user + agentProfile) for add/edit forms. */
 export function mapAgentFormRecord(
   record: Record<string, unknown> | null | undefined

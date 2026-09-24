@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { formatDate, isValidDate, parseDateFromDDMMYYYY, getCurrentUserInfo, formatDateForAPI, fileToBase64, formatAgentLevel } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard";
 import { isAdmin, isAgent, getAgentData } from "@/lib/permissions";
+import { SeniorSearchSelector, EligibleSenior } from "@/components/senior-search-selector";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,22 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface EligibleSenior {
-  id?: string;
-  userId?: string;
-  user_id?: string;
-  employee_id?: string;
-  employeeId?: string;
-  employeeCode?: string;
-  code?: string;
-  name?: string;
-  fullName?: string;
-  employeeName?: string;
-  level?: string | number;
-  designation?: string;
-  is_active?: number | boolean;
-  status?: string;
-}
+
 
 const VALIDATION_MESSAGE_MAP: Record<string, string> = {
   "Password must be at least 6 characters": "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए",
@@ -586,7 +572,7 @@ export default function AddAgentPage() {
                   {!isUserAdmin && currentUser?.id ? (
                     <div className="mt-1 p-2.5 bg-gray-50 border rounded-md text-xs sm:text-sm">
                       <div className="font-semibold text-gray-900">
-                        {currentUser.name || "Self"} ({currentUser.employee_id || currentUser.employeeId || currentUser.employeeCode || "SELF"})
+                        {currentUser.offlineFormNumber ? `${currentUser.offlineFormNumber} — ` : ""}{currentUser.name || "Self"} ({currentUser.employee_id || currentUser.employeeId || currentUser.employeeCode || "SELF"})
                       </div>
                       <p className="text-xs text-purple-700 font-medium mt-0.5">
                         यह नया एजेंट आपके खाते के अंतर्गत पंजीकृत होगा (Creator-Parent Binding)
@@ -594,31 +580,12 @@ export default function AddAgentPage() {
                     </div>
                   ) : (
                     <>
-                      <Select
+                      <SeniorSearchSelector
                         value={form.seniorEmployeeId ? form.seniorEmployeeId : "direct_admin"}
                         onValueChange={(val) => handleSelectChange("seniorEmployeeId", val === "direct_admin" ? "" : val)}
-                      >
-                        <SelectTrigger id="seniorEmployeeId">
-                          <SelectValue placeholder="सीनियर कर्मचारी चुनें / Select Senior" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="direct_admin">
-                            सीधे Admin के अंतर्गत / Direct Under Admin (Level-1 Senior)
-                          </SelectItem>
-                          {eligibleSeniors.map((senior) => {
-                            const sId = String(senior.id || senior.userId || senior.user_id || senior.employee_id || "");
-                            const sCode = senior.employee_id || senior.employeeId || senior.employeeCode || senior.code || "";
-                            const sName = senior.name || senior.fullName || senior.employeeName || "";
-                            const sLevel = senior.level ? formatAgentLevel(senior.level) : "";
-                            const label = `${sCode ? `${sCode} — ` : ""}${sName}${sLevel ? ` (${sLevel})` : ""}`;
-                            return (
-                              <SelectItem key={sId} value={sId}>
-                                {label}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
+                        eligibleSeniors={eligibleSeniors}
+                        disabled={isAgent()}
+                      />
                       <div className="text-xs space-y-0.5 mt-1">
                         <p className={form.seniorEmployeeId ? "text-purple-700 font-medium" : "text-emerald-700 font-medium"}>
                           {form.seniorEmployeeId

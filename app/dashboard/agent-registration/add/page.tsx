@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS, agentRegistrationAPI } from "@/lib/api";
 import { toast } from "sonner";
-import { formatDate, isValidDate, parseDateFromDDMMYYYY, getCurrentUserInfo, formatDateForAPI, fileToBase64 } from "@/lib/utils";
+import { formatDate, isValidDate, parseDateFromDDMMYYYY, getCurrentUserInfo, formatDateForAPI, fileToBase64, formatAgentLevel } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard";
+import { isAdmin, isAgent, getAgentData } from "@/lib/permissions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -112,21 +113,36 @@ export default function AddAgentPage() {
   const [loadingSeniors, setLoadingSeniors] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isUserAdmin, setIsUserAdmin] = useState<boolean>(true);
   const router = useRouter();
 
-  // Fetch eligible seniors from backend on mount
+  // Fetch eligible seniors from backend on mount & initialize creator bindings
   React.useEffect(() => {
     let isMounted = true;
+    const adminCheck = isAdmin();
+    const isAgentUser = isAgent();
+    const agentData = getAgentData();
+    setIsUserAdmin(adminCheck && !isAgentUser);
+    setCurrentUser(agentData);
+
+    if ((!adminCheck || isAgentUser) && agentData?.id) {
+      // Non-admin agent user: automatically bind to self
+      setForm((prev) => ({
+        ...prev,
+        seniorEmployeeId: String(agentData.id),
+      }));
+    }
+
     const loadSeniors = async () => {
       try {
         setLoadingSeniors(true);
         const res = await agentRegistrationAPI.getEligibleSeniors();
         if (!isMounted) return;
         const rawList = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
-        // Filter out level-2, inactive, deleted defensively
+        // Filter out inactive and deleted defensively, but allow all hierarchy levels
         const validList = rawList.filter((s: any) => {
           if (!s) return false;
-          if (s.level === 2 || s.level === "2" || s.level === "LEVEL-2") return false;
           if (s.is_active === 0 || s.is_active === false || s.status === "inactive") return false;
           if (s.is_deleted || s.deleted_at) return false;
           return true;
@@ -277,11 +293,7 @@ export default function AddAgentPage() {
       const result = await agentRegistrationAPI.create(submissionData);
       
       if (result?.status || result?.success || result) {
-        toast.success(
-          selectedSeniorId 
-            ? "Level-2 Agent सफलतापूर्वक पंजीकृत हुआ" 
-            : "Level-1 Senior सफलतापूर्वक पंजीकृत हुआ"
-        );
+        toast.success("एजेंट सफलतापूर्वक पंजीकृत हुआ / Agent registered successfully");
         router.push("/dashboard/agent-registration");
       }
     } catch (error: any) {
@@ -571,40 +583,54 @@ export default function AddAgentPage() {
                   <Label htmlFor="seniorEmployeeId">
                     सीनियर कर्मचारी / Senior Employee
                   </Label>
-                  <Select
-                    value={form.seniorEmployeeId ? form.seniorEmployeeId : "direct_admin"}
-                    onValueChange={(val) => handleSelectChange("seniorEmployeeId", val === "direct_admin" ? "" : val)}
-                  >
-                    <SelectTrigger id="seniorEmployeeId">
-                      <SelectValue placeholder="सीनियर कर्मचारी चुनें / Select Senior" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="direct_admin">
-                        सीधे Admin के अंतर्गत / Direct Under Admin (Level-1 Senior)
-                      </SelectItem>
-                      {eligibleSeniors.map((senior) => {
-                        const sId = String(senior.id || senior.userId || senior.user_id || senior.employee_id || "");
-                        const sCode = senior.employee_id || senior.employeeId || senior.employeeCode || senior.code || "";
-                        const sName = senior.name || senior.fullName || senior.employeeName || "";
-                        const label = sCode ? `${sCode} — ${sName}` : sName;
-                        return (
-                          <SelectItem key={sId} value={sId}>
-                            {label}
+                  {!isUserAdmin && currentUser?.id ? (
+                    <div className="mt-1 p-2.5 bg-gray-50 border rounded-md text-xs sm:text-sm">
+                      <div className="font-semibold text-gray-900">
+                        {currentUser.name || "Self"} ({currentUser.employee_id || currentUser.employeeId || currentUser.employeeCode || "SELF"})
+                      </div>
+                      <p className="text-xs text-purple-700 font-medium mt-0.5">
+                        यह नया एजेंट आपके खाते के अंतर्गत पंजीकृत होगा (Creator-Parent Binding)
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <Select
+                        value={form.seniorEmployeeId ? form.seniorEmployeeId : "direct_admin"}
+                        onValueChange={(val) => handleSelectChange("seniorEmployeeId", val === "direct_admin" ? "" : val)}
+                      >
+                        <SelectTrigger id="seniorEmployeeId">
+                          <SelectValue placeholder="सीनियर कर्मचारी चुनें / Select Senior" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="direct_admin">
+                            सीधे Admin के अंतर्गत / Direct Under Admin (Level-1 Senior)
                           </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                  <div className="text-xs space-y-0.5 mt-1">
-                    <p className={form.seniorEmployeeId ? "text-purple-700 font-medium" : "text-emerald-700 font-medium"}>
-                      {form.seniorEmployeeId
-                        ? "किसी Senior को चुनने पर यह Employee उसके अधीन LEVEL-2 Agent बनेगा।"
-                        : "सीधे Admin के अंतर्गत चुनने पर यह नया Employee LEVEL-1 Senior बनेगा।"}
-                    </p>
-                    <p className="text-muted-foreground">
-                      केवल Level-1 Senior employees ही चयन योग्य हैं। (Hierarchy Depth: Max 2)
-                    </p>
-                  </div>
+                          {eligibleSeniors.map((senior) => {
+                            const sId = String(senior.id || senior.userId || senior.user_id || senior.employee_id || "");
+                            const sCode = senior.employee_id || senior.employeeId || senior.employeeCode || senior.code || "";
+                            const sName = senior.name || senior.fullName || senior.employeeName || "";
+                            const sLevel = senior.level ? formatAgentLevel(senior.level) : "";
+                            const label = `${sCode ? `${sCode} — ` : ""}${sName}${sLevel ? ` (${sLevel})` : ""}`;
+                            return (
+                              <SelectItem key={sId} value={sId}>
+                                {label}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      <div className="text-xs space-y-0.5 mt-1">
+                        <p className={form.seniorEmployeeId ? "text-purple-700 font-medium" : "text-emerald-700 font-medium"}>
+                          {form.seniorEmployeeId
+                            ? "चयनित Senior के अधीन नया एजेंट उसके अगले स्तर पर पंजीकृत होगा।"
+                            : "सीधे Admin के अंतर्गत चुनने पर यह नया Employee LEVEL-1 Senior बनेगा।"}
+                        </p>
+                        <p className="text-muted-foreground">
+                          असीमित स्तर (Unlimited Depth: LEVEL-1, LEVEL-2, LEVEL-3, LEVEL-4, LEVEL-5...) समर्थित है।
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 

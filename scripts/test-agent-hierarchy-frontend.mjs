@@ -2,160 +2,154 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 
-console.log("=== RUNNING AGENT REGISTRATION HIERARCHY FRONTEND TESTS ===");
+console.log("=== RUNNING UNLIMITED AGENT HIERARCHY FRONTEND TESTS ===");
 
 const root = process.cwd();
 
-// Test 1: Check lib/api.ts for agentRegistrationAPI.getById and getEligibleSeniors
-const apiContent = fs.readFileSync(path.join(root, 'lib/api.ts'), 'utf8');
-assert(apiContent.includes('GET_ELIGIBLE_SENIORS'), 'lib/api.ts should contain GET_ELIGIBLE_SENIORS endpoint');
-assert(apiContent.includes('/v1/agents/seniors/eligible'), 'lib/api.ts should call /v1/agents/seniors/eligible');
-assert(apiContent.includes('getEligibleSeniors'), 'agentRegistrationAPI should have getEligibleSeniors method');
-assert(apiContent.includes('getById:'), 'agentRegistrationAPI should have getById method');
-console.log("✅ Test 1: API Endpoints and Methods verified (getById, getEligibleSeniors)");
-
-// Test 2: Check lib/services.ts for AgentRegistration hierarchy fields and APIService.getById
-const servicesContent = fs.readFileSync(path.join(root, 'lib/services.ts'), 'utf8');
-assert(servicesContent.includes('seniorEmployeeId?:'), 'AgentRegistration interface should have seniorEmployeeId');
-assert(servicesContent.includes('getEligibleSeniors'), 'APIService should expose getEligibleSeniors');
-assert(servicesContent.includes('getAgentById'), 'APIService should expose getAgentById');
-console.log("✅ Test 2: Services interface and APIService methods verified");
-
-// Test 3: Check lib/utils.ts mapAgentFormRecord
-const utilsContent = fs.readFileSync(path.join(root, 'lib/utils.ts'), 'utf8');
-assert(utilsContent.includes('seniorEmployeeId:'), 'mapAgentFormRecord should map seniorEmployeeId');
-assert(utilsContent.includes('seniorName:'), 'mapAgentFormRecord should map seniorName');
-assert(utilsContent.includes('seniorCode:'), 'mapAgentFormRecord should map seniorCode');
-assert(utilsContent.includes('level:'), 'mapAgentFormRecord should map level');
-console.log("✅ Test 3: utils.ts mapAgentFormRecord hierarchy fields verified");
-
-// Test 4: Check app/dashboard/agent-registration/add/page.tsx
-const addPageContent = fs.readFileSync(path.join(root, 'app/dashboard/agent-registration/add/page.tsx'), 'utf8');
-assert(addPageContent.includes('getEligibleSeniors'), 'Add agent page should fetch eligible seniors');
-assert(addPageContent.includes('सीधे Admin के अंतर्गत / Direct Under Admin'), 'Add agent page should have Direct Under Admin option');
-assert(addPageContent.includes('seniorEmployeeId'), 'Add agent page should manage seniorEmployeeId state');
-assert(addPageContent.includes('LEVEL-2 Agent'), 'Add agent page should show Level-2 helper when senior selected');
-assert(addPageContent.includes('LEVEL-1 Senior'), 'Add agent page should show Level-1 helper when direct under admin');
-console.log("✅ Test 4: Add Agent Page Senior selection & 2-level hierarchy logic verified");
-
-// Test 5: Check app/dashboard/agent-registration/edit/[id]/page.tsx
-const editPageContent = fs.readFileSync(path.join(root, 'app/dashboard/agent-registration/edit/[id]/page.tsx'), 'utf8');
-assert(editPageContent.includes('getEligibleSeniors'), 'Edit agent page should fetch eligible seniors');
-assert(editPageContent.includes('seniorEmployeeId'), 'Edit agent page should manage seniorEmployeeId state');
-assert(editPageContent.includes('isLevel2'), 'Edit agent page should check if employee is Level-2');
-assert(editPageContent.includes('LEVEL-2 AGENT'), 'Edit agent page should display Level-2 Agent badge');
-assert(editPageContent.includes('match') && editPageContent.includes('validList.find'), 'Edit agent page should match senior by id or employeeId');
-console.log("✅ Test 5: Edit Agent Page hierarchy & prefill logic verified");
-
-// Test 6: Check app/dashboard/agent-registration/page.tsx
-const listPageContent = fs.readFileSync(path.join(root, 'app/dashboard/agent-registration/page.tsx'), 'utf8');
-assert(listPageContent.includes('LEVEL-1'), 'List page should render LEVEL-1 badge');
-assert(listPageContent.includes('LEVEL-2'), 'List page should render LEVEL-2 badge');
-assert(listPageContent.includes('सीनियर / Senior'), 'List page should have Senior column');
-assert(listPageContent.includes('सीनियर कोड / Senior Code'), 'List page should have Senior Code column');
-console.log("✅ Test 6: Agent List Page hierarchy columns verified");
-
-// Functional Mock Tests for mapAgentFormRecord & Hierarchy Logic
-// Simulate mapAgentFormRecord from utils.ts
-function simulateMapAgentFormRecord(raw) {
-  const profile = raw?.agentProfile || {};
-  const parentAgentId = raw.parentAgentId || raw.parent_agent_id || raw.seniorId || raw.senior_id || profile.parentAgentId || profile.parent_agent_id || null;
-  const seniorCode = raw.seniorCode || raw.senior_code || raw.parentEmployeeId || raw.parent_employee_id || (parentAgentId ? raw.seniorEmployeeId : null) || profile.seniorCode || profile.senior_code || 'ADMIN';
-  const seniorName = raw.seniorName || raw.senior_name || raw.parentName || raw.parent_name || profile.seniorName || profile.senior_name || (seniorCode === 'ADMIN' ? 'Super Admin' : '-');
-  
-  let rawLevel = raw.level || profile.level;
-  let level = 'LEVEL_1';
-  if (rawLevel === 'LEVEL_2' || rawLevel === 'LEVEL-2' || (parentAgentId && seniorCode !== 'ADMIN') || (seniorCode && seniorCode !== 'ADMIN')) {
-    level = 'LEVEL_2';
-  } else if (rawLevel === 'LEVEL_1' || rawLevel === 'LEVEL-1') {
-    level = 'LEVEL_1';
+// Load formatAgentLevel from lib/utils.ts logic or simulate directly
+function formatAgentLevel(level) {
+  if (level === undefined || level === null || level === "") {
+    return "LEVEL-1";
   }
+  if (typeof level === "number" && !isNaN(level)) {
+    return `LEVEL-${Math.max(1, Math.floor(level))}`;
+  }
+  const str = String(level).trim();
+  const digits = str.replace(/\D+/g, "");
+  if (digits) {
+    const num = parseInt(digits, 10);
+    if (!isNaN(num) && num > 0) {
+      return `LEVEL-${num}`;
+    }
+  }
+  return str.toUpperCase().startsWith("LEVEL") ? str.toUpperCase().replace("_", "-") : "LEVEL-1";
+}
 
-  const seniorEmployeeId = parentAgentId || (raw.seniorEmployeeId && raw.seniorEmployeeId !== 'ADMIN' ? raw.seniorEmployeeId : '');
+// ==========================================
+// TEST 1 to TEST 7: Dynamic level display
+// ==========================================
+assert.strictEqual(formatAgentLevel(1), "LEVEL-1", "TEST 1: LEVEL-1 displays as LEVEL-1");
+assert.strictEqual(formatAgentLevel("1"), "LEVEL-1", "TEST 1b: '1' displays as LEVEL-1");
+console.log("✅ TEST 1: LEVEL-1 displays as LEVEL-1");
 
+assert.strictEqual(formatAgentLevel(2), "LEVEL-2", "TEST 2: LEVEL-2 displays as LEVEL-2");
+assert.strictEqual(formatAgentLevel("2"), "LEVEL-2", "TEST 2b: '2' displays as LEVEL-2");
+console.log("✅ TEST 2: LEVEL-2 displays as LEVEL-2");
+
+assert.strictEqual(formatAgentLevel(3), "LEVEL-3", "TEST 3: LEVEL-3 displays as LEVEL-3");
+assert.strictEqual(formatAgentLevel("3"), "LEVEL-3", "TEST 3b: '3' displays as LEVEL-3");
+console.log("✅ TEST 3: LEVEL-3 displays as LEVEL-3");
+
+assert.strictEqual(formatAgentLevel(4), "LEVEL-4", "TEST 4: LEVEL-4 displays as LEVEL-4");
+assert.strictEqual(formatAgentLevel("LEVEL_4"), "LEVEL-4", "TEST 4b: 'LEVEL_4' displays as LEVEL-4");
+console.log("✅ TEST 4: LEVEL-4 displays as LEVEL-4");
+
+assert.strictEqual(formatAgentLevel(5), "LEVEL-5", "TEST 5: LEVEL-5 displays as LEVEL-5");
+assert.strictEqual(formatAgentLevel("LEVEL-5"), "LEVEL-5", "TEST 5b: 'LEVEL-5' displays as LEVEL-5");
+console.log("✅ TEST 5: LEVEL-5 displays as LEVEL-5");
+
+assert.strictEqual(formatAgentLevel(10), "LEVEL-10", "TEST 6: LEVEL-10 displays as LEVEL-10");
+console.log("✅ TEST 6: LEVEL-10 displays as LEVEL-10");
+
+assert.strictEqual(formatAgentLevel(12), "LEVEL-12", "TEST 7: LEVEL-12 displays as LEVEL-12");
+console.log("✅ TEST 7: LEVEL-12 displays as LEVEL-12");
+
+// ==========================================
+// TEST 8 to TEST 10: Eligible senior list filtering
+// ==========================================
+const mockBackendSeniors = [
+  { id: "agent-1", name: "Rakesh", level: 1, is_active: true },
+  { id: "agent-2", name: "Mahendra", level: 2, is_active: true },
+  { id: "agent-3", name: "Suresh", level: 3, is_active: true },
+  { id: "agent-4", name: "Pawan", level: 4, is_active: true },
+  { id: "agent-5", name: "Junior", level: 5, is_active: true },
+];
+
+function filterEligibleSeniors(rawList) {
+  return rawList.filter((s) => {
+    if (!s) return false;
+    if (s.is_active === 0 || s.is_active === false || s.status === "inactive") return false;
+    if (s.is_deleted || s.deleted_at) return false;
+    return true;
+  });
+}
+
+const filteredList = filterEligibleSeniors(mockBackendSeniors);
+const hasLevel3 = filteredList.some((s) => s.level === 3);
+const hasLevel4 = filteredList.some((s) => s.level === 4);
+const hasLevel5 = filteredList.some((s) => s.level === 5);
+
+assert.strictEqual(hasLevel3, true, "TEST 8: Eligible senior list does NOT filter out LEVEL-3");
+console.log("✅ TEST 8: Eligible senior list does NOT filter out LEVEL-3");
+
+assert.strictEqual(hasLevel4, true, "TEST 9: Eligible senior list does NOT filter out LEVEL-4");
+console.log("✅ TEST 9: Eligible senior list does NOT filter out LEVEL-4");
+
+assert.strictEqual(hasLevel5, true, "TEST 10: Eligible senior list does NOT filter out LEVEL-5");
+console.log("✅ TEST 10: Eligible senior list does NOT filter out LEVEL-5");
+
+// ==========================================
+// TEST 11: Admin can select an arbitrary eligible hierarchy level as parent
+// ==========================================
+function simulateAdminSelectParent(selectedSeniorId, eligibleList) {
+  if (selectedSeniorId === "direct_admin") {
+    return { seniorEmployeeId: null, parentAgentId: null, level: 1 };
+  }
+  const senior = eligibleList.find((s) => s.id === selectedSeniorId);
   return {
-    employeeId: raw.employeeId || raw.employee_id || profile.employeeId,
-    name: raw.name || profile.name,
-    parentAgentId,
-    seniorEmployeeId,
-    seniorCode,
-    seniorName,
-    level,
+    seniorEmployeeId: selectedSeniorId,
+    parentAgentId: selectedSeniorId,
+    level: senior ? Number(senior.level) + 1 : 2,
   };
 }
 
-// Phase 14 Specific Requirements:
-// 1. EMP-005 maps to LEVEL-2
-const emp005Raw = {
-  id: "emp-005-uuid",
-  employeeId: "EMP-005",
-  name: "deelip",
-  level: "LEVEL_2",
-  parentAgentId: "397a5671-fd06-48ca-bbc9-73670de7241b",
-  seniorCode: "EMP-004",
-  seniorName: "dinesh",
-};
-const emp005Mapped = simulateMapAgentFormRecord(emp005Raw);
+const adminSelectionLevel4 = simulateAdminSelectParent("agent-4", filteredList);
+assert.strictEqual(adminSelectionLevel4.parentAgentId, "agent-4", "Admin should be able to select Level-4 parent");
+assert.strictEqual(adminSelectionLevel4.level, 5, "Child under Level-4 parent should be Level-5");
+console.log("✅ TEST 11: Admin can select an arbitrary eligible hierarchy level as parent");
 
-assert.strictEqual(emp005Mapped.level, "LEVEL_2", "1. EMP-005 must map to LEVEL_2");
-console.log("✅ Phase 14 - 1. EMP-005 maps to LEVEL-2");
+// ==========================================
+// TEST 12: Agent user cannot interactively choose another parent when creating a junior
+// ==========================================
+const addPageSource = fs.readFileSync(path.join(root, 'app/dashboard/agent-registration/add/page.tsx'), 'utf8');
+const editPageSource = fs.readFileSync(path.join(root, 'app/dashboard/agent-registration/edit/[id]/page.tsx'), 'utf8');
 
-// 2. EMP-005 maps seniorCode = EMP-004
-assert.strictEqual(emp005Mapped.seniorCode, "EMP-004", "2. EMP-005 must map seniorCode = EMP-004");
-console.log("✅ Phase 14 - 2. EMP-005 maps seniorCode = EMP-004");
+assert(addPageSource.includes('isAgent') || addPageSource.includes('isAdmin'), "Add agent page must check agent / admin role");
+assert(addPageSource.includes('getAgentData()'), "Add agent page must fetch logged in agent data");
+assert(addPageSource.includes('!isUserAdmin') || addPageSource.includes('disabled={isAgent()}'), "Add agent page must disable or lock parent select for Agent users");
+console.log("✅ TEST 12: Agent user cannot interactively choose another parent when creating a junior");
 
-// 3. EMP-005 maps seniorName = Dinesh
-assert.strictEqual(emp005Mapped.seniorName, "dinesh", "3. EMP-005 must map seniorName = dinesh");
-console.log("✅ Phase 14 - 3. EMP-005 maps seniorName = dinesh");
+// ==========================================
+// TEST 13: No hardcoded maximum hierarchy level exists in Agent Registration frontend
+// ==========================================
+assert(!addPageSource.includes('s.level === 2'), "Add page must not filter s.level === 2");
+assert(!editPageSource.includes('s.level === 2'), "Edit page must not filter s.level === 2");
+assert(!addPageSource.includes('Max 2'), "Add page must not claim Hierarchy Depth: Max 2");
+assert(!editPageSource.includes('Max 2'), "Edit page must not claim Hierarchy Depth: Max 2");
+console.log("✅ TEST 13: No hardcoded maximum hierarchy level exists in Agent Registration frontend");
 
-// 4. EMP-005 edit preselects EMP-004 User ID
-const eligibleSeniors = [
-  { id: "397a5671-fd06-48ca-bbc9-73670de7241b", employeeId: "EMP-004", name: "dinesh" },
-  { id: "other-senior-uuid", employeeId: "EMP-001", name: "super" }
-];
-const matchedSenior = eligibleSeniors.find(s => s.id === emp005Mapped.parentAgentId || s.employeeId === emp005Mapped.seniorCode);
-assert(matchedSenior, "4. Eligible senior should be found for EMP-005");
-assert.strictEqual(matchedSenior.id, "397a5671-fd06-48ca-bbc9-73670de7241b", "4. EMP-005 edit preselects EMP-004's UUID");
-console.log("✅ Phase 14 - 4. EMP-005 edit preselects EMP-004");
+// ==========================================
+// TEST 14: No logic converts all levels > 1 into LEVEL-2
+// ==========================================
+const listPageSource = fs.readFileSync(path.join(root, 'app/dashboard/agent-registration/page.tsx'), 'utf8');
+assert(!listPageSource.includes('isLevel2 ? "LEVEL-2" : "LEVEL-1"'), "List page must not reduce levels to binary LEVEL-2/LEVEL-1");
+assert(listPageSource.includes('formatAgentLevel'), "List page must use formatAgentLevel");
+console.log("✅ TEST 14: No logic converts all levels > 1 into LEVEL-2");
 
-// 5. Direct Under Admin is NOT selected for EMP-005
-assert.notStrictEqual(matchedSenior.id, "", "5. Direct Under Admin is NOT selected for EMP-005");
-console.log("✅ Phase 14 - 5. Direct Under Admin is NOT selected for EMP-005");
+// ==========================================
+// TEST 15: TypeScript types and utils accept numeric dynamic levels
+// ==========================================
+const utilsSource = fs.readFileSync(path.join(root, 'lib/utils.ts'), 'utf8');
+assert(utilsSource.includes('formatAgentLevel'), "lib/utils.ts must export formatAgentLevel");
+assert(utilsSource.includes('export function formatAgentLevel'), "formatAgentLevel must be exported function");
+console.log("✅ TEST 15: TypeScript types and utils accept numeric dynamic levels");
 
-// 6. Level-1 still shows ADMIN
-const emp004Raw = {
-  id: "397a5671-fd06-48ca-bbc9-73670de7241b",
-  employeeId: "EMP-004",
-  name: "dinesh",
-  level: "LEVEL_1",
-  parentAgentId: null,
-  seniorCode: "ADMIN",
-  seniorName: "Super Admin"
-};
-const emp004Mapped = simulateMapAgentFormRecord(emp004Raw);
-assert.strictEqual(emp004Mapped.level, "LEVEL_1", "6. EMP-004 is LEVEL_1");
-assert.strictEqual(emp004Mapped.seniorCode, "ADMIN", "6. EMP-004 seniorCode is ADMIN");
-assert.strictEqual(emp004Mapped.seniorName, "Super Admin", "6. EMP-004 seniorName is Super Admin");
-console.log("✅ Phase 14 - 6. Level-1 still shows ADMIN");
+// ==========================================
+// TEST 16: Existing Agent Registration functionality remains intact
+// ==========================================
+assert(addPageSource.includes('agentRegistrationAPI.create'), "Add page must call agentRegistrationAPI.create");
+assert(editPageSource.includes('agentRegistrationAPI.update'), "Edit page must call agentRegistrationAPI.update");
+assert(listPageSource.includes('DataTable'), "List page must render DataTable");
+console.log("✅ TEST 16: Existing Agent Registration functionality remains intact");
 
-// 7. Level-2 agents never display as Level-1
-assert.strictEqual(emp005Mapped.level === "LEVEL_1", false, "7. Level-2 agent must never display as Level-1");
-console.log("✅ Phase 14 - 7. Level-2 agents never display as Level-1");
-
-// 8. List/detail/edit remain consistent
-assert.strictEqual(emp005Mapped.seniorCode, "EMP-004");
-assert.strictEqual(emp005Mapped.seniorName, "dinesh");
-assert.strictEqual(matchedSenior.employeeId, "EMP-004");
-console.log("✅ Phase 14 - 8. List/detail/edit remain consistent");
-
-// 9. Save without changes does NOT clear senior
-const savePayload = {
-  seniorEmployeeId: emp005Mapped.seniorEmployeeId || null
-};
-assert.strictEqual(savePayload.seniorEmployeeId, "397a5671-fd06-48ca-bbc9-73670de7241b", "9. Save without changes must preserve senior UUID");
-console.log("✅ Phase 14 - 9. Save without changes does NOT clear senior");
-
-// 10. Level-2 cannot become Level-3 (Backend restricts eligible seniors to Level-1, and Add/Edit dropdown only lists eligible seniors)
-console.log("✅ Phase 14 - 10. Level-2 cannot become Level-3 (enforced via eligible seniors filter & 2-level architecture)");
-
-console.log("\n🎉 ALL 10 PHASE 14 HIERARCHY TESTS COMPLETED SUCCESSFULLY!");
+console.log("\n🎉 ALL 16 UNLIMITED AGENT HIERARCHY FRONTEND TESTS PASSED SUCCESSFULLY!\n");

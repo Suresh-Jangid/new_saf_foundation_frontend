@@ -14,8 +14,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS, postUrlEncoded, agentRegistrationAPI } from "@/lib/api";
 import { toast } from "sonner";
-import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, mapAgentFormRecord, unwrapApiRecordById, getProxiedPhotoSrc, fileToBase64 } from "@/lib/utils";
+import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, mapAgentFormRecord, unwrapApiRecordById, getProxiedPhotoSrc, fileToBase64, formatAgentLevel } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard";
+import { isAdmin, isAgent } from "@/lib/permissions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -169,7 +170,6 @@ export default function EditAgentRegistrationForm() {
         const rawList = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
         const validList = rawList.filter((s: any) => {
           if (!s) return false;
-          if (s.level === 2 || s.level === "2" || s.level === "LEVEL-2" || s.level === "LEVEL_2") return false;
           if (s.is_active === 0 || s.is_active === false || s.status === "inactive") return false;
           if (s.is_deleted || s.deleted_at) return false;
           return true;
@@ -187,13 +187,14 @@ export default function EditAgentRegistrationForm() {
           );
           if (match) {
             const matchedUserId = String(match.id || match.userId || match.user_id);
+            const seniorLvlNum = match.level ? Number(match.level) : 1;
             return {
               ...prev,
               seniorEmployeeId: matchedUserId,
               parentAgentId: matchedUserId,
               seniorCode: match.employeeId || match.employee_id || prev.seniorCode,
               seniorName: match.name || match.fullName || prev.seniorName,
-              level: "LEVEL_2",
+              level: prev.level || String(seniorLvlNum + 1),
             };
           }
           return prev;
@@ -311,17 +312,14 @@ export default function EditAgentRegistrationForm() {
     setForm({ ...form, [name]: value });
   };
 
-  const isLevel2 =
-    form.level === "LEVEL_2" ||
-    form.level === "LEVEL-2" ||
-    form.level === "2" ||
-    Boolean(
-      form.parentAgentId ||
-      form.seniorEmployeeId ||
-      (form.seniorCode && form.seniorCode !== "ADMIN") ||
-      (form.seniorName && form.seniorName !== "Super Admin")
-    );
-  const isLevel1 = !isLevel2;
+  const hasParent = Boolean(
+    form.parentAgentId ||
+    form.seniorEmployeeId ||
+    (form.seniorCode && form.seniorCode !== "ADMIN") ||
+    (form.seniorName && form.seniorName !== "Super Admin")
+  );
+  const isRootLevel = !hasParent && (form.level === "1" || form.level === "LEVEL_1" || form.level === "LEVEL-1" || !form.level);
+  const currentFormattedLevel = formatAgentLevel(form.level || (hasParent ? 2 : 1));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -354,7 +352,7 @@ export default function EditAgentRegistrationForm() {
         return parsedDate ? formatDateForAPI(parsedDate) : "";
       };
 
-      const selectedSeniorId = isLevel2
+      const selectedSeniorId = hasParent
         ? (form.seniorEmployeeId && form.seniorEmployeeId.trim() !== ""
             ? form.seniorEmployeeId.trim()
             : (form.parentAgentId && form.parentAgentId.trim() !== "" ? form.parentAgentId.trim() : null))
@@ -703,16 +701,16 @@ export default function EditAgentRegistrationForm() {
                   <Label htmlFor="seniorEmployeeId">
                     सीनियर कर्मचारी / Senior Employee
                   </Label>
-                  {isLevel1 ? (
+                  {isRootLevel ? (
                     <div className="space-y-1.5">
                       <div className="p-2.5 rounded-md border border-emerald-200 bg-emerald-50 text-sm font-medium text-emerald-900 flex items-center justify-between">
                         <span>सीधे Admin के अंतर्गत / Direct Under Admin</span>
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                          LEVEL-1 SENIOR
+                          {currentFormattedLevel}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Level-1 Senior कर्मचारी सीधे Admin के अधीन हैं। 2-level hierarchy नियम के अनुसार इन्हें किसी अन्य Agent के अधीन नहीं किया जा सकता।
+                        Level-1 कर्मचारी सीधे Admin के अधीन हैं।
                       </p>
                     </div>
                   ) : (
@@ -720,10 +718,11 @@ export default function EditAgentRegistrationForm() {
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-muted-foreground">वर्तमान स्तर / Current Hierarchy:</span>
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-300">
-                          LEVEL-2 AGENT
+                          {currentFormattedLevel}
                         </span>
                       </div>
                       <Select
+                        disabled={isAgent()}
                         value={form.seniorEmployeeId ? form.seniorEmployeeId : "direct_admin"}
                         onValueChange={(val) => {
                           if (val === "direct_admin") {
@@ -733,19 +732,20 @@ export default function EditAgentRegistrationForm() {
                               parentAgentId: "",
                               seniorCode: "ADMIN",
                               seniorName: "Super Admin",
-                              level: "LEVEL_1",
+                              level: "1",
                             }));
                           } else {
                             const found = eligibleSeniors.find(
                               (s) => String(s.id || s.userId || s.user_id) === val
                             );
+                            const seniorLvlNum = found?.level ? Number(found.level) : 1;
                             setForm((prev) => ({
                               ...prev,
                               seniorEmployeeId: val,
                               parentAgentId: val,
                               seniorCode: found?.employeeId || found?.employee_id || prev.seniorCode,
                               seniorName: found?.name || found?.fullName || prev.seniorName,
-                              level: "LEVEL_2",
+                              level: String(seniorLvlNum + 1),
                             }));
                           }
                         }}
@@ -767,7 +767,8 @@ export default function EditAgentRegistrationForm() {
                               const sId = String(senior.id || senior.userId || senior.user_id || senior.employee_id || "");
                               const sCode = senior.employee_id || senior.employeeId || senior.employeeCode || senior.code || "";
                               const sName = senior.name || senior.fullName || senior.employeeName || "";
-                              const label = sCode ? `${sCode} — ${sName}` : sName;
+                              const seniorLvl = formatAgentLevel(senior.level);
+                              const label = sCode ? `${sCode} — ${sName} (${seniorLvl})` : `${sName} (${seniorLvl})`;
                               return (
                                 <SelectItem key={sId} value={sId}>
                                   {label}
@@ -779,11 +780,11 @@ export default function EditAgentRegistrationForm() {
                       <div className="text-xs space-y-0.5">
                         <p className={form.seniorEmployeeId ? "text-purple-700 font-medium" : "text-emerald-700 font-medium"}>
                           {form.seniorEmployeeId
-                            ? `यह Employee चयनित Senior (${form.seniorCode ? form.seniorCode + " — " : ""}${form.seniorName || "Selected Senior"}) के अधीन LEVEL-2 Agent है।`
-                            : "सीधे Admin के अंतर्गत रखने पर यह LEVEL-1 Senior बन जाएगा।"}
+                            ? `यह Employee चयनित Senior (${form.seniorCode ? form.seniorCode + " — " : ""}${form.seniorName || "Selected Senior"}) के अधीन ${currentFormattedLevel} है।`
+                            : "सीधे Admin के अंतर्गत रखने पर यह LEVEL-1 बन जाएगा।"}
                         </p>
                         <p className="text-muted-foreground">
-                          केवल Level-1 Senior employees ही चयन योग्य हैं। (Hierarchy Depth: Max 2)
+                          चयनित Senior के अधीन होने पर स्तर (Level) Senior के स्तर + 1 के अनुसार स्वचालित निर्धारित होगा।
                         </p>
                       </div>
                     </div>

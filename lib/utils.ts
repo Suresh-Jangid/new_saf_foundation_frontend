@@ -577,6 +577,29 @@ export function unwrapApiRecordById<T extends { id?: string | number }>(
   return null;
 }
 
+/**
+ * Format agent hierarchy level to standardized display string (e.g. LEVEL-1, LEVEL-2, LEVEL-3... LEVEL-N).
+ * Supports arbitrary numeric depths without hardcoded maximums.
+ */
+export function formatAgentLevel(level: unknown): string {
+  if (level === undefined || level === null || level === "") {
+    return "LEVEL-1";
+  }
+  const str = String(level).trim();
+  const digitsMatch = str.match(/\d+/);
+  if (digitsMatch) {
+    const num = parseInt(digitsMatch[0], 10);
+    if (!isNaN(num) && num > 0) {
+      return `LEVEL-${num}`;
+    }
+  }
+  const upper = str.toUpperCase().replace(/_/g, "-");
+  if (upper.startsWith("LEVEL-")) {
+    return upper;
+  }
+  return "LEVEL-1";
+}
+
 /** Normalize agent API rows (flat or nested user + agentProfile) for add/edit forms. */
 export function mapAgentFormRecord(
   record: Record<string, unknown> | null | undefined
@@ -692,12 +715,19 @@ export function mapAgentFormRecord(
         (record.senior as Record<string, unknown>)?.employee_id
     ),
     level: (() => {
-      const rawLevel = str(
+      const rawVal =
         record.level ??
-          profile.level ??
-          (record.hierarchy as Record<string, unknown>)?.level ??
-          (profile.hierarchy as Record<string, unknown>)?.level
-      ).toUpperCase();
+        profile.level ??
+        (record.hierarchy as Record<string, unknown>)?.level ??
+        (profile.hierarchy as Record<string, unknown>)?.level;
+
+      if (rawVal !== undefined && rawVal !== null && rawVal !== "") {
+        const digits = String(rawVal).match(/\d+/);
+        if (digits) {
+          const num = parseInt(digits[0], 10);
+          if (!isNaN(num) && num > 0) return `LEVEL_${num}`;
+        }
+      }
       const hasParent = Boolean(
         record.parentAgentId ??
           record.parent_agent_id ??
@@ -714,8 +744,6 @@ export function mapAgentFormRecord(
           (profile.seniorCode && profile.seniorCode !== "ADMIN") ??
           (record.seniorName && record.seniorName !== "Super Admin")
       );
-      if (rawLevel === "LEVEL_2" || rawLevel === "LEVEL-2" || rawLevel === "2") return "LEVEL_2";
-      if (rawLevel === "LEVEL_1" || rawLevel === "LEVEL-1" || rawLevel === "1") return hasParent ? "LEVEL_2" : "LEVEL_1";
       return hasParent ? "LEVEL_2" : "LEVEL_1";
     })(),
   };

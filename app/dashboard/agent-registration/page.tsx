@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { RoleGuard } from "@/components/role-guard";
+import { formatAgentLevel } from "@/lib/utils";
 
 interface AgentRecord {
   id: string;
@@ -67,7 +68,7 @@ interface AgentRecord {
   createdAt: string;
 }
 
-// Define columns for the DataTable with 2-level hierarchy display
+// Define columns for the DataTable with dynamic hierarchy display
 const columns = [
   { 
     key: "employee_id", 
@@ -98,40 +99,22 @@ const columns = [
     key: "level",
     label: "स्तर / Level",
     render: (_: any, record: AgentRecord) => {
-      const rawLevel = String(
-        record.level ||
-        record.agentProfile?.level ||
-        record.agent_profile?.level ||
-        (record as any).hierarchy?.level ||
-        ""
-      ).toUpperCase();
-      const hasParent = Boolean(
-        record.parentAgentId ||
-        record.parent_agent_id ||
-        record.seniorId ||
-        record.senior_id ||
-        record.parentEmployeeId ||
-        record.agentProfile?.parentAgentId ||
-        record.agent_profile?.parent_agent_id ||
-        (record.seniorCode && record.seniorCode !== "ADMIN") ||
-        (record.senior_code && record.senior_code !== "ADMIN") ||
-        (record.agentProfile?.seniorCode && record.agentProfile?.seniorCode !== "ADMIN") ||
-        (record.seniorName && record.seniorName !== "Super Admin")
-      );
-      const isLevel2 =
-        rawLevel === "LEVEL_2" ||
-        rawLevel === "LEVEL-2" ||
-        rawLevel === "2" ||
-        (rawLevel !== "LEVEL_1" && rawLevel !== "LEVEL-1" && hasParent);
+      const rawLevel =
+        record.level ??
+        record.agentProfile?.level ??
+        record.agent_profile?.level ??
+        (record as any).hierarchy?.level;
+      const formatted = formatAgentLevel(rawLevel);
+      const isLevel1 = formatted === "LEVEL-1";
       return (
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-            isLevel2
-              ? "bg-purple-100 text-purple-800 border border-purple-200"
-              : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+            isLevel1
+              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+              : "bg-purple-100 text-purple-800 border border-purple-200"
           }`}
         >
-          {isLevel2 ? "LEVEL-2" : "LEVEL-1"}
+          {formatted}
         </span>
       );
     },
@@ -140,13 +123,12 @@ const columns = [
     key: "senior_name",
     label: "सीनियर / Senior",
     render: (_: any, record: AgentRecord) => {
-      const rawLevel = String(
-        record.level ||
-        record.agentProfile?.level ||
-        record.agent_profile?.level ||
-        (record as any).hierarchy?.level ||
-        ""
-      ).toUpperCase();
+      const formattedLevel = formatAgentLevel(
+        record.level ??
+        record.agentProfile?.level ??
+        record.agent_profile?.level ??
+        (record as any).hierarchy?.level
+      );
       const hasParent = Boolean(
         record.parentAgentId ||
         record.parent_agent_id ||
@@ -160,11 +142,6 @@ const columns = [
         (record.agentProfile?.seniorCode && record.agentProfile?.seniorCode !== "ADMIN") ||
         (record.seniorName && record.seniorName !== "Super Admin")
       );
-      const isLevel2 =
-        rawLevel === "LEVEL_2" ||
-        rawLevel === "LEVEL-2" ||
-        rawLevel === "2" ||
-        (rawLevel !== "LEVEL_1" && rawLevel !== "LEVEL-1" && hasParent);
 
       const seniorName =
         record.seniorName ||
@@ -174,7 +151,7 @@ const columns = [
         record.agent_profile?.senior_name ||
         (record as any).hierarchy?.seniorName ||
         record.senior?.name ||
-        (isLevel2 ? "-" : "Super Admin");
+        (hasParent || formattedLevel !== "LEVEL-1" ? "-" : "Super Admin");
       return <span className="font-medium text-gray-800">{seniorName}</span>;
     },
   },
@@ -182,13 +159,12 @@ const columns = [
     key: "senior_code",
     label: "सीनियर कोड / Senior Code",
     render: (_: any, record: AgentRecord) => {
-      const rawLevel = String(
-        record.level ||
-        record.agentProfile?.level ||
-        record.agent_profile?.level ||
-        (record as any).hierarchy?.level ||
-        ""
-      ).toUpperCase();
+      const formattedLevel = formatAgentLevel(
+        record.level ??
+        record.agentProfile?.level ??
+        record.agent_profile?.level ??
+        (record as any).hierarchy?.level
+      );
       const hasParent = Boolean(
         record.parentAgentId ||
         record.parent_agent_id ||
@@ -202,11 +178,6 @@ const columns = [
         (record.agentProfile?.seniorCode && record.agentProfile?.seniorCode !== "ADMIN") ||
         (record.seniorName && record.seniorName !== "Super Admin")
       );
-      const isLevel2 =
-        rawLevel === "LEVEL_2" ||
-        rawLevel === "LEVEL-2" ||
-        rawLevel === "2" ||
-        (rawLevel !== "LEVEL_1" && rawLevel !== "LEVEL-1" && hasParent);
 
       const seniorCode =
         record.seniorCode ||
@@ -216,7 +187,7 @@ const columns = [
         record.agent_profile?.senior_code ||
         (record as any).hierarchy?.seniorCode ||
         record.senior?.employee_id ||
-        (isLevel2 ? "-" : "ADMIN");
+        (hasParent || formattedLevel !== "LEVEL-1" ? "-" : "ADMIN");
       return (
         <span className="font-mono text-xs text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded border">
           {seniorCode}

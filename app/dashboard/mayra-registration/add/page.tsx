@@ -299,7 +299,11 @@ export default function AddMayraRegistrationPage() {
       apiFormData.append("nomineeAddress", formData.nomineeAddress)
       apiFormData.append("nomineeRelation", formData.nomineeRelation)
       if (formData.nomineeAadhar) {
-        apiFormData.append("nomineeAadhar", formData.nomineeAadhar.replace(/\D/g, ""))
+        const cleanNomineeAadhar = formData.nomineeAadhar.replace(/\D/g, "").slice(0, 12);
+        if (cleanNomineeAadhar) {
+          apiFormData.append("nomineeAadhar", cleanNomineeAadhar);
+          apiFormData.append("nominee_aadhar", cleanNomineeAadhar);
+        }
       }
       apiFormData.append("affidavit", formData.affidavit)
       apiFormData.append("category", formData.category)
@@ -665,7 +669,7 @@ export default function AddMayraRegistrationPage() {
               {/* Section 2: Nominee Details */}
               <div className="space-y-4 pt-4 border-t">
                 <h2 className="text-lg font-semibold text-gray-900 border-b pb-2">नॉमिनी का विवरण (Nominee Details)</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <Label>नॉमिनी का नाम</Label>
                     <Input
@@ -719,6 +723,22 @@ export default function AddMayraRegistrationPage() {
                       placeholder="10 digit No."
                       value={formData.nomineeMobile}
                       onChange={e => setFormData(prev => ({ ...prev, nomineeMobile: e.target.value.replace(/\D/g, '') }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>नामिनी का आधार नंबर (Nominee Aadhar)</Label>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={12}
+                      placeholder="12 digit Aadhar"
+                      value={formData.nomineeAadhar || ""}
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          nomineeAadhar: e.target.value.replace(/\D/g, "").slice(0, 12),
+                        }))
+                      }
                     />
                   </div>
                   <div>

@@ -134,155 +134,175 @@ export default function EditJanniDeliveryPage() {
   const [nomineePhotoPreview, setNomineePhotoPreview] = useState<string | null>(null);
   const [existingNomineePhotoUrl, setExistingNomineePhotoUrl] = useState<string | null>(null);
 
-  // Load agents if Admin
+  // Load agents and registration record in a single coordinated initialization
   useEffect(() => {
-    if (isAdmin()) {
-      setLoadingAgents(true);
-      agentRegistrationAPI
-        .getAll()
-        .then((res) => {
-          if (res && res.data && Array.isArray(res.data)) {
-            const mappedAgents = res.data.map((ag: any) => {
-              const resolvedUserId = String(
-                ag.userId ||
-                ag.user_id ||
-                ag.user?.id ||
-                ag.agentProfile?.userId ||
-                ag.agentProfile?.user_id ||
-                ag.agent_profile?.user_id ||
-                ag.id ||
-                ""
-              ).trim();
+    let isMounted = true;
 
-              return {
-                id: resolvedUserId,
-                name: ag.applicantName || ag.name || ag.agent_name || ag.user?.name || "Agent",
-                mobile: ag.mobileNumber || ag.mobile || ag.phone || ag.user?.mobile || "",
-              };
-            });
-            setAgents(mappedAgents);
+    const initializeData = async () => {
+      if (!id) return;
+      setIsFetching(true);
+      try {
+        let fetchedAgents: Array<{ id: string; name: string; mobile: string }> = [];
+
+        // 1. Fetch agents if Admin
+        if (isAdmin()) {
+          setLoadingAgents(true);
+          try {
+            const res = await agentRegistrationAPI.getAll();
+            if (res && res.data && Array.isArray(res.data)) {
+              fetchedAgents = res.data.map((ag: any) => {
+                const resolvedUserId = String(
+                  ag.userId ||
+                  ag.user_id ||
+                  ag.user?.id ||
+                  ag.agentProfile?.userId ||
+                  ag.agentProfile?.user_id ||
+                  ag.agent_profile?.user_id ||
+                  ag.id ||
+                  ""
+                ).trim();
+
+                return {
+                  id: resolvedUserId,
+                  name: ag.applicantName || ag.name || ag.agent_name || ag.user?.name || "Agent",
+                  mobile: ag.mobileNumber || ag.mobile || ag.phone || ag.user?.mobile || "",
+                };
+              });
+              if (isMounted) {
+                setAgents(fetchedAgents);
+              }
+            }
+          } catch (agentErr) {
+            console.warn("Could not load agents list:", agentErr);
+          } finally {
+            if (isMounted) {
+              setLoadingAgents(false);
+            }
           }
-        })
-        .catch((err) => {
-          console.warn("Could not load agents list:", err);
-        })
-        .finally(() => {
-          setLoadingAgents(false);
-        });
-    }
-  }, []);
-
-  // Fetch Existing Registration Record
-  const fetchRecord = useCallback(async () => {
-    if (!id) return;
-    setIsFetching(true);
-    try {
-      const res = await JanniDeliveryService.getRegistrationById(id);
-      if (res && res.data) {
-        const data = res.data;
-        setRecord(data);
-
-        // Format dates
-        const formattedAppDate = data.applicationDate ? formatDate(data.applicationDate) : "";
-        const formattedDob = data.dateOfBirth ? formatDate(data.dateOfBirth) : "";
-        const formattedDeliveryDate = data.deliveryDate ? formatDate(data.deliveryDate) : "";
-
-        if (data.applicationDate) {
-          const d = parseDateFromDDMMYYYY(formattedAppDate) || new Date(data.applicationDate);
-          if (!isNaN(d.getTime())) setAppDateObj(d);
-        }
-        if (data.dateOfBirth) {
-          const d = parseDateFromDDMMYYYY(formattedDob) || new Date(data.dateOfBirth);
-          if (!isNaN(d.getTime())) setDobObj(d);
-        }
-        if (data.deliveryDate) {
-          const d = parseDateFromDDMMYYYY(formattedDeliveryDate) || new Date(data.deliveryDate);
-          if (!isNaN(d.getTime())) setDeliveryDateObj(d);
         }
 
-        // Installment / Paid amount
-        const firstInstallment = Array.isArray(data.installments) && data.installments.length > 0
-          ? data.installments[0]
-          : null;
-        const initialPaid = firstInstallment?.amount != null
-          ? String(firstInstallment.amount)
-          : data.totalAmount != null && data.pendingAmount != null
-            ? String(Math.max(0, data.totalAmount - data.pendingAmount))
-            : "0";
+        // 2. Fetch Existing Registration Record
+        const res = await JanniDeliveryService.getRegistrationById(id);
+        if (!isMounted) return;
 
-        const paymentModeVal = (firstInstallment?.paymentMode || "CASH").toUpperCase();
-        const validPaymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER" =
-          ["CASH", "ONLINE", "RAZORPAY", "BANK_TRANSFER"].includes(paymentModeVal)
-            ? (paymentModeVal as any)
-            : "CASH";
+        if (res && res.data) {
+          const data = res.data;
+          setRecord(data);
 
-        // Photo
-        if (data.passportPhotoUrl) {
-          setExistingPhotoUrl(data.passportPhotoUrl);
-          setPhotoPreview(getProxiedPhotoSrc(data.passportPhotoUrl) || data.passportPhotoUrl);
+          // Format dates
+          const formattedAppDate = data.applicationDate ? formatDate(data.applicationDate) : "";
+          const formattedDob = data.dateOfBirth ? formatDate(data.dateOfBirth) : "";
+          const formattedDeliveryDate = data.deliveryDate ? formatDate(data.deliveryDate) : "";
+
+          if (data.applicationDate) {
+            const d = parseDateFromDDMMYYYY(formattedAppDate) || new Date(data.applicationDate);
+            if (!isNaN(d.getTime())) setAppDateObj(d);
+          }
+          if (data.dateOfBirth) {
+            const d = parseDateFromDDMMYYYY(formattedDob) || new Date(data.dateOfBirth);
+            if (!isNaN(d.getTime())) setDobObj(d);
+          }
+          if (data.deliveryDate) {
+            const d = parseDateFromDDMMYYYY(formattedDeliveryDate) || new Date(data.deliveryDate);
+            if (!isNaN(d.getTime())) setDeliveryDateObj(d);
+          }
+
+          // Installment / Paid amount
+          const firstInstallment = Array.isArray(data.installments) && data.installments.length > 0
+            ? data.installments[0]
+            : null;
+          const initialPaid = firstInstallment?.amount != null
+            ? String(firstInstallment.amount)
+            : data.totalAmount != null && data.pendingAmount != null
+              ? String(Math.max(0, data.totalAmount - data.pendingAmount))
+              : "0";
+
+          const paymentModeVal = (firstInstallment?.paymentMode || "CASH").toUpperCase();
+          const validPaymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER" =
+            ["CASH", "ONLINE", "RAZORPAY", "BANK_TRANSFER"].includes(paymentModeVal)
+              ? (paymentModeVal as any)
+              : "CASH";
+
+          // Photo
+          if (data.passportPhotoUrl) {
+            setExistingPhotoUrl(data.passportPhotoUrl);
+            setPhotoPreview(getProxiedPhotoSrc(data.passportPhotoUrl) || data.passportPhotoUrl);
+          }
+          if (data.nomineePhotoUrl) {
+            setExistingNomineePhotoUrl(data.nomineePhotoUrl);
+            setNomineePhotoPreview(getProxiedPhotoSrc(data.nomineePhotoUrl) || data.nomineePhotoUrl);
+          }
+
+          const rawWorkerId = String(
+            data.addedById ||
+            (data as any).addedby_id ||
+            data.addedBy?.id ||
+            (data as any).agentId ||
+            (data as any).selectedAgentId ||
+            ""
+          ).trim();
+
+          let resolvedWorkerId = rawWorkerId;
+          if (rawWorkerId && fetchedAgents.length > 0) {
+            const matchedAgent = fetchedAgents.find(a => String(a.id) === rawWorkerId);
+            if (matchedAgent) {
+              resolvedWorkerId = matchedAgent.id;
+            }
+          }
+
+          setFormData({
+            applicationDate: formattedAppDate,
+            formNumber: data.formNumber || "",
+            applicantName: data.applicantName || "",
+            fatherName: data.fatherName || "",
+            husbandName: data.husbandName || "",
+            motherName: data.motherName || "",
+            dateOfBirth: formattedDob,
+            age: data.age != null ? String(data.age) : "",
+            aadharNumber: data.aadharNumber || "",
+            gotra: data.gotra || "",
+            mobile: data.mobile || "",
+            address: data.address || "",
+            pinCode: data.pinCode || "",
+            tehsil: data.tehsil || "",
+            district: data.district || "",
+            state: data.state || "Rajasthan",
+            childName: data.childName || "",
+            childGender: (data.childGender as any) || "",
+            deliveryDate: formattedDeliveryDate,
+            hospitalName: data.hospitalName || "",
+            nomineeName: data.nomineeName || "",
+            nomineeRelation: data.nomineeRelation || "",
+            nomineeMobile: data.nomineeMobile || "",
+            nomineeAadhar: data.nomineeAadhar || "",
+            offlineFormNumber: data.offlineFormNumber || "",
+            gender: (data.gender as any) || "Female",
+            category: (data.category as any) || "A",
+            totalAmount: data.totalAmount != null ? String(data.totalAmount) : "0",
+            paymentAmount: initialPaid,
+            paymentMode: validPaymentMode,
+            selectedAgentId: resolvedWorkerId,
+            epinCode: data.epinCode || "",
+          });
+        } else {
+          toast.error("पंजीकरण रिकॉर्ड नहीं मिला / Registration record not found");
         }
-        if (data.nomineePhotoUrl) {
-          setExistingNomineePhotoUrl(data.nomineePhotoUrl);
-          setNomineePhotoPreview(getProxiedPhotoSrc(data.nomineePhotoUrl) || data.nomineePhotoUrl);
+      } catch (err: any) {
+        console.error("Failed to load registration details:", err);
+        toast.error(err.message || "Failed to load record details");
+      } finally {
+        if (isMounted) {
+          setIsFetching(false);
         }
-
-        const rawWorkerId = String(
-          data.addedById ||
-          (data as any).addedby_id ||
-          data.addedBy?.id ||
-          (data as any).agentId ||
-          (data as any).selectedAgentId ||
-          ""
-        ).trim();
-
-        setFormData({
-          applicationDate: formattedAppDate,
-          formNumber: data.formNumber || "",
-          applicantName: data.applicantName || "",
-          fatherName: data.fatherName || "",
-          husbandName: data.husbandName || "",
-          motherName: data.motherName || "",
-          dateOfBirth: formattedDob,
-          age: data.age != null ? String(data.age) : "",
-          aadharNumber: data.aadharNumber || "",
-          gotra: data.gotra || "",
-          mobile: data.mobile || "",
-          address: data.address || "",
-          pinCode: data.pinCode || "",
-          tehsil: data.tehsil || "",
-          district: data.district || "",
-          state: data.state || "Rajasthan",
-          childName: data.childName || "",
-          childGender: (data.childGender as any) || "",
-          deliveryDate: formattedDeliveryDate,
-          hospitalName: data.hospitalName || "",
-          nomineeName: data.nomineeName || "",
-          nomineeRelation: data.nomineeRelation || "",
-          nomineeMobile: data.nomineeMobile || "",
-          nomineeAadhar: data.nomineeAadhar || "",
-          offlineFormNumber: data.offlineFormNumber || "",
-          gender: (data.gender as any) || "Female",
-          category: (data.category as any) || "A",
-          totalAmount: data.totalAmount != null ? String(data.totalAmount) : "0",
-          paymentAmount: initialPaid,
-          paymentMode: validPaymentMode,
-          selectedAgentId: rawWorkerId,
-          epinCode: data.epinCode || "",
-        });
-      } else {
-        toast.error("पंजीकरण रिकॉर्ड नहीं मिला / Registration record not found");
       }
-    } catch (err: any) {
-      console.error("Failed to load registration details:", err);
-      toast.error(err.message || "Failed to load record details");
-    } finally {
-      setIsFetching(false);
-    }
-  }, [id]);
+    };
 
-  useEffect(() => {
-    fetchRecord();
-  }, [fetchRecord]);
+    initializeData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
 
   // Calculate age when DOB changes
   const calculateAgeFromDate = (dateVal: string) => {
@@ -644,7 +664,7 @@ export default function EditJanniDeliveryPage() {
                           setFormData((prev) => ({ ...prev, selectedAgentId: e.target.value }))
                         }
                         className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
-                        disabled={loadingAgents}
+                        disabled={loadingAgents || isFetching}
                       >
                         <option value="">Direct / Self / Admin</option>
                         {agents.map((a) => (

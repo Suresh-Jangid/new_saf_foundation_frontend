@@ -107,7 +107,11 @@ export async function POST(request: NextRequest) {
     }
 
     const record = body?.record || body?.data || (body && typeof body === 'object' && !Array.isArray(body) ? body : {});
-    const duration = sanitizeValue(body?.duration || record?.duration || record?.benefitDuration || 'नौ माह');
+    let rawDuration = body?.duration || record?.duration || record?.benefitDuration;
+    if (!rawDuration || rawDuration === 'नौ माह' || rawDuration === '9 माह' || rawDuration === '9' || rawDuration === '9 months') {
+      rawDuration = '7 माह';
+    }
+    const duration = sanitizeValue(rawDuration);
 
     console.log('Generating Janni Delivery Bond PDF for:', record?.applicantName || record?.formNumber || 'Unknown');
 
@@ -317,16 +321,40 @@ export async function POST(request: NextRequest) {
     const nomineeAadhar = sanitizeValue(record.nomineeAadhar || record.nomineeAadhaar || record.nominee_aadhar || '');
     const nomineeMobile = sanitizeValue(record.nomineeMobile || record.nomineePhone || record.nominee_mobile || '');
 
-    // Scheme grant amount (default ₹11,000 for Janni Delivery)
+    // Selected installment amount / scheme amount (dynamically resolved from persisted record)
     const rawAmt =
-      record.janniAmount ||
-      record.grantAmount ||
-      record.paymentAmount ||
-      record.totalAmount ||
-      record.amount ||
-      record.deliveryAmount ||
-      '11000';
-    const janniAmount = sanitizeValue(String(rawAmt).replace(/[^\d.]/g, '')) || '11000';
+      record.installmentAmount ??
+      record.installment_amount ??
+      (Array.isArray(record.installments) && record.installments.length > 0 && record.installments[0]?.amount !== undefined && record.installments[0]?.amount !== null
+        ? record.installments[0].amount
+        : undefined) ??
+      body?.installmentAmount ??
+      body?.installment_amount ??
+      record.paymentAmount ??
+      record.payment_amount ??
+      record.totalAmount ??
+      record.total_amount ??
+      record.janniAmount ??
+      record.grantAmount ??
+      record.schemeAmount ??
+      record.scheme_amount ??
+      record.deliveryAmount ??
+      record.amount ??
+      '';
+
+    let cleanAmt = '';
+    if (rawAmt !== undefined && rawAmt !== null && rawAmt !== '') {
+      const numStr = String(rawAmt).replace(/[^\d.]/g, '');
+      if (numStr) {
+        const parsedNum = parseFloat(numStr);
+        if (!isNaN(parsedNum) && parsedNum > 0) {
+          cleanAmt = parsedNum % 1 === 0 ? String(parsedNum) : numStr;
+        } else if (numStr === '0') {
+          cleanAmt = '0';
+        }
+      }
+    }
+    const janniAmount = sanitizeValue(cleanAmt);
 
     const navyColor = rgb(0.04, 0.15, 0.58);
     const darkColor = rgb(0.12, 0.12, 0.12);

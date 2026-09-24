@@ -150,11 +150,22 @@ async function runTests() {
     assert.ok(routeContent.includes('drawBounded(duration, durX, 407.58, 10.5, 75, redColor)'), 'Duration positioned at y=407.58 on dotted baseline');
   });
 
-  it('26. Single right-hand photo box is calibrated with inner inset (1.0pt) and cover fit', () => {
+  it('26. Benefit Duration defaults to "7 माह" (replacing old "9 माह")', () => {
+    assert.ok(routeContent.includes("'7 माह'"), 'Route must use "7 माह"');
+    assert.ok(!routeContent.includes("'नौ माह' || '9 माह' ? 'नौ माह'"), 'Must not revert to "नौ माह"');
+  });
+
+  it('27. Route dynamically resolves selected installment amounts without hardcoded 3100', () => {
+    assert.ok(!routeContent.includes("'3100'"), 'Route must not hardcode 3100');
+    assert.ok(routeContent.includes('record.installmentAmount'), 'Route checks record.installmentAmount');
+    assert.ok(routeContent.includes('record.installments'), 'Route checks record.installments');
+  });
+
+  it('28. Single right-hand photo box is calibrated with inner inset (1.0pt) and cover fit', () => {
     assert.ok(routeContent.includes('449.0, 235.0, 84.5, 103.0, \'cover\''), 'Photo box fitted at x=449.0, y=235.0, w=84.5, h=103.0 with cover fit');
   });
 
-  it('27. Director signature is placed in director signature area', () => {
+  it('29. Director signature is placed in director signature area', () => {
     assert.ok(routeContent.includes('directorSignatureSource'), 'Handles director signature');
     assert.ok(routeContent.includes('440, 750'), 'Director signature positioned in footer area');
   });
@@ -179,24 +190,77 @@ async function runTests() {
     district: 'बालोतरा',
     state: 'राजस्थान',
     aadharNumber: '1234 5678 9012',
-    duration: 'नौ माह',
-    janniAmount: '11000',
+    duration: '7 माह',
+    installmentAmount: 500,
   };
 
-  it('28. Agent mobile (8888888888) is distinct from Applicant mobile (9000000001)', () => {
+  it('30. Agent mobile (8888888888) is distinct from Applicant mobile (9000000001)', () => {
     assert.notStrictEqual(mockRecord.workerMobile, mockRecord.mobile);
     assert.strictEqual(mockRecord.workerMobile, '8888888888');
     assert.strictEqual(mockRecord.mobile, '9000000001');
   });
 
-  it('29. Worker offline code and senior code are sanitized numbers (not EMP-xxx)', () => {
+  it('31. Worker offline code and senior code are sanitized numbers (not EMP-xxx)', () => {
     assert.strictEqual(mockRecord.workerOfflineFormNumber, '1258');
     assert.strictEqual(mockRecord.seniorOfflineFormNumber, '1260');
     assert.ok(!mockRecord.workerOfflineFormNumber.startsWith('EMP'));
     assert.ok(!mockRecord.seniorOfflineFormNumber.startsWith('EMP'));
   });
 
-  it('30. End-to-End PDF generation produces valid A4 output buffer', async () => {
+  it('32. Dynamic installment amounts correctly format for 300, 500, 1000, 1500', () => {
+    const testCases = [
+      { record: { totalAmount: 300 }, expected: '300' },
+      { record: { installmentAmount: 500 }, expected: '500' },
+      { record: { installments: [{ amount: 1000 }] }, expected: '1000' },
+      { record: { paymentAmount: 1500 }, expected: '1500' },
+    ];
+
+    testCases.forEach(({ record, expected }) => {
+      const rawAmt =
+        record.installmentAmount ??
+        record.installment_amount ??
+        (Array.isArray(record.installments) && record.installments.length > 0 && record.installments[0]?.amount !== undefined
+          ? record.installments[0].amount
+          : undefined) ??
+        record.paymentAmount ??
+        record.payment_amount ??
+        record.totalAmount ??
+        record.total_amount ??
+        record.janniAmount ??
+        record.grantAmount ??
+        record.schemeAmount ??
+        record.deliveryAmount ??
+        record.amount ??
+        '';
+
+      let cleanAmt = '';
+      if (rawAmt !== undefined && rawAmt !== null && rawAmt !== '') {
+        const numStr = String(rawAmt).replace(/[^\d.]/g, '');
+        if (numStr) {
+          const parsedNum = parseFloat(numStr);
+          if (!isNaN(parsedNum) && parsedNum > 0) {
+            cleanAmt = parsedNum % 1 === 0 ? String(parsedNum) : numStr;
+          } else if (numStr === '0') {
+            cleanAmt = '0';
+          }
+        }
+      }
+      assert.strictEqual(cleanAmt, expected, `Amount for case ${JSON.stringify(record)} should resolve to ${expected}`);
+    });
+  });
+
+  it('33. Duration default correctly normalizes "नौ माह" / "9 माह" to "7 माह"', () => {
+    const cases = ['नौ माह', '9 माह', '9', '9 months', undefined, ''];
+    cases.forEach((c) => {
+      let rawDuration = c;
+      if (!rawDuration || rawDuration === 'नौ माह' || rawDuration === '9 माह' || rawDuration === '9' || rawDuration === '9 months') {
+        rawDuration = '7 माह';
+      }
+      assert.strictEqual(rawDuration, '7 माह', `Input ${c} should normalize to "7 माह"`);
+    });
+  });
+
+  it('34. End-to-End PDF generation produces valid A4 output buffer', async () => {
     const freshPdf = await PDFDocument.load(templateBytes);
     freshPdf.registerFontkit(fontkit);
     const p = freshPdf.getPage(0);

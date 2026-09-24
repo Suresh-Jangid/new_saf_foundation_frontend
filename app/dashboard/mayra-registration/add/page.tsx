@@ -64,6 +64,7 @@ export default function AddMayraRegistrationPage() {
     nomineeState: "Rajasthan",
     nomineePincode: "",
     nomineeRelation: "",
+    nomineeAadhar: "",
     selectedAgentId: "",
     affidavit: "",
     category: "",
@@ -297,6 +298,9 @@ export default function AddMayraRegistrationPage() {
       apiFormData.append("nomineeGotra", formData.nomineeGotra)
       apiFormData.append("nomineeAddress", formData.nomineeAddress)
       apiFormData.append("nomineeRelation", formData.nomineeRelation)
+      if (formData.nomineeAadhar) {
+        apiFormData.append("nomineeAadhar", formData.nomineeAadhar.replace(/\D/g, ""))
+      }
       apiFormData.append("affidavit", formData.affidavit)
       apiFormData.append("category", formData.category)
       apiFormData.append("totalAmount", totalAmount.toString())

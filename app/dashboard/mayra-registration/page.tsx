@@ -622,6 +622,10 @@ export default function MayraRegistrationPage() {
         workerMobile: workerMobile || rawRecord.workerMobile || "",
         agentMobile: workerMobile || rawRecord.workerMobile || "",
         offlineFormNumber: rawRecord.offlineFormNumber || rawRecord.offline_form_number || rawRecord.formNumber || "",
+        nomineeAadhar: (rawRecord as any).nomineeAadhar || (rawRecord as any).nominee_aadhar || (rawRecord as any).nomineeAadhaar || (rawRecord as any).nominee_aadhaar || (rawRecord as any).nomineeAadharNumber || (rawRecord as any).nomineeAadhaarNumber || "",
+        nomineeAadhaar: (rawRecord as any).nomineeAadhaar || (rawRecord as any).nomineeAadhar || (rawRecord as any).nominee_aadhaar || (rawRecord as any).nominee_aadhar || (rawRecord as any).nomineeAadhaarNumber || (rawRecord as any).nomineeAadharNumber || "",
+        nominee_aadhar: (rawRecord as any).nominee_aadhar || (rawRecord as any).nomineeAadhar || (rawRecord as any).nomineeAadhaar || (rawRecord as any).nominee_aadhaar || "",
+        nominee_aadhaar: (rawRecord as any).nominee_aadhaar || (rawRecord as any).nomineeAadhaar || (rawRecord as any).nomineeAadhar || (rawRecord as any).nominee_aadhar || "",
       };
 
       const response = await fetch('/api/generate-mayra-bond-pdf', {

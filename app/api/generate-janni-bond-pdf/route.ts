@@ -9,7 +9,38 @@ import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 
 export const runtime = 'nodejs';
 
-// Helper to sanitize agent and application offline numbers
+// Helper to sanitize agent offline numbers (preserves ADMIN)
+function sanitizeAgentOfflineNumber(val: any): string {
+  if (!val) return '';
+  const str = String(val).trim();
+  const upper = str.toUpperCase();
+  if (upper === 'ADMIN') return 'ADMIN';
+  if (
+    upper.startsWith('EMP-') ||
+    upper.startsWith('EMP_') ||
+    upper.startsWith('JNN-') ||
+    upper.startsWith('JNN_') ||
+    upper.startsWith('JN-') ||
+    upper.startsWith('JN_') ||
+    upper.startsWith('SAF-') ||
+    upper.startsWith('SAF_') ||
+    upper === 'EMP' ||
+    upper === 'DEFAULT AGENT' ||
+    upper === 'DEFAULT' ||
+    upper === 'SUPER ADMIN' ||
+    upper === 'N/A' ||
+    upper === 'NA' ||
+    upper === 'NULL' ||
+    upper === 'UNDEFINED' ||
+    upper === 'UUID' ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+  ) {
+    return '';
+  }
+  return str;
+}
+
+// Helper to sanitize application and membership offline numbers
 function sanitizeOfflineNumber(val: any): string {
   if (!val) return '';
   const str = String(val).trim();
@@ -172,9 +203,13 @@ export async function POST(request: NextRequest) {
       record.worker_offline_form_number ||
       record.agentOfflineFormNumber ||
       record.agent_offline_form_number ||
+      record.workerCode ||
+      record.worker_code ||
+      record.agentCode ||
+      record.agent_code ||
       record.workerOffline ||
       '';
-    const workerOffline = sanitizeOfflineNumber(rawWorkerOffline);
+    const workerOffline = sanitizeAgentOfflineNumber(rawWorkerOffline);
 
     // 2. Senior offline number (sanitized) - from parent Level-1 Senior Agent
     const rawSeniorOffline =
@@ -182,9 +217,13 @@ export async function POST(request: NextRequest) {
       record.senior_offline_form_number ||
       record.seniorAgentOfflineFormNumber ||
       record.senior_agent_offline_form_number ||
+      record.seniorCode ||
+      record.senior_code ||
+      record.uplineCode ||
+      record.upline_code ||
       record.seniorOffline ||
       '';
-    const seniorOffline = sanitizeOfflineNumber(rawSeniorOffline);
+    const seniorOffline = sanitizeAgentOfflineNumber(rawSeniorOffline);
 
     // 3. Application number - strictly Offline Form No., leave blank if absent (never fallback to system formNumber)
     const rawOfflineFormNumber =

@@ -92,48 +92,86 @@ function resolveAgentOfflineNumbers(
     ""
   ).trim();
 
-  if (workerOffline && seniorOffline) {
-    return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline };
-  }
-
-  if (!agentsList || agentsList.length === 0) {
-    return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline };
-  }
+  let workerMobile = String(
+    record.workerMobile ||
+    record.worker_mobile ||
+    record.agentMobile ||
+    record.agent_mobile ||
+    ""
+  ).trim();
 
   const agentById = new Map<string, any>();
   const agentByCode = new Map<string, any>();
+  const agentByName = new Map<string, any>();
+  const agentByMobile = new Map<string, any>();
 
-  for (const agent of agentsList) {
-    const ids = [
-      agent.id,
-      agent.userId,
-      agent.user_id,
-      agent.agentProfile?.id,
-      agent.agentProfile?.userId,
-      agent.agentProfile?.user_id,
-      agent.agent_profile?.id,
-      agent.agent_profile?.user_id,
-    ].filter(Boolean);
+  if (agentsList && agentsList.length > 0) {
+    for (const agent of agentsList) {
+      const ids = [
+        agent.id,
+        agent.userId,
+        agent.user_id,
+        agent.agentProfile?.id,
+        agent.agentProfile?.userId,
+        agent.agentProfile?.user_id,
+        agent.agent_profile?.id,
+        agent.agent_profile?.user_id,
+      ].filter(Boolean);
 
-    ids.forEach((id) => {
-      const normalized = String(id).trim();
-      if (normalized) agentById.set(normalized, agent);
-    });
+      ids.forEach((id) => {
+        const normalized = String(id).trim();
+        if (normalized) agentById.set(normalized, agent);
+      });
 
-    const empIds = [
-      agent.employeeId,
-      agent.employee_id,
-      agent.agentProfile?.employeeId,
-      agent.agent_profile?.employee_id,
-      agent.agentCode,
-      agent.agent_code,
-      agent.code,
-    ].filter(Boolean);
+      const empIds = [
+        agent.employeeId,
+        agent.employee_id,
+        agent.agentProfile?.employeeId,
+        agent.agent_profile?.employee_id,
+        agent.agentCode,
+        agent.agent_code,
+        agent.code,
+      ].filter(Boolean);
 
-    empIds.forEach((emp) => {
-      const normalized = String(emp).trim().toUpperCase();
-      if (normalized) agentByCode.set(normalized, agent);
-    });
+      empIds.forEach((emp) => {
+        const normalized = String(emp).trim().toUpperCase();
+        if (normalized) agentByCode.set(normalized, agent);
+      });
+
+      const names = [
+        agent.name,
+        agent.fullName,
+        agent.username,
+        agent.user_name,
+        agent.user?.name,
+        agent.user?.username,
+        agent.agentProfile?.name,
+        agent.agentProfile?.username,
+      ].filter(Boolean);
+
+      names.forEach((n) => {
+        const normalized = String(n).trim().toLowerCase();
+        if (normalized && normalized !== "default agent" && normalized !== "admin") {
+          agentByName.set(normalized, agent);
+        }
+      });
+
+      const mobiles = [
+        agent.mobile,
+        agent.phone,
+        agent.contactNumber,
+        agent.agentProfile?.mobile,
+        agent.agent_profile?.mobile,
+        agent.user?.mobile,
+      ].filter(Boolean);
+
+      mobiles.forEach((m) => {
+        const cleanMob = String(m).replace(/\D/g, "");
+        if (cleanMob && cleanMob.length >= 10) {
+          agentByMobile.set(cleanMob.slice(-10), agent);
+        }
+      });
+    }
   }
 
   const targetWorkerId = String(
@@ -141,42 +179,106 @@ function resolveAgentOfflineNumbers(
     record.addedby_id ||
     record.selectedAgentId ||
     record.agentId ||
+    record.agent_id ||
+    record.userId ||
+    record.user_id ||
     record.addedBy?.id ||
-    record.agent?.id ||
+    (record.addedBy as any)?.userId ||
+    (record.addedBy as any)?.user_id ||
+    (record as any).agent?.id ||
+    (record as any).agent?.userId ||
+    (record as any).agent?.user_id ||
     ""
   ).trim();
 
   const targetWorkerCode = String(
     record.workerCode ||
-    record.worker_code ||
-    record.agentCode ||
-    record.agent_code ||
-    record.added_code ||
+    (record as any).worker_code ||
+    (record as any).agentCode ||
+    (record as any).agent_code ||
+    (record as any).added_code ||
     record.addedBy?.employee_id ||
+    (record.addedBy as any)?.employeeId ||
     (record.addedBy as any)?.agentCode ||
     (record.addedBy as any)?.code ||
     ""
   ).trim().toUpperCase();
 
-  const workerAgent = (targetWorkerId && agentById.get(targetWorkerId)) || (targetWorkerCode && agentByCode.get(targetWorkerCode));
+  const targetWorkerName = String(
+    record.workerName ||
+    record.worker_name ||
+    record.added_name ||
+    record.addedby ||
+    record.addedBy?.name ||
+    record.agent?.name ||
+    ""
+  ).trim().toLowerCase();
 
-  if (workerAgent && !workerOffline) {
-    workerOffline = String(
-      workerAgent.offlineFormNumber ||
-      workerAgent.offline_form_number ||
-      workerAgent.agentProfile?.offlineFormNumber ||
-      workerAgent.agent_profile?.offline_form_number ||
-      workerAgent.agentProfile?.offline_form_no ||
-      workerAgent.offlineFormNo ||
-      workerAgent.user?.offlineFormNumber ||
-      workerAgent.user?.offline_form_number ||
-      ""
-    ).trim();
+  const rawTargetMobile = String(
+    record.workerMobile ||
+    record.worker_mobile ||
+    record.agentMobile ||
+    record.agent_mobile ||
+    record.added_mobile ||
+    ""
+  ).replace(/\D/g, "");
+  const targetWorkerMobile = rawTargetMobile.length >= 10 ? rawTargetMobile.slice(-10) : "";
+
+  const workerAgent =
+    (targetWorkerId && agentById.get(targetWorkerId)) ||
+    (targetWorkerCode && agentByCode.get(targetWorkerCode)) ||
+    (targetWorkerName && agentByName.get(targetWorkerName)) ||
+    (targetWorkerMobile && agentByMobile.get(targetWorkerMobile));
+
+  // Check if target is Default Agent / Admin
+  const isDefaultAgent =
+    (workerAgent && (
+      String(workerAgent.employeeId || workerAgent.employee_id || "").toUpperCase() === "EMP-001" ||
+      String(workerAgent.name || "").toLowerCase() === "default agent" ||
+      String(workerAgent.mobile || "") === "8888888888"
+    )) ||
+    (!workerAgent && (
+      targetWorkerCode === "ADMIN" ||
+      targetWorkerName === "admin" ||
+      targetWorkerName === "default agent" ||
+      targetWorkerMobile === "8888888888" ||
+      (!targetWorkerId && !targetWorkerCode)
+    ));
+
+  if (isDefaultAgent) {
+    if (!workerOffline) workerOffline = "ADMIN";
+    if (!seniorOffline) seniorOffline = "ADMIN";
+    if (!workerMobile) workerMobile = "8888888888";
   }
 
-  let seniorAgent: any = null;
-
   if (workerAgent) {
+    if (!workerOffline) {
+      workerOffline = String(
+        workerAgent.offlineFormNumber ||
+        workerAgent.offline_form_number ||
+        workerAgent.agentProfile?.offlineFormNumber ||
+        workerAgent.agent_profile?.offline_form_number ||
+        workerAgent.agentProfile?.offline_form_no ||
+        workerAgent.offlineFormNo ||
+        workerAgent.user?.offlineFormNumber ||
+        workerAgent.user?.offline_form_number ||
+        ""
+      ).trim();
+    }
+
+    if (!workerMobile) {
+      workerMobile = String(
+        workerAgent.mobile ||
+        workerAgent.phone ||
+        workerAgent.contactNumber ||
+        workerAgent.agentProfile?.mobile ||
+        workerAgent.agent_profile?.mobile ||
+        workerAgent.user?.mobile ||
+        workerAgent.user?.phone ||
+        ""
+      ).trim();
+    }
+
     const parentSeniorId = String(
       workerAgent.parentAgentId ||
       workerAgent.parent_agent_id ||
@@ -196,64 +298,85 @@ function resolveAgentOfflineNumbers(
       workerAgent.parent_employee_id ||
       workerAgent.seniorCode ||
       workerAgent.senior_code ||
+      workerAgent.uplineCode ||
+      workerAgent.upline_code ||
       workerAgent.agentProfile?.seniorEmployeeId ||
       workerAgent.agent_profile?.senior_employee_id ||
       workerAgent.agentProfile?.seniorCode ||
       workerAgent.agent_profile?.senior_code ||
+      workerAgent.agentProfile?.parentEmployeeId ||
+      workerAgent.agent_profile?.parent_employee_id ||
+      workerAgent.agentProfile?.uplineCode ||
+      workerAgent.agent_profile?.upline_code ||
       ""
     ).trim().toUpperCase();
 
+    let seniorAgent: any = null;
     if (parentSeniorId && agentById.has(parentSeniorId)) {
       seniorAgent = agentById.get(parentSeniorId);
     } else if (parentSeniorCode && parentSeniorCode !== "ADMIN" && parentSeniorCode !== "SUPER ADMIN" && agentByCode.has(parentSeniorCode)) {
       seniorAgent = agentByCode.get(parentSeniorCode);
     }
+
+    if (seniorAgent && !seniorOffline) {
+      seniorOffline = String(
+        seniorAgent.offlineFormNumber ||
+        seniorAgent.offline_form_number ||
+        seniorAgent.agentProfile?.offlineFormNumber ||
+        seniorAgent.agent_profile?.offline_form_number ||
+        seniorAgent.agentProfile?.offline_form_no ||
+        seniorAgent.offlineFormNo ||
+        seniorAgent.user?.offlineFormNumber ||
+        seniorAgent.user?.offline_form_number ||
+        ""
+      ).trim();
+    } else if (!seniorOffline && (parentSeniorCode === "ADMIN" || !parentSeniorId)) {
+      seniorOffline = "ADMIN";
+    }
   }
 
-  if (!seniorAgent) {
+  if (!seniorOffline) {
+    const targetSeniorId = String(
+      record.seniorId ||
+      record.senior_id ||
+      record.parentAgentId ||
+      record.parent_agent_id ||
+      ""
+    ).trim();
+
     const targetSeniorCode = String(
       record.seniorCode ||
       record.senior_code ||
+      record.uplineCode ||
+      record.upline_code ||
       record.seniorWorker ||
       record.senior_worker ||
       ""
     ).trim().toUpperCase();
 
-    if (targetSeniorCode && targetSeniorCode !== "ADMIN" && targetSeniorCode !== "SUPER ADMIN" && agentByCode.has(targetSeniorCode)) {
-      seniorAgent = agentByCode.get(targetSeniorCode);
+    let fallbackSenior: any = null;
+    if (targetSeniorId && agentById.has(targetSeniorId)) {
+      fallbackSenior = agentById.get(targetSeniorId);
+    } else if (targetSeniorCode && targetSeniorCode !== "ADMIN" && targetSeniorCode !== "SUPER ADMIN" && agentByCode.has(targetSeniorCode)) {
+      fallbackSenior = agentByCode.get(targetSeniorCode);
+    }
+
+    if (fallbackSenior) {
+      seniorOffline = String(
+        fallbackSenior.offlineFormNumber ||
+        fallbackSenior.offline_form_number ||
+        fallbackSenior.agentProfile?.offlineFormNumber ||
+        fallbackSenior.agent_profile?.offline_form_number ||
+        fallbackSenior.agentProfile?.offline_form_no ||
+        fallbackSenior.offlineFormNo ||
+        fallbackSenior.user?.offlineFormNumber ||
+        fallbackSenior.user?.offline_form_number ||
+        ""
+      ).trim();
+    } else if (targetSeniorCode === "ADMIN") {
+      seniorOffline = "ADMIN";
     }
   }
-
-  if (seniorAgent && !seniorOffline) {
-    seniorOffline = String(
-      seniorAgent.offlineFormNumber ||
-      seniorAgent.offline_form_number ||
-      seniorAgent.agentProfile?.offlineFormNumber ||
-      seniorAgent.agent_profile?.offline_form_number ||
-      seniorAgent.agentProfile?.offline_form_no ||
-      seniorAgent.offlineFormNo ||
-      seniorAgent.user?.offlineFormNumber ||
-      seniorAgent.user?.offline_form_number ||
-      ""
-    ).trim();
-  }
-
-  const workerMobile = String(
-    (workerAgent && (
-      workerAgent.mobile ||
-      workerAgent.phone ||
-      workerAgent.contactNumber ||
-      workerAgent.agentProfile?.mobile ||
-      workerAgent.agent_profile?.mobile ||
-      workerAgent.user?.mobile ||
-      workerAgent.user?.phone
-    )) ||
-    record.addedBy?.mobile ||
-    record.added_mobile ||
-    record.workerMobile ||
-    record.agentMobile ||
-    ""
-  ).trim();
 
   const workerName = String(
     (workerAgent && (
@@ -270,13 +393,6 @@ function resolveAgentOfflineNumbers(
   ).trim();
 
   const seniorName = String(
-    (seniorAgent && (
-      seniorAgent.name ||
-      seniorAgent.agentProfile?.name ||
-      seniorAgent.agent_profile?.name ||
-      seniorAgent.fullName ||
-      seniorAgent.user?.name
-    )) ||
     record.seniorName ||
     record.senior_name ||
     ""

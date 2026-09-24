@@ -42,6 +42,13 @@ export interface JanniDeliveryRegistration {
   passportPhotoUrl?: string | null;
   affidavitUrl?: string | null;
   offlineFormNumber?: string | null;
+  workerOfflineFormNumber?: string | null;
+  seniorOfflineFormNumber?: string | null;
+  workerCode?: string | null;
+  seniorCode?: string | null;
+  workerMobile?: string | null;
+  workerName?: string | null;
+  seniorName?: string | null;
   gender: string;
   category: string;
   totalAmount: number;

@@ -31,6 +31,7 @@ import {
 import { GENDER_OPTIONS, isMale, isFemale } from "@/lib/form-values"
 import { formatBilingual } from '@/lib/translations'
 import { useAgeCategory } from "@/hooks/use-age-category"
+import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector"
 
 export type GeneralApplicationFormData = {
   formNumber? : string;
@@ -147,7 +148,7 @@ export default function EditGeneralApplicationPage() {
   const { age: calculatedAge, category: calculatedCategory, fee: calculatedFee } = useAgeCategory(formData.dateOfBirth);
 
   // Agents state
-  const [agents, setAgents] = useState<Array<{ id: number; name: string }>>([]);
+  const [agents, setAgents] = useState<WorkerOption[]>([]);
   const [isLoadingAgents, setIsLoadingAgents] = useState(false);
 
   // Category calculation logic based on centralized A-F age slabs
@@ -191,7 +192,7 @@ export default function EditGeneralApplicationPage() {
     const fetchAllData = async () => {
       if (!id) return;
 
-      let fetchedAgents: Array<{ id: string; name: string }> = [];
+      let fetchedAgents: WorkerOption[] = [];
       try {
         setIsLoadingData(true);
         setIsLoadingAgents(true);
@@ -202,9 +203,12 @@ export default function EditGeneralApplicationPage() {
         if (dataAgents.status && dataAgents.data) {
           fetchedAgents = dataAgents.data.map((agent: any) => ({
             id: String(agent.id),
-            name: agent.name
+            name: agent.name || agent.applicantName,
+            mobile: agent.mobile || agent.mobileNumber,
+            offlineFormNumber: agent.offlineFormNumber || agent.offline_form_number,
+            level: agent.level,
           }));
-          setAgents(fetchedAgents as any);
+          setAgents(fetchedAgents);
         }
       } catch (error) {
         console.error('Error fetching agents:', error);
@@ -273,8 +277,14 @@ export default function EditGeneralApplicationPage() {
 
           if (agentId && !fetchedAgents.some(a => String(a.id) === agentId)) {
             const nameToUse = workerName || "Admin";
-            fetchedAgents.push({ id: agentId, name: nameToUse });
-            setAgents([...fetchedAgents] as any);
+            fetchedAgents.push({
+              id: agentId,
+              name: nameToUse,
+              mobile: record.workerMobile || "",
+              offlineFormNumber: record.offlineFormNumber || record.offline_form_number || "",
+              level: 1,
+            });
+            setAgents([...fetchedAgents]);
           }
 
           const offNo = record.offlineFormNumber || record.offline_form_number || "";
@@ -954,26 +964,17 @@ export default function EditGeneralApplicationPage() {
               </div>
 
               {/* Worker Information Section */}
-              <div>
-                <Label htmlFor="selectedAgentId">कार्यकर्ता का नाम / Worker Name</Label>
-                <select
+              <div className="space-y-1.5">
+                <Label htmlFor="selectedAgentId">कार्यकर्ता का नाम / Worker Name *</Label>
+                <WorkerSearchSelector
                   id="selectedAgentId"
-                  className="w-full border rounded px-3 py-2 mt-1"
                   value={formData.selectedAgentId || ""}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, selectedAgentId: e.target.value }))}
-                  required
+                  onValueChange={(val) => setFormData((prev) => ({ ...prev, selectedAgentId: val }))}
+                  agents={agents}
+                  isLoading={isLoadingAgents}
                   disabled={isLoadingAgents}
-                >
-                  <option value="">कार्यकर्ता चुनें / Select Worker</option>
-                  {agents.map((agent) => (
-                    <option key={agent.id} value={agent.id.toString()}>
-                      {agent.name}
-                    </option>
-                  ))}
-                </select>
-                {isLoadingAgents && (
-                  <p className="text-sm text-gray-500 mt-1">Loading agents...</p>
-                )}
+                  placeholder="कार्यकर्ता चुनें / Select Worker"
+                />
               </div>
 
               <div>

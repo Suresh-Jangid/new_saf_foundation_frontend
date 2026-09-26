@@ -35,11 +35,12 @@ import {
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
+import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 
 export default function AddShubhLaxmiPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile: string }>>([]);
+  const [agents, setAgents] = useState<WorkerOption[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
 
   // Form State
@@ -130,9 +131,11 @@ export default function AddShubhLaxmiPage() {
           if (res && res.data) {
             setAgents(
               res.data.map((ag: any) => ({
-                id: ag.id,
+                id: String(ag.id || ag.user_id),
                 name: ag.applicantName || ag.name || "Agent",
                 mobile: ag.mobileNumber || ag.mobile || "",
+                offlineFormNumber: ag.offlineFormNumber || ag.offline_form_number || ag.agentProfile?.offlineFormNumber || "",
+                level: ag.level || ag.agentProfile?.level || ag.hierarchy?.level,
               }))
             );
           }
@@ -887,23 +890,23 @@ export default function AddShubhLaxmiPage() {
               {/* Admin Agent Selector */}
               {isAdmin() && (
                 <div className="space-y-1.5 max-w-md pt-2">
-                  <Label htmlFor="agentSelect" className="text-xs font-semibold">
+                  <Label htmlFor="selectedAgentId" className="text-xs font-semibold">
                     एजेंट का चयन करें / Assign Agent (Admin Only)
                   </Label>
-                  <select
-                    id="agentSelect"
+                  <WorkerSearchSelector
+                    id="selectedAgentId"
                     value={formData.selectedAgentId}
-                    onChange={(e) => setFormData({ ...formData, selectedAgentId: e.target.value })}
+                    onValueChange={(val) => setFormData({ ...formData, selectedAgentId: val })}
+                    agents={agents}
+                    isLoading={loadingAgents}
                     disabled={loadingAgents}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  >
-                    <option value="">-- स्वयं (Admin / No Specific Agent) --</option>
-                    {agents.map((ag) => (
-                      <option key={ag.id} value={ag.id}>
-                        {ag.name} ({ag.mobile})
-                      </option>
-                    ))}
-                  </select>
+                    defaultOption={{
+                      value: "",
+                      label: "-- स्वयं (Admin / No Specific Agent) --",
+                      secondary: "No Specific Worker",
+                    }}
+                    placeholder="एजेंट चुनें / Select Agent"
+                  />
                 </div>
               )}
             </CardContent>

@@ -23,6 +23,7 @@ import { getCurrentUserInfo } from "@/lib/utils"
 import { useAgeCategory } from "@/hooks/use-age-category"
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
 import { EpinService } from "@/lib/epin-service"
+import { WorkerSearchSelector } from "@/components/worker-search-selector"
 
 import {
   AlertDialog,
@@ -787,19 +788,17 @@ export default function AddMayraRegistrationPage() {
                       <option value="भांजी">भांजी / Bhenji</option>
                     </select>
                   </div>
-                  <div>
-                    <Label>कार्यकर्त्ता का नाम (Worker Name)</Label>
-                    <select
-                      required
-                      className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white"
+                  <div className="space-y-1.5">
+                    <Label htmlFor="selectedAgentId">कार्यकर्त्ता का नाम (Worker Name) *</Label>
+                    <WorkerSearchSelector
+                      id="selectedAgentId"
                       value={formData.selectedAgentId}
-                      onChange={e => setFormData(prev => ({ ...prev, selectedAgentId: e.target.value }))}
-                    >
-                      <option value="">Select Worker</option>
-                      {agents.map(agent => (
-                        <option key={agent.id} value={agent.id.toString()}>{agent.name}</option>
-                      ))}
-                    </select>
+                      onValueChange={(val) => setFormData(prev => ({ ...prev, selectedAgentId: val }))}
+                      agents={agents}
+                      isLoading={isLoadingAgents}
+                      disabled={isLoadingAgents}
+                      placeholder="कार्यकर्ता चुनें / Select Worker"
+                    />
                   </div>
                 </div>
 

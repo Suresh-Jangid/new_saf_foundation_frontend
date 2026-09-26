@@ -34,6 +34,7 @@ import {
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { resolvePhotoUrl } from "@/lib/utils";
+import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 
 export default function EditDhundhotsavPage() {
   const params = useParams();
@@ -44,17 +45,7 @@ export default function EditDhundhotsavPage() {
   const [isFetching, setIsFetching] = useState(true);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [initialOfflineFormNumber, setInitialOfflineFormNumber] = useState<string>("");
-  const [agents, setAgents] = useState<
-    Array<{
-      id: string; // User ID (primary value)
-      userId: string; // User ID
-      agentProfileId: string; // Agent Profile ID
-      name: string;
-      mobile: string;
-      employeeId?: string;
-      offlineFormNumber?: string;
-    }>
-  >([]);
+  const [agents, setAgents] = useState<WorkerOption[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
 
   // Form State
@@ -272,6 +263,7 @@ export default function EditDhundhotsavPage() {
                 mobile: ag.mobileNumber || ag.mobile || ag.phone || ag.user?.mobile || "",
                 employeeId: ag.employeeId || ag.employee_id || ag.agentProfile?.employeeId || "",
                 offlineFormNumber: ag.offlineFormNumber || ag.offline_form_number || ag.agentProfile?.offlineFormNumber || "",
+                level: ag.level || ag.agentProfile?.level || ag.hierarchy?.level,
               };
             });
 
@@ -955,28 +947,26 @@ export default function EditDhundhotsavPage() {
 
               {/* Worker / Agent Selection (Admin Only) */}
               {isAdmin() && (
-                <div>
+                <div className="space-y-1.5">
                   <Label htmlFor="selectedAgentId">
                     कार्यकर्ता चुनें / Select Worker / Agent (वैकल्पिक)
                   </Label>
-                  <select
+                  <WorkerSearchSelector
                     id="selectedAgentId"
-                    className="w-full border rounded px-3 py-2 mt-1 bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     value={formData.selectedAgentId}
-                    onChange={(e) =>
-                      setFormData({ ...formData, selectedAgentId: e.target.value })
+                    onValueChange={(val) =>
+                      setFormData({ ...formData, selectedAgentId: val })
                     }
-                  >
-                    <option value="">-- स्वयं / Self (No Specific Worker) --</option>
-                    {agents.map((agent) => (
-                      <option key={agent.userId || agent.id} value={agent.userId || agent.id}>
-                        {agent.name} {agent.mobile ? `(${agent.mobile})` : ""}
-                      </option>
-                    ))}
-                  </select>
-                  {loadingAgents && (
-                    <p className="text-xs text-muted-foreground mt-1">कार्यकर्ता सूची लोड हो रही है...</p>
-                  )}
+                    agents={agents}
+                    isLoading={loadingAgents}
+                    disabled={loadingAgents}
+                    defaultOption={{
+                      value: "",
+                      label: "स्वयं / Self",
+                      secondary: "No Specific Worker",
+                    }}
+                    placeholder="कार्यकर्ता चुनें / Select Worker"
+                  />
                 </div>
               )}
 

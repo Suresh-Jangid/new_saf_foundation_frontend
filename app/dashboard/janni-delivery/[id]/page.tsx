@@ -35,6 +35,7 @@ import {
   validatePhoneNumber,
   getProxiedPhotoSrc,
 } from "@/lib/utils";
+import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 
 export default function EditJanniDeliveryPage() {
   const params = useParams();
@@ -44,7 +45,7 @@ export default function EditJanniDeliveryPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [record, setRecord] = useState<JanniDeliveryRegistration | null>(null);
-  const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile: string }>>([]);
+  const [agents, setAgents] = useState<WorkerOption[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
 
   // Date Popover States
@@ -164,8 +165,11 @@ export default function EditJanniDeliveryPage() {
 
                 return {
                   id: resolvedUserId,
+                  userId: resolvedUserId,
                   name: ag.applicantName || ag.name || ag.agent_name || ag.user?.name || "Agent",
                   mobile: ag.mobileNumber || ag.mobile || ag.phone || ag.user?.mobile || "",
+                  offlineFormNumber: ag.offlineFormNumber || ag.offline_form_number || ag.agentProfile?.offlineFormNumber || "",
+                  level: ag.level || ag.agentProfile?.level || ag.hierarchy?.level,
                 };
               });
               if (isMounted) {
@@ -654,25 +658,26 @@ export default function EditJanniDeliveryPage() {
                   </div>
 
                   {isAdmin() && (
-                    <div>
-                      <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="selectedAgentId" className="text-xs sm:text-sm font-medium text-gray-700">
                         कार्यकर्ता / Allocated Worker
                       </Label>
-                      <select
+                      <WorkerSearchSelector
+                        id="selectedAgentId"
                         value={formData.selectedAgentId}
-                        onChange={(e) =>
-                          setFormData((prev) => ({ ...prev, selectedAgentId: e.target.value }))
+                        onValueChange={(val) =>
+                          setFormData((prev) => ({ ...prev, selectedAgentId: val }))
                         }
-                        className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
+                        agents={agents}
+                        isLoading={loadingAgents || isFetching}
                         disabled={loadingAgents || isFetching}
-                      >
-                        <option value="">Direct / Self / Admin</option>
-                        {agents.map((a) => (
-                          <option key={a.id} value={a.id}>
-                            {a.name} ({a.mobile})
-                          </option>
-                        ))}
-                      </select>
+                        defaultOption={{
+                          value: "",
+                          label: "Direct / Self / Admin",
+                          secondary: "No Specific Worker",
+                        }}
+                        placeholder="कार्यकर्ता चुनें / Select Worker"
+                      />
                     </div>
                   )}
 

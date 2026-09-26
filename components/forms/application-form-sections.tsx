@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { formatBilingual } from "@/lib/translations"
 import { FormData } from "@/hooks/use-form-data"
+import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector"
 
 interface FormSectionProps {
   formData: FormData
@@ -319,7 +320,7 @@ export const NomineeInfoSection = memo<FormSectionProps>(({
 })
 
 interface WorkerInfoSectionProps extends FormSectionProps {
-  agents: Array<{ id: number | string; name: string }>
+  agents: WorkerOption[]
   isLoadingAgents: boolean
 }
 
@@ -333,26 +334,17 @@ export const WorkerInfoSection = memo<WorkerInfoSectionProps>(({
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Worker Information</h3>
       
-      <div>
-        <Label htmlFor="selectedAgentId">कार्यकर्ता का नाम / Worker Name</Label>
-        <select
+      <div className="space-y-1.5">
+        <Label htmlFor="selectedAgentId">कार्यकर्ता का नाम / Worker Name *</Label>
+        <WorkerSearchSelector
           id="selectedAgentId"
-          className="w-full border rounded px-3 py-2 mt-1"
           value={formData.selectedAgentId || ""}
-          onChange={(e) => updateField("selectedAgentId", e.target.value)}
-          required
+          onValueChange={(val) => updateField("selectedAgentId", val)}
+          agents={agents}
+          isLoading={isLoadingAgents}
           disabled={isLoadingAgents}
-        >
-          <option value="">कार्यकर्ता चुनें / Select Worker</option>
-          {agents.map((agent) => (
-            <option key={agent.id} value={agent.id.toString()}>
-              {agent.name}
-            </option>
-          ))}
-        </select>
-        {isLoadingAgents && (
-          <p className="text-sm text-gray-500 mt-1">Loading agents...</p>
-        )}
+          placeholder="कार्यकर्ता चुनें / Select Worker"
+        />
       </div>
 
       <div>

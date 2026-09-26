@@ -32,11 +32,12 @@ import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
 import { validatePhoneNumber } from "@/lib/utils";
+import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 
 export default function AddAawasPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile: string }>>([]);
+  const [agents, setAgents] = useState<WorkerOption[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
 
   // Form State
@@ -125,9 +126,11 @@ export default function AddAawasPage() {
           if (res && res.data && Array.isArray(res.data)) {
             setAgents(
               res.data.map((a: any) => ({
-                id: a.id || a.user_id,
+                id: String(a.id || a.user_id),
                 name: a.name || a.agent_name || "Agent",
                 mobile: a.mobile || a.phone || "",
+                offlineFormNumber: a.offlineFormNumber || a.offline_form_number || a.agentProfile?.offlineFormNumber || "",
+                level: a.level || a.agentProfile?.level || a.hierarchy?.level,
               }))
             );
           }
@@ -811,20 +814,20 @@ export default function AddAawasPage() {
                 {isAdmin() && (
                   <div className="space-y-1.5 sm:col-span-2">
                     <Label htmlFor="selectedAgentId">संबंधित एजेंट (Assign Agent - Admin Only)</Label>
-                    <select
+                    <WorkerSearchSelector
                       id="selectedAgentId"
-                      name="selectedAgentId"
                       value={formData.selectedAgentId}
-                      onChange={handleInputChange}
-                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                      <option value="">-- स्वतः / Default Agent --</option>
-                      {agents.map((ag) => (
-                        <option key={ag.id} value={ag.id}>
-                          {ag.name} ({ag.mobile})
-                        </option>
-                      ))}
-                    </select>
+                      onValueChange={(val) => setFormData((prev) => ({ ...prev, selectedAgentId: val }))}
+                      agents={agents}
+                      isLoading={loadingAgents}
+                      disabled={loadingAgents}
+                      defaultOption={{
+                        value: "",
+                        label: "-- स्वतः / Default Agent --",
+                        secondary: "Default Worker",
+                      }}
+                      placeholder="एजेंट चुनें / Select Agent"
+                    />
                   </div>
                 )}
               </div>

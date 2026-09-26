@@ -23,6 +23,7 @@ import { useAgeCategory } from "@/hooks/use-age-category"
 import APIService from "@/lib/services"
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
 import { EpinService } from "@/lib/epin-service"
+import { WorkerOption } from "@/components/worker-search-selector"
 
 import { post, API_ENDPOINTS } from "@/lib/api"
 
@@ -56,7 +57,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
   const { age, category, fee } = useAgeCategory(formData.dateOfBirth)
 
   // Agents state
-  const [agents, setAgents] = useState<Array<{ id: string; name: string }>>([])
+  const [agents, setAgents] = useState<WorkerOption[]>([])
   const [isLoadingAgents, setIsLoadingAgents] = useState(false)
 
   // Fetch agents on component mount
@@ -67,9 +68,12 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
         const response = await post(API_ENDPOINTS.GET_AGENTS)
         const data = response.data
         if (data.status && data.data) {
-          setAgents(data.data.map((agent: { id: string | number; name: string }) => ({
+          setAgents(data.data.map((agent: any) => ({
             id: String(agent.id),
-            name: agent.name
+            name: agent.name || agent.applicantName,
+            mobile: agent.mobile || agent.mobileNumber,
+            offlineFormNumber: agent.offlineFormNumber || agent.offline_form_number,
+            level: agent.level,
           })))
         }
       } catch (error) {

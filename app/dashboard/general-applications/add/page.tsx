@@ -35,6 +35,7 @@ import { RazorpayPayment } from "@/components/razorpay-payment"
 import { useAgeCategory } from "@/hooks/use-age-category"
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
 import { EpinService } from "@/lib/epin-service"
+import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector"
 
 
 export default function AddGeneralApplicationPage() {
@@ -400,7 +401,7 @@ export default function AddGeneralApplicationPage() {
   const [paymentData, setPaymentData] = useState<any>(null);
 
   // Agents state
-  const [agents, setAgents] = useState<Array<{ id: number; name: string }>>([]);
+  const [agents, setAgents] = useState<WorkerOption[]>([]);
   const [isLoadingAgents, setIsLoadingAgents] = useState(false);
 
   // Fetch agents on component mount
@@ -412,8 +413,11 @@ export default function AddGeneralApplicationPage() {
         const data = response.data;
         if (data.status && data.data) {
           setAgents(data.data.map((agent: any) => ({
-            id: agent.id,
-            name: agent.name
+            id: String(agent.id),
+            name: agent.name || agent.applicantName,
+            mobile: agent.mobile || agent.mobileNumber,
+            offlineFormNumber: agent.offlineFormNumber || agent.offline_form_number,
+            level: agent.level,
           })));
         }
       } catch (error) {
@@ -954,26 +958,17 @@ export default function AddGeneralApplicationPage() {
               </div>
 
               {/* Worker Information Section */}
-              <div>
-                <Label htmlFor="selectedAgentId">कार्यकर्ता का नाम / Worker Name</Label>
-                <select
+              <div className="space-y-1.5">
+                <Label htmlFor="selectedAgentId">कार्यकर्ता का नाम / Worker Name *</Label>
+                <WorkerSearchSelector
                   id="selectedAgentId"
-                  className="w-full border rounded px-3 py-2 mt-1"
                   value={formData.selectedAgentId || ""}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, selectedAgentId: e.target.value }))}
-                  required
+                  onValueChange={(val) => setFormData((prev) => ({ ...prev, selectedAgentId: val }))}
+                  agents={agents}
+                  isLoading={isLoadingAgents}
                   disabled={isLoadingAgents}
-                >
-                  <option value="">कार्यकर्ता चुनें / Select Worker</option>
-                  {agents.map((agent) => (
-                    <option key={agent.id} value={agent.id.toString()}>
-                      {agent.name}
-                    </option>
-                  ))}
-                </select>
-                {isLoadingAgents && (
-                  <p className="text-sm text-gray-500 mt-1">Loading agents...</p>
-                )}
+                  placeholder="कार्यकर्ता चुनें / Select Worker"
+                />
               </div>
 
               <div>

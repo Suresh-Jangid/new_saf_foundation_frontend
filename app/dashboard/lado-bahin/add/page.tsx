@@ -37,6 +37,7 @@ import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
 import { cn, formatDate, formatDateForAPI, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
+import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 
 export default function AddLadoBahinPage() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export default function AddLadoBahinPage() {
   };
 
   const [isLoading, setIsLoading] = useState(false);
-  const [agents, setAgents] = useState<Array<{ id: string; name: string; mobile: string }>>([]);
+  const [agents, setAgents] = useState<WorkerOption[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
 
   // Date Popover States
@@ -168,6 +169,8 @@ export default function AddLadoBahinPage() {
                 id: String(a.id || a.user_id),
                 name: a.name || a.applicantName || "Agent",
                 mobile: a.mobile || a.mobileNumber || "",
+                offlineFormNumber: a.offlineFormNumber || a.offline_form_number || a.agentProfile?.offlineFormNumber || "",
+                level: a.level || a.agentProfile?.level || a.hierarchy?.level,
               }))
             );
           }
@@ -1189,22 +1192,23 @@ export default function AddLadoBahinPage() {
                     {/* Agent Selection if Admin */}
                     {isAdmin() && (
                       <div className="space-y-1.5">
-                        <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                        <Label htmlFor="selectedAgentId" className="text-xs sm:text-sm font-semibold text-foreground">
                           कार्यकर्ता / एजेंट (Worker / Agent)
                         </Label>
-                        <select
+                        <WorkerSearchSelector
+                          id="selectedAgentId"
                           value={formData.selectedAgentId}
-                          onChange={(e) => handleInputChange("selectedAgentId", e.target.value)}
+                          onValueChange={(val) => handleInputChange("selectedAgentId", val)}
+                          agents={agents}
+                          isLoading={loadingAgents}
                           disabled={loadingAgents}
-                          className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/20"
-                        >
-                          <option value="">स्वयं / Self</option>
-                          {agents.map((ag) => (
-                            <option key={ag.id} value={ag.id}>
-                              {ag.name} ({ag.mobile})
-                            </option>
-                          ))}
-                        </select>
+                          defaultOption={{
+                            value: "",
+                            label: "स्वयं / Self",
+                            secondary: "No Specific Worker",
+                          }}
+                          placeholder="कार्यकर्ता चुनें / Select Worker"
+                        />
                       </div>
                     )}
                   </div>

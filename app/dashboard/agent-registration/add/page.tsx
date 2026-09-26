@@ -162,48 +162,63 @@ export default function AddAgentPage() {
   const [dojObj, setDojObj] = useState<Date | undefined>(undefined);
   const [dojOpen, setDojOpen] = useState(false);
 
-  // Calculate age from dateOfBirth (yyyy-mm-dd)
-  function calculateAge(dob: string) {
+  // Calculate age from dateOfBirth (supports dd-mm-yyyy and yyyy-mm-dd)
+  function calculateAge(dob: string, refDate?: Date): string {
     if (!dob || dob.trim() === "") return "";
-    
-    // Handle both yyyy-mm-dd and dd-mm-yyyy formats
-    let birthDate: Date;
-    
-    if (dob.includes('-')) {
-      // If it's already in yyyy-mm-dd format
-      birthDate = new Date(dob);
+
+    const trimmed = dob.trim();
+    const parts = trimmed.split(/[-\/]/);
+    if (parts.length !== 3) return "";
+
+    // Ensure full 4-digit year has been entered
+    const isIso = parts[0].length === 4;
+    const yearStr = isIso ? parts[0] : parts[2];
+    if (yearStr.length !== 4) return "";
+
+    const birthDate = parseDateFromDDMMYYYY(trimmed);
+    if (!birthDate || isNaN(birthDate.getTime())) return "";
+
+    // Strictly validate components to avoid rollover on invalid calendar dates (e.g., 31-02-1994)
+    if (isIso) {
+      // YYYY-MM-DD
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const d = parseInt(parts[2], 10);
+      if (birthDate.getFullYear() !== y || birthDate.getMonth() !== m || birthDate.getDate() !== d) {
+        return "";
+      }
     } else {
-      // If it's in dd-mm-yyyy format, convert it
-      const date = parseDateFromDDMMYYYY(dob);
-      if (!date) return "";
-      birthDate = date;
+      // DD-MM-YYYY
+      const d = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const y = parseInt(parts[2], 10);
+      if (birthDate.getFullYear() !== y || birthDate.getMonth() !== m || birthDate.getDate() !== d) {
+        return "";
+      }
     }
-    
-    if (isNaN(birthDate.getTime())) return "";
-    
-    const today = new Date();
-    
+
+    const today = refDate || new Date();
+
     // Check if birth date is in the future
     if (birthDate > today) return "";
-    
+
     let years = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
     const dayDiff = today.getDate() - birthDate.getDate();
-    
+
     // If birthday hasn't occurred yet this year, subtract 1 year
     if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
       years--;
     }
-    
-    return String(Math.max(0, years));
+
+    if (years < 0) return "";
+    return String(years);
   }
 
   // Auto-update age when dateOfBirth changes
   React.useEffect(() => {
     const newAge = calculateAge(form.dateOfBirth);
-    if (newAge !== form.age) {
-      setForm(prev => ({ ...prev, age: newAge }));
-    }
+    setForm(prev => (prev.age !== newAge ? { ...prev, age: newAge } : prev));
   }, [form.dateOfBirth]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -445,10 +460,19 @@ export default function AddAgentPage() {
                         const date = parseDateFromDDMMYYYY(str)
                         if (date) {
                           setDobObj(date)
-                          setForm({ ...form, dateOfBirth: formatDate(date) });
+                          const formatted = formatDate(date)
+                          setForm(prev => ({
+                            ...prev,
+                            dateOfBirth: formatted,
+                            age: calculateAge(formatted),
+                          }));
                         } else {
                           setDobObj(undefined)
-                          setForm({ ...form, dateOfBirth: str });
+                          setForm(prev => ({
+                            ...prev,
+                            dateOfBirth: str,
+                            age: calculateAge(str),
+                          }));
                         }
                       }}
                       onKeyDown={(e) => {
@@ -485,8 +509,13 @@ export default function AddAgentPage() {
                           onMonthChange={setDobObj}
                           onSelect={(date: any) => {
                             setDobObj(date);
-                            setDobValue(formatDate(date));
-                            setForm({ ...form, dateOfBirth: date ? formatDate(date) : "" });
+                            const formatted = date ? formatDate(date) : "";
+                            setDobValue(formatted);
+                            setForm(prev => ({
+                              ...prev,
+                              dateOfBirth: formatted,
+                              age: calculateAge(formatted),
+                            }));
                             setDobOpen(false);
                           }}
                         />

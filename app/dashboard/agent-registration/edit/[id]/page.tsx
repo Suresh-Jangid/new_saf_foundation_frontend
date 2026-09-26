@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRouter, useParams } from "next/navigation";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarDays, X } from "lucide-react";
+import { CalendarDays, X, Eye, EyeOff } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS, postUrlEncoded, agentRegistrationAPI } from "@/lib/api";
@@ -140,6 +140,7 @@ export default function EditAgentRegistrationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [existingProfileImage, setExistingProfileImage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -754,14 +755,30 @@ export default function EditAgentRegistrationForm() {
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <Label htmlFor="password">पासवर्ड (Password)</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    placeholder="खाली छोड़ें यदि बदलना नहीं है"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={handleChange}
+                      className="pr-10"
+                      placeholder="नया पासवर्ड दर्ज करें (वैकल्पिक)"
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                      aria-label={showPassword ? "पासवर्ड छुपाएं" : "पासवर्ड दिखाएं"}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    खाली छोड़ने पर मौजूदा पासवर्ड अपरिवर्तित रहेगा
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

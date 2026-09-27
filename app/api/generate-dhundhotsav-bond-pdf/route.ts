@@ -136,14 +136,14 @@ export async function POST(request: NextRequest) {
 
     // Embed photos inside calibrated photo boxes:
     // Top Photo Box (Applicant):
-    //   Outer Black Border: x = 463.2, yFromTop = 153.8, w = 84.0, h = 91.0
-    //   Inner Image Box:    x = 464.0, yFromTop = 154.6, w = 82.2, h = 89.2
+    //   Outer Border: x = 470.5, yFromTop = 194.5, w = 76.0, h = 80.0
+    //   Inner Image:  x = 471.5, yFromTop = 195.5, w = 74.0, h = 78.0
     // Bottom Photo Box (Nominee):
-    //   Outer Black Border: x = 463.2, yFromTop = 252.2, w = 84.0, h = 91.0
-    //   Inner Image Box:    x = 464.0, yFromTop = 253.2, w = 82.2, h = 89.2
+    //   Outer Border: x = 470.5, yFromTop = 281.5, w = 76.0, h = 80.0
+    //   Inner Image:  x = 471.5, yFromTop = 282.5, w = 74.0, h = 78.0
     if (applicantPhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 464.0, 154.6, 82.2, 89.2, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 471.5, 195.5, 74.0, 78.0, 'cover');
       } catch (err) {
         console.warn('Could not embed applicant photo in Dhundhotsav Bond:', err);
       }
@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
 
     if (nomineePhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 464.0, 253.2, 82.2, 89.2, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 471.5, 282.5, 74.0, 78.0, 'cover');
       } catch (err) {
         console.warn('Could not embed nominee photo in Dhundhotsav Bond:', err);
       }
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
     );
     const village = sanitizeValue(record.village || record.tehsil || record.address || '');
 
-    // Nominee Name (वारिसदार) - strictly nominee name, never applicant/father/agent name
+    // Nominee Name (नॉमिनी नाम) - strictly nominee name, never applicant/father/agent name
     const nomineeName = sanitizeValue(
       record.nomineeName ||
       record.nominee_name ||
@@ -270,62 +270,169 @@ export async function POST(request: NextRequest) {
 
     const nomineeAadhar = sanitizeValue(record.nomineeAadhar || record.nomineeAadhaar || record.nominee_aadhar || '');
 
-    // Applicant Mobile (मो. नं.)
-    const mobile = sanitizeValue(record.mobile || record.phone || record.applicantMobile || '');
+    // Nominee Mobile (नॉमिनी मो. नं.) - fall back to applicant mobile if nominee mobile not specifically present
+    const rawNomineeMobile =
+      record.nomineeMobile ||
+      record.nominee_mobile ||
+      record.nomineePhone ||
+      record.nominee_phone ||
+      record.mobile ||
+      record.phone ||
+      record.applicantMobile ||
+      '';
+    const nomineeMobile = sanitizeValue(rawNomineeMobile);
 
-    // Calibrated dynamic field positions on the official 1-page Dhundhotsav Bond template
-    // Every field is aligned directly with the measured template label baseline (PDF baseline = pageHeight - y)
-    // Font sizes are calibrated to match the visual text height of the corresponding printed labels
-    const fields = [
-      // Top Code fields (worker label BL yFromTop: 122.30; senior worker label BL yFromTop: 117.90)
-      { field: 'कार्यकर्ता_कोड', val: workerOffline, x: 110.6, y: 122.30, maxW: 75, size: 11.5, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सीनियर_कार्यकर्ता_कोड', val: seniorOffline, x: 462.3, y: 117.90, maxW: 85, size: 11.5, color: { r: 0, g: 0.15, b: 0.6 } },
+    // Scheme / Benefit Amount (ढूंढ ... रूपये प्रत्येक ढूंढ पर लागू)
+    const rawAmount =
+      record.paymentAmount ??
+      record.payment_amount ??
+      record.membershipFee ??
+      record.membership_fee ??
+      record.amount ??
+      record.schemeAmount ??
+      record.scheme_amount ??
+      body?.amount ??
+      '5,100/-';
+    let cleanAmt = String(rawAmount || '').trim();
+    if (/^\d+$/.test(cleanAmt)) {
+      cleanAmt = Number(cleanAmt).toLocaleString('en-IN') + '/-';
+    } else if (cleanAmt && !cleanAmt.endsWith('/-') && /^\d+[\d,]*$/.test(cleanAmt)) {
+      cleanAmt += '/-';
+    }
+    const amount = sanitizeValue(cleanAmt || '5,100/-');
 
-      // Numbers & Date row
-      { field: 'आवेदन_क्र', val: offlineFormNumber, x: 102.3, y: 145.89, maxW: 135, size: 11.5, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'सदस्यता_क्र', val: membershipNumber, x: 303.8, y: 144.07, maxW: 120, size: 11.0, color: { r: 0, g: 0.15, b: 0.6 } },
-      { field: 'आवेदन_दिनांक', val: applicationDate, x: 485.1, y: 142.86, maxW: 75, size: 10.5 },
+    const navyColor = rgb(0.0, 0.15, 0.6);
+    const darkColor = rgb(0.12, 0.12, 0.12);
+    const redColor = rgb(0.8, 0.1, 0.1);
 
-      // Left Column Fields (exact measured template baselines & matched visual height)
-      { field: 'नाम', val: applicantName, x: 69.8, y: 184.60, maxW: 160, size: 10.5 },
-      { field: 'जाति', val: caste, x: 74.5, y: 208.82, maxW: 155, size: 10.5 },
-      { field: 'वारिसदार', val: nomineeName, x: 92.5, y: 233.05, maxW: 140, size: 10.5 },
-      { field: 'एजेन्ट_मो_नं', val: agentMobile, x: 109.0, y: 257.28, maxW: 120, size: 10.5 },
-      { field: 'आधार_नं', val: aadharNumber, x: 94.5, y: 281.51, maxW: 135, size: 10.5 },
-      { field: 'नॉमिनी_आधार_नं', val: nomineeAadhar, x: 128.7, y: 305.74, maxW: 105, size: 10.5 },
+    // Helper to draw centered text in header box
+    const drawCenteredInBox = (
+      text: string,
+      boxX: number,
+      boxW: number,
+      baselineY: number,
+      fontSize: number,
+      color: any
+    ) => {
+      if (!text) return;
+      let size = fontSize;
+      if ((font as any).widthOfTextAtSize) {
+        let textW = (font as any).widthOfTextAtSize(text, size);
+        if (textW > boxW - 8) {
+          size = Math.max(6.5, size * ((boxW - 8) / textW));
+          textW = (font as any).widthOfTextAtSize(text, size);
+        }
+        const x = boxX + (boxW - textW) / 2;
+        firstPage.drawText(text, { x, y: baselineY, size, font, color });
+      } else {
+        firstPage.drawText(text, { x: boxX + 6, y: baselineY, size, font, color });
+      }
+    };
 
-      // Center Column Fields (exact measured template baselines & matched visual height)
-      { field: 'पिता_पति_का_नाम', val: fatherName, x: 323.5, y: 184.90, maxW: 132, size: 10.5 },
-      { field: 'गांव', val: village, x: 259.7, y: 208.52, maxW: 195, size: 10.5 },
-      { field: 'जिला', val: district, x: 266.5, y: 232.13, maxW: 190, size: 10.5 },
-      { field: 'राज्य', val: state, x: 262.9, y: 255.75, maxW: 195, size: 10.5 },
-      { field: 'सम्बन्ध', val: nomineeRelation, x: 273.5, y: 279.37, maxW: 185, size: 10.5 },
-      { field: 'मो_नं', val: mobile, x: 269.2, y: 302.99, maxW: 185, size: 10.5 },
-
-      // Benefit Duration Clause (label baseline yFromTop: 360.83)
-      { field: 'अवधि', val: String(duration || 'बारह महीने').trim(), x: 281.1, y: 360.83, maxW: 76, size: 10.0, color: { r: 0.8, g: 0.1, b: 0.1 } },
-    ];
-
-    for (const f of fields) {
-      if (!f.val) continue;
-      const drawX = f.x;
-      const drawY = pageHeight - f.y;
-      let size = f.size || 9.5;
-      if (f.maxW && (font as any).widthOfTextAtSize) {
-        const w = (font as any).widthOfTextAtSize(f.val, size);
-        if (w > f.maxW) {
-          size = Math.max(6.0, size * (f.maxW / w));
+    // Helper to draw bounded text at baseline
+    const drawBounded = (
+      text: string,
+      x: number,
+      baselineY: number,
+      fontSize: number,
+      maxW: number,
+      color: any
+    ) => {
+      if (!text) return;
+      let size = fontSize;
+      if (maxW && (font as any).widthOfTextAtSize) {
+        const isDevanagari = /[^\u0000-\u007F]/.test(text);
+        const textW = (font as any).widthOfTextAtSize(text, size) * (isDevanagari ? 1.25 : 1.0);
+        if (textW > maxW) {
+          size = Math.max(6.0, size * (maxW / textW));
         }
       }
-      const textColor = f.color ? rgb(f.color.r, f.color.g, f.color.b) : rgb(0.1, 0.1, 0.1);
-      firstPage.drawText(f.val, {
-        x: drawX,
-        y: drawY,
-        size,
-        font,
-        color: textColor,
-      });
-    }
+      firstPage.drawText(text, { x, y: baselineY, size, font, color });
+    };
+
+    // Helper to draw centered text in dotted line range
+    const drawCenteredInRange = (
+      text: string,
+      startX: number,
+      endX: number,
+      baselineY: number,
+      fontSize: number,
+      maxW: number,
+      color: any
+    ) => {
+      if (!text) return;
+      let size = fontSize;
+      const availableW = endX - startX;
+      if (maxW && (font as any).widthOfTextAtSize) {
+        const isDevanagari = /[^\u0000-\u007F]/.test(text);
+        let textW = (font as any).widthOfTextAtSize(text, size) * (isDevanagari ? 1.25 : 1.0);
+        if (textW > maxW) {
+          size = Math.max(6.0, size * (maxW / textW));
+          textW = (font as any).widthOfTextAtSize(text, size) * (isDevanagari ? 1.25 : 1.0);
+        }
+        const x = startX + Math.max(0, (availableW - textW) / 2);
+        firstPage.drawText(text, { x, y: baselineY, size, font, color });
+      } else {
+        firstPage.drawText(text, { x: startX + 4, y: baselineY, size, font, color });
+      }
+    };
+
+    // ── 1. Top Header Boxes (Centered horizontally in blue boxes) ──
+    // फॉर्म नं. Box 1: x: 121.67, w: 89.0, centered BL y = 695.0
+    drawCenteredInBox(offlineFormNumber, 121.67, 89.0, 695.0, 11.0, navyColor);
+    // एजेन्ट कोड Box 2: x: 121.67, w: 89.0, centered BL y = 669.2
+    drawCenteredInBox(workerOffline, 121.67, 89.0, 669.2, 11.0, navyColor);
+    // अपलाईन कोड Box 3: x: 121.67, w: 89.0, centered BL y = 643.5
+    drawCenteredInBox(seniorOffline, 121.67, 89.0, 643.5, 11.0, navyColor);
+    // आवेदन दि. Box 4: x: 463.33, w: 89.0, centered BL y = 694.5
+    drawCenteredInBox(applicationDate, 463.33, 89.0, 694.5, 10.5, darkColor);
+    // सदस्यता क्र. Box 5: x: 463.33, w: 89.0, centered BL y = 663.2
+    drawCenteredInBox(membershipNumber, 463.33, 89.0, 663.2, 10.5, navyColor);
+
+    // ── 2. Left Column Fields (gap = 6.0 pt from label right edge, calibrated vertical alignment) ──
+    // Optical micro-calibration: NotoSansDevanagari-SemiBold optical bounding box sits ~1.8pt lower
+    // than the template's KrutiDev vector glyphs when drawn at identical nominal font baseline.
+    // Adding +1.8pt (+Y in PDF space) elevates dynamic text to perfectly align its visual center and baseline.
+    const gap = 6.0;
+    const labelSize = 10.5;
+    const VERTICAL_OFFSET = 1.8;
+
+    // नाम :- (rightX: 74.87, y: 615.61)
+    drawBounded(applicantName, 74.87 + gap, 615.61 + VERTICAL_OFFSET, labelSize, 165.0, darkColor);
+    // पिता/पति का नाम :- (rightX: 139.16, y: 588.95)
+    drawBounded(fatherName, 139.16 + gap, 588.95 + VERTICAL_OFFSET, labelSize, 105.0, darkColor);
+    // आधार नं. :- (rightX: 99.67, y: 562.30)
+    drawBounded(aadharNumber, 99.67 + gap, 562.30 + VERTICAL_OFFSET, labelSize, 144.0, darkColor);
+    // जाति :- (rightX: 79.63, y: 535.64)
+    drawBounded(caste, 79.63 + gap, 535.64 + VERTICAL_OFFSET, labelSize, 164.0, darkColor);
+    // सम्बन्ध :- (rightX: 89.21, y: 508.98)
+    drawBounded(nomineeRelation, 89.21 + gap, 508.98 + VERTICAL_OFFSET, labelSize, 154.0, darkColor);
+    // गांव :- (rightX: 75.46, y: 482.33)
+    drawBounded(village, 75.46 + gap, 482.33 + VERTICAL_OFFSET, labelSize, 168.0, darkColor);
+
+    // ── 3. Center Column Fields (gap = 6.0 pt from label right edge, calibrated vertical alignment) ──
+    // Center column boundary ends strictly before x: 455.0 (photo box starts at 470.50)
+    // नॉमिनी नाम :- (rightX: 339.38, y: 611.69)
+    drawBounded(nomineeName, 339.38 + gap, 611.69 + VERTICAL_OFFSET, labelSize, 108.0, darkColor);
+    // नॉमिनी आधार नं. :- (rightX: 364.18, y: 586.10)
+    drawBounded(nomineeAadhar, 364.18 + gap, 586.10 + VERTICAL_OFFSET, labelSize, 84.0, darkColor);
+    // नॉमिनी मो. नं. (rightX: 337.39, y: 560.52)
+    drawBounded(nomineeMobile, 337.39 + gap, 560.52 + VERTICAL_OFFSET, labelSize, 110.0, darkColor);
+    // एजेन्ट मो. नं. :- (rightX: 344.53, y: 534.93)
+    drawBounded(agentMobile, 344.53 + gap, 534.93 + VERTICAL_OFFSET, labelSize, 104.0, darkColor);
+    // जिला :- (rightX: 312.56, y: 509.34)
+    drawBounded(district, 312.56 + gap, 509.34 + VERTICAL_OFFSET, labelSize, 136.0, darkColor);
+    // राज्य :- (rightX: 308.95, y: 483.75)
+    drawBounded(state, 308.95 + gap, 483.75 + VERTICAL_OFFSET, labelSize, 140.0, darkColor);
+
+    // ── 4. Bottom Clauses ──
+    // ढूंढ [ 5,100/- ] रूपये प्रत्येक ढूंढ पर लागू
+    // Dotted space from 219.27 to 290.34, baseline y: 463.89
+    drawCenteredInRange(amount, 219.27, 290.34, 463.89 + VERTICAL_OFFSET, labelSize, 68.0, navyColor);
+
+    // इस योजना का लाभ [ बारह महीने ] के बाद मिलेगा ।
+    // Dotted space from 276.56 to 344.35, baseline y: 443.76
+    drawCenteredInRange(duration, 276.56, 344.35, 443.76 + VERTICAL_OFFSET, labelSize, 65.0, redColor);
 
     const pdfBytes = await pdfDoc.save();
     const filename = `dhundhotsav_bond_${offlineFormNumber || record.formNumber || 'bond'}.pdf`;

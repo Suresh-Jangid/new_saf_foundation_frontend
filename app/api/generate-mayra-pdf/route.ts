@@ -50,9 +50,23 @@ export async function POST(request: NextRequest) {
       record?.nominee_photo,
     );
 
-    const primaryTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'mayra_application', 'mayra_form.pdf');
-    const fallbackTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'mayra', 'mayra_registration_form.pdf');
-    const templatePath = fs.existsSync(primaryTemplatePath) ? primaryTemplatePath : fallbackTemplatePath;
+    const masterTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'master', 'common_application_form.pdf');
+    if (!fs.existsSync(masterTemplatePath)) {
+      const canonicalSource = path.join(process.cwd(), 'public', 'pdf', 'mayra_application', 'mayra_form.pdf');
+      if (fs.existsSync(canonicalSource)) {
+        const masterDir = path.dirname(masterTemplatePath);
+        if (!fs.existsSync(masterDir)) fs.mkdirSync(masterDir, { recursive: true });
+        fs.copyFileSync(canonicalSource, masterTemplatePath);
+      }
+    }
+
+    const fallbackTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'mayra_application', 'mayra_form.pdf');
+    const legacyFallbackPath = path.join(process.cwd(), 'public', 'pdf', 'mayra', 'mayra_registration_form.pdf');
+    const templatePath = fs.existsSync(masterTemplatePath)
+      ? masterTemplatePath
+      : fs.existsSync(fallbackTemplatePath)
+      ? fallbackTemplatePath
+      : legacyFallbackPath;
 
     if (!fs.existsSync(templatePath)) {
       return NextResponse.json({ error: 'PDF template not found on server' }, { status: 500 });

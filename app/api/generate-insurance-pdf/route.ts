@@ -42,13 +42,22 @@ export async function POST(request: NextRequest) {
       record?.photo
     );
 
-    const primaryTemplatePath = path.join(
+    const masterTemplatePath = path.join(
       process.cwd(),
       'public',
       'pdf',
-      'general_insurance_application',
-      'insurance_application_official_template.pdf'
+      'master',
+      'common_application_form.pdf'
     );
+    if (!fs.existsSync(masterTemplatePath)) {
+      const canonicalSource = path.join(process.cwd(), 'public', 'pdf', 'general_insurance_application', 'parivar_kalyan_form.pdf');
+      if (fs.existsSync(canonicalSource)) {
+        const masterDir = path.dirname(masterTemplatePath);
+        if (!fs.existsSync(masterDir)) fs.mkdirSync(masterDir, { recursive: true });
+        fs.copyFileSync(canonicalSource, masterTemplatePath);
+      }
+    }
+
     const fallbackTemplatePath = path.join(
       process.cwd(),
       'public',
@@ -56,7 +65,7 @@ export async function POST(request: NextRequest) {
       'general_insurance_application',
       'parivar_kalyan_form.pdf'
     );
-    const templatePath = fs.existsSync(primaryTemplatePath) ? primaryTemplatePath : fallbackTemplatePath;
+    const templatePath = fs.existsSync(masterTemplatePath) ? masterTemplatePath : fallbackTemplatePath;
 
     if (!fs.existsSync(templatePath)) {
       return NextResponse.json({ error: 'Insurance PDF template not found on server' }, { status: 500 });

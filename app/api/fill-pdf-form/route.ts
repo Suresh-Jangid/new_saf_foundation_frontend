@@ -37,17 +37,30 @@ export async function POST(request: NextRequest) {
     console.log('Type:', type);
     console.log('Image data received:', !!imageData);
 
+    // Canonical Master PDF template path
+    const masterTemplatePath = path.join(process.cwd(), 'public', 'pdf', 'master', 'common_application_form.pdf');
+    if (!fs.existsSync(masterTemplatePath)) {
+      const canonicalSource = path.join(process.cwd(), 'public', 'pdf', 'general_application', 'Saf_general_form.pdf');
+      if (fs.existsSync(canonicalSource)) {
+        const masterDir = path.dirname(masterTemplatePath);
+        if (!fs.existsSync(masterDir)) fs.mkdirSync(masterDir, { recursive: true });
+        fs.copyFileSync(canonicalSource, masterTemplatePath);
+      }
+    }
+
     // Determine template path based on type
     let templatePath: string;
     
     if (type === 'dhundhotsav' || type === 'dhundhotsav-application') {
       const candidateTemplates = [
+        masterTemplatePath,
         path.join(process.cwd(), 'public', 'pdf', 'dhundhotsav', 'Saf_dhundh_form.pdf'),
       ];
       templatePath = candidateTemplates.find((p) => fs.existsSync(p)) || '';
     } else if (type === 'general-application') {
-      // Use the newly approved unified General Application form template
+      // Use the canonical master application form template
       const candidateTemplates = [
+        masterTemplatePath,
         path.join(process.cwd(), 'public', 'pdf', 'general_application', 'Saf_general_form.pdf'),
         path.join(process.cwd(), 'public', 'pdf', 'general_application', 'general_application_form.pdf'),
         path.join(process.cwd(), 'public', 'pdf', 'general_application', '3 (general form).pdf'),

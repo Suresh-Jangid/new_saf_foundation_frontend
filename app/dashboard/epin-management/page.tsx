@@ -31,6 +31,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { EpinRecord, EpinState, EpinSummaryCounts } from "@/lib/config-types";
 import { EpinService } from "@/lib/epin-service";
 import { EpinBadge } from "@/components/config/epin-badge";
@@ -54,7 +60,89 @@ import {
   AlertCircle,
   CheckCircle2,
   ShieldCheck,
+  Copy,
+  Check,
 } from "lucide-react";
+
+interface EpinCopyButtonProps {
+  pin: string;
+}
+
+function EpinCopyButton({ pin }: EpinCopyButtonProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!pin) return;
+
+    let copySucceeded = false;
+
+    // 1. Try modern clipboard API
+    if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(pin);
+        copySucceeded = true;
+      } catch (clipErr) {
+        console.warn("navigator.clipboard.writeText failed, falling back to execCommand:", clipErr);
+      }
+    }
+
+    // 2. If clipboard API is unavailable OR writeText() rejects/fails, attempt textarea + execCommand fallback
+    if (!copySucceeded) {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = pin;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand("copy");
+        document.body.removeChild(textArea);
+        if (successful) {
+          copySucceeded = true;
+        }
+      } catch (fallbackErr) {
+        console.warn("execCommand fallback failed:", fallbackErr);
+      }
+    }
+
+    // 3. Only show "E-PIN copy failed" if BOTH methods fail
+    if (copySucceeded) {
+      setCopied(true);
+      toast.success("E-PIN copied successfully");
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } else {
+      toast.error("E-PIN copy failed");
+    }
+  };
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="inline-flex items-center justify-center p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50"
+          aria-label={`Copy E-PIN ${pin}`}
+        >
+          {copied ? (
+            <Check className="h-3.5 w-3.5 text-emerald-600" />
+          ) : (
+            <Copy className="h-3.5 w-3.5" />
+          )}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="text-xs">
+        {copied ? "Copied!" : "Copy E-PIN"}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 export default function EpinManagementPage() {
   const adminMode = isAdmin();
@@ -342,7 +430,8 @@ export default function EpinManagementPage() {
 
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <Table>
+              <TooltipProvider delayDuration={200}>
+                <Table>
                 <TableHeader>
                   <TableRow>
                     {adminMode && (
@@ -420,6 +509,7 @@ export default function EpinManagementPage() {
                           <TableCell>
                             <div className="font-mono font-semibold text-xs flex items-center gap-1.5">
                               <span>{record.pinNumber}</span>
+                              <EpinCopyButton pin={record.pinNumber} />
                               {record.batchNumber && (
                                 <Badge variant="outline" className="text-[10px] py-0 px-1 font-mono font-normal">
                                   {record.batchNumber}
@@ -545,8 +635,9 @@ export default function EpinManagementPage() {
                   )}
                 </TableBody>
               </Table>
-            </div>
-          </CardContent>
+            </TooltipProvider>
+          </div>
+        </CardContent>
         </Card>
       </div>
 

@@ -1,5 +1,7 @@
+import 'regenerator-runtime/runtime';
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
@@ -65,22 +67,102 @@ function formatAadhaarNumber(val: any): string {
   return String(val).trim();
 }
 
+const DISTRICT_PREFIX_REGEXES = [
+  /^जिला[\s:-]*/i,
+  /^district[\s:-]*/i,
+  /^dist\.?[\s:-]*/i,
+];
+
+const TEHSIL_PREFIX_REGEXES = [
+  /^तहसील[\s:-]*/i,
+  /^tehsil[\s:-]*/i,
+  /^teh\.?[\s:-]*/i,
+];
+
+const VILLAGE_PREFIX_REGEXES = [
+  /^ग्राम[\s:-]*/i,
+  /^गांव[\s:-]*/i,
+  /^village[\s:-]*/i,
+  /^vill\.?[\s:-]*/i,
+];
+
+function cleanPrefix(val: string, prefixes: RegExp[]): string {
+  let str = (val || '').trim();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const rx of prefixes) {
+      if (rx.test(str)) {
+        str = str.replace(rx, '').trim();
+        changed = true;
+      }
+    }
+  }
+  return str;
+}
+
 function formatFullAddress(rec: any): string {
   const parts: string[] = [];
-  const rawAddr = rec?.address || rec?.agentProfile?.address || '';
-  if (rawAddr) parts.push(rawAddr.trim());
-  const village = rec?.village || rec?.agentProfile?.village || '';
-  if (village && !parts.some((p) => p.toLowerCase().includes(village.toLowerCase()))) {
-    parts.push(`ग्राम- ${village.trim()}`);
+  const rawAddress = (
+    rec?.address ||
+    rec?.agentProfile?.address ||
+    rec?.agent_profile?.address ||
+    ''
+  ).trim();
+  const rawVillage = (
+    rec?.village ||
+    rec?.agentProfile?.village ||
+    rec?.agent_profile?.village ||
+    ''
+  ).trim();
+  const cleanVillage = cleanPrefix(rawVillage, VILLAGE_PREFIX_REGEXES);
+  const rawTehsil = (
+    rec?.tehsil ||
+    rec?.agentProfile?.tehsil ||
+    rec?.agent_profile?.tehsil ||
+    ''
+  ).trim();
+  const cleanTehsil = cleanPrefix(rawTehsil, TEHSIL_PREFIX_REGEXES);
+  const rawDistrict = (
+    rec?.district ||
+    rec?.agentProfile?.district ||
+    rec?.agent_profile?.district ||
+    ''
+  ).trim();
+  const cleanDistrict = cleanPrefix(rawDistrict, DISTRICT_PREFIX_REGEXES);
+
+  if (rawAddress) {
+    parts.push(rawAddress);
   }
-  const tehsil = rec?.tehsil || rec?.agentProfile?.tehsil || '';
-  if (tehsil && !parts.some((p) => p.toLowerCase().includes(tehsil.toLowerCase()))) {
-    parts.push(`तहसील- ${tehsil.trim()}`);
+
+  if (cleanVillage) {
+    const lowerAddr = rawAddress.toLowerCase();
+    const lowerVill = cleanVillage.toLowerCase();
+    if (!lowerAddr.includes(lowerVill)) {
+      parts.push(`ग्राम- ${cleanVillage}`);
+    }
   }
-  const district = rec?.district || rec?.agentProfile?.district || '';
-  if (district && !parts.some((p) => p.toLowerCase().includes(district.toLowerCase()))) {
-    parts.push(`जिला- ${district.trim()}`);
+
+  if (cleanTehsil) {
+    const hasTehsilLabel =
+      rawAddress &&
+      /(?:तहसील|tehsil|teh[\s.:-])/i.test(rawAddress) &&
+      rawAddress.toLowerCase().includes(cleanTehsil.toLowerCase());
+    if (!hasTehsilLabel) {
+      parts.push(`तहसील- ${cleanTehsil}`);
+    }
   }
+
+  if (cleanDistrict) {
+    const hasDistrictLabel =
+      rawAddress &&
+      /(?:जिला|district|dist[\s.:-])/i.test(rawAddress) &&
+      rawAddress.toLowerCase().includes(cleanDistrict.toLowerCase());
+    if (!hasDistrictLabel) {
+      parts.push(`जिला- ${cleanDistrict}`);
+    }
+  }
+
   return parts.join(', ');
 }
 
@@ -113,11 +195,6 @@ export async function POST(request: NextRequest) {
     // Register fontkit to allow embedding TTF fonts
     let fontkitAvailable = false;
     try {
-      try {
-        await import('regenerator-runtime/runtime');
-      } catch {}
-      const fontkitModule: any = await import('@pdf-lib/fontkit');
-      const fontkit = fontkitModule?.default ?? fontkitModule;
       if (fontkit) {
         (pdfDoc as any).registerFontkit(fontkit);
         fontkitAvailable = true;
@@ -195,6 +272,53 @@ export async function POST(request: NextRequest) {
     if (devanagariFontPath && fontkitAvailable) {
       const customFontBytes = fs.readFileSync(devanagariFontPath);
       font = await pdfDoc.embedFont(customFontBytes as any, { subset: false });
+
+      // Patch computeWidths so all glyphs (including Devanagari ligatures and matra variants) have proper advance widths in /W
+      if ((font as any).embedder && typeof (font as any).embedder.computeWidths === 'function') {
+        const embedder = (font as any).embedder;
+        embedder.computeWidths = function () {
+          const widths: any[] = [0];
+          const section: number[] = [];
+          const numGlyphs = this.font.numGlyphs || 0;
+          for (let id = 0; id < numGlyphs; id++) {
+            const g = this.font.getGlyph(id);
+            section.push(g.advanceWidth * this.scale);
+          }
+          widths.push(section);
+          return widths;
+        };
+
+        // Patch encodeText and widthOfTextAtSize to segment mixed Latin & Devanagari runs
+        const origEncode = embedder.encodeText.bind(embedder);
+        const origWidth = embedder.widthOfTextAtSize.bind(embedder);
+        const PDFHexString = Object.getPrototypeOf(origEncode(' ')).constructor;
+
+        const layoutRuns = (emb: any, text: string) => {
+          const runs = text.split(/([\u0900-\u097F]+)/g).filter(Boolean);
+          const glyphs: any[] = [];
+          for (const run of runs) {
+            const isDeva = /[\u0900-\u097F]/.test(run);
+            const glyphRun = emb.font.layout(run, emb.fontFeatures, isDeva ? 'deva' : undefined);
+            glyphs.push(...glyphRun.glyphs);
+          }
+          return glyphs;
+        };
+
+        embedder.encodeText = function (text: string) {
+          if (!/[\u0900-\u097F]/.test(text)) return origEncode(text);
+          const glyphs = layoutRuns(this, text);
+          const hex = glyphs.map((g: any) => g.id.toString(16).padStart(4, '0')).join('');
+          return PDFHexString.of(hex);
+        };
+
+        embedder.widthOfTextAtSize = function (text: string, size: number) {
+          if (!/[\u0900-\u097F]/.test(text)) return origWidth(text, size);
+          const glyphs = layoutRuns(this, text);
+          let totalWidth = 0;
+          for (const g of glyphs) totalWidth += g.advanceWidth * this.scale;
+          return totalWidth * (size / 1000);
+        };
+      }
     } else {
       const containsHindi = Object.values(record ?? {}).some((v) => /[\u0900-\u097F]/.test(String(v)));
       if (containsHindi) {

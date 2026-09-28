@@ -63,6 +63,7 @@ import { JanniDeliveryService, JanniDeliveryRegistration } from "@/lib/janni-del
 import { formatDate } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { agentRegistrationAPI } from "@/lib/api";
+import { PdfActionButton } from "@/components/pdf-action-button";
 
 interface ResolvedAgentOfflineNumbers {
   workerOfflineFormNumber: string;
@@ -795,21 +796,11 @@ export default function JanniDeliveryListPage() {
       render: (_: unknown, row: JanniDeliveryRegistration) => (
         <TooltipProvider>
           <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handleGeneratePDFForm(row)}
-                >
-                  <FileText className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Generate PDF Form</p>
-              </TooltipContent>
-            </Tooltip>
+            <PdfActionButton
+              type="form"
+              className="h-8 w-8 p-0"
+              onClick={() => handleGeneratePDFForm(row)}
+            />
 
             <Tooltip>
               <TooltipTrigger asChild>
@@ -827,21 +818,11 @@ export default function JanniDeliveryListPage() {
               </TooltipContent>
             </Tooltip>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handleGenerateBond(row)}
-                >
-                  <FileText className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Generate Bond PDF</p>
-              </TooltipContent>
-            </Tooltip>
+            <PdfActionButton
+              type="bond"
+              className="h-8 w-8 p-0"
+              onClick={() => handleGenerateBond(row)}
+            />
 
             <Tooltip>
               <TooltipTrigger asChild>

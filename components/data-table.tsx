@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { formatDate } from "@/lib/utils"
 import { usePermissions } from "@/hooks/use-permissions"
 import { usePathname } from "next/navigation"
+import { PdfActionButton } from "@/components/pdf-action-button"
 
 // Remembers the active page per listing (keyed by route + title) so the table
 // stays on the same page across data refreshes/remounts — e.g. after a delete
@@ -335,22 +336,13 @@ export function DataTable<T extends { id: string }>({
                                 </Tooltip>
                               )}
                               {onGeneratePDFForm && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => onGeneratePDFForm(record)}
-                                      className="w-full sm:w-auto"
-                                    >
-                                      <FileText className="w-4 h-4" />
-                                      <span className="ml-1 sm:hidden">{pdfFormButtonLabel}</span>
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{pdfFormButtonTooltip}</p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                <PdfActionButton
+                                  type="form"
+                                  onClick={() => onGeneratePDFForm(record)}
+                                  className="w-full sm:w-auto"
+                                  label={pdfFormButtonLabel}
+                                  tooltip={pdfFormButtonTooltip}
+                                />
                               )}
                               {onGenerateCertificate && (
                                 <Tooltip>
@@ -371,22 +363,13 @@ export function DataTable<T extends { id: string }>({
                                 </Tooltip>
                               )}
                               {onGenerateApplicationForm && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => onGenerateApplicationForm(record)}
-                                      className="w-full sm:w-auto"
-                                    >
-                                      <FileText className="w-4 h-4" />
-                                      <span className="ml-1 sm:hidden">{applicationFormButtonLabel}</span>
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{applicationFormButtonTooltip}</p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                <PdfActionButton
+                                  type="form"
+                                  onClick={() => onGenerateApplicationForm(record)}
+                                  className="w-full sm:w-auto"
+                                  label={applicationFormButtonLabel}
+                                  tooltip={applicationFormButtonTooltip}
+                                />
                               )}
                               {onGenerateAdikartForm && (
                                 <Tooltip>
@@ -415,22 +398,13 @@ export function DataTable<T extends { id: string }>({
                                 </Link>
                               )}
                               {onGenerateBond && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => onGenerateBond(record)}
-                                      className="w-full sm:w-auto"
-                                    >
-                                      <FileText className="w-4 h-4" />
-                                      <span className="ml-1 sm:hidden">Bond</span>
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Generate Bond PDF</p>
-                                  </TooltipContent>
-                                </Tooltip>
+                                <PdfActionButton
+                                  type="bond"
+                                  onClick={() => onGenerateBond(record)}
+                                  className="w-full sm:w-auto"
+                                  label="Bond"
+                                  tooltip="Generate Bond PDF"
+                                />
                               )}
                               {shouldShowDeleteButton && (
                                 <Button

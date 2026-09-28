@@ -26,6 +26,7 @@ import { RoleGuard } from "@/components/role-guard";
 import { LadoBahinService, LadoBahinRegistration } from "@/lib/lado-bahin-service";
 import { formatDate, getPhotoDataUrl } from "@/lib/utils";
 import * as XLSX from "xlsx";
+import { PdfActionButton } from "@/components/pdf-action-button";
 
 interface Column<T> {
   key: keyof T | string;
@@ -309,21 +310,11 @@ export default function LadoBahinListPage() {
         <TooltipProvider>
           <div className="flex items-center gap-1">
             {/* 1. Generate PDF Form */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handleGeneratePDFForm(row)}
-                >
-                  <FileText className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Generate PDF Form</p>
-              </TooltipContent>
-            </Tooltip>
+            <PdfActionButton
+              type="form"
+              className="h-8 w-8 p-0"
+              onClick={() => handleGeneratePDFForm(row)}
+            />
 
             {/* 2. Edit */}
             <Tooltip>
@@ -343,21 +334,11 @@ export default function LadoBahinListPage() {
             </Tooltip>
 
             {/* 3. Generate PDF Bond */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 w-8 p-0"
-                  onClick={() => handleGenerateBond(row)}
-                >
-                  <FileText className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Generate Bond PDF</p>
-              </TooltipContent>
-            </Tooltip>
+            <PdfActionButton
+              type="bond"
+              className="h-8 w-8 p-0"
+              onClick={() => handleGenerateBond(row)}
+            />
 
             {/* 4. Delete */}
             <Tooltip>

@@ -59,6 +59,7 @@ import {
 import { formatDate, getPhotoDataUrl, calculateAge } from "@/lib/utils";
 import { isAdmin } from "@/lib/permissions";
 import { agentRegistrationAPI } from "@/lib/api";
+import { PdfActionButton } from "@/components/pdf-action-button";
 
 interface ResolvedAgentOfflineNumbers {
   workerOfflineFormNumber: string;
@@ -996,22 +997,12 @@ export default function DhundhotsavListPage() {
                               <TooltipProvider>
                                 <div className="flex flex-col sm:flex-row gap-1">
                                   {/* 1. Generate PDF Form */}
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleGeneratePDFForm(reg)}
-                                        className="w-full sm:w-auto"
-                                      >
-                                        <FileText className="w-4 h-4" />
-                                        <span className="ml-1 sm:hidden">PDF Form</span>
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Generate PDF Form</p>
-                                    </TooltipContent>
-                                  </Tooltip>
+                                  <PdfActionButton
+                                    type="form"
+                                    onClick={() => handleGeneratePDFForm(reg)}
+                                    className="w-full sm:w-auto"
+                                    label="PDF Form"
+                                  />
 
                                   {/* 2. Edit */}
                                   <Tooltip>
@@ -1033,22 +1024,13 @@ export default function DhundhotsavListPage() {
                                   </Tooltip>
 
                                   {/* 3. Generate Bond PDF */}
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleGenerateBond(reg)}
-                                        className="w-full sm:w-auto"
-                                      >
-                                        <FileText className="w-4 h-4" />
-                                        <span className="ml-1 sm:hidden">Bond</span>
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Generate Bond PDF</p>
-                                    </TooltipContent>
-                                  </Tooltip>
+                                  <PdfActionButton
+                                    type="bond"
+                                    onClick={() => handleGenerateBond(reg)}
+                                    className="w-full sm:w-auto"
+                                    label="Bond"
+                                    tooltip="Generate Bond PDF"
+                                  />
 
                                   {/* 4. Delete (Admin only) */}
                                   {isAdmin() && (

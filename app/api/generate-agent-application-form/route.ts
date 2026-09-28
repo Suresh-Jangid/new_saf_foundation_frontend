@@ -18,6 +18,72 @@ export async function OPTIONS(request: NextRequest) {
   });
 }
 
+function sanitizeOfflineNumber(val: any): string {
+  if (!val) return '';
+  const str = String(val).trim();
+  const upper = str.toUpperCase();
+  if (
+    upper.startsWith('EMP-') ||
+    upper.startsWith('EMP_') ||
+    upper.startsWith('DH-') ||
+    upper.startsWith('DH_') ||
+    upper === 'EMP' ||
+    upper === 'ADMIN' ||
+    upper === 'SUPER ADMIN' ||
+    upper === 'N/A' ||
+    upper === 'NA' ||
+    upper === 'NULL' ||
+    upper === 'UNDEFINED' ||
+    upper === 'UUID' ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str)
+  ) {
+    return '';
+  }
+  return str;
+}
+
+function formatDisplayDate(val: any): string {
+  if (!val) return '';
+  const str = String(val).trim();
+  if (!str) return '';
+  if (/^\d{2}[-/]\d{2}[-/]\d{4}$/.test(str)) {
+    return str.replace(/\//g, '-');
+  }
+  const m = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+  if (m) {
+    return `${m[3]}-${m[2]}-${m[1]}`;
+  }
+  return formatDateToDDMMYYYY(str) || str;
+}
+
+function formatAadhaarNumber(val: any): string {
+  if (!val) return '';
+  const clean = String(val).replace(/\s+/g, '').trim();
+  if (/^\d{12}$/.test(clean)) {
+    return `${clean.slice(0, 4)} ${clean.slice(4, 8)} ${clean.slice(8, 12)}`;
+  }
+  return String(val).trim();
+}
+
+function formatFullAddress(rec: any): string {
+  const parts: string[] = [];
+  const rawAddr = rec?.address || rec?.agentProfile?.address || '';
+  if (rawAddr) parts.push(rawAddr.trim());
+  const village = rec?.village || rec?.agentProfile?.village || '';
+  if (village && !parts.some((p) => p.toLowerCase().includes(village.toLowerCase()))) {
+    parts.push(`ग्राम- ${village.trim()}`);
+  }
+  const tehsil = rec?.tehsil || rec?.agentProfile?.tehsil || '';
+  if (tehsil && !parts.some((p) => p.toLowerCase().includes(tehsil.toLowerCase()))) {
+    parts.push(`तहसील- ${tehsil.trim()}`);
+  }
+  const district = rec?.district || rec?.agentProfile?.district || '';
+  if (district && !parts.some((p) => p.toLowerCase().includes(district.toLowerCase()))) {
+    parts.push(`जिला- ${district.trim()}`);
+  }
+  return parts.join(', ');
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { 
@@ -26,11 +92,8 @@ export async function POST(request: NextRequest) {
       debug,
       offsetX,
       offsetY,
-      coordSystem,        // 'bottom-left' | 'top-left'
       valueOffsetX: reqValueOffsetX,
       valueOffsetY: reqValueOffsetY,
-      baseWidth,
-      baseHeight,
     } = await request.json();
 
     console.log('Received record for agent application form PDF:', record);
@@ -42,8 +105,6 @@ export async function POST(request: NextRequest) {
     if (!fs.existsSync(templatePath)) {
       throw new Error(`Agent application form template not found: ${templatePath}`);
     }
-
-    console.log('Using agent application form template:', templatePath);
 
     // Load existing PDF template
     const existingPdfBytes = fs.readFileSync(templatePath);
@@ -67,157 +128,315 @@ export async function POST(request: NextRequest) {
 
     const pages = pdfDoc.getPages();
     const firstPage = pages[0];
-    
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
     // Handle image embedding if imageData or profile_image is provided
-    const imageToUse = imageData || record?.profile_image;
+    const imageToUse =
+      imageData ||
+      record?.profile_image ||
+      record?.profileImageUrl ||
+      record?.agentProfile?.profileImageUrl ||
+      record?.agentProfile?.profile_image;
+
     if (imageToUse) {
       try {
-        console.log('Processing image data:', typeof imageToUse, imageToUse.substring(0, 50) + '...');
-        
-        let imageBytes: Uint8Array;
+        let imageBytes: Uint8Array | null = null;
         
         // Check if it's a URL or base64 data
-        if (imageToUse.startsWith('http://') || imageToUse.startsWith('https://')) {
-          // It's a URL, fetch the image
-          console.log('Fetching image from URL:', imageToUse);
+        if (typeof imageToUse === 'string' && (imageToUse.startsWith('http://') || imageToUse.startsWith('https://'))) {
           const response = await fetch(imageToUse);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            imageBytes = new Uint8Array(arrayBuffer);
           }
-          const arrayBuffer = await response.arrayBuffer();
-          imageBytes = new Uint8Array(arrayBuffer);
-          console.log('Fetched image bytes length:', imageBytes.length);
-        } else if (imageToUse.startsWith('data:')) {
-          // It's base64 data
-          console.log('Processing base64 image data');
+        } else if (typeof imageToUse === 'string' && imageToUse.startsWith('data:')) {
           const base64Data = imageToUse.replace(/^data:image\/[a-z]+;base64,/, '');
-          imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-          console.log('Base64 image bytes length:', imageBytes.length);
-        } else {
-          console.warn('Unsupported image format, skipping image embedding');
-          return;
+          imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
         }
-        
-        // Determine image type and embed
-        let image;
-        try {
-          // Try PNG first
-          image = await pdfDoc.embedPng(imageBytes);
-          console.log('Embedded PNG image:', image.width, 'x', image.height);
-        } catch (pngError) {
+
+        if (imageBytes) {
+          let image;
           try {
-            // Try JPEG if PNG fails
-            image = await pdfDoc.embedJpg(imageBytes);
-            console.log('Embedded JPEG image:', image.width, 'x', image.height);
-          } catch (jpegError) {
-            console.error('Failed to embed image as PNG or JPEG:', pngError, jpegError);
-            return;
+            image = await pdfDoc.embedPng(imageBytes);
+          } catch {
+            try {
+              image = await pdfDoc.embedJpg(imageBytes);
+            } catch (imgErr) {
+              console.warn('Failed to embed image as PNG or JPEG:', imgErr);
+            }
           }
-        }
 
-        if (image) {
-          // Use the standard image configuration from fill-pdf-form
-          const imageX = 483; // X position for photo
-          const imageY = 265; // Y position for photo
-          const imageWidth = 85; // Width of the photo
-          const imageHeight = 98; // Height of the photo
-
-          // Draw the image on the PDF using bottom-left coordinate system
-          firstPage.drawImage(image, {
-            x: imageX,
-            y: pageHeight - imageY - imageHeight, // Convert to bottom-left coordinate system
-            width: imageWidth,
-            height: imageHeight,
-          });
-
-          console.log('Image embedded successfully in application form');
+          if (image) {
+            // Designated photo box in template: BL x=452.8..557.8, y=510.7..631.9 (w=105, h=121.2)
+            // Placing image neatly inside photo box with padding
+            firstPage.drawImage(image, {
+              x: 455.0,
+              y: 513.0,
+              width: 100.5,
+              height: 116.5,
+            });
+            console.log('Image embedded successfully in application form photo box');
+          }
         }
       } catch (error) {
-        console.error('Error embedding image:', error);
+        console.warn('Non-fatal error embedding image:', error);
       }
     }
 
     // Load Devanagari font for Hindi text
     const fontCandidates = [
+      path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-SemiBold.ttf'),
       path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf'),
       path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Bold.ttf'),
     ];
 
     let font;
     const devanagariFontPath = fontCandidates.find((p) => fs.existsSync(p));
-    if (devanagariFontPath) {
-      if (!fontkitAvailable) {
-        throw new Error('Devanagari font found but fontkit is not installed. Run npm i @pdf-lib/fontkit and try again.');
-      }
+    if (devanagariFontPath && fontkitAvailable) {
       const customFontBytes = fs.readFileSync(devanagariFontPath);
-      font = await pdfDoc.embedFont(customFontBytes as any, { subset: true });
+      font = await pdfDoc.embedFont(customFontBytes as any, { subset: false });
     } else {
-      // Check if there's Hindi text in the record
       const containsHindi = Object.values(record ?? {}).some((v) => /[\u0900-\u097F]/.test(String(v)));
       if (containsHindi) {
-        throw new Error('Hindi text detected but no Devanagari TTF font found. Place a font like public/fonts/NotoSansDevanagari-Regular.ttf.');
+        throw new Error('Hindi text detected but no Devanagari TTF font found. Place a font like public/fonts/NotoSansDevanagari-SemiBold.ttf.');
       }
       font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     }
 
-    // Configuration for coordinate system and scaling
-    const debugMode: boolean = Boolean(debug);
-    const globalOffsetX: number = typeof offsetX === 'number' ? offsetX : 0;
-    const globalOffsetY: number = typeof offsetY === 'number' ? offsetY : 0;
-    // Default to top-left which usually matches how template coordinates are measured visually
-    const coordinateSystem: 'bottom-left' | 'top-left' =
-      coordSystem === 'bottom-left' ? 'bottom-left' : 'top-left';
+    // Resolve Agent Code strictly using Offline Form Number
+    const rawAgentOffline =
+      record?.offlineFormNumber ||
+      record?.offline_form_number ||
+      record?.agentOfflineFormNumber ||
+      record?.agent_offline_form_number ||
+      record?.workerOffline ||
+      record?.worker_offline ||
+      record?.agentProfile?.offlineFormNumber ||
+      record?.agentProfile?.offline_form_number ||
+      record?.agent_profile?.offline_form_number ||
+      (record?.agentCode && !String(record.agentCode).toUpperCase().startsWith('EMP-') ? record.agentCode : '') ||
+      '';
+    const agentCodeDisplay = sanitizeOfflineNumber(rawAgentOffline);
 
-    // Scale factors if coordinates were measured on a different base size
-    const baseW: number = typeof baseWidth === 'number' && baseWidth > 0 ? baseWidth : 595; // A4 width (pt)
-    const baseH: number = typeof baseHeight === 'number' && baseHeight > 0 ? baseHeight : 842; // A4 height (pt)
-    const scaleX = pageWidth / baseW;
-    const scaleY = pageHeight / baseH;
+    // Resolve Senior Code strictly using Senior Agent Offline Form Number
+    const rawSeniorOffline =
+      record?.seniorOfflineFormNumber ||
+      record?.senior_offline_form_number ||
+      record?.parentOfflineFormNumber ||
+      record?.parent_offline_form_number ||
+      record?.seniorOffline ||
+      record?.senior_offline ||
+      record?.agentProfile?.seniorOfflineFormNumber ||
+      record?.agentProfile?.senior_offline_form_number ||
+      record?.agentProfile?.parentOfflineFormNumber ||
+      record?.hierarchy?.parentOfflineFormNumber ||
+      (record?.seniorCode && record.seniorCode !== 'ADMIN' && !String(record.seniorCode).toUpperCase().startsWith('EMP-') ? record.seniorCode : '') ||
+      '';
+    const seniorCodeDisplay = sanitizeOfflineNumber(rawSeniorOffline);
 
-    // Base field mappings for the agent application form - adjust coordinates based on the actual form
-    const baseFieldMappings = [
-      { field: 'date', x: 80, y: 223, label: 'Date' },
-      { field: 'employee_id', x: 495, y: 223, label: 'Employee ID' },
-      { field: 'name', x: 80, y: 310, label: 'Name' },
-      { field: 'fatherName', x: 285, y: 310, label: 'Father Name' },
-      { field: 'gotra', x: 80, y: 345, label: 'Gotra' },
-      { field: 'age', x: 235, y: 345, label: 'Age' },
-      { field: 'village', x: 335, y: 345, label: 'Village' },
-      { field: 'address', x: 80, y: 380, label: 'Address' },
-      { field: 'tehsil', x: 315, y: 380, label: 'Tehsil' },
-      { field: 'district', x: 85, y: 415, label: 'District' },
-      { field: 'mobile', x: 315, y: 415, label: 'Mobile' },
-      { field: 'aadhaar', x: 148, y: 453, label: 'Aadhaar' },
-      { field: 'bankName', x: 215, y: 488, label: 'Bank Name' },
-      { field: 'accountNumber', x: 120, y: 525, label: 'Account Number' },
-      { field: 'ifsc', x: 365, y: 525, label: 'IFSC' },
-      { field: 'nomineeName', x: 140, y: 560, label: 'Nominee Name' },
-      { field: 'nomineeMobile', x: 410, y: 560, label: 'Nominee Mobile' },
-      { field: 'nomineeRelation', x: 185, y: 590, label: 'Nominee Relation' },
-      { field: 'workArea', x: 150, y: 625, label: 'Work Area' },
-      
-      
-    ];
+    // Dynamic field values extraction from record (supporting flat and nested profile structures)
+    const appDate = formatDisplayDate(
+      record?.date ||
+      record?.registrationDate ||
+      record?.agentProfile?.registrationDate ||
+      record?.createdAt ||
+      ''
+    );
+    const applicantName = record?.name || record?.applicantName || '';
+    const fatherName = record?.fatherName || record?.father_name || record?.agentProfile?.fatherName || '';
+    const dob = formatDisplayDate(record?.dateOfBirth || record?.date_of_birth || record?.agentProfile?.dateOfBirth || '');
+    const rawAge = record?.age ?? record?.agentProfile?.age ?? '';
+    const ageStr = rawAge !== '' && rawAge !== undefined && rawAge !== null ? `${rawAge} वर्ष` : '';
+    const dobAndAge = dob ? (ageStr ? `${dob} (${ageStr})` : dob) : ageStr;
+    const mobile = record?.mobile || record?.agentProfile?.mobile || '';
+    const gender = record?.gender || record?.agentProfile?.gender || '';
+    const gotra = record?.gotra || record?.agentProfile?.gotra || '';
+    const fullAddress = formatFullAddress(record);
+    const aadhaar = formatAadhaarNumber(record?.aadhaar || record?.agentProfile?.aadhaar || '');
+    const education =
+      record?.education ||
+      record?.qualification ||
+      record?.educationQualification ||
+      record?.designation ||
+      record?.agentProfile?.designation ||
+      '';
+    const occupation =
+      record?.occupation ||
+      record?.workArea ||
+      record?.agentProfile?.workArea ||
+      record?.agent_profile?.work_area ||
+      '';
+    const whatsapp =
+      record?.whatsapp ||
+      record?.whatsappNumber ||
+      record?.mobile ||
+      record?.agentProfile?.mobile ||
+      '';
+    const email = record?.email || record?.emailId || record?.agentProfile?.email || '';
+    const place =
+      record?.place ||
+      record?.tehsil ||
+      record?.village ||
+      record?.district ||
+      record?.agentProfile?.tehsil ||
+      record?.agentProfile?.village ||
+      'समदड़ी';
+    const regDate = formatDisplayDate(
+      record?.registrationDate ||
+      record?.dateOfJoining ||
+      record?.doj ||
+      record?.agentProfile?.registrationDate ||
+      record?.agentProfile?.dateOfJoining ||
+      record?.agentProfile?.doj ||
+      record?.date ||
+      record?.createdAt ||
+      ''
+    );
 
-    // Apply scaling to field mappings
-    const fieldMappings = baseFieldMappings.map((mapping) => ({
-      ...mapping,
-      x: mapping.x * scaleX,
-      y: mapping.y * scaleY,
-    }));
+    // Configuration for offsets & styling
+    const globalOffsetX = typeof offsetX === 'number' ? offsetX : 0;
+    const globalOffsetY = typeof offsetY === 'number' ? offsetY : 0;
+    const valueOffsetX = typeof reqValueOffsetX === 'number' ? reqValueOffsetX : 0;
+    const valueOffsetY = typeof reqValueOffsetY === 'number' ? reqValueOffsetY : 0;
 
-    // Optional debug grid (helps determine coordinates). Coordinates are in PDF points from bottom-left.
-    if (debugMode) {
+    const darkColor = rgb(0.12, 0.12, 0.12);
+    const officeColor = rgb(0.06, 0.18, 0.52);
+    const checkColor = rgb(0.0, 0.45, 0.15);
+
+    // Helper to draw text with auto-shrink on max width (prevents clipping/overlap)
+    const drawBounded = (
+      text: any,
+      x: number,
+      y: number,
+      fontSize: number,
+      maxW?: number,
+      color = darkColor
+    ) => {
+      if (text === undefined || text === null) return;
+      const str = String(text).trim();
+      if (!str) return;
+
+      let size = fontSize;
+      if (maxW && (font as any).widthOfTextAtSize) {
+        const w = (font as any).widthOfTextAtSize(str, size);
+        if (w > maxW) {
+          size = Math.max(6.5, size * (maxW / w));
+        }
+      }
+
+      firstPage.drawText(str, {
+        x: x + globalOffsetX + valueOffsetX,
+        y: y + globalOffsetY + valueOffsetY,
+        size,
+        font,
+        color,
+      });
+    };
+
+    // Helper to draw vector checkmarks in attached document boxes
+    const drawCheckMark = (cx: number, cy: number) => {
+      firstPage.drawLine({
+        start: { x: cx - 4.5 + globalOffsetX + valueOffsetX, y: cy + 0.5 + globalOffsetY + valueOffsetY },
+        end: { x: cx - 1.0 + globalOffsetX + valueOffsetX, y: cy - 3.5 + globalOffsetY + valueOffsetY },
+        thickness: 1.5,
+        color: checkColor,
+      });
+      firstPage.drawLine({
+        start: { x: cx - 1.0 + globalOffsetX + valueOffsetX, y: cy - 3.5 + globalOffsetY + valueOffsetY },
+        end: { x: cx + 4.5 + globalOffsetX + valueOffsetX, y: cy + 4.5 + globalOffsetY + valueOffsetY },
+        thickness: 1.5,
+        color: checkColor,
+      });
+    };
+
+    // ─────────────────────────────────────────────────────────────
+    // 1. Top Meta Row 1
+    // ─────────────────────────────────────────────────────────────
+    // क्रमांक :- (Form / Serial Number: Agent Offline Form Number)
+    drawBounded(agentCodeDisplay, 88.0, 688.0, 11, 200, darkColor);
+    // दिनांक (Date: Application Date)
+    drawBounded(appDate, 455.0, 690.5, 11, 100, darkColor);
+
+    // ─────────────────────────────────────────────────────────────
+    // 2. Top Meta Row 2
+    // ─────────────────────────────────────────────────────────────
+    // कार्यकर्ता कोड (Agent Code: Agent Offline Form Number)
+    drawBounded(agentCodeDisplay, 115.67, 657.5, 11, 120, darkColor);
+    // सीनियर कोड (Senior Code: Senior Agent Offline Form Number)
+    drawBounded(seniorCodeDisplay, 486.75, 657.5, 11, 120, darkColor);
+
+    // ─────────────────────────────────────────────────────────────
+    // 3. Main Form: Applicant Personal Details
+    // ─────────────────────────────────────────────────────────────
+    // आवेदक का नाम (Applicant Name)
+    drawBounded(applicantName, 126.0, 618.5, 11, 310, darkColor);
+    // पिता/पति का नाम (Father / Husband Name)
+    drawBounded(fatherName, 133.0, 588.0, 11, 300, darkColor);
+    // जन्म तिथि (Date of Birth & Age)
+    drawBounded(dobAndAge, 91.0, 558.0, 10.5, 148, darkColor);
+    // मो. नं. (Mobile Number)
+    drawBounded(mobile, 280.0, 558.0, 11, 155, darkColor);
+    // लिंग (Gender)
+    drawBounded(gender, 63.0, 527.0, 11, 170, darkColor);
+    // जाति (Gotra / Caste)
+    drawBounded(gotra, 270.0, 527.0, 11, 170, darkColor);
+    // पूरा पता (Full Unified Address)
+    drawBounded(fullAddress, 80.0, 496.5, 10.5, 475, darkColor);
+    // आधार नंबर (Aadhaar Number)
+    drawBounded(aadhaar, 97.0, 465.0, 10.5, 138, darkColor);
+    // शिक्षा योग्यता (Educational Qualification)
+    drawBounded(education, 312.0, 465.0, 10.5, 98, darkColor);
+    // व्यवसाय (Occupation)
+    drawBounded(occupation, 460.0, 465.0, 10.5, 98, darkColor);
+    // व्हाट्सएप नंबर (WhatsApp Number)
+    drawBounded(whatsapp, 105.0, 435.0, 10.5, 145, darkColor);
+    // ई-मेल आईडी (Email ID)
+    drawBounded(email, 332.0, 435.0, 10.0, 228, darkColor);
+
+    // ─────────────────────────────────────────────────────────────
+    // 4. Attached Documents Checkboxes (संलग्न दस्तावेज)
+    // ─────────────────────────────────────────────────────────────
+    if (aadhaar) drawCheckMark(165.65, 373.3);
+    if (imageToUse) drawCheckMark(165.65, 344.0);
+    if (
+      record?.bankName ||
+      record?.accountNumber ||
+      record?.agentProfile?.bankName ||
+      record?.agentProfile?.accountNumber
+    ) {
+      drawCheckMark(165.65, 314.8);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 5. Declaration Section (घोषणा-पत्र)
+    // ─────────────────────────────────────────────────────────────
+    // दिनांक (Declaration Date)
+    drawBounded(appDate, 73.0, 184.5, 10.5, 90, darkColor);
+    // स्थान (Declaration Place)
+    drawBounded(place, 293.0, 184.5, 10.5, 88, darkColor);
+    // आवेदक के हस्ताक्षर is preserved blank for physical applicant signature
+
+    // ─────────────────────────────────────────────────────────────
+    // 6. Office Use Section (संस्था द्वारा उपयोग हेतु)
+    // ─────────────────────────────────────────────────────────────
+    // क्रमांक :- (Office Form Number: Agent Offline Form Number)
+    drawBounded(agentCodeDisplay, 88.0, 126.5, 10.5, 150, officeColor);
+    // कार्यकर्ता कोड (Office Agent Code: Agent Offline Form Number)
+    drawBounded(agentCodeDisplay, 113.01, 105.0, 10.5, 120, officeColor);
+    // सीनियर कोड (Office Senior Code: Senior Agent Offline Form Number)
+    drawBounded(seniorCodeDisplay, 423.89, 105.0, 10.5, 120, officeColor);
+    // पंजीकरण दिनांक- (Office Registration Date)
+    drawBounded(regDate || appDate, 125.0, 80.0, 10.5, 115, officeColor);
+    // स्वीकृत अधिकारी के हस्ताक्षर is preserved blank for physical officer signature
+
+    // Debug grid if explicitly requested
+    if (debug) {
       const gridStep = 25;
-      const majorStep = 100;
-      // Grid lines
       for (let x = 0; x <= pageWidth; x += gridStep) {
         firstPage.drawLine({
           start: { x, y: 0 },
           end: { x, y: pageHeight },
-          thickness: x % majorStep === 0 ? 0.8 : 0.2,
+          thickness: x % 100 === 0 ? 0.8 : 0.2,
           color: rgb(0.85, 0.85, 0.85),
         });
       }
@@ -225,74 +444,10 @@ export async function POST(request: NextRequest) {
         firstPage.drawLine({
           start: { x: 0, y },
           end: { x: pageWidth, y },
-          thickness: y % majorStep === 0 ? 0.8 : 0.2,
+          thickness: y % 100 === 0 ? 0.8 : 0.2,
           color: rgb(0.85, 0.85, 0.85),
         });
       }
-      // Axes labels
-      for (let x = 0; x <= pageWidth; x += majorStep) {
-        firstPage.drawText(String(x), { x: x + 2, y: 4, size: 8, font, color: rgb(0.2, 0.2, 0.2) });
-      }
-      for (let y = 0; y <= pageHeight; y += majorStep) {
-        firstPage.drawText(String(y), { x: 2, y: y + 2, size: 8, font, color: rgb(0.2, 0.2, 0.2) });
-      }
-      
-      // Draw test markers at form field positions
-      fieldMappings.forEach(mapping => {
-        const drawX = mapping.x;
-        const drawY = coordinateSystem === 'top-left' ? pageHeight - mapping.y : mapping.y;
-        
-        // Draw a red dot at each position
-        firstPage.drawCircle({
-          x: drawX,
-          y: drawY,
-          size: 3,
-          color: rgb(1, 0, 0),
-        });
-        // Draw the label
-        firstPage.drawText(String(mapping.field), {
-          x: drawX + 5,
-          y: drawY + 5,
-          size: 6,
-          font,
-          color: rgb(0.2, 0.2, 0.2),
-        });
-      });
-    }
-
-    // Treat mapping coordinates as absolute positions; request offsets allow quick nudging
-    const valueOffsetX = typeof reqValueOffsetX === 'number' ? reqValueOffsetX : 0;
-    const valueOffsetY = typeof reqValueOffsetY === 'number' ? reqValueOffsetY : 0;
-
-    // Add data to the PDF
-    for (const mapping of fieldMappings) {
-      const value = record[mapping.field];
-      if (!value) continue;
-
-      // Format date fields to dd/mm/yyyy
-      let formattedValue = value;
-      if (mapping.field === 'date') {
-        formattedValue = formatDateToDDMMYYYY(value);
-      }
-
-      // Coordinates are absolute (A4 pt). Apply only request offsets.
-      const baseX = mapping.x + valueOffsetX + globalOffsetX;
-      const baseY = mapping.y + valueOffsetY + globalOffsetY;
-      const drawX = baseX;
-      const drawY = coordinateSystem === 'top-left' ? pageHeight - baseY : baseY;
-
-      if (debugMode) {
-        // Marker to show exact anchor point of text
-        firstPage.drawRectangle({ x: drawX - 1, y: drawY - 1, width: 2, height: 2, color: rgb(1, 0, 0) });
-      }
-
-      firstPage.drawText(String(formattedValue), {
-        x: drawX,
-        y: drawY,
-        size: 12,
-        font,
-        color: rgb(0, 0, 0),
-      });
     }
 
     // Serialize the PDF
@@ -302,14 +457,14 @@ export async function POST(request: NextRequest) {
       pdfBytes.byteOffset + pdfBytes.byteLength
     );
 
-    // Create a safe filename without Hindi characters
-    const safeName = (record.name || record.employee_id || 'agent')
-      .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
-      .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove special characters except spaces, hyphens, underscores
+    // Create a safe filename without special characters
+    const safeName = (record?.name || record?.employee_id || 'agent')
+      .replace(/[^\x00-\x7F]/g, '')
+      .replace(/[^a-zA-Z0-9\s-_]/g, '')
       .trim()
-      .replace(/\s+/g, '_'); // Replace spaces with underscores
+      .replace(/\s+/g, '_');
     
-    const filename = `agent_application_form_${safeName}.pdf`;
+    const filename = `agent_application_form_${safeName || 'record'}.pdf`;
 
     return new NextResponse(arrayBuffer as ArrayBuffer, {
       headers: {

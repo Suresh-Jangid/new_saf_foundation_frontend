@@ -44,6 +44,7 @@ interface AgentRecord {
   gender: string;
   doj: string;
   designation: string;
+  dateOfBirth?: string;
   profile_image?: string;
   senior_name?: string;
   seniorName?: string;
@@ -63,6 +64,10 @@ interface AgentRecord {
   senior?: { name?: string; employee_id?: string };
   offlineFormNumber?: string | null;
   offline_form_number?: string | null;
+  seniorOfflineFormNumber?: string | null;
+  senior_offline_form_number?: string | null;
+  parentOfflineFormNumber?: string | null;
+  parent_offline_form_number?: string | null;
   agentProfile?: any;
   agent_profile?: any;
   createdAt: string;
@@ -368,22 +373,56 @@ export default function AgentRegistrationList() {
 
   const handleGenerateApplicationFormPDF = async (record: AgentRecord) => {
     try {
-      // Prepare data for application form generation
+      // Find senior agent in list if seniorOfflineFormNumber is not already on record
+      const seniorAgent = agents.find(a => 
+        (record.parentAgentId && a.id === record.parentAgentId) ||
+        (record.seniorId && a.id === record.seniorId) ||
+        (record.seniorEmployeeId && (a.employee_id === record.seniorEmployeeId || a.agentProfile?.employeeId === record.seniorEmployeeId))
+      );
+
+      // Prepare data for application form generation with offline form numbers and all profile fields
       const applicationFormData = {
         ...record,
+        offlineFormNumber:
+          record.offlineFormNumber ||
+          record.offline_form_number ||
+          record.agentProfile?.offlineFormNumber ||
+          record.agentProfile?.offline_form_number ||
+          '',
+        seniorOfflineFormNumber:
+          record.seniorOfflineFormNumber ||
+          record.senior_offline_form_number ||
+          record.parentOfflineFormNumber ||
+          record.agentProfile?.seniorOfflineFormNumber ||
+          record.agentProfile?.parentOfflineFormNumber ||
+          seniorAgent?.offlineFormNumber ||
+          seniorAgent?.agentProfile?.offlineFormNumber ||
+          '',
+        fatherName: record.fatherName || record.agentProfile?.fatherName || record.agent_profile?.father_name || '',
+        gotra: record.gotra || record.agentProfile?.gotra || record.agent_profile?.gotra || '',
+        age: record.age || record.agentProfile?.age || record.agent_profile?.age || '',
+        village: record.village || record.agentProfile?.village || record.agent_profile?.village || '',
+        address: record.address || record.agentProfile?.address || record.agent_profile?.address || '',
+        tehsil: record.tehsil || record.agentProfile?.tehsil || record.agent_profile?.tehsil || '',
+        district: record.district || record.agentProfile?.district || record.agent_profile?.district || '',
+        mobile: record.mobile || record.agentProfile?.mobile || record.agent_profile?.mobile || '',
+        aadhaar: record.aadhaar || record.agentProfile?.aadhaar || record.agent_profile?.aadhaar || '',
+        dateOfBirth: record.dateOfBirth || record.agentProfile?.dateOfBirth || record.agent_profile?.date_of_birth || '',
+        workArea: record.workArea || record.agentProfile?.workArea || record.agent_profile?.work_area || '',
+        designation: record.designation || record.agentProfile?.designation || record.agent_profile?.designation || '',
+        doj: record.doj || record.agentProfile?.dateOfJoining || record.agent_profile?.date_of_joining || record.agentProfile?.doj || '',
         employee_id: record.employee_id || '',
-        doj: record.doj || '',
-        designation: record.designation || ''
       };
       
       // Generate PDF using the service with profile image if available
       const pdfBlob = await APIService.generateAgentApplicationFormPDF(applicationFormData, record.profile_image);
       
       // Create download link
+      const safeId = applicationFormData.offlineFormNumber || record.employee_id || 'record';
       const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `agent_application_form_${record.employee_id}.pdf`;
+      a.download = `agent_application_form_${safeId}.pdf`;
       document.body.appendChild(a);
       a.click();
       

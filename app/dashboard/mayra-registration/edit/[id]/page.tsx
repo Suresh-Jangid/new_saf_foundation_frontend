@@ -15,6 +15,7 @@ import {
 import { CalendarDays } from "lucide-react"
 import { post, API_ENDPOINTS, buildEditFormData, createFormData } from "@/lib/api"
 import { toast } from "sonner"
+import { MediaUploadControl } from "@/components/media-upload"
 import { formatDate, parseDateFromDDMMYYYY, validatePhoneNumber, getApplicantPhotoPath, getNomineePhotoPath, getProxiedPhotoSrc, getRecordField, unwrapApiRecordById } from "@/lib/utils"
 import { normalizePaymentModeInput, PAYMENT_MODE_OPTIONS, GENDER_OPTIONS } from "@/lib/form-values"
 import { RoleGuard } from "@/components/role-guard"
@@ -1047,11 +1048,21 @@ export default function EditMayraRegistrationPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4 border-t">
                 <div className="space-y-2">
                   <Label>भाणेज/भाणजी फोटो (Applicant Photo)</Label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={e => setFormData(prev => ({ ...prev, passportPhoto: e.target.files?.[0] || null }))}
-                  />
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={e => setFormData(prev => ({ ...prev, passportPhoto: e.target.files?.[0] || null }))}
+                      className="flex-1"
+                    />
+                    <MediaUploadControl
+                      id="mayra-edit-passportPhoto-camera"
+                      mode="image"
+                      label="भाणेज/भाणजी फोटो"
+                      standaloneCameraOnly
+                      onFileSelect={(file) => setFormData(prev => ({ ...prev, passportPhoto: file }))}
+                    />
+                  </div>
                   {(formData.passportPhoto || formData.existingPassportPhoto) && (
                     <img
                       src={
@@ -1066,11 +1077,21 @@ export default function EditMayraRegistrationPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>नॉमिनी फोटो (Nominee Photo)</Label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={e => setFormData(prev => ({ ...prev, nomineePassportPhoto: e.target.files?.[0] || null }))}
-                  />
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={e => setFormData(prev => ({ ...prev, nomineePassportPhoto: e.target.files?.[0] || null }))}
+                      className="flex-1"
+                    />
+                    <MediaUploadControl
+                      id="mayra-edit-nomineePhoto-camera"
+                      mode="image"
+                      label="नॉमिनी फोटो"
+                      standaloneCameraOnly
+                      onFileSelect={(file) => setFormData(prev => ({ ...prev, nomineePassportPhoto: file }))}
+                    />
+                  </div>
                   {(formData.nomineePassportPhoto || formData.existingNomineePassportPhoto) && (
                     <img
                       src={

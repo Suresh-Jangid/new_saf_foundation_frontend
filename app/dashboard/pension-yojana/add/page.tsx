@@ -12,6 +12,7 @@ import { API_ENDPOINTS } from "@/lib/api";
 import { toast } from "sonner";
 import { formatDate, calculateAge, isValidDate, formatDateForAPI, getCurrentUserInfo, parseDateFromDDMMYYYY } from "@/lib/utils";
 import { X } from "lucide-react";
+import { MediaUploadControl } from "@/components/media-upload";
 
 const PensionYojanaAddForm = () => {
   const router = useRouter();
@@ -257,13 +258,21 @@ const PensionYojanaAddForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="photo">फोटो (Photo)</Label>
-                <Input
-                  type="file"
-                  id="photo"
-                  name="photo"
-                  accept="image/*"
-                  onChange={handleChange}
-                />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                  <Input
+                    type="file"
+                    id="photo"
+                    name="photo"
+                    accept="image/*"
+                    onChange={handleChange}
+                  />
+                  <MediaUploadControl
+                    mode="image"
+                    standaloneCameraOnly
+                    onFileSelect={(file) => setForm(prev => ({ ...prev, photo: file }))}
+                    label="फोटो खींचें"
+                  />
+                </div>
                 {/* Image preview */}
                 {form.photo && (
                   <div className="mt-2 flex items-center gap-2">

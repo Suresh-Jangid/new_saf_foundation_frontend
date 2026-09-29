@@ -14,6 +14,7 @@ import {
   Loader2,
   Info,
 } from "lucide-react";
+import { MediaUploadControl } from "@/components/media-upload";
 import { RoleGuard } from "@/components/role-guard";
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier";
 import {
@@ -194,10 +195,7 @@ export default function AddDhundhotsavPage() {
   };
 
   // File Upload Handlers
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processPassportPhotoFile = (file: File) => {
     if (file.size > 2 * 1024 * 1024) {
       toast.error("फोटो का आकार 2MB से कम होना चाहिए / Photo size must be under 2MB");
       return;
@@ -212,10 +210,13 @@ export default function AddDhundhotsavPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleNomineePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    processPassportPhotoFile(file);
+  };
 
+  const processNomineePhotoFile = (file: File) => {
     if (file.size > 2 * 1024 * 1024) {
       toast.error("नॉमिनी फोटो का आकार 2MB से कम होना चाहिए / Nominee photo size must be under 2MB");
       return;
@@ -230,10 +231,13 @@ export default function AddDhundhotsavPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNomineePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    processNomineePhotoFile(file);
+  };
 
+  const processDocumentFile = (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
       toast.error("दस्तावेज़ का आकार 5MB से कम होना चाहिए / Document size must be under 5MB");
       return;
@@ -244,6 +248,12 @@ export default function AddDhundhotsavPage() {
       setDocumentBase64(reader.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processDocumentFile(file);
   };
 
   // Form Submission
@@ -842,13 +852,21 @@ export default function AddDhundhotsavPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="passportPhoto">फोटो / Applicant Photo (&lt; 2MB)</Label>
-                  <Input
-                    id="passportPhoto"
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="mt-1 text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted"
-                  />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                    <Input
+                      id="passportPhoto"
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted"
+                    />
+                    <MediaUploadControl
+                      mode="image"
+                      standaloneCameraOnly
+                      onFileSelect={processPassportPhotoFile}
+                      label="फोटो खींचें"
+                    />
+                  </div>
                   {photoPreview && (
                     <img
                       src={photoPreview}
@@ -860,13 +878,21 @@ export default function AddDhundhotsavPage() {
 
                 <div>
                   <Label htmlFor="nomineePhoto">नॉमिनी फोटो / Nominee Photo (&lt; 2MB)</Label>
-                  <Input
-                    id="nomineePhoto"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleNomineePhotoUpload}
-                    className="mt-1 text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted"
-                  />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                    <Input
+                      id="nomineePhoto"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleNomineePhotoUpload}
+                      className="text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted"
+                    />
+                    <MediaUploadControl
+                      mode="image"
+                      standaloneCameraOnly
+                      onFileSelect={processNomineePhotoFile}
+                      label="फोटो खींचें"
+                    />
+                  </div>
                   {nomineePhotoPreview && (
                     <img
                       src={nomineePhotoPreview}
@@ -878,15 +904,23 @@ export default function AddDhundhotsavPage() {
 
                 <div>
                   <Label htmlFor="documentUpload">सहायक दस्तावेज़ / Supporting Document / Affidavit (&lt; 5MB)</Label>
-                  <Input
-                    id="documentUpload"
-                    type="file"
-                    accept=".pdf,image/*"
-                    onChange={handleDocumentUpload}
-                    className="mt-1 text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted"
-                  />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                    <Input
+                      id="documentUpload"
+                      type="file"
+                      accept=".pdf,image/*"
+                      onChange={handleDocumentUpload}
+                      className="text-sm file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-muted"
+                    />
+                    <MediaUploadControl
+                      mode="pdf"
+                      standaloneCameraOnly
+                      onFileSelect={processDocumentFile}
+                      label="दस्तावेज़ स्कैन करें"
+                    />
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    PDF, JPG, PNG समर्थित
+                    {documentBase64 ? "✓ दस्तावेज़ संलग्न है (Document attached)" : "PDF, JPG, PNG समर्थित"}
                   </p>
                 </div>
               </div>

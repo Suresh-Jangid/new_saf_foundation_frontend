@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarDays, X, Eye, EyeOff } from "lucide-react";
+import { MediaUploadControl } from "@/components/media-upload";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS, agentRegistrationAPI } from "@/lib/api";
@@ -421,13 +422,21 @@ export default function AddAgentPage() {
               <div className="grid grid-cols-1 gap-4">
                 <div>
                   <Label htmlFor="profile_image">प्रोफाइल फोटो (Profile Photo)</Label>
-                  <Input 
-                    id="profile_image" 
-                    name="profile_image" 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleChange} 
-                  />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                    <Input 
+                      id="profile_image" 
+                      name="profile_image" 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleChange} 
+                    />
+                    <MediaUploadControl
+                      mode="image"
+                      standaloneCameraOnly
+                      onFileSelect={(file) => setForm(prev => ({ ...prev, profile_image: file }))}
+                      label="फोटो खींचें"
+                    />
+                  </div>
                   {form.profile_image && (
                     <div className="mt-2 flex items-center gap-2">
                       <img

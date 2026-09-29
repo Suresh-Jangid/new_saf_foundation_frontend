@@ -9,6 +9,7 @@ import { useRouter, useParams } from "next/navigation"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarDays } from "lucide-react"
+import { MediaUploadControl } from "@/components/media-upload"
 import { useCRUD } from "@/hooks/use-crud"
 import { API_ENDPOINTS } from "@/lib/api"
 import { toast } from "sonner"
@@ -600,17 +601,25 @@ export default function EditSewingMachinePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="passportPhoto">पासपोर्ट साइज रंगीन फोटो / Passport Size Color Photo</Label>
-                <Input
-                  id="passportPhoto"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      passportPhoto: e.target.files?.[0] || null,
-                    }))
-                  }
-                />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                  <Input
+                    id="passportPhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        passportPhoto: e.target.files?.[0] || null,
+                      }))
+                    }
+                  />
+                  <MediaUploadControl
+                    mode="image"
+                    standaloneCameraOnly
+                    onFileSelect={(file) => setFormData((prev) => ({ ...prev, passportPhoto: file }))}
+                    label="फोटो खींचें"
+                  />
+                </div>
                 {/* Image preview - show existing photo or new selected photo */}
                 {(existingPhotoUrl || formData.passportPhoto) && (
                   <div className="mt-2">

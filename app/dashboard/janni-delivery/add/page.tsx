@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/popover";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { MediaUploadControl } from "@/components/media-upload";
 import {
   CalendarDays,
   Upload,
@@ -1066,12 +1067,29 @@ export default function AddJanniDeliveryPage() {
                     <Label className="text-xs sm:text-sm font-medium text-gray-700">
                       माता का पासपोर्ट साइज फोटो (Mother's Photo)
                     </Label>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="text-xs sm:text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#0B4A8F]/10 file:text-[#0B4A8F] hover:file:bg-[#0B4A8F]/20 cursor-pointer"
-                    />
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="flex-1 text-xs sm:text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#0B4A8F]/10 file:text-[#0B4A8F] hover:file:bg-[#0B4A8F]/20 cursor-pointer"
+                      />
+                      <MediaUploadControl
+                        id="janni-mother-photo-camera"
+                        mode="image"
+                        label="माता का फोटो"
+                        standaloneCameraOnly
+                        onFileSelect={(file) => {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            const b64 = reader.result as string;
+                            setPassportPhotoBase64(b64);
+                            setPhotoPreview(b64);
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </div>
                     <p className="text-xs text-gray-500">Supports JPG, PNG, WEBP (Max 5MB)</p>
                     {photoPreview && (
                       <div className="mt-2">
@@ -1088,12 +1106,29 @@ export default function AddJanniDeliveryPage() {
                     <Label className="text-xs sm:text-sm font-medium text-gray-700">
                       नॉमिनी फोटो (Nominee Photo)
                     </Label>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleNomineePhotoUpload}
-                      className="text-xs sm:text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#0B4A8F]/10 file:text-[#0B4A8F] hover:file:bg-[#0B4A8F]/20 cursor-pointer"
-                    />
+                    <div className="flex items-center gap-2 mt-1">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleNomineePhotoUpload}
+                        className="flex-1 text-xs sm:text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#0B4A8F]/10 file:text-[#0B4A8F] hover:file:bg-[#0B4A8F]/20 cursor-pointer"
+                      />
+                      <MediaUploadControl
+                        id="janni-nominee-photo-camera"
+                        mode="image"
+                        label="नॉमिनी फोटो"
+                        standaloneCameraOnly
+                        onFileSelect={(file) => {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            const b64 = reader.result as string;
+                            setNomineePhotoBase64(b64);
+                            setNomineePhotoPreview(b64);
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </div>
                     <p className="text-xs text-gray-500">Supports JPG, PNG, WEBP (Max 5MB)</p>
                     {nomineePhotoPreview && (
                       <div className="mt-2">

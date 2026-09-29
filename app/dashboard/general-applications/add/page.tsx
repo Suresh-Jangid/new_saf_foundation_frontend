@@ -15,6 +15,7 @@ import {
 import { CalendarDays } from "lucide-react"
 import { post } from "@/lib/api"
 import { toast } from "sonner"
+import { MediaUploadControl } from "@/components/media-upload"
 
 
 import { formatBilingual } from '@/lib/translations'
@@ -986,17 +987,32 @@ export default function AddGeneralApplicationPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="passportPhoto">पासपोर्ट साइज रंगीन फोटो / Passport Size Color Photo</Label>
-                  <Input
-                    id="passportPhoto"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        passportPhoto: e.target.files?.[0] || null,
-                      }))
-                    }
-                  />
+                  <div className="flex items-center gap-2 mt-1">
+                    <Input
+                      id="passportPhoto"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          passportPhoto: e.target.files?.[0] || null,
+                        }))
+                      }
+                      className="flex-1"
+                    />
+                    <MediaUploadControl
+                      id="passportPhoto-camera"
+                      mode="image"
+                      label="पासपोर्ट साइज रंगीन फोटो"
+                      standaloneCameraOnly
+                      onFileSelect={(file) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          passportPhoto: file,
+                        }))
+                      }
+                    />
+                  </div>
                   {/* Image preview */}
                   {formData.passportPhoto && (
                     <img

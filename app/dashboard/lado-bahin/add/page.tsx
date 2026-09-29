@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/popover";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { MediaUploadControl } from "@/components/media-upload";
 import {
   CalendarDays,
   Upload,
@@ -1064,19 +1065,36 @@ export default function AddLadoBahinPage() {
                       )}
 
                       <div className="space-y-2">
-                        <Label htmlFor="photo-upload" className="cursor-pointer inline-block">
-                          <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
-                            <Upload className="w-4 h-4" />
-                            <span>{photoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
-                          </div>
-                          <input
-                            id="photo-upload"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handlePhotoUpload}
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="photo-upload" className="cursor-pointer inline-block">
+                            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
+                              <Upload className="w-4 h-4" />
+                              <span>{photoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
+                            </div>
+                            <input
+                              id="photo-upload"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handlePhotoUpload}
+                            />
+                          </Label>
+                          <MediaUploadControl
+                            id="lado-photo-camera"
+                            mode="image"
+                            label="बालिका का फोटो"
+                            standaloneCameraOnly
+                            onFileSelect={(file) => {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const b64 = reader.result as string;
+                                setPassportPhotoBase64(b64);
+                                setPhotoPreview(b64);
+                              };
+                              reader.readAsDataURL(file);
+                            }}
                           />
-                        </Label>
+                        </div>
                         <p className="text-[11px] text-muted-foreground">
                           पासपोर्ट साइज़ फोटो (JPG, PNG). अधिकतम साइज़: 5MB
                         </p>
@@ -1115,19 +1133,36 @@ export default function AddLadoBahinPage() {
                       )}
 
                       <div className="space-y-2">
-                        <Label htmlFor="nominee-photo-upload" className="cursor-pointer inline-block">
-                          <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
-                            <Upload className="w-4 h-4" />
-                            <span>{nomineePhotoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
-                          </div>
-                          <input
-                            id="nominee-photo-upload"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleNomineePhotoUpload}
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="nominee-photo-upload" className="cursor-pointer inline-block">
+                            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
+                              <Upload className="w-4 h-4" />
+                              <span>{nomineePhotoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
+                            </div>
+                            <input
+                              id="nominee-photo-upload"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleNomineePhotoUpload}
+                            />
+                          </Label>
+                          <MediaUploadControl
+                            id="lado-nominee-photo-camera"
+                            mode="image"
+                            label="नॉमिनी फोटो"
+                            standaloneCameraOnly
+                            onFileSelect={(file) => {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                const b64 = reader.result as string;
+                                setNomineePhotoBase64(b64);
+                                setNomineePhotoPreview(b64);
+                              };
+                              reader.readAsDataURL(file);
+                            }}
                           />
-                        </Label>
+                        </div>
                         <p className="text-[11px] text-muted-foreground">
                           नॉमिनी पासपोर्ट साइज़ फोटो (JPG, PNG). अधिकतम साइज़: 5MB
                         </p>

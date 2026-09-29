@@ -25,6 +25,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
+import { MediaUploadControl } from "@/components/media-upload";
 import { RoleGuard } from "@/components/role-guard";
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier";
 import { AawasService, CreateAawasPayload } from "@/lib/aawas-service";
@@ -173,10 +174,7 @@ export default function AddAawasPage() {
   };
 
   // Photo handler
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processPhotoFile = (file: File) => {
     if (file.size > 2 * 1024 * 1024) {
       toast.error("फ़ोटो 2MB से कम होनी चाहिए / Photo size must be under 2MB");
       return;
@@ -191,11 +189,14 @@ export default function AddAawasPage() {
     reader.readAsDataURL(file);
   };
 
-  // Document handler
-  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    processPhotoFile(file);
+  };
 
+  // Document handler
+  const processDocumentFile = (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
       toast.error("दस्तावेज़ 5MB से कम होना चाहिए / Document size must be under 5MB");
       return;
@@ -207,6 +208,12 @@ export default function AddAawasPage() {
       toast.success("दस्तावेज़ सफलतापूर्वक चुना गया / Document selected");
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processDocumentFile(file);
   };
 
   // Validate form before submission
@@ -713,7 +720,7 @@ export default function AddAawasPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="passportPhoto">आवेदक का पासपोर्ट फ़ोटो (Passport Photo)</Label>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <Input
                       id="passportPhoto"
                       type="file"
@@ -721,30 +728,46 @@ export default function AddAawasPage() {
                       onChange={handlePhotoUpload}
                       className="cursor-pointer"
                     />
-                    {photoPreview && (
-                      <div className="h-14 w-14 rounded-lg overflow-hidden border shrink-0">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={photoPreview}
-                          alt="Preview"
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    )}
+                    <MediaUploadControl
+                      mode="image"
+                      standaloneCameraOnly
+                      onFileSelect={processPhotoFile}
+                      label="फोटो खींचें"
+                    />
                   </div>
+                  {photoPreview && (
+                    <div className="h-14 w-14 rounded-lg overflow-hidden border shrink-0 mt-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photoPreview}
+                        alt="Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
                   <p className="text-[11px] text-muted-foreground">अधिकतम आकार: 2MB (JPG/PNG)</p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="documentFile">आवश्यक दस्तावेज (Supporting Document / Affidavit)</Label>
-                  <Input
-                    id="documentFile"
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={handleDocumentUpload}
-                    className="cursor-pointer"
-                  />
-                  <p className="text-[11px] text-muted-foreground">राशन कार्ड / आधार / निवास प्रमाण (Max: 5MB)</p>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <Input
+                      id="documentFile"
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleDocumentUpload}
+                      className="cursor-pointer"
+                    />
+                    <MediaUploadControl
+                      mode="pdf"
+                      standaloneCameraOnly
+                      onFileSelect={processDocumentFile}
+                      label="दस्तावेज़ स्कैन करें"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {documentBase64 ? "✓ दस्तावेज़ संलग्न है (Document attached)" : "राशन कार्ड / आधार / निवास प्रमाण (Max: 5MB)"}
+                  </p>
                 </div>
               </div>
             </CardContent>

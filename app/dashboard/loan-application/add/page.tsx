@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/popover"
 import { CalendarDays } from "lucide-react"
 import { X, FileText } from "lucide-react"
+import { MediaUploadControl } from "@/components/media-upload"
 import { useCRUD } from "@/hooks/use-crud"
 import { API_ENDPOINTS } from "@/lib/api"
 import { toast } from "sonner"
@@ -103,6 +104,31 @@ export default function AddLoanApplicationPage() {
       }))
     }
   }
+
+  const handleFileSelect = (fieldId: string, file: File | null) => {
+    setFormData((prev) => ({
+      ...prev,
+      [fieldId]: file,
+    }));
+    if (file) {
+      if (file.type.startsWith("image/") || file.type === "application/pdf") {
+        setFilePreviews((prev) => ({
+          ...prev,
+          [fieldId]: URL.createObjectURL(file),
+        }));
+      } else {
+        setFilePreviews((prev) => ({
+          ...prev,
+          [fieldId]: null,
+        }));
+      }
+    } else {
+      setFilePreviews((prev) => ({
+        ...prev,
+        [fieldId]: null,
+      }));
+    }
+  };
 
 
 
@@ -277,7 +303,15 @@ export default function AddLoanApplicationPage() {
                 {/* Aadhaar */}
                 <div>
                   <Label htmlFor="aadhaar">आधार कार्ड (Aadhaar Card)</Label>
-                  <Input id="aadhaar" type="file" accept="image/*,.pdf" onChange={handleChange} />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                    <Input id="aadhaar" type="file" accept="image/*,.pdf" onChange={handleChange} />
+                    <MediaUploadControl
+                      mode="pdf"
+                      standaloneCameraOnly
+                      onFileSelect={(file) => handleFileSelect("aadhaar", file)}
+                      label="दस्तावेज़ स्कैन करें"
+                    />
+                  </div>
                   {filePreviews.aadhaar && formData.aadhaar && (
                     <div className="mt-2 flex items-center gap-2">
                       {formData.aadhaar.type.startsWith("image/") ? (
@@ -301,7 +335,15 @@ export default function AddLoanApplicationPage() {
                 {/* Income Certificate */}
                 <div>
                   <Label htmlFor="incomeCertificate">आय प्रमाण पत्र (Income Certificate)</Label>
-                  <Input id="incomeCertificate" type="file" accept="image/*,.pdf" onChange={handleChange} />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                    <Input id="incomeCertificate" type="file" accept="image/*,.pdf" onChange={handleChange} />
+                    <MediaUploadControl
+                      mode="pdf"
+                      standaloneCameraOnly
+                      onFileSelect={(file) => handleFileSelect("incomeCertificate", file)}
+                      label="दस्तावेज़ स्कैन करें"
+                    />
+                  </div>
                   {filePreviews.incomeCertificate && formData.incomeCertificate && (
                     <div className="mt-2 flex items-center gap-2">
                       {formData.incomeCertificate.type.startsWith("image/") ? (
@@ -325,7 +367,15 @@ export default function AddLoanApplicationPage() {
                 {/* Mool Niwas */}
                 <div>
                   <Label htmlFor="moolNiwas">मूल निवास प्रमाण पत्र (Mool Niwas Certificate)</Label>
-                  <Input id="moolNiwas" type="file" accept="image/*,.pdf" onChange={handleChange} />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                    <Input id="moolNiwas" type="file" accept="image/*,.pdf" onChange={handleChange} />
+                    <MediaUploadControl
+                      mode="pdf"
+                      standaloneCameraOnly
+                      onFileSelect={(file) => handleFileSelect("moolNiwas", file)}
+                      label="दस्तावेज़ स्कैन करें"
+                    />
+                  </div>
                   {filePreviews.moolNiwas && formData.moolNiwas && (
                     <div className="mt-2 flex items-center gap-2">
                       {formData.moolNiwas.type.startsWith("image/") ? (
@@ -349,7 +399,15 @@ export default function AddLoanApplicationPage() {
                 {/* Photo */}
                 <div>
                   <Label htmlFor="photo">फोटो (Photo)</Label>
-                  <Input id="photo" type="file" accept="image/*" onChange={handleChange} />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                    <Input id="photo" type="file" accept="image/*" onChange={handleChange} />
+                    <MediaUploadControl
+                      mode="image"
+                      standaloneCameraOnly
+                      onFileSelect={(file) => handleFileSelect("photo", file)}
+                      label="फोटो खींचें"
+                    />
+                  </div>
                   {filePreviews.photo && formData.photo && (
                     <div className="mt-2 flex items-center gap-2">
                       {formData.photo.type.startsWith("image/") ? (

@@ -3,6 +3,7 @@
 import React, { memo, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { MediaUploadControl } from "@/components/media-upload"
 
 interface FileUploadFieldProps {
   id: string
@@ -36,17 +37,34 @@ export const FileUploadField = memo<FileUploadFieldProps>(({
   return (
     <div>
       <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type="file"
-        accept={accept}
-        onChange={handleFileChange}
-      />
+      <div className="flex items-center gap-2 mt-1">
+        <Input
+          id={id}
+          type="file"
+          accept={accept}
+          onChange={handleFileChange}
+          className="flex-1"
+        />
+        <MediaUploadControl
+          id={`${id}-camera`}
+          mode={accept?.includes("pdf") ? "pdf" : "image"}
+          accept={accept}
+          label={label}
+          standaloneCameraOnly
+          onFileSelect={(capturedFile) => {
+            onChange(capturedFile)
+            if (capturedFile) {
+              const url = URL.createObjectURL(capturedFile)
+              setPreviewUrl(url)
+            }
+          }}
+        />
+      </div>
       {previewUrl && (
         <img
           src={previewUrl}
           alt="Preview"
-          className="mt-2 h-24 rounded border"
+          className="mt-2 h-24 rounded border object-cover"
         />
       )}
     </div>

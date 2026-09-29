@@ -17,6 +17,7 @@ import { CalendarDays, CalendarIcon } from "lucide-react"
 import APIService from "@/lib/services"
 import { post } from "@/lib/api"
 import { toast } from "sonner"
+import { MediaUploadControl } from "@/components/media-upload"
 import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, getApplicantPhotoPath, getNomineePhotoPath, getProxiedPhotoSrc, getRecordField, unwrapApiRecordById } from "@/lib/utils"
 import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode, GENDER_OPTIONS } from "@/lib/form-values"
 import { formatBilingual } from '@/lib/translations'
@@ -993,44 +994,74 @@ export default function EditGeneralInsuranceApplicationPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="passportPhoto">पासपोर्ट साइज रंगीन फोटो / Passport Size Color Photo</Label>
-                <Input
-                  id="passportPhoto"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      passportPhoto: e.target.files?.[0] || null,
-                    }))
-                  }
-                />
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    id="passportPhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        passportPhoto: e.target.files?.[0] || null,
+                      }))
+                    }
+                    className="flex-1"
+                  />
+                  <MediaUploadControl
+                    id="insurance-passportPhoto-camera"
+                    mode="image"
+                    label="पासपोर्ट साइज रंगीन फोटो"
+                    standaloneCameraOnly
+                    onFileSelect={(file) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        passportPhoto: file,
+                      }))
+                    }
+                  />
+                </div>
                 {(formData.passportPhoto || formData.existingPassportPhoto) && (
                   <img
                     src={formData.passportPhoto ? URL.createObjectURL(formData.passportPhoto) : getProxiedPhotoSrc(formData.existingPassportPhoto)}
                     alt="पासपोर्ट फोटो प्रीव्यू"
-                    className="mt-2 h-24 rounded border"
+                    className="mt-2 h-24 rounded border object-cover"
                   />
                 )}
               </div>
 
               <div>
                 <Label htmlFor="nomineePhoto">नॉमिनी का फोटो / Nominee Photo</Label>
-                <Input
-                  id="nomineePhoto"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      nomineePhoto: e.target.files?.[0] || null,
-                    }))
-                  }
-                />
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    id="nomineePhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        nomineePhoto: e.target.files?.[0] || null,
+                      }))
+                    }
+                    className="flex-1"
+                  />
+                  <MediaUploadControl
+                    id="insurance-nomineePhoto-camera"
+                    mode="image"
+                    label="नॉमिनी का फोटो"
+                    standaloneCameraOnly
+                    onFileSelect={(file) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        nomineePhoto: file,
+                      }))
+                    }
+                  />
+                </div>
                 {(formData.nomineePhoto || formData.existingNomineePhoto) && (
                   <img
                     src={formData.nomineePhoto ? URL.createObjectURL(formData.nomineePhoto) : getProxiedPhotoSrc(formData.existingNomineePhoto)}
                     alt="नॉमिनी फोटो प्रीव्यू"
-                    className="mt-2 h-24 rounded border"
+                    className="mt-2 h-24 rounded border object-cover"
                   />
                 )}
               </div>

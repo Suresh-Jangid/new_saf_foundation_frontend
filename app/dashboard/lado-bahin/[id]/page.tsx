@@ -13,6 +13,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { MediaUploadControl } from "@/components/media-upload";
 import {
   CalendarDays,
   CheckCircle2,
@@ -184,10 +185,7 @@ export default function EditLadoBahinPage() {
     });
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processPhotoFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("कृपया केवल इमेज फाइल अपलोड करें (JPEG/PNG) / Please select an image file");
       return;
@@ -207,15 +205,18 @@ export default function EditLadoBahinPage() {
     reader.readAsDataURL(file);
   };
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processPhotoFile(file);
+  };
+
   const removeNewPhoto = () => {
     setPassportPhotoBase64(null);
     setPhotoPreview(existingPhotoUrl ? getProxiedPhotoSrc(existingPhotoUrl) : null);
   };
 
-  const handleNomineePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processNomineePhotoFile = (file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("कृपया केवल इमेज फाइल अपलोड करें (JPEG/PNG) / Please select an image file");
       return;
@@ -233,6 +234,12 @@ export default function EditLadoBahinPage() {
       setNomineePhotoPreview(result);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleNomineePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processNomineePhotoFile(file);
   };
 
   const removeNewNomineePhoto = () => {
@@ -1102,19 +1109,27 @@ export default function EditLadoBahinPage() {
                       )}
 
                       <div className="space-y-2">
-                        <Label htmlFor="edit-photo-upload" className="cursor-pointer inline-block">
-                          <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
-                            <Upload className="w-4 h-4" />
-                            <span>{photoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
-                          </div>
-                          <input
-                            id="edit-photo-upload"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handlePhotoUpload}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Label htmlFor="edit-photo-upload" className="cursor-pointer inline-block">
+                            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
+                              <Upload className="w-4 h-4" />
+                              <span>{photoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
+                            </div>
+                            <input
+                              id="edit-photo-upload"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handlePhotoUpload}
+                            />
+                          </Label>
+                          <MediaUploadControl
+                            mode="image"
+                            standaloneCameraOnly
+                            onFileSelect={processPhotoFile}
+                            label="फोटो खींचें"
                           />
-                        </Label>
+                        </div>
                         <p className="text-[11px] text-muted-foreground">
                           पासपोर्ट साइज़ फोटो (JPG, PNG). यदि नहीं बदलनी है तो ऐसे ही रहने दें।
                         </p>
@@ -1155,19 +1170,27 @@ export default function EditLadoBahinPage() {
                       )}
 
                       <div className="space-y-2">
-                        <Label htmlFor="edit-nominee-photo-upload" className="cursor-pointer inline-block">
-                          <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
-                            <Upload className="w-4 h-4" />
-                            <span>{nomineePhotoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
-                          </div>
-                          <input
-                            id="edit-nominee-photo-upload"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handleNomineePhotoUpload}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Label htmlFor="edit-nominee-photo-upload" className="cursor-pointer inline-block">
+                            <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
+                              <Upload className="w-4 h-4" />
+                              <span>{nomineePhotoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
+                            </div>
+                            <input
+                              id="edit-nominee-photo-upload"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleNomineePhotoUpload}
+                            />
+                          </Label>
+                          <MediaUploadControl
+                            mode="image"
+                            standaloneCameraOnly
+                            onFileSelect={processNomineePhotoFile}
+                            label="फोटो खींचें"
                           />
-                        </Label>
+                        </div>
                         <p className="text-[11px] text-muted-foreground">
                           नॉमिनी पासपोर्ट साइज़ फोटो (JPG, PNG). यदि नहीं बदलनी है तो ऐसे ही रहने दें।
                         </p>

@@ -20,6 +20,7 @@ import {
 } from "@/lib/utils";
 import React from "react";
 import { X } from "lucide-react";
+import { MediaUploadControl } from "@/components/media-upload";
 
 
 export default function AddDisabilityCyclePage() {
@@ -350,17 +351,25 @@ export default function AddDisabilityCyclePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="photo">फोटो (Photo)</Label>
-                <Input
-                  id="photo"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      photo: e.target.files?.[0] || null,
-                    }))
-                  }
-                />
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-1">
+                  <Input
+                    id="photo"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        photo: e.target.files?.[0] || null,
+                      }))
+                    }
+                  />
+                  <MediaUploadControl
+                    mode="image"
+                    standaloneCameraOnly
+                    onFileSelect={(file) => setFormData((prev) => ({ ...prev, photo: file }))}
+                    label="फोटो खींचें"
+                  />
+                </div>
                 {/* Image preview */}
                 {formData.photo && (
                   <div className="mt-2 flex items-center gap-2">

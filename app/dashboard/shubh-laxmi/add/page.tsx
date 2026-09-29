@@ -26,6 +26,7 @@ import {
   DollarSign,
   Info,
 } from "lucide-react";
+import { MediaUploadControl } from "@/components/media-upload";
 import { RoleGuard } from "@/components/role-guard";
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier";
 import {
@@ -171,10 +172,7 @@ export default function AddShubhLaxmiPage() {
   };
 
   // File Upload Handlers
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processPassportPhotoFile = (file: File) => {
     if (file.size > 2 * 1024 * 1024) {
       toast.error("फोटो का आकार 2MB से कम होना चाहिए / Photo size must be under 2MB");
       return;
@@ -189,10 +187,13 @@ export default function AddShubhLaxmiPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    processPassportPhotoFile(file);
+  };
 
+  const processDocumentFile = (file: File) => {
     if (file.size > 5 * 1024 * 1024) {
       toast.error("दस्तावेज़ का आकार 5MB से कम होना चाहिए / Document size must be under 5MB");
       return;
@@ -203,6 +204,12 @@ export default function AddShubhLaxmiPage() {
       setDocumentBase64(reader.result as string);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    processDocumentFile(file);
   };
 
   // Form Submission
@@ -785,14 +792,22 @@ export default function AddShubhLaxmiPage() {
                         No Photo
                       </div>
                     )}
-                    <div className="flex-1">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoUpload}
-                        className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-yellow-50 file:text-yellow-700"
-                      />
-                      <p className="text-[11px] text-muted-foreground mt-1">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePhotoUpload}
+                          className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-yellow-50 file:text-yellow-700"
+                        />
+                        <MediaUploadControl
+                          mode="image"
+                          standaloneCameraOnly
+                          onFileSelect={processPassportPhotoFile}
+                          label="फोटो खींचें"
+                        />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
                         JPG, PNG, WebP supported
                       </p>
                     </div>
@@ -804,14 +819,22 @@ export default function AddShubhLaxmiPage() {
                   <Label className="text-xs font-semibold">
                     सहायक दस्तावेज़ / Supporting Document / Affidavit (&lt; 5MB)
                   </Label>
-                  <Input
-                    type="file"
-                    accept=".pdf,image/*"
-                    onChange={handleDocumentUpload}
-                    className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-yellow-50 file:text-yellow-700"
-                  />
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <Input
+                      type="file"
+                      accept=".pdf,image/*"
+                      onChange={handleDocumentUpload}
+                      className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-yellow-50 file:text-yellow-700"
+                    />
+                    <MediaUploadControl
+                      mode="pdf"
+                      standaloneCameraOnly
+                      onFileSelect={processDocumentFile}
+                      label="दस्तावेज़ स्कैन करें"
+                    />
+                  </div>
                   <p className="text-[11px] text-muted-foreground">
-                    PDF, JPG, PNG supported
+                    {documentBase64 ? "✓ दस्तावेज़ संलग्न है (Document attached)" : "PDF, JPG, PNG supported"}
                   </p>
                 </div>
               </div>

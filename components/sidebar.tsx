@@ -188,7 +188,7 @@ export const Sidebar = memo(
         }
 
         // 3. For agents, restrict admin-only modules
-        if (item.permissionKey === "agent_permission" || item.permissionKey === "system_settings") {
+        if (item.permissionKey === "agent_permission" || item.permissionKey === "system_settings" || item.permissionKey === "agent_commission") {
           return false;
         }
 

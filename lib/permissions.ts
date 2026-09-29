@@ -1,4 +1,9 @@
 // Permission system for SAF Foundation Admin Panel
+// Canonical Permission Catalog & Role-Based Access Control
+
+export type PermissionAction = "view" | "create" | "update" | "delete";
+
+export const VALID_ACTIONS: PermissionAction[] = ["view", "create", "update", "delete"];
 
 export interface ModulePermission {
   module: string;
@@ -10,72 +15,370 @@ export interface UserPermissions {
   permissions: ModulePermission[];
 }
 
-// Define all available modules and their possible actions
-export const AVAILABLE_MODULES: ModulePermission[] = [
-  { module: "dashboard", actions: ["view"] },
-  { module: "applicant_registration", actions: ["view", "create", "update", "delete"] },
-  { module: "marriage_congratulations", actions: ["view", "create", "update", "delete"] },
-  { module: "mayra_registration", actions: ["view", "create", "update", "delete"] },
-  { module: "security_application", actions: ["view", "create", "update", "delete"] },
-  { module: "suraksha_bima_yojana", actions: ["view", "create", "update", "delete"] },
-  { module: "janni_delivery", actions: ["view", "create", "update", "delete"] },
-  { module: "aawas_home", actions: ["view", "create", "update", "delete"] },
-  { module: "aawas", actions: ["view", "create", "update", "delete"] },
-  { module: "lado_bahin", actions: ["view", "create", "update", "delete"] },
-  { module: "dhundhotsav", actions: ["view", "create", "update", "delete"] },
-  { module: "shubhlaxmi", actions: ["view", "create", "update", "delete"] },
-  { module: "shubh_laxmi", actions: ["view", "create", "update", "delete"] },
-  { module: "agent_registration", actions: ["view", "create", "update", "delete"] },
-  { module: "agent_permission", actions: ["view", "update"] },
-  { module: "agent_commission", actions: ["view", "update"] },
-  { module: "agent_commission_report", actions: ["view"] },
-  { module: "bulk_marriage_emi", actions: ["view", "update"] },
-  { module: "bulk_suraksha_bima_emi", actions: ["view", "update"] },
-  { module: "bulk_mayra_emi", actions: ["view", "update"] },
-  { module: "payment_management", actions: ["view"] },
-  { module: "general_application_payment", actions: ["view", "create", "update", "delete"] },
-  { module: "insurance_application_payment", actions: ["view", "create", "update", "delete"] },
-  { module: "marriage_congratulations_payment", actions: ["view", "create", "update", "delete"] },
-  { module: "suraksha_bima_yojana_payment", actions: ["view", "create", "update", "delete"] },
-  { module: "balika_loan_application", actions: ["view", "create", "update", "delete"] },
-  { module: "financial_help", actions: ["view", "create", "update", "delete"] },
-  { module: "epin_management", actions: ["view", "create", "update", "delete"] },
-  { module: "system_settings", actions: ["view", "update"] },
+export interface CanonicalPermissionDefinition {
+  module: string;
+  displayName: { en: string; hi: string };
+  allowedActions: PermissionAction[];
+  enabled: boolean;
+  agentManageable: boolean;
+  category: "ADMINISTRATION" | "SCHEME" | "FINANCIAL" | "REPORT";
+  aliases?: string[];
+}
+
+/**
+ * SAF FOUNDATION CANONICAL PERMISSION CATALOG
+ * Single authoritative source of truth for modules, actions, and roles across backend & frontend.
+ */
+export const CANONICAL_PERMISSION_CATALOG: CanonicalPermissionDefinition[] = [
+  // 1. Dashboard
+  {
+    module: "dashboard",
+    displayName: { en: "Dashboard", hi: "डैशबोर्ड" },
+    allowedActions: ["view"],
+    enabled: true,
+    agentManageable: true,
+    category: "ADMINISTRATION",
+  },
+
+  // 2. General Marriage Application
+  {
+    module: "applicant_registration",
+    displayName: { en: "General Marriage Application", hi: "सामान्य विवाह आवेदन" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "SCHEME",
+  },
+
+  // 3. General Marriage Congratulation Payment
+  {
+    module: "marriage_congratulations",
+    displayName: { en: "General Marriage Congratulation Payment", hi: "विवाह बधाई पत्र" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "SCHEME",
+    aliases: ["marriage_congratulations_payment"],
+  },
+
+  // 4. Mayra General Application
+  {
+    module: "mayra_registration",
+    displayName: { en: "Mayra General Application", hi: "मायरा सामान्य आवेदन" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "SCHEME",
+  },
+
+  // 5. Insurance Bima Application
+  {
+    module: "security_application",
+    displayName: { en: "Insurance Bima Application", hi: "सुरक्षा बीमा आवेदन" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "SCHEME",
+  },
+
+  // 6. Insurance Bima Payment
+  {
+    module: "suraksha_bima_yojana",
+    displayName: { en: "Insurance Bima Payment", hi: "सुरक्षा बीमा योजना" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "SCHEME",
+    aliases: ["suraksha_bima_yojana_payment"],
+  },
+
+  // 7. Janni Delivery Registration
+  {
+    module: "janni_delivery",
+    displayName: { en: "Janni Delivery Registration", hi: "जननी प्रसूति पंजीकरण" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "SCHEME",
+  },
+
+  // 8. Aawas (Home) Registration
+  {
+    module: "aawas_home",
+    displayName: { en: "Aawas (Home) Registration", hi: "आवास योजना पंजीकरण" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "SCHEME",
+    aliases: ["aawas"],
+  },
+
+  // 9. Lado Bahin Registration
+  {
+    module: "lado_bahin",
+    displayName: { en: "Lado Bahin Registration", hi: "लाडो बहिन पंजीकरण" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "SCHEME",
+  },
+
+  // 10. Dhundhotsav Registration
+  {
+    module: "dhundhotsav",
+    displayName: { en: "Dhundhotsav Registration", hi: "ढूंढोत्सव पंजीकरण" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "SCHEME",
+  },
+
+  // 11. ShubhLaxmi Registration
+  {
+    module: "shubh_laxmi",
+    displayName: { en: "ShubhLaxmi (Deepawali) Registration", hi: "शुभलक्ष्मी पंजीकरण" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "SCHEME",
+    aliases: ["shubhlaxmi"],
+  },
+
+  // 12. Agent Registration (Hierarchical downline agent registration)
+  {
+    module: "agent_registration",
+    displayName: { en: "Agent Registration", hi: "एजेंट पंजीकरण" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "ADMINISTRATION",
+  },
+
+  // 13. Agent Commission Report
+  {
+    module: "agent_commission_report",
+    displayName: { en: "Agent Commission Report", hi: "एजेंट कमिशन रिपोर्ट" },
+    allowedActions: ["view"],
+    enabled: true,
+    agentManageable: true,
+    category: "REPORT",
+  },
+
+  // 14. Bulk Marriage EMI
+  {
+    module: "bulk_marriage_emi",
+    displayName: { en: "Bulk Marriage EMI", hi: "बल्क विवाह ईएमआई" },
+    allowedActions: ["view", "update"],
+    enabled: true,
+    agentManageable: true,
+    category: "FINANCIAL",
+  },
+
+  // 15. Bulk Suraksha Bima EMI
+  {
+    module: "bulk_suraksha_bima_emi",
+    displayName: { en: "Bulk Insurance Bima EMI", hi: "बल्क सुरक्षा बीमा ईएमआई" },
+    allowedActions: ["view", "update"],
+    enabled: true,
+    agentManageable: true,
+    category: "FINANCIAL",
+  },
+
+  // 16. Bulk Mayra EMI
+  {
+    module: "bulk_mayra_emi",
+    displayName: { en: "Bulk Mayra EMI", hi: "बल्क मायरा ईएमआई" },
+    allowedActions: ["view", "update"],
+    enabled: true,
+    agentManageable: true,
+    category: "FINANCIAL",
+  },
+
+  // 17. Payment Management
+  {
+    module: "payment_management",
+    displayName: { en: "Payment Management", hi: "भुगतान प्रबंधन" },
+    allowedActions: ["view"],
+    enabled: true,
+    agentManageable: true,
+    category: "FINANCIAL",
+  },
+
+  // 18. General Application Payment
+  {
+    module: "general_application_payment",
+    displayName: { en: "Payment Management - General Marriage Application", hi: "सामान्य विवाह आवेदन भुगतान" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "FINANCIAL",
+  },
+
+  // 19. Insurance Application Payment
+  {
+    module: "insurance_application_payment",
+    displayName: { en: "Payment Management - Insurance Bima Application", hi: "सुरक्षा बीमा आवेदन भुगतान" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "FINANCIAL",
+  },
+
+  // 20. Balika Loan Application
+  {
+    module: "balika_loan_application",
+    displayName: { en: "Balika Loan Application", hi: "बालिका ऋण आवेदन" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "FINANCIAL",
+  },
+
+  // 21. Financial Help
+  {
+    module: "financial_help",
+    displayName: { en: "Financial Application Payment", hi: "वित्त सहायता आवेदन" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: true,
+    agentManageable: true,
+    category: "FINANCIAL",
+  },
+
+  // 22. E-PIN Management
+  {
+    module: "epin_management",
+    displayName: { en: "E-PIN Operational Management", hi: "ई-पिन प्रबंधन" },
+    allowedActions: ["view"],
+    enabled: true,
+    agentManageable: true,
+    category: "ADMINISTRATION",
+  },
+
+  // 23. Agent Commission Payment (Admin Only)
+  {
+    module: "agent_commission",
+    displayName: { en: "Agent Commission Payment", hi: "एजेंट कमिशन भुगतान" },
+    allowedActions: ["view", "update"],
+    enabled: true,
+    agentManageable: false, // ADMIN ONLY
+    category: "FINANCIAL",
+  },
+
+  // 24. Agent Permission Management (Admin Only)
+  {
+    module: "agent_permission",
+    displayName: { en: "Agent Permission Management", hi: "एजेंट अनुमति प्रबंधन" },
+    allowedActions: ["view", "update"],
+    enabled: true,
+    agentManageable: false, // ADMIN ONLY
+    category: "ADMINISTRATION",
+  },
+
+  // 25. System Settings (Admin Only)
+  {
+    module: "system_settings",
+    displayName: { en: "Configuration & System Settings", hi: "सिस्टम सेटिंग्स एवं कॉन्फ़िगरेशन" },
+    allowedActions: ["view", "update"],
+    enabled: true,
+    agentManageable: false, // ADMIN ONLY
+    category: "ADMINISTRATION",
+  },
+
+  // 26. Marriage Sewing Machine Distribution (Disabled)
+  {
+    module: "marriage_sewing_machine_distribution",
+    displayName: { en: "Marriage Sewing Machine Distribution", hi: "विवाह सिलाई मशीन वितरण" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: false,
+    agentManageable: false,
+    category: "SCHEME",
+  },
+
+  // 27. Disability Cycle Distribution (Disabled)
+  {
+    module: "disability_cycle_distribution",
+    displayName: { en: "Disability Cycle Distribution", hi: "निशुल्क साइकिल वितरण" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: false,
+    agentManageable: false,
+    category: "SCHEME",
+  },
+
+  // 28. Sewing Machine Camp (Disabled)
+  {
+    module: "sewing_machine_camp",
+    displayName: { en: "Sewing Machine Camp", hi: "निशुल्क सिलाई मशीन शिविर कैम्प" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: false,
+    agentManageable: false,
+    category: "SCHEME",
+  },
+
+  // 29. Pension Yojana Application Payment (Disabled)
+  {
+    module: "salakar_pension_yojana",
+    displayName: { en: "Pension Yojana Application Payment", hi: "सहलाकर पेंशन योजना" },
+    allowedActions: ["view", "create", "update", "delete"],
+    enabled: false,
+    agentManageable: false,
+    category: "SCHEME",
+  },
 ];
 
-// Module display names mapping
-export const MODULE_DISPLAY_NAMES: { [key: string]: string } = {
-  dashboard: "Dashboard",
-  applicant_registration: "General Marriage Application",
-  marriage_congratulations: "General Marriage Congratulations Payment",
-  mayra_registration: "Mayra General Application",
-  security_application: "Insurance Bima Application",
-  suraksha_bima_yojana: "Insurance Bima Payment",
-  janni_delivery: "Janni Delivery Registration",
-  aawas_home: "Aawas (Home) Registration",
-  aawas: "Aawas (Home) Registration",
-  lado_bahin: "Lado Bahin Registration",
-  dhundhotsav: "Dhundhotsav Registration",
-  shubhlaxmi: "ShubhLaxmi Registration",
-  shubh_laxmi: "ShubhLaxmi Registration",
-  agent_registration: "Agent Registration",
-  agent_permission: "Agent Permission",
-  agent_commission: "Agent Commission Payment",
-  agent_commission_report: "Agent Commission Report",
-  bulk_marriage_emi: "Bulk Marriage EMI",
-  bulk_suraksha_bima_emi: "Bulk Suraksha Bima EMI",
-  bulk_mayra_emi: "Bulk Mayra EMI",
-  payment_management: "Payment Management",
-  general_application_payment: "Payment Management - General Marriage Application",
-  insurance_application_payment: "Payment Management - Insurance Bima Application",
-  marriage_congratulations_payment: "Payment Management - Marriage Congratulations Payment",
-  suraksha_bima_yojana_payment: "Payment Management - Insurance Bima Payment",
-  loan_payment: "Payment Management - Loan Application Payment",
-  balika_loan_application: "Balika Loan Application",
-  financial_help: "Financial Application Payment",
-  epin_management: "E-PIN Operational Management",
-  system_settings: "Configuration & System Settings",
+// Alias mapping: alias -> canonical key
+export const MODULE_ALIASES: Record<string, string> = {
+  aawas: "aawas_home",
+  shubhlaxmi: "shubh_laxmi",
+  marriage_congratulations_payment: "marriage_congratulations",
+  suraksha_bima_yojana_payment: "suraksha_bima_yojana",
 };
+
+// Module catalog map
+export const CANONICAL_CATALOG_MAP = new Map<string, CanonicalPermissionDefinition>(
+  CANONICAL_PERMISSION_CATALOG.map((def) => [def.module, def])
+);
+
+/**
+ * Resolves any module string (canonical or alias) to its canonical key.
+ */
+export function resolveCanonicalModule(moduleName: string): string {
+  if (!moduleName) return moduleName;
+  const trimmed = moduleName.trim();
+  return MODULE_ALIASES[trimmed] || trimmed;
+}
+
+/**
+ * Returns an array containing the canonical module key and all known aliases.
+ */
+export function getModuleWithAliases(moduleName: string): string[] {
+  const canonical = resolveCanonicalModule(moduleName);
+  const def = CANONICAL_CATALOG_MAP.get(canonical);
+  const aliases = def?.aliases || [];
+  return Array.from(new Set([canonical, ...aliases, moduleName]));
+}
+
+// Active modules assignable to agents
+export const AGENT_MANAGEABLE_MODULES: CanonicalPermissionDefinition[] =
+  CANONICAL_PERMISSION_CATALOG.filter((m) => m.enabled && m.agentManageable);
+
+// Preserved for backwards compatibility with existing UI components
+export const AVAILABLE_MODULES: ModulePermission[] = CANONICAL_PERMISSION_CATALOG.map((m) => ({
+  module: m.module,
+  actions: m.allowedActions,
+}));
+
+// Module display names mapping
+export const MODULE_DISPLAY_NAMES: { [key: string]: string } = {};
+CANONICAL_PERMISSION_CATALOG.forEach((m) => {
+  MODULE_DISPLAY_NAMES[m.module] = m.displayName.en;
+  if (m.aliases) {
+    m.aliases.forEach((alias) => {
+      MODULE_DISPLAY_NAMES[alias] = m.displayName.en;
+    });
+  }
+});
+// Legacy fallback entries
+MODULE_DISPLAY_NAMES["loan_payment"] = "Payment Management - Loan Application Payment";
 
 // Action display names mapping
 export const ACTION_DISPLAY_NAMES: { [key: string]: string } = {
@@ -85,13 +388,15 @@ export const ACTION_DISPLAY_NAMES: { [key: string]: string } = {
   delete: "Delete",
 };
 
-// Default admin permissions (full access to all available modules)
-export const ADMIN_PERMISSIONS: ModulePermission[] = AVAILABLE_MODULES.map((module) => ({
-  module: module.module,
-  actions: [...module.actions],
-}));
+// Default admin permissions (full access to all active modules)
+export const ADMIN_PERMISSIONS: ModulePermission[] = CANONICAL_PERMISSION_CATALOG.filter((m) => m.enabled).map(
+  (module) => ({
+    module: module.module,
+    actions: [...module.allowedActions],
+  })
+);
 
-// Default agent permissions
+// Default agent permissions (canonical keys)
 export const DEFAULT_AGENT_PERMISSIONS: ModulePermission[] = [
   { module: "dashboard", actions: ["view"] },
   { module: "applicant_registration", actions: ["view", "create", "update", "delete"] },
@@ -99,8 +404,8 @@ export const DEFAULT_AGENT_PERMISSIONS: ModulePermission[] = [
   { module: "payment_management", actions: ["view"] },
   { module: "general_application_payment", actions: ["view", "create", "update", "delete"] },
   { module: "insurance_application_payment", actions: ["view", "create", "update", "delete"] },
-  { module: "marriage_congratulations_payment", actions: ["view", "create", "update", "delete"] },
-  { module: "suraksha_bima_yojana_payment", actions: ["view", "create", "update", "delete"] },
+  { module: "marriage_congratulations", actions: ["view", "create", "update", "delete"] },
+  { module: "suraksha_bima_yojana", actions: ["view", "create", "update", "delete"] },
   { module: "bulk_marriage_emi", actions: ["view", "update"] },
   { module: "bulk_suraksha_bima_emi", actions: ["view", "update"] },
   { module: "mayra_registration", actions: ["view", "create", "update", "delete"] },
@@ -130,7 +435,7 @@ export function convertApiPermissionsToModulePermissions(apiPermissions: any): M
   for (const [module, actions] of Object.entries(apiPermissions)) {
     if (Array.isArray(actions)) {
       modulePermissions.push({
-        module,
+        module: resolveCanonicalModule(module),
         actions: actions as string[],
       });
     }
@@ -178,15 +483,14 @@ export function hasModulePermission(module: string, action = "view"): boolean {
   if (isAdmin()) return true;
 
   const permissions = getUserPermissions();
-  // Check exact module name or aliases
-  const modulePermission = permissions.find(
-    (p) =>
-      p.module === module ||
-      (module === "aawas" && p.module === "aawas_home") ||
-      (module === "aawas_home" && p.module === "aawas") ||
-      (module === "marriage_congratulations" && p.module === "marriage_congratulations_payment") ||
-      (module === "suraksha_bima_yojana" && p.module === "suraksha_bima_yojana_payment")
-  );
+  const canonicalTarget = resolveCanonicalModule(module);
+  const targetAliases = getModuleWithAliases(canonicalTarget);
+
+  // Check canonical module name or any registered alias
+  const modulePermission = permissions.find((p) => {
+    const canonicalP = resolveCanonicalModule(p.module);
+    return canonicalP === canonicalTarget || targetAliases.includes(p.module);
+  });
 
   if (!modulePermission) {
     return false;
@@ -230,7 +534,12 @@ export function clearAgentPermissions(): void {
 
 export function getModulePermissions(module: string): string[] {
   const permissions = getUserPermissions();
-  const modulePermission = permissions.find((p) => p.module === module);
+  const canonicalTarget = resolveCanonicalModule(module);
+  const targetAliases = getModuleWithAliases(canonicalTarget);
+  const modulePermission = permissions.find((p) => {
+    const canonicalP = resolveCanonicalModule(p.module);
+    return canonicalP === canonicalTarget || targetAliases.includes(p.module);
+  });
   return modulePermission?.actions || [];
 }
 

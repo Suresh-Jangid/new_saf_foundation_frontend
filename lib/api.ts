@@ -557,20 +557,77 @@ export const dashboardAPI = {
   },
 };
 
-// Agent Permissions API Services
+export interface AgentPermissionRecord {
+  id?: string;
+  userId?: string;
+  module: string;
+  canView: boolean;
+  canCreate: boolean;
+  canUpdate: boolean;
+  canDelete: boolean;
+  actions?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AgentPermissionUpdateItem {
+  module: string;
+  canView?: boolean;
+  canCreate?: boolean;
+  canUpdate?: boolean;
+  canDelete?: boolean;
+  actions?: string[];
+}
+
+/**
+ * Fetch permissions for a specific agent via modern REST endpoint.
+ * GET /api/v1/agents/:id/permissions
+ */
+export async function getAgentPermissions(agentId: string | number): Promise<ApiResponse<AgentPermissionRecord[]>> {
+  const token = getAuthToken();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const response = await api.get<ApiResponse<AgentPermissionRecord[]>>(
+    `/v1/agents/${agentId}/permissions`,
+    { headers }
+  );
+  return response.data;
+}
+
+/**
+ * Update and fully synchronize permissions for a specific agent via modern REST endpoint.
+ * PUT /api/v1/agents/:id/permissions
+ */
+export async function updateAgentPermissions(
+  agentId: string | number,
+  permissions: AgentPermissionUpdateItem[]
+): Promise<ApiResponse<AgentPermissionRecord[]>> {
+  const token = getAuthToken();
+  const headers = token ? { Authorization: `Bearer ${token}` } : {};
+  const response = await api.put<ApiResponse<AgentPermissionRecord[]>>(
+    `/v1/agents/${agentId}/permissions`,
+    { permissions },
+    { headers }
+  );
+  return response.data;
+}
+
+// Agent Permissions API Services (Modern REST backend preferred)
 export const agentPermissionAPI = {
-  getPermissions: async (agentId: string | number): Promise<ApiResponse<any>> => {
-    const formData = createFormData({ agent_id: String(agentId) });
-    const response = await post<ApiResponse<any>>(API_ENDPOINTS.GET_AGENT_PERMISSIONS, formData);
-    return response.data;
+  getPermissions: async (agentId: string | number): Promise<ApiResponse<AgentPermissionRecord[]>> => {
+    return getAgentPermissions(agentId);
   },
 
-  setPermissions: async (agentId: string | number, permissions: Record<string, unknown>): Promise<ApiResponse> => {
-    const response = await api.post<ApiResponse>(API_ENDPOINTS.SET_AGENT_PERMISSIONS, {
-      agent_id: String(agentId),
-      permissions,
-    });
-    return response.data;
+  setPermissions: async (
+    agentId: string | number,
+    permissions: AgentPermissionUpdateItem[] | Record<string, unknown>
+  ): Promise<ApiResponse<AgentPermissionRecord[]>> => {
+    const formatted: AgentPermissionUpdateItem[] = Array.isArray(permissions)
+      ? permissions
+      : Object.entries(permissions).map(([module, acts]) => ({
+          module,
+          actions: Array.isArray(acts) ? acts : [],
+        }));
+    return updateAgentPermissions(agentId, formatted);
   },
 };
 

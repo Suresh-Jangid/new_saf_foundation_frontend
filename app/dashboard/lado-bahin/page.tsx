@@ -104,10 +104,19 @@ export default function LadoBahinListPage() {
   const handleGeneratePDFForm = async (record: LadoBahinRegistration) => {
     try {
       toast.loading("फॉर्म पीडीएफ जनरेट हो रहा है... / Generating PDF Form...", { id: "pdf-form" });
+      const photoSource = record.passportPhotoUrl || (record as any).passportPhoto || (record as any).photo || "";
+      const imageData = photoSource ? await getPhotoDataUrl(photoSource) : null;
       const response = await fetch("/api/generate-lado-bahin-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ record }),
+        body: JSON.stringify({
+          record: {
+            ...record,
+            passportPhoto: photoSource,
+            passportPhotoUrl: photoSource,
+          },
+          imageData,
+        }),
       });
 
       if (!response.ok) {

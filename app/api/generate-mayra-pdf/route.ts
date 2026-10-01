@@ -37,8 +37,13 @@ export async function POST(request: NextRequest) {
       record?.applicantPhotoData,
       record?.passportPhoto,
       record?.passport_photo,
+      record?.passportPhotoUrl,
       record?.applicantPhoto,
       record?.applicant_photo,
+      record?.photo,
+      record?.photoUrl,
+      record?.profile_photo,
+      record?.profilePhoto
     );
     const nomineePhotoSource = pickPhotoSource(
       body?.nomineeImageData,
@@ -79,15 +84,14 @@ export async function POST(request: NextRequest) {
     const firstPage = pdfDoc.getPages()[0];
     const pageHeight = firstPage.getSize().height;
 
-    // Measured Photo Box from official template (595.28 x 841.89):
-    // Single passport photo box at top right: x = 460.5, yFromTop = 224.3, w = 91.3, h = 119.1
-    const PHOTO_X = 460.5;
-    const PHOTO_Y_FROM_TOP = 224.3;
-    const PHOTO_WIDTH = 91.3;
-    const PHOTO_HEIGHT = 119.1;
+    // Photo Box: exact vector bounds from common_application_form.pdf (x: 476.0, yTop: 204.0, w: 76.3, h: 83.3)
+    const PHOTO_X = 476.0;
+    const PHOTO_Y_FROM_TOP = 204.0;
+    const PHOTO_WIDTH = 76.3;
+    const PHOTO_HEIGHT = 83.3;
 
     if (applicantPhotoSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, PHOTO_X, PHOTO_Y_FROM_TOP, PHOTO_WIDTH, PHOTO_HEIGHT);
+      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, PHOTO_X, PHOTO_Y_FROM_TOP, PHOTO_WIDTH, PHOTO_HEIGHT, 'cover');
     }
 
     // Embed applicant/director signatures if provided

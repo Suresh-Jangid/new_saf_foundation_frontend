@@ -60,7 +60,7 @@ import {
 } from "lucide-react";
 import { RoleGuard } from "@/components/role-guard";
 import { JanniDeliveryService, JanniDeliveryRegistration } from "@/lib/janni-delivery-service";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getPhotoDataUrl } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { agentRegistrationAPI } from "@/lib/api";
 import { PdfActionButton } from "@/components/pdf-action-button";
@@ -567,10 +567,19 @@ export default function JanniDeliveryListPage() {
   const handleGeneratePDFForm = async (record: JanniDeliveryRegistration) => {
     try {
       toast.loading("Generating PDF Form...", { id: "pdf-form" });
+      const photoSource = record.passportPhotoUrl || (record as any).passportPhoto || (record as any).photo || "";
+      const imageData = photoSource ? await getPhotoDataUrl(photoSource) : null;
       const response = await fetch("/api/generate-janni-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ record }),
+        body: JSON.stringify({
+          record: {
+            ...record,
+            passportPhoto: photoSource,
+            passportPhotoUrl: photoSource,
+          },
+          imageData,
+        }),
       });
       if (!response.ok) throw new Error("Failed to generate PDF");
       const blob = await response.blob();

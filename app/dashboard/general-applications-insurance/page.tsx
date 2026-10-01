@@ -351,7 +351,7 @@ export default function GeneralInsuranceApplicationsPage() {
             workerName: item.added_name || item.workerName || item.addedBy?.name,
             workerMobile: item.added_mobile || item.workerMobile || item.addedBy?.mobile,
             affidavit: item.affidavit || item.affidavitUrl,
-            passportPhoto: item.passport_photo || item.passportPhoto || item.passportPhotoUrl,
+            passportPhoto: item.passport_photo || item.passportPhoto || item.passportPhotoUrl || item.photo || item.photoUrl || item.applicantPhoto,
             paymentAmount: item.payment_amount || item.paymentAmount,
             paymentMode: item.payment_mode || item.paymentMode,
             paymentDate: item.payment_date || item.paymentDate,
@@ -646,11 +646,14 @@ export default function GeneralInsuranceApplicationsPage() {
   const handleGenerateInsurancePDF = async (record: GeneralInsuranceApplicationRecord) => {
     try {
       // Get image data if available
-      const imageData = await processImageData(record.passportPhoto);
+      const photoSource = record.passportPhoto || (record as any).passport_photo || (record as any).passportPhotoUrl || (record as any).photo || (record as any).applicantPhoto || "";
+      const imageData = await processImageData(photoSource);
 
       // Prepare data for PDF generation
       const pdfData: any = {
         ...record,
+        passportPhoto: photoSource,
+        passportPhotoUrl: photoSource,
         formNumber: record.formNumber,
         offlineFormNumber: (record as any).offlineFormNumber || (record as any).offline_form_number || "",
         applicationDate: record.applicationDate,

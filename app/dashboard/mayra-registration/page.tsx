@@ -553,15 +553,25 @@ export default function MayraRegistrationPage() {
 
   const handleGeneratePDF = async (record: MayraRegistrationRecord) => {
     try {
+      const photoSource = record.passportPhoto || (record as any).passport_photo || (record as any).passportPhotoUrl || (record as any).photo || (record as any).applicantPhoto || "";
+      const nomineePhotoSource = record.nomineePassportPhoto || (record as any).nominee_passport_photo || record.nomineePhoto || "";
       const [imageData, nomineeImageData] = await Promise.all([
-        fetchPhotoAsDataUrl(record.passportPhoto),
-        fetchPhotoAsDataUrl(record.nomineePassportPhoto || record.nomineePhoto),
+        fetchPhotoAsDataUrl(photoSource),
+        fetchPhotoAsDataUrl(nomineePhotoSource),
       ])
 
       const response = await fetch('/api/generate-mayra-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ record, imageData, nomineeImageData }),
+        body: JSON.stringify({
+          record: {
+            ...record,
+            passportPhoto: photoSource,
+            passportPhotoUrl: photoSource,
+          },
+          imageData,
+          nomineeImageData,
+        }),
       })
 
       if (!response.ok) throw new Error('Failed to generate PDF')

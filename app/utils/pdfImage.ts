@@ -66,6 +66,23 @@ export async function loadImageBytes(
       return { bytes, mime: detectMimeFromBytes(bytes) || undefined };
     }
 
+    // Check if source exists on local filesystem
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      if (fs.existsSync(source) && fs.statSync(source).isFile()) {
+        const bytes = new Uint8Array(fs.readFileSync(source));
+        return { bytes, mime: detectMimeFromBytes(bytes) || undefined };
+      }
+      const publicPath = path.join(process.cwd(), 'public', source.replace(/^\/+/, ''));
+      if (fs.existsSync(publicPath) && fs.statSync(publicPath).isFile()) {
+        const bytes = new Uint8Array(fs.readFileSync(publicPath));
+        return { bytes, mime: detectMimeFromBytes(bytes) || undefined };
+      }
+    } catch {
+      // Fall through to remote URL fetch
+    }
+
     const url = toAbsoluteImageUrl(source);
     const response = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PurabiyaFoundation/1.0)' },

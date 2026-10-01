@@ -5,6 +5,7 @@ import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 
 export const runtime = 'nodejs';
 
@@ -102,48 +103,53 @@ export async function POST(request: NextRequest) {
     const firstPage = pages[0];
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
-    // Handle image embedding if imageData is provided
-    if (imageData) {
+    // Handle applicant photo embedding
+    const applicantPhotoSource = pickPhotoSource(
+      imageData,
+      data?.imageData,
+      data?.applicantPhotoData,
+      data?.passportPhoto,
+      data?.passport_photo,
+      data?.passportPhotoUrl,
+      data?.applicantPhoto,
+      data?.applicant_photo,
+      data?.photo,
+      data?.photoUrl,
+      data?.profile_photo,
+      data?.profilePhoto
+    );
+
+    if (applicantPhotoSource) {
       try {
-        // Convert base64 to Uint8Array
-        const imageBytes = Uint8Array.from(atob(imageData.split(',')[1]), c => c.charCodeAt(0));
-        
-        // Determine image type and embed accordingly
-        let image;
-        if (imageData.startsWith('data:image/jpeg') || imageData.startsWith('data:image/jpg')) {
-          image = await pdfDoc.embedJpg(imageBytes);
-        } else if (imageData.startsWith('data:image/png')) {
-          image = await pdfDoc.embedPng(imageBytes);
-        } else {
-          console.warn('Unsupported image format, skipping image embedding');
+        // Exact vector-calibrated applicant photo box dimensions for official common application template
+        let imageX = 476.0;
+        let imageY = 204.0;
+        let imageWidth = 76.3;
+        let imageHeight = 83.3;
+
+        if (type !== 'general-application' && type !== 'dhundhotsav' && type !== 'dhundhotsav-application') {
+          // Custom dimensions for other template types if applicable
+          imageX = 475;
+          imageY = 242.5;
+          imageWidth = 76;
+          imageHeight = 99;
         }
 
-        if (image) {
-          // Precise passport photo box dimensions for approved official templates
-          let imageX = 475;
-          let imageY = 242.5;
-          let imageWidth = 76;
-          let imageHeight = 99;
+        await embedPdfImage(
+          pdfDoc,
+          firstPage,
+          pageHeight,
+          applicantPhotoSource,
+          imageX,
+          imageY,
+          imageWidth,
+          imageHeight,
+          'cover'
+        );
 
-          if (type === 'dhundhotsav' || type === 'dhundhotsav-application') {
-            imageX = 460.5;
-            imageY = 224.3;
-            imageWidth = 91.3;
-            imageHeight = 119.1;
-          }
-
-          // Draw the image on the PDF
-          firstPage.drawImage(image, {
-            x: imageX,
-            y: pageHeight - imageY - imageHeight, // Convert to bottom-left coordinate system
-            width: imageWidth,
-            height: imageHeight,
-          });
-
-          console.log('Image embedded successfully');
-        }
+        console.log('Applicant photo embedded successfully in fill-pdf-form');
       } catch (imageError) {
-        console.error('Error embedding image:', imageError);
+        console.error('Error embedding applicant photo in fill-pdf-form:', imageError);
         // Continue without image if there's an error
       }
     }

@@ -427,7 +427,7 @@ function mapApplicationRecord(item: GeneralApplicationRecord & Record<string, an
     amount: String(totalAmount),
     paymentModeRef,
     installmentAmount: item.installmentAmount ?? item.installment_amount ?? item.installment ?? "",
-    passportPhoto: item.passportPhoto || item.passport_photo || item.passportPhotoUrl,
+    passportPhoto: item.passportPhoto || item.passport_photo || item.passportPhotoUrl || item.photo || item.photoUrl || item.applicantPhoto,
   };
 }
 
@@ -759,7 +759,8 @@ export default function GeneralApplicationsPage() {
       };
       
       // Get image data if available
-      const imageData = await processImageData(record.passportPhoto);
+      const photoSource = record.passportPhoto || (record as any).passport_photo || (record as any).passportPhotoUrl || (record as any).photo || (record as any).applicantPhoto || "";
+      const imageData = await processImageData(photoSource);
       
       const response = await fetch('/api/fill-pdf-form', {
         method: 'POST',
@@ -768,7 +769,11 @@ export default function GeneralApplicationsPage() {
         },
         body: JSON.stringify({
           type: 'general-application',
-          data: dataForPdf,
+          data: {
+            ...dataForPdf,
+            passportPhoto: photoSource,
+            passportPhotoUrl: photoSource,
+          },
           offsetX: 0,
           offsetY: 0,
           valueOffsetX: 0,

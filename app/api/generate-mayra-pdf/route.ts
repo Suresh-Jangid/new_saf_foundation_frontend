@@ -79,18 +79,15 @@ export async function POST(request: NextRequest) {
     const firstPage = pdfDoc.getPages()[0];
     const pageHeight = firstPage.getSize().height;
 
-    // Measured Photo Boxes from official template:
-    // Applicant Photo Box: x = 484.24, y = 519.09 to 627.09 (w: 90, h: 108, yFromTop: 164.91)
-    // Nominee Photo Box:   x = 484.24, y = 372.81 to 480.81 (w: 90, h: 108, yFromTop: 311.19)
-    const PHOTO_X = 485;
-    const PHOTO_WIDTH = 88;
-    const PHOTO_HEIGHT = 106;
+    // Measured Photo Box from official template (595.28 x 841.89):
+    // Single passport photo box at top right: x = 460.5, yFromTop = 224.3, w = 91.3, h = 119.1
+    const PHOTO_X = 460.5;
+    const PHOTO_Y_FROM_TOP = 224.3;
+    const PHOTO_WIDTH = 91.3;
+    const PHOTO_HEIGHT = 119.1;
 
     if (applicantPhotoSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, PHOTO_X, 166, PHOTO_WIDTH, PHOTO_HEIGHT);
-    }
-    if (nomineePhotoSource) {
-      await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, PHOTO_X, 312, PHOTO_WIDTH, PHOTO_HEIGHT);
+      await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, PHOTO_X, PHOTO_Y_FROM_TOP, PHOTO_WIDTH, PHOTO_HEIGHT);
     }
 
     // Embed applicant/director signatures if provided
@@ -130,7 +127,7 @@ export async function POST(request: NextRequest) {
       text: string,
       x: number,
       y: number,
-      size: number = 10.5,
+      size: number = 10,
       maxW?: number,
       color = rgb(0, 0, 0)
     ) => {
@@ -154,77 +151,74 @@ export async function POST(request: NextRequest) {
     };
 
     // ── 1. Top Header Boxes ──────────────────────────────────
-    // System Form Number: Displayed in upper area above the "सदस्यता क्रमांक" line.
+    // System Form Number: e.g. MYR-3
     const systemFormNo = getField(record, 'formNumber', 'form_number', 'systemFormNumber', 'mayraNumber');
-    // Offline Form Number: Manually entered offline physical form number, rendered in the "सदस्यता क्रमांक" box (retaining previous position).
+    // Offline Form Number: e.g. 1259
     const offlineFormNo = getField(record, 'offlineFormNumber', 'offline_form_number', 'offlineFormNo', 'membershipNumber');
     const appDate = formatDate(getField(record, 'applicationDate', 'application_date', 'createdAt', 'created_at', 'date'));
 
-    // Draw System Form Number (e.g., MYR-3) above the registration box
-    drawBounded(systemFormNo, 100, 692, 10.5, 120);
-    // Draw Offline Form Number (e.g., 1259) inside the "सदस्यता क्रमांक" box
-    drawBounded(offlineFormNo, 120, 669.5, 11, 100);
-    drawBounded(appDate, 462, 669.5, 11, 110);
+    const formNoDisplay = offlineFormNo || systemFormNo;
+    drawBounded(formNoDisplay, 125, 648.8, 10, 100, rgb(0, 0.15, 0.6));
+    drawBounded(appDate, 445, 648.8, 9.5, 105);
 
-    // ── 2. Applicant Section (भाणेज/भाणेजी का विवरण) ─────────
+    // ── 2. Applicant Section ─────────────────────────────────
     const applicantName = getField(record, 'applicantName', 'applicant_name', 'name');
     const parentName = getField(record, 'fatherName', 'father_name', 'parentName', 'parent_name', 'husbandName', 'husband_name');
-    const motherName = getField(record, 'motherName', 'mother_name');
     const dob = formatDate(getField(record, 'dateOfBirth', 'date_of_birth', 'dob'));
-    const age = getField(record, 'age');
-    const gotra = getField(record, 'gotra');
-    const address = getField(record, 'address', 'resident', 'village');
+    const gender = getField(record, 'gender', 'लिंग') || 'महिला';
+    const educationOrGotra = getField(record, 'education', 'qualification', 'शिक्षा', 'gotra', 'गोत्र', 'caste', 'category');
+    const address = getField(record, 'address', 'resident', 'village', 'पता');
     const aadharNo = getField(record, 'aadharNumber', 'aadhar_number', 'aadhaarNumber', 'aadhaar_number', 'aadhar');
+    const district = getField(record, 'district', 'nomineeDistrict', 'nominee_district', 'जिला');
+    const state = getField(record, 'state', 'nomineeState', 'nominee_state', 'राज्य') || 'राजस्थान';
+    const mobile = getField(record, 'mobile', 'mobileNumber', 'phone', 'contact', 'applicantMobile');
 
-    drawBounded(applicantName, 75, 597.5, 10.5, 130);
-    drawBounded(parentName, 250, 597.5, 10.5, 205);
+    drawBounded(applicantName, 62, 621.1, 10, 390);
+    drawBounded(parentName, 122, 593.3, 10, 330);
+    drawBounded(dob, 92, 565.6, 9.5, 75);
+    drawBounded(gender, 198, 565.6, 9.5, 62);
+    drawBounded(educationOrGotra, 295, 565.6, 9.5, 155);
+    drawBounded(aadharNo, 130, 537.9, 10, 320);
+    drawBounded(address, 58, 510.2, 9.5, 390);
+    drawBounded(district, 65, 482.4, 9.5, 92);
+    drawBounded(state, 190, 482.4, 9.5, 105);
+    drawBounded(mobile, 332, 482.4, 9.5, 215);
 
-    drawBounded(motherName, 95, 572.5, 10.5, 105);
-    drawBounded(dob, 245, 572.5, 10, 78);
-    drawBounded(age, 352, 572.5, 10.5, 105);
-
-    drawBounded(gotra, 56, 545.5, 10.5, 88);
-    drawBounded(address, 180, 545.5, 10, 88);
-    drawBounded(aadharNo, 325, 545.5, 10.5, 132);
-
-    // ── 3. Nominee Section (नॉमिनी का विवरण) ─────────────────
+    // ── 3. Nominee & Payment Section ─────────────────────────
     const nomineeName = getField(record, 'nomineeName', 'nominee_name');
-    const nomineeFather = getField(record, 'nomineeFathername', 'nominee_father_name', 'nomineeFather', 'nomineeHusbandName', 'nominee_husband_name');
-    const nomineeGotra = getField(record, 'nomineeGotra', 'nominee_gotra');
-    const nomineeAddress = getField(record, 'nomineeAddress', 'nominee_address');
-    const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile', 'mobile');
-    const tehsil = getField(record, 'tehsil', 'nomineeTehsil', 'nominee_tehsil');
-    const district = getField(record, 'district', 'nomineeDistrict', 'nominee_district');
-    const state = getField(record, 'state', 'nomineeState', 'nominee_state') || 'Rajasthan';
-    const pinCode = getField(record, 'pinCode', 'pincode', 'pin_code', 'nomineePincode', 'nominee_pincode');
     const nomineeRelation = getField(record, 'nomineeRelation', 'nominee_relation', 'relation');
-    const workerName = getField(record, 'workerName', 'worker_name', 'agentName', 'agent_name', 'added_name', 'addedby');
-    const workerMobile = getField(record, 'workerMobile', 'worker_mobile', 'agentMobile', 'agent_mobile');
+    const nomineeAadhar = getField(record, 'nomineeAadhar', 'nominee_aadhar', 'nomineeAadhaar', 'nominee_aadhaar', 'nomineeAadharNumber', 'nomineeAadhaarNumber');
+    const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile', 'nomineePhone', 'nominee_phone');
+    const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'agentName');
 
-    drawBounded(nomineeName, 100, 478.0, 10.5, 138);
-    drawBounded(nomineeFather, 295, 478.0, 10.5, 165);
+    const totalAmount = getField(record, 'totalAmount', 'total_amount', 'membershipFee', 'amount', 'fee', 'paymentAmount') || '5100';
+    const amountStr = totalAmount ? (String(totalAmount).endsWith('/-') ? String(totalAmount) : `${totalAmount}/-`) : '5,100/-';
+    const paymentMode = [
+      getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') || 'CASH',
+      getField(record, 'epinCode', 'epin_code') ? `EPIN: ${getField(record, 'epinCode', 'epin_code')}` : ''
+    ].filter(Boolean).join(' / ');
+    const seniorWorker = getField(record, 'seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'seniorCode', 'senior_code', 'seniorWorker', 'senior_worker', 'seniorName', 'senior_name');
 
-    drawBounded(nomineeGotra, 54, 449.5, 10.5, 82);
-    drawBounded(nomineeAddress, 172, 449.5, 10, 98);
-    drawBounded(nomineeMobile, 320, 449.5, 10.5, 140);
+    drawBounded(nomineeName, 108, 454.7, 10, 185);
+    drawBounded(nomineeRelation, 338, 454.7, 10, 210);
+    drawBounded(nomineeAadhar, 130, 427.0, 9.5, 120);
+    drawBounded(nomineeMobile, 275, 427.0, 9.5, 125);
+    drawBounded(workerCodeOrName, 472, 427.0, 9.5, 75);
 
-    drawBounded(tehsil, 68, 421.5, 10, 62);
-    drawBounded(district, 160, 421.5, 10, 62);
-    drawBounded(state, 250, 421.5, 10, 67);
-    drawBounded(pinCode, 372, 421.5, 10.5, 88);
+    drawBounded(amountStr, 60, 399.3, 9.5, 90);
+    drawBounded(paymentMode, 285, 399.3, 9.5, 120);
+    drawBounded(seniorWorker, 472, 399.3, 9.5, 75);
 
-    drawBounded(nomineeRelation, 115, 392.5, 10.5, 215);
-
-    drawBounded(workerName, 108, 364.0, 10.5, 162);
-    drawBounded(workerMobile, 315, 364.0, 10.5, 138);
-
-    // ── 4. Oath Section (शपथ - पत्र) ─────────────────────────
-    drawBounded(applicantName, 46, 291.5, 10.5, 180);
-    drawBounded(parentName, 280, 291.5, 10.5, 175);
-    drawBounded(age, 480, 291.5, 10.5, 92);
-
-    drawBounded(gotra, 58, 262.5, 10.5, 132);
-    drawBounded(address, 228, 262.5, 10, 236);
+    // ── 4. Section 2: सदस्यता फार्म रसीद (Receipt Section) ──────
+    drawBounded(formNoDisplay, 125, 181.3, 10, 100, rgb(0, 0.15, 0.6));
+    drawBounded(appDate, 472, 181.3, 9.5, 80);
+    drawBounded(applicantName, 58, 159.5, 10, 180);
+    drawBounded(parentName, 330, 159.5, 10, 218);
+    drawBounded(address, 58, 137.6, 9.5, 490);
+    drawBounded(mobile, 55, 115.7, 9.5, 172);
+    drawBounded(paymentMode, 308, 115.7, 9.5, 240);
+    drawBounded(amountStr, 88, 93.8, 9.5, 142);
+    drawBounded(amountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 
     const pdfBytes = await pdfDoc.save();
     const rawSafeName = applicantName || systemFormNo || offlineFormNo || record?.id || 'form';

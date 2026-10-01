@@ -78,11 +78,11 @@ export async function POST(request: NextRequest) {
     const firstPage = pdfDoc.getPages()[0];
     const pageHeight = firstPage.getSize().height;
 
-    // Photo Box: x = 468, yFromTop = 197 (y = 474), width = 93, height = 120
-    const PHOTO_X = 468;
-    const PHOTO_Y_TOP = 197;
-    const PHOTO_WIDTH = 93;
-    const PHOTO_HEIGHT = 120;
+    // Photo Box: x = 460.5, yFromTop = 224.3 (y = 498.5), width = 91.3, height = 119.1
+    const PHOTO_X = 460.5;
+    const PHOTO_Y_TOP = 224.3;
+    const PHOTO_WIDTH = 91.3;
+    const PHOTO_HEIGHT = 119.1;
 
     if (applicantPhotoSource) {
       await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, PHOTO_X, PHOTO_Y_TOP, PHOTO_WIDTH, PHOTO_HEIGHT);
@@ -129,18 +129,17 @@ export async function POST(request: NextRequest) {
     };
 
     // ── 1. Header Numbers & Date ────────────────────────────────
-    // System Form Number: S-### in upper header area (above offline number 1259)
+    // System Form Number: S-###
     const systemFormNo = getField(record, 'formNumber', 'form_number', 'systemFormNumber', 'insuranceNumber');
     // Offline Form Number: after क्रमांक : NGO/26/
     const offlineFormNo = getField(record, 'offlineFormNumber', 'offline_form_number', 'offlineFormNo', 'membershipNumber');
     const appDate = formatDate(getField(record, 'applicationDate', 'application_date', 'createdAt', 'created_at', 'date'));
 
-    // S-* System Form Number
-    drawBounded(systemFormNo, 140, 642, 11, 85);
-    // Offline Form Number (only if present, blank if null)
-    drawBounded(offlineFormNo, 138, 622.5, 10.5, 270);
+    // In the printed "क्रमांक : NGO/26/" field, render offlineFormNo or systemFormNo fallback
+    const formNoDisplay = offlineFormNo || systemFormNo;
+    drawBounded(formNoDisplay, 125, 648.8, 10, 100, rgb(0, 0.15, 0.6));
     // Application Date
-    drawBounded(appDate, 452, 622.5, 10.5, 110);
+    drawBounded(appDate, 445, 648.8, 9.5, 105);
 
     // ── 2. Applicant Section ────────────────────────────────────
     const applicantName = getField(record, 'applicantName', 'applicant_name', 'name');
@@ -148,52 +147,54 @@ export async function POST(request: NextRequest) {
       (record.gender === 'Female' ? getField(record, 'wifeName', 'wife_name') : '');
     const dob = formatDate(getField(record, 'dateOfBirth', 'date_of_birth', 'dob'));
     const gender = getField(record, 'gender', 'लिंग');
-    const education = getField(record, 'education', 'qualification', 'शिक्षा');
+    const education = getField(record, 'education', 'qualification', 'शिक्षा', 'caste', 'category');
     const aadhaar = getField(record, 'aadharNumber', 'aadhar_number', 'aadhaarNumber', 'aadhaar_number', 'aadhar');
     const address = getField(record, 'address', 'resident', 'village', 'पता');
     const district = getField(record, 'district', 'जिला');
     const state = getField(record, 'state', 'राज्य') || 'Rajasthan';
     const mobile = getField(record, 'mobile', 'phone', 'contact', 'मोबाइल');
 
-    drawBounded(applicantName, 72, 595.0, 10.5, 390);
-    drawBounded(fatherOrHusband, 128, 567.3, 10, 335);
-    drawBounded(dob, 100, 539.5, 10, 78);
-    drawBounded(gender, 208, 539.5, 10, 62);
-    drawBounded(education, 304, 539.5, 10, 155);
-    drawBounded(aadhaar, 140, 511.8, 10.5, 320);
-    drawBounded(address, 70, 484.0, 10, 390);
-    drawBounded(district, 74, 456.5, 10, 92);
-    drawBounded(state, 198, 456.5, 10, 104);
-    drawBounded(mobile, 340, 456.5, 10, 120);
+    drawBounded(applicantName, 62, 621.1, 10, 390);
+    drawBounded(fatherOrHusband, 122, 593.3, 10, 330);
+    drawBounded(dob, 92, 565.6, 9.5, 75);
+    drawBounded(gender, 198, 565.6, 9.5, 62);
+    drawBounded(education, 295, 565.6, 9.5, 155);
+    drawBounded(aadhaar, 130, 537.9, 10, 320);
+    drawBounded(address, 58, 510.2, 9.5, 390);
+    drawBounded(district, 65, 482.4, 9.5, 92);
+    drawBounded(state, 190, 482.4, 9.5, 105);
+    drawBounded(mobile, 332, 482.4, 9.5, 215);
 
     // ── 3. Nominee & Worker Section ─────────────────────────────
     const nomineeName = getField(record, 'nomineeName', 'nominee_name');
     const nomineeRelation = getField(record, 'nomineeRelation', 'nominee_relation', 'relation');
-    const nomineeAadhaar = getField(record, 'nomineeAadhar', 'nominee_aadhar', 'nomineeAadhaar', 'nominee_aadhaar', 'nomineeAadharNumber');
+    const nomineeAadhaar = getField(record, 'nomineeAadhar', 'nominee_aadhar', 'nomineeAadhaar', 'nominee_aadhaar', 'nomineeAadharNumber', 'nomineeAadhaarNumber');
     const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile', 'nomineePhone');
-    const workerName = getField(record, 'workerName', 'worker_name', 'agentName', 'agent_name', 'karyakartaName', 'added_name', 'addedby');
-    const amount = getField(record, 'paymentAmount', 'payment_amount', 'amount', 'fee', 'rashi', 'राशि');
-    const paymentRef = getField(record, 'transactionId', 'transaction_id', 'utr', 'utrNo', 'utr_no', 'paymentRef', 'payment_ref', 'referenceNo', 'paymentMode', 'payment_mode');
-    const seniorWorkerName = getField(record, 'seniorWorkerName', 'senior_worker_name', 'seniorName', 'senior_name', 'seniorWorker', 'senior');
+    const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'agentName');
+    const rawAmount = getField(record, 'paymentAmount', 'payment_amount', 'amount', 'fee', 'rashi', 'राशि', 'membershipFee');
+    const amountStr = rawAmount ? (rawAmount.endsWith('/-') ? rawAmount : `${rawAmount}/-`) : '';
+    const paymentRef = getField(record, 'paymentModeRef', 'transactionId', 'transaction_id', 'utr', 'utrNo', 'utr_no', 'paymentRef', 'payment_ref', 'referenceNo', 'paymentMode', 'payment_mode');
+    const seniorCodeOrName = getField(record, 'seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'seniorCode', 'senior_code', 'seniorWorkerName', 'senior_worker_name', 'seniorName', 'senior_name');
 
-    drawBounded(nomineeName, 114, 428.8, 10, 188);
-    drawBounded(nomineeRelation, 346, 428.8, 10, 215);
-    drawBounded(nomineeAadhaar, 138, 401.0, 10, 122);
-    drawBounded(nomineeMobile, 284, 401.0, 10, 124);
-    drawBounded(workerName, 478, 401.0, 10, 86);
-    drawBounded(amount, 68, 373.2, 10, 54);
-    drawBounded(paymentRef, 254, 373.2, 9.5, 118);
-    drawBounded(seniorWorkerName, 474, 373.2, 9.5, 90);
+    drawBounded(nomineeName, 108, 454.7, 10, 185);
+    drawBounded(nomineeRelation, 338, 454.7, 10, 210);
+    drawBounded(nomineeAadhaar, 130, 427.0, 9.5, 120);
+    drawBounded(nomineeMobile, 275, 427.0, 9.5, 125);
+    drawBounded(workerCodeOrName, 472, 427.0, 9.5, 75);
+    drawBounded(amountStr, 60, 399.3, 9.5, 90);
+    drawBounded(paymentRef, 285, 399.3, 9.5, 120);
+    drawBounded(seniorCodeOrName, 472, 399.3, 9.5, 75);
 
-    // ── 4. Oath Section (शपथ - पत्र) ─────────────────────────
-    const age = getField(record, 'age', 'computedAge', 'computed_age', 'उम्र');
-    const gotra = getField(record, 'gotra', 'गोत्र');
-
-    drawBounded(applicantName, 55, 238.8, 9.5, 134);
-    drawBounded(fatherOrHusband, 290, 238.8, 9.5, 114);
-    drawBounded(age, 428, 238.8, 9.5, 52);
-    drawBounded(gotra, 508, 238.8, 9.5, 54);
-    drawBounded(address, 78, 204.6, 9.5, 110);
+    // ── 4. Section 2: सदस्यता फार्म रसीद (Receipt Section) ──────
+    drawBounded(formNoDisplay, 125, 181.3, 10, 100, rgb(0, 0.15, 0.6));
+    drawBounded(appDate, 472, 181.3, 9.5, 80);
+    drawBounded(applicantName, 58, 159.5, 10, 180);
+    drawBounded(fatherOrHusband, 330, 159.5, 10, 218);
+    drawBounded(address, 58, 137.6, 9.5, 490);
+    drawBounded(mobile, 55, 115.7, 9.5, 172);
+    drawBounded(paymentRef, 308, 115.7, 9.5, 240);
+    drawBounded(amountStr, 88, 93.8, 9.5, 142);
+    drawBounded(amountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 
     const pdfBytes = await pdfDoc.save();
     const rawSafeName = applicantName || systemFormNo || offlineFormNo || record?.id || 'form';

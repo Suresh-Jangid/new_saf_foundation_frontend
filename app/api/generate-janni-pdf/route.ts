@@ -70,12 +70,11 @@ export async function POST(request: NextRequest) {
     const firstPage = pdfDoc.getPages()[0];
     const pageHeight = firstPage.getSize().height;
 
-    // Measured Photo Box from official template (612 x 792):
-    // Photo box at top right: x = 469, y = 512 to 624 (w: 94, h: 112, yFromTop: 168)
-    const PHOTO_X = 469;
-    const PHOTO_Y_FROM_TOP = 168;
-    const PHOTO_WIDTH = 94;
-    const PHOTO_HEIGHT = 112;
+    // Photo box at top right: x = 460.5, yFromTop = 224.3 (w: 91.3, h: 119.1)
+    const PHOTO_X = 460.5;
+    const PHOTO_Y_FROM_TOP = 224.3;
+    const PHOTO_WIDTH = 91.3;
+    const PHOTO_HEIGHT = 119.1;
 
     if (applicantPhotoSource) {
       await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, PHOTO_X, PHOTO_Y_FROM_TOP, PHOTO_WIDTH, PHOTO_HEIGHT);
@@ -144,12 +143,12 @@ export async function POST(request: NextRequest) {
     // ── 1. Top Header Boxes ──────────────────────────────────
     // Template has "क्रमांक : NGO/26/" pre-printed from x=46.16 to 125.98.
     // Strip leading "NGO/26/" if present to avoid duplication.
-    const rawFormNo = getField(record, 'formNumber', 'form_number', 'applicationNumber', 'application_number');
+    const rawFormNo = getField(record, 'offlineFormNumber', 'offline_form_number', 'offlineFormNo', 'formNumber', 'form_number', 'applicationNumber', 'application_number');
     const formNo = rawFormNo.replace(/^NGO\/26\//i, '').trim();
     const appDate = formatDate(getField(record, 'applicationDate', 'application_date', 'createdAt', 'created_at', 'date'));
 
-    drawBounded(formNo, 130, 621.5, 10, 200);
-    drawBounded(appDate, 452, 621.5, 10, 110);
+    drawBounded(formNo, 125, 648.8, 10, 100, rgb(0, 0.15, 0.6));
+    drawBounded(appDate, 445, 648.8, 9.5, 105);
 
     // ── 2. Applicant Section ─────────────────────────────────
     const applicantName = getField(record, 'applicantName', 'applicant_name', 'name');
@@ -157,60 +156,59 @@ export async function POST(request: NextRequest) {
     const dob = formatDate(getField(record, 'dateOfBirth', 'date_of_birth', 'dob'));
     const rawGender = getField(record, 'gender', 'childGender') || 'महिला';
     const gender = rawGender.includes('/') ? rawGender.split('/')[0].trim() : rawGender;
-    const education = getField(record, 'education', 'qualification');
-    const aadhar = getField(record, 'aadharNumber', 'aadhar_number', 'aadhar');
+    const education = getField(record, 'education', 'qualification', 'शिक्षा', 'caste', 'category');
+    const aadhar = getField(record, 'aadharNumber', 'aadhar_number', 'aadhaarNumber', 'aadhaar_number', 'aadhar');
     const address = [getField(record, 'address'), getField(record, 'tehsil')].filter(Boolean).join(', ');
-    const district = getField(record, 'district');
-    const state = getField(record, 'state') || 'राजस्थान';
+    const district = getField(record, 'district', 'जिला');
+    const state = getField(record, 'state', 'राज्य') || 'राजस्थान';
     const mobile = getField(record, 'mobile', 'mobileNumber', 'phone');
 
-    drawBounded(applicantName, 72, 593.5, 10, 390);
-    drawBounded(fatherHusbandName, 128, 565.8, 10, 330);
-    drawBounded(dob, 100, 538.2, 9.5, 80);
-    drawBounded(gender, 204, 538.2, 9.5, 68);
-    drawBounded(education, 306, 538.2, 9.5, 154);
-    drawBounded(aadhar, 140, 510.5, 10, 320);
-    drawBounded(address, 70, 482.7, 9.5, 490);
-    drawBounded(district, 75, 455.0, 9.5, 95);
-    drawBounded(state, 200, 455.0, 9.5, 105);
-    drawBounded(mobile, 342, 455.0, 9.5, 220);
+    drawBounded(applicantName, 62, 621.1, 10, 390);
+    drawBounded(fatherHusbandName, 122, 593.3, 10, 330);
+    drawBounded(dob, 92, 565.6, 9.5, 75);
+    drawBounded(gender, 198, 565.6, 9.5, 62);
+    drawBounded(education, 295, 565.6, 9.5, 155);
+    drawBounded(aadhar, 130, 537.9, 10, 320);
+    drawBounded(address, 58, 510.2, 9.5, 390);
+    drawBounded(district, 65, 482.4, 9.5, 92);
+    drawBounded(state, 190, 482.4, 9.5, 105);
+    drawBounded(mobile, 332, 482.4, 9.5, 215);
 
     // ── 3. Nominee & Payment Section ─────────────────────────
     const nomineeName = getField(record, 'nomineeName', 'nominee_name');
     const nomineeRelation = getField(record, 'nomineeRelation', 'nominee_relation', 'relation');
-    const nomineeAadhar = getField(record, 'nomineeAadhar', 'nominee_aadhar', 'nomineeAadharNumber');
+    const nomineeAadhar = getField(record, 'nomineeAadhar', 'nominee_aadhar', 'nomineeAadhaar', 'nominee_aadhaar', 'nomineeAadharNumber', 'nomineeAadhaarNumber');
     const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile') || mobile;
-    const workerName = getField(record, 'workerName', 'worker_name', 'referralName');
+    const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'referralName');
 
-    const totalAmount = getField(record, 'totalAmount', 'total_amount', 'amount', 'fee');
-    const amountStr = totalAmount ? `₹${Number(totalAmount).toLocaleString('en-IN')}` : '';
+    const totalAmount = getField(record, 'totalAmount', 'total_amount', 'amount', 'fee', 'paymentAmount', 'payment_amount');
+    const amountStr = totalAmount ? (String(totalAmount).endsWith('/-') ? String(totalAmount) : `${totalAmount}/-`) : '';
     const paymentMode = [
-      getField(record, 'paymentMode', 'payment_mode'),
+      getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode'),
       getField(record, 'epinCode', 'epin_code') ? `EPIN: ${getField(record, 'epinCode', 'epin_code')}` : ''
     ].filter(Boolean).join(' / ');
-    const seniorWorker = getField(record, 'seniorWorker', 'senior_worker');
+    const seniorWorker = getField(record, 'seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'seniorCode', 'senior_code', 'seniorWorker', 'senior_worker', 'seniorName', 'senior_name');
 
-    drawBounded(nomineeName, 116, 427.3, 9.5, 190);
-    drawBounded(nomineeRelation, 348, 427.3, 9.5, 215);
-    drawBounded(nomineeAadhar, 140, 399.5, 9, 122);
-    drawBounded(nomineeMobile, 286, 399.5, 9, 126);
-    drawBounded(workerName, 480, 399.5, 9, 85);
+    drawBounded(nomineeName, 108, 454.7, 10, 185);
+    drawBounded(nomineeRelation, 338, 454.7, 10, 210);
+    drawBounded(nomineeAadhar, 130, 427.0, 9.5, 120);
+    drawBounded(nomineeMobile, 275, 427.0, 9.5, 125);
+    drawBounded(workerCodeOrName, 472, 427.0, 9.5, 75);
 
-    drawBounded(amountStr, 70, 371.8, 9, 54);
-    drawBounded(paymentMode, 255, 371.8, 8.5, 120);
-    drawBounded(seniorWorker, 476, 371.8, 9, 88);
+    drawBounded(amountStr, 60, 399.3, 9.5, 90);
+    drawBounded(paymentMode, 285, 399.3, 9.5, 120);
+    drawBounded(seniorWorker, 472, 399.3, 9.5, 75);
 
-    // ── 4. Shapath-Patra (शपथ-पत्र) Section ─────────────────
-    const age = getField(record, 'age');
-    const ageStr = age ? `${age} वर्ष` : '';
-    const gotra = getField(record, 'gotra');
-    const fullAddress = [getField(record, 'address'), getField(record, 'tehsil'), district, getField(record, 'state')].filter(Boolean).join(', ');
-
-    drawBounded(applicantName, 56, 237.4, 9.5, 134);
-    drawBounded(fatherHusbandName, 292, 237.4, 9.5, 114);
-    drawBounded(ageStr, 430, 237.4, 9.5, 54);
-    drawBounded(gotra, 510, 237.4, 9.5, 54);
-    drawBounded(fullAddress, 78, 203.2, 9, 112);
+    // ── 4. Section 2: सदस्यता फार्म रसीद (Receipt Section) ──────
+    drawBounded(formNo, 125, 181.3, 10, 100, rgb(0, 0.15, 0.6));
+    drawBounded(appDate, 472, 181.3, 9.5, 80);
+    drawBounded(applicantName, 58, 159.5, 10, 180);
+    drawBounded(fatherHusbandName, 330, 159.5, 10, 218);
+    drawBounded(address, 58, 137.6, 9.5, 490);
+    drawBounded(mobile, 55, 115.7, 9.5, 172);
+    drawBounded(paymentMode, 308, 115.7, 9.5, 240);
+    drawBounded(amountStr, 88, 93.8, 9.5, 142);
+    drawBounded(amountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 
     const pdfBytes = await pdfDoc.save();
 

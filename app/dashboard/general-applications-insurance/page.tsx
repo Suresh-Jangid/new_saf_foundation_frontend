@@ -647,13 +647,20 @@ export default function GeneralInsuranceApplicationsPage() {
     try {
       // Get image data if available
       const photoSource = record.passportPhoto || (record as any).passport_photo || (record as any).passportPhotoUrl || (record as any).photo || (record as any).applicantPhoto || "";
-      const imageData = await processImageData(photoSource);
+      const nomineePhotoSource = (record as any).nomineePassportPhoto || (record as any).nominee_passport_photo || (record as any).nomineePhoto || (record as any).nominee_photo || (record as any).nomineePhotoUrl || (record as any).nominee_photo_url || "";
+      const [imageData, nomineeImageData] = await Promise.all([
+        processImageData(photoSource),
+        processImageData(nomineePhotoSource),
+      ]);
 
       // Prepare data for PDF generation
       const pdfData: any = {
         ...record,
         passportPhoto: photoSource,
         passportPhotoUrl: photoSource,
+        nomineePhoto: nomineePhotoSource,
+        nomineePhotoUrl: nomineePhotoSource,
+        nomineePassportPhoto: nomineePhotoSource,
         formNumber: record.formNumber,
         offlineFormNumber: (record as any).offlineFormNumber || (record as any).offline_form_number || "",
         applicationDate: record.applicationDate,
@@ -681,7 +688,7 @@ export default function GeneralInsuranceApplicationsPage() {
       };
 
       // Generate PDF using the service
-      const pdfBlob = await APIService.generateInsurancePDF(pdfData, imageData || undefined);
+      const pdfBlob = await APIService.generateInsurancePDF(pdfData, imageData || undefined, nomineeImageData || undefined);
       
       // Create download link
       const url = window.URL.createObjectURL(pdfBlob);

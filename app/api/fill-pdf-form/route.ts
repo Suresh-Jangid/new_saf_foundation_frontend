@@ -24,6 +24,7 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
     const {
       data,
       type,
@@ -34,7 +35,8 @@ export async function POST(request: NextRequest) {
       valueOffsetX: reqValueOffsetX,
       valueOffsetY: reqValueOffsetY,
       imageData, // Add image data parameter
-    } = await request.json();
+      nomineeImageData,
+    } = body;
 
     console.log('Received data:', data);
     console.log('Type:', type);
@@ -151,6 +153,49 @@ export async function POST(request: NextRequest) {
       } catch (imageError) {
         console.error('Error embedding applicant photo in fill-pdf-form:', imageError);
         // Continue without image if there's an error
+      }
+    }
+
+    // Handle nominee photo embedding (Nominee box: x: 476.0, yTop: 295.0, w: 76.3, h: 83.3)
+    const nomineePhotoSource = pickPhotoSource(
+      body?.nomineeImageData,
+      body?.nomineePhotoData,
+      body?.nomineePhoto,
+      body?.nomineePhotoUrl,
+      data?.nomineeImageData,
+      data?.nomineePhotoData,
+      data?.nomineePassportPhoto,
+      data?.nominee_passport_photo,
+      data?.nomineePhoto,
+      data?.nominee_photo,
+      data?.nomineePhotoUrl,
+      data?.nominee_photo_url,
+      data?.nomineeImage,
+      data?.nomineeImageUrl
+    );
+
+    if (nomineePhotoSource) {
+      try {
+        const nomineeX = 476.0;
+        const nomineeY = 295.0;
+        const nomineeWidth = 76.3;
+        const nomineeHeight = 83.3;
+
+        await embedPdfImage(
+          pdfDoc,
+          firstPage,
+          pageHeight,
+          nomineePhotoSource,
+          nomineeX,
+          nomineeY,
+          nomineeWidth,
+          nomineeHeight,
+          'cover'
+        );
+
+        console.log('Nominee photo embedded successfully in fill-pdf-form');
+      } catch (imageError) {
+        console.error('Error embedding nominee photo in fill-pdf-form:', imageError);
       }
     }
 

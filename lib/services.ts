@@ -762,7 +762,7 @@ export class APIService {
     insuranceApplicationInstallmentsAPI.create(data);
 
   // PDF Generation
-  static generateInsurancePDF = async (data: any, imageData?: string) => {
+  static generateInsurancePDF = async (data: any, imageData?: string, nomineeImageData?: string) => {
     try {
       const response = await fetch('/api/generate-insurance-pdf', {
         method: 'POST',
@@ -772,6 +772,7 @@ export class APIService {
         body: JSON.stringify({
           data,
           imageData,
+          nomineeImageData,
           debug: false, // Set to true for debugging coordinates
         }),
       });

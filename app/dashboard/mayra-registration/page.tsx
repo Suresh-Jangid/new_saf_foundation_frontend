@@ -554,7 +554,7 @@ export default function MayraRegistrationPage() {
   const handleGeneratePDF = async (record: MayraRegistrationRecord) => {
     try {
       const photoSource = record.passportPhoto || (record as any).passport_photo || (record as any).passportPhotoUrl || (record as any).photo || (record as any).applicantPhoto || "";
-      const nomineePhotoSource = record.nomineePassportPhoto || (record as any).nominee_passport_photo || record.nomineePhoto || "";
+      const nomineePhotoSource = record.nomineePassportPhoto || (record as any).nominee_passport_photo || record.nomineePhoto || (record as any).nominee_photo || (record as any).nomineePhotoUrl || (record as any).nominee_photo_url || "";
       const [imageData, nomineeImageData] = await Promise.all([
         fetchPhotoAsDataUrl(photoSource),
         fetchPhotoAsDataUrl(nomineePhotoSource),
@@ -568,6 +568,9 @@ export default function MayraRegistrationPage() {
             ...record,
             passportPhoto: photoSource,
             passportPhotoUrl: photoSource,
+            nomineePhoto: nomineePhotoSource,
+            nomineePhotoUrl: nomineePhotoSource,
+            nomineePassportPhoto: nomineePhotoSource,
           },
           imageData,
           nomineeImageData,

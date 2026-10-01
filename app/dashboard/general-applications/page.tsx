@@ -760,7 +760,11 @@ export default function GeneralApplicationsPage() {
       
       // Get image data if available
       const photoSource = record.passportPhoto || (record as any).passport_photo || (record as any).passportPhotoUrl || (record as any).photo || (record as any).applicantPhoto || "";
-      const imageData = await processImageData(photoSource);
+      const nomineePhotoSource = (record as any).nomineePassportPhoto || (record as any).nominee_passport_photo || (record as any).nomineePhoto || (record as any).nominee_photo || (record as any).nomineePhotoUrl || (record as any).nominee_photo_url || (record as any).nomineeImage || (record as any).nomineeImageUrl || "";
+      const [imageData, nomineeImageData] = await Promise.all([
+        processImageData(photoSource),
+        processImageData(nomineePhotoSource),
+      ]);
       
       const response = await fetch('/api/fill-pdf-form', {
         method: 'POST',
@@ -773,12 +777,16 @@ export default function GeneralApplicationsPage() {
             ...dataForPdf,
             passportPhoto: photoSource,
             passportPhotoUrl: photoSource,
+            nomineePhoto: nomineePhotoSource,
+            nomineePhotoUrl: nomineePhotoSource,
+            nomineePassportPhoto: nomineePhotoSource,
           },
           offsetX: 0,
           offsetY: 0,
           valueOffsetX: 0,
           valueOffsetY: 0,
-          imageData: imageData
+          imageData: imageData,
+          nomineeImageData: nomineeImageData,
         }),
       });
 

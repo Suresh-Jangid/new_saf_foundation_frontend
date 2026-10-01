@@ -46,6 +46,21 @@ export async function POST(request: NextRequest) {
       record?.profilePhoto
     );
 
+    const nomineePhotoSource = pickPhotoSource(
+      body?.nomineeImageData,
+      body?.nomineePhotoData,
+      body?.nomineePhoto,
+      body?.nomineePhotoUrl,
+      record?.nomineeImageData,
+      record?.nomineePhotoData,
+      record?.nomineePassportPhoto,
+      record?.nominee_passport_photo,
+      record?.nomineePhoto,
+      record?.nominee_photo,
+      record?.nomineePhotoUrl,
+      record?.nominee_photo_url
+    );
+
     const masterTemplatePath = path.join(
       process.cwd(),
       'public',
@@ -90,6 +105,16 @@ export async function POST(request: NextRequest) {
 
     if (applicantPhotoSource) {
       await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, PHOTO_X, PHOTO_Y_TOP, PHOTO_WIDTH, PHOTO_HEIGHT, 'cover');
+    }
+
+    // Nominee Photo Box: exact vector bounds from common_application_form.pdf (x: 476.0, yTop: 295.0, w: 76.3, h: 83.3)
+    const NOMINEE_PHOTO_X = 476.0;
+    const NOMINEE_PHOTO_Y_TOP = 295.0;
+    const NOMINEE_PHOTO_WIDTH = 76.3;
+    const NOMINEE_PHOTO_HEIGHT = 83.3;
+
+    if (nomineePhotoSource) {
+      await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, NOMINEE_PHOTO_X, NOMINEE_PHOTO_Y_TOP, NOMINEE_PHOTO_WIDTH, NOMINEE_PHOTO_HEIGHT, 'cover');
     }
 
     const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf');

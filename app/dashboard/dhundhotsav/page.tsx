@@ -599,7 +599,12 @@ export default function DhundhotsavListPage() {
         gender: record.gender || "Male",
       };
 
-      const imageData = await getPhotoDataUrl(record.passportPhotoUrl || (record as any).passportPhoto);
+      const photoSource = record.passportPhotoUrl || (record as any).passportPhoto || "";
+      const nomineePhotoSource = record.nomineePhotoUrl || (record as any).nomineePhoto || (record as any).nomineePassportPhoto || (record as any).nominee_photo || "";
+      const [imageData, nomineeImageData] = await Promise.all([
+        getPhotoDataUrl(photoSource),
+        getPhotoDataUrl(nomineePhotoSource),
+      ]);
 
       const response = await fetch("/api/fill-pdf-form", {
         method: "POST",
@@ -608,12 +613,19 @@ export default function DhundhotsavListPage() {
         },
         body: JSON.stringify({
           type: "dhundhotsav",
-          data: dataForPdf,
+          data: {
+            ...dataForPdf,
+            passportPhoto: photoSource,
+            passportPhotoUrl: photoSource,
+            nomineePhoto: nomineePhotoSource,
+            nomineePhotoUrl: nomineePhotoSource,
+          },
           offsetX: 0,
           offsetY: 0,
           valueOffsetX: 0,
           valueOffsetY: 0,
           imageData,
+          nomineeImageData,
         }),
       });
 

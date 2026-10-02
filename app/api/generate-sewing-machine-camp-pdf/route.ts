@@ -3,6 +3,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { loadImageBytes, pickPhotoSource } from '../../utils/pdfImage';
 
 export const runtime = 'nodejs';
 
@@ -58,73 +59,46 @@ export async function POST(request: NextRequest) {
     const firstPage = pages[0];
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
-    // Handle image embedding if imageData is provided or passportPhoto URL is in data
-    const imageToEmbed = imageData || data?.passportPhoto;
-    if (imageToEmbed) {
+    // Handle image embedding
+    const photoSource = pickPhotoSource(
+      imageData,
+      data?.imageData,
+      data?.passportPhoto,
+      data?.passport_photo,
+      data?.passportPhotoUrl,
+      data?.photo
+    );
+
+    if (photoSource) {
       try {
-        let imageBytes: Uint8Array;
-        let imageType: string;
-
-        if (imageData && imageData.startsWith('data:')) {
-          // Handle base64 image data
-          imageBytes = Uint8Array.from(atob(imageData.split(',')[1]), c => c.charCodeAt(0));
-          imageType = imageData.split(';')[0].split(':')[1];
-        } else if (data?.passportPhoto) {
-          // Handle URL image
-          console.log('Fetching image from URL:', data.passportPhoto);
-          const response = await fetch(data.passportPhoto);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-          }
-          const arrayBuffer = await response.arrayBuffer();
-          imageBytes = new Uint8Array(arrayBuffer);
-          
-          // Determine image type from content-type header or URL extension
-          const contentType = response.headers.get('content-type');
-          if (contentType) {
-            imageType = contentType;
+        const loaded = await loadImageBytes(photoSource);
+        if (loaded) {
+          const { bytes, mime } = loaded;
+          let image;
+          if (mime && mime.includes('png')) {
+            image = await pdfDoc.embedPng(bytes);
           } else {
-            const url = data.passportPhoto.toLowerCase();
-            if (url.includes('.jpg') || url.includes('.jpeg')) {
-              imageType = 'image/jpeg';
-            } else if (url.includes('.png')) {
-              imageType = 'image/png';
-            } else {
-              imageType = 'image/jpeg'; // Default assumption
-            }
+            image = await pdfDoc.embedJpg(bytes);
           }
-        } else {
-          throw new Error('No valid image data provided');
-        }
-        
-        // Determine image type and embed accordingly
-        let image;
-        if (imageType.includes('jpeg') || imageType.includes('jpg')) {
-          image = await pdfDoc.embedJpg(imageBytes);
-        } else if (imageType.includes('png')) {
-          image = await pdfDoc.embedPng(imageBytes);
-        } else {
-          console.warn('Unsupported image format, skipping image embedding');
-          return;
-        }
 
-        if (image) {
-          // Calculate image position and size for passport photo
-          // Adjust these coordinates based on your form layout
-          const imageX = 477; // X position for photo
-          const imageY = 347; // Y position for photo
-          const imageWidth = 80; // Width of the photo
-          const imageHeight = 100; // Height of the photo
+          if (image) {
+            // Calculate image position and size for passport photo
+            // Preserving exact original coordinates
+            const imageX = 477; // X position for photo
+            const imageY = 347; // Y position for photo
+            const imageWidth = 80; // Width of the photo
+            const imageHeight = 100; // Height of the photo
 
-          // Draw the image on the PDF
-          firstPage.drawImage(image, {
-            x: imageX,
-            y: pageHeight - imageY - imageHeight, // Convert to bottom-left coordinate system
-            width: imageWidth,
-            height: imageHeight,
-          });
+            // Draw the image on the PDF
+            firstPage.drawImage(image, {
+              x: imageX,
+              y: pageHeight - imageY - imageHeight, // Convert to bottom-left coordinate system
+              width: imageWidth,
+              height: imageHeight,
+            });
 
-          console.log('Image embedded successfully');
+            console.log('Image embedded successfully');
+          }
         }
       } catch (imageError) {
         console.error('Error embedding image:', imageError);

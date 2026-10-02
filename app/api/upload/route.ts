@@ -18,28 +18,68 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-    const category = (formData.get("category") as string) || "general";
-    const entityType = (formData.get("entityType") as string) || "application";
-    const entityId = (formData.get("entityId") as string) || "new";
+    const contentTypeHeader = request.headers.get("content-type") || "";
+    let buffer: Buffer | null = null;
+    let filename = "upload";
+    let contentType = "application/octet-stream";
+    let category = "general";
+    let entityType = "application";
+    let entityId = "new";
 
-    if (!file) {
+    if (contentTypeHeader.includes("application/json")) {
+      const body = await request.json();
+      const rawFile = body.file || body.fileBase64 || body.dataUrl || body.data;
+      category = body.category || "general";
+      entityType = body.entityType || "application";
+      entityId = body.entityId || "new";
+      filename = body.filename || body.fileName || "upload";
+      if (!rawFile) {
+        return NextResponse.json(
+          { success: false, error: "कोई फ़ाइल प्रदान नहीं की गई / No file provided" },
+          { status: 400, headers: CORS_HEADERS }
+        );
+      }
+      if (typeof rawFile === "string" && rawFile.startsWith("data:")) {
+        const [meta, b64] = rawFile.split(",");
+        const mimeMatch = meta.match(/:(.*?);/);
+        contentType = mimeMatch ? mimeMatch[1] : "image/jpeg";
+        buffer = Buffer.from(b64, "base64");
+      } else if (typeof rawFile === "string") {
+        buffer = Buffer.from(rawFile, "base64");
+      }
+    } else {
+      const formData = await request.formData();
+      const file = formData.get("file") as File | null;
+      category = (formData.get("category") as string) || "general";
+      entityType = (formData.get("entityType") as string) || "application";
+      entityId = (formData.get("entityId") as string) || "new";
+
+      if (!file) {
+        return NextResponse.json(
+          { success: false, error: "कोई फ़ाइल प्रदान नहीं की गई / No file provided" },
+          { status: 400, headers: CORS_HEADERS }
+        );
+      }
+
+      filename = file.name;
+      contentType = file.type;
+      const arrayBuffer = await file.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+    }
+
+    if (!buffer || buffer.length === 0) {
       return NextResponse.json(
         { success: false, error: "कोई फ़ाइल प्रदान नहीं की गई / No file provided" },
         { status: 400, headers: CORS_HEADERS }
       );
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
     const result = await storageService.upload(buffer, {
       category: category as any,
       entityType: entityType as any,
       entityId,
-      originalFilename: file.name,
-      contentType: file.type,
+      originalFilename: filename,
+      contentType,
       maxSizeBytes: category === "document" || category === "affidavit" ? 10 * 1024 * 1024 : 5 * 1024 * 1024,
     });
 

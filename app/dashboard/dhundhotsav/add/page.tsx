@@ -25,6 +25,7 @@ import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
 import { formatDate } from "@/lib/utils";
+import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 
 export default function AddDhundhotsavPage() {
@@ -325,6 +326,51 @@ export default function AddDhundhotsavPage() {
     try {
       const trimmedOffline = (formData.offlineFormNumber || "").trim();
       const trimmedDuration = (formData.benefitDuration || "").trim();
+      let finalPassportUrl = passportPhotoBase64 || undefined;
+      if (passportPhotoBase64 && passportPhotoBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(passportPhotoBase64, {
+            category: "passport",
+            entityType: "dhundhotsav",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            finalPassportUrl = uploadRes.url;
+          }
+        } catch (err) {
+          console.warn("Dhundhotsav passport upload note:", err);
+        }
+      }
+
+      let finalNomineeUrl = nomineePhotoBase64 || undefined;
+      if (nomineePhotoBase64 && nomineePhotoBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(nomineePhotoBase64, {
+            category: "nominee",
+            entityType: "dhundhotsav",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            finalNomineeUrl = uploadRes.url;
+          }
+        } catch (err) {
+          console.warn("Dhundhotsav nominee upload note:", err);
+        }
+      }
+
+      let finalDocumentUrl = documentBase64 || undefined;
+      if (documentBase64 && documentBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(documentBase64, {
+            category: "document",
+            entityType: "dhundhotsav",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            finalDocumentUrl = uploadRes.url;
+          }
+        } catch (err) {
+          console.warn("Dhundhotsav document upload note:", err);
+        }
+      }
+
       const payload: CreateDhundhotsavPayload = {
         applicationDate: formData.applicationDate,
         offlineFormNumber: trimmedOffline || undefined,
@@ -351,10 +397,10 @@ export default function AddDhundhotsavPage() {
         nomineeRelation: formData.nomineeRelation.trim() || undefined,
         nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || undefined,
         nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || undefined,
-        nomineePhotoUrl: nomineePhotoBase64 || undefined,
-        nomineePhoto: nomineePhotoBase64 || undefined,
-        passportPhotoUrl: passportPhotoBase64 || undefined,
-        documentUrl: documentBase64 || undefined,
+        nomineePhotoUrl: finalNomineeUrl,
+        nomineePhoto: finalNomineeUrl,
+        passportPhotoUrl: finalPassportUrl,
+        documentUrl: finalDocumentUrl,
         gender: formData.gender,
         category: formData.category,
         schemeType: "DHUNDHOTSAV",

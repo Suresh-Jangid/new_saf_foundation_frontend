@@ -3,6 +3,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { loadImageBytes } from '../../utils/pdfImage';
 
 export const runtime = 'nodejs';
 
@@ -62,73 +63,45 @@ export async function POST(request: NextRequest) {
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
     // Handle image embedding if imageData or profile_image is provided
-    const imageToUse = imageData || record?.profile_image;
+    const imageToUse = imageData || record?.profile_image || record?.photo || record?.photoUrl;
     if (imageToUse) {
       try {
-        console.log('Processing image data:', typeof imageToUse, imageToUse.substring(0, 50) + '...');
-        
-        let imageBytes: Uint8Array;
-        
-        // Check if it's a URL or base64 data
-        if (imageToUse.startsWith('http://') || imageToUse.startsWith('https://')) {
-          // It's a URL, fetch the image
-          console.log('Fetching image from URL:', imageToUse);
-          const response = await fetch(imageToUse);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-          }
-          const arrayBuffer = await response.arrayBuffer();
-          imageBytes = new Uint8Array(arrayBuffer);
-          console.log('Fetched image bytes length:', imageBytes.length);
-        } else if (imageToUse.startsWith('data:')) {
-          // It's base64 data
-          console.log('Processing base64 image data');
-          imageBytes = Uint8Array.from(atob(imageToUse.split(',')[1]), c => c.charCodeAt(0));
-          console.log('Base64 image bytes length:', imageBytes.length);
-        } else {
-          console.warn('Unsupported image format, skipping image embedding');
-          return;
-        }
-        
-        // Determine image type and embed
-        let image;
-        try {
-          // Try PNG first
-          image = await pdfDoc.embedPng(imageBytes);
-          console.log('Embedded PNG image:', image.width, 'x', image.height);
-        } catch (pngError) {
+        const loaded = await loadImageBytes(imageToUse);
+        if (loaded) {
+          const { bytes, mime } = loaded;
+          let image;
           try {
-            // Try JPEG if PNG fails
-            image = await pdfDoc.embedJpg(imageBytes);
-            console.log('Embedded JPEG image:', image.width, 'x', image.height);
-          } catch (jpegError) {
-            console.error('Failed to embed image as PNG or JPEG:', pngError, jpegError);
-            return;
+            if (mime && mime.includes('png')) {
+              image = await pdfDoc.embedPng(bytes);
+            } else {
+              image = await pdfDoc.embedJpg(bytes);
+            }
+          } catch {
+            try {
+              image = await pdfDoc.embedPng(bytes);
+            } catch {
+              image = await pdfDoc.embedJpg(bytes);
+            }
           }
-        }
 
-        if (image) {
-          // Use the same image configuration as agent application form
-          const imageX = 47; // X position for photo (adjusted for smaller page)
-          const imageY = 50; // Y position for photo (adjusted for smaller page)
-          const imageWidth = 50; // Width of the photo (adjusted for smaller page)
-          const imageHeight = 60; // Height of the photo (adjusted for smaller page)
+          if (image) {
+            // Use the exact original image configuration
+            const imageX = 47; // X position for photo (adjusted for smaller page)
+            const imageY = 50; // Y position for photo (adjusted for smaller page)
+            const imageWidth = 50; // Width of the photo (adjusted for smaller page)
+            const imageHeight = 60; // Height of the photo (adjusted for smaller page)
 
-          // Position the image using bottom-left coordinate system
-          const drawY = pageHeight - imageY - imageHeight; // Convert to bottom-left coordinate system
+            // Position the image using bottom-left coordinate system
+            const drawY = pageHeight - imageY - imageHeight;
 
-          console.log('Drawing image at:', imageX, drawY, 'with size:', imageWidth, 'x', imageHeight);
-
-          firstPage.drawImage(image, {
-            x: imageX,
-            y: drawY,
-            width: imageWidth,
-            height: imageHeight,
-          });
-          
-          console.log('Image drawn successfully');
-        } else {
-          console.warn('No image was embedded, skipping drawing');
+            firstPage.drawImage(image, {
+              x: imageX,
+              y: drawY,
+              width: imageWidth,
+              height: imageHeight,
+            });
+            console.log('Image drawn successfully');
+          }
         }
       } catch (error) {
         console.error('Error embedding image:', error);

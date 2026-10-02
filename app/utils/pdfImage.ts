@@ -79,7 +79,12 @@ export async function loadImageBytes(
       // Fall through to remote URL fetch
     }
 
-    const url = toAbsoluteImageUrl(source);
+    let url = toAbsoluteImageUrl(source);
+    // If ImageKit asset, request dynamic JPEG transformation for seamless pdf-lib embedding
+    if (url.includes('ik.imagekit.io') && !url.includes('tr=')) {
+      url += (url.includes('?') ? '&' : '?') + 'tr=f-jpg';
+    }
+
     const response = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PurabiyaFoundation/1.0)' },
     });

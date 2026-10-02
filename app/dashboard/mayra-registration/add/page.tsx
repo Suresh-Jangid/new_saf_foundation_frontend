@@ -16,6 +16,7 @@ import { CalendarDays, Upload } from "lucide-react"
 import { post, postUrlEncoded, API_ENDPOINTS } from "@/lib/api"
 import { toast } from "sonner"
 import { MediaUploadControl } from "@/components/media-upload"
+import { uploadMediaFile } from "@/lib/upload-client"
 import { formatDate, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils"
 import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode, GENDER_OPTIONS } from "@/lib/form-values"
 import { RoleGuard } from "@/components/role-guard"
@@ -350,8 +351,41 @@ export default function AddMayraRegistrationPage() {
         apiFormData.append("payment_status", "completed")
       }
 
-      if (formData.passportPhoto) apiFormData.append("passportPhoto", formData.passportPhoto)
-      if (formData.nomineePassportPhoto) apiFormData.append("nomineePassportPhoto", formData.nomineePassportPhoto)
+      let passportPhotoUrl = typeof formData.passportPhoto === "string" ? formData.passportPhoto : "";
+      if (formData.passportPhoto instanceof File) {
+        try {
+          const uploadRes = await uploadMediaFile(formData.passportPhoto, {
+            category: "passport",
+            entityType: "mayra",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            passportPhotoUrl = uploadRes.url;
+          }
+        } catch (uploadErr) {
+          console.warn("Mayra passportPhoto upload fallback note:", uploadErr);
+        }
+      }
+
+      let nomineePhotoUrl = typeof formData.nomineePassportPhoto === "string" ? formData.nomineePassportPhoto : "";
+      if (formData.nomineePassportPhoto instanceof File) {
+        try {
+          const uploadRes = await uploadMediaFile(formData.nomineePassportPhoto, {
+            category: "nominee",
+            entityType: "mayra",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            nomineePhotoUrl = uploadRes.url;
+          }
+        } catch (uploadErr) {
+          console.warn("Mayra nomineePhoto upload fallback note:", uploadErr);
+        }
+      }
+
+      if (passportPhotoUrl) apiFormData.append("passportPhoto", passportPhotoUrl);
+      else if (formData.passportPhoto) apiFormData.append("passportPhoto", formData.passportPhoto);
+
+      if (nomineePhotoUrl) apiFormData.append("nomineePassportPhoto", nomineePhotoUrl);
+      else if (formData.nomineePassportPhoto) apiFormData.append("nomineePassportPhoto", formData.nomineePassportPhoto);
 
       const response = await post(API_ENDPOINTS.CREATE_MAYRA_APPLICATION, apiFormData)
 

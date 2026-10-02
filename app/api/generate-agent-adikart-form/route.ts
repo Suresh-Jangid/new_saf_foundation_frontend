@@ -3,6 +3,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { loadImageBytes } from '../../utils/pdfImage';
 
 export const runtime = 'nodejs';
 
@@ -74,65 +75,34 @@ export async function POST(request: NextRequest) {
     const imageToUse = imageData || record?.profile_image;
     if (imageToUse) {
       try {
-        console.log('Processing image data:', typeof imageToUse, imageToUse.substring(0, 50) + '...');
-        
-        let imageBytes: Uint8Array;
-        
-        // Check if it's a URL or base64 data
-        if (imageToUse.startsWith('http://') || imageToUse.startsWith('https://')) {
-          // It's a URL, fetch the image
-          console.log('Fetching image from URL:', imageToUse);
-          const response = await fetch(imageToUse);
-          if (!response.ok) {
-            throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+        console.log('Processing image data:', typeof imageToUse, String(imageToUse).substring(0, 50) + '...');
+        const loaded = await loadImageBytes(imageToUse);
+        if (loaded) {
+          const { bytes, mime } = loaded;
+          let image;
+          if (mime && mime.includes('png')) {
+            image = await pdfDoc.embedPng(bytes);
+          } else {
+            image = await pdfDoc.embedJpg(bytes);
           }
-          const arrayBuffer = await response.arrayBuffer();
-          imageBytes = new Uint8Array(arrayBuffer);
-          console.log('Fetched image bytes length:', imageBytes.length);
-        } else if (imageToUse.startsWith('data:')) {
-          // It's base64 data
-          console.log('Processing base64 image data');
-          const base64Data = imageToUse.replace(/^data:image\/[a-z]+;base64,/, '');
-          imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-          console.log('Base64 image bytes length:', imageBytes.length);
-        } else {
-          console.warn('Unsupported image format, skipping image embedding');
-          return;
-        }
-        
-        // Determine image type and embed
-        let image;
-        try {
-          // Try PNG first
-          image = await pdfDoc.embedPng(imageBytes);
-          console.log('Embedded PNG image:', image.width, 'x', image.height);
-        } catch (pngError) {
-          try {
-            // Try JPEG if PNG fails
-            image = await pdfDoc.embedJpg(imageBytes);
-            console.log('Embedded JPEG image:', image.width, 'x', image.height);
-          } catch (jpegError) {
-            console.error('Failed to embed image as PNG or JPEG:', pngError, jpegError);
-            return;
+
+          if (image) {
+            // Preserving exact original coordinates
+            const imageX = 484; // X position for photo
+            const imageY = 260; // Y position for photo
+            const imageWidth = 85; // Width of the photo
+            const imageHeight = 105; // Height of the photo
+
+            // Draw the image on the PDF using bottom-left coordinate system
+            firstPage.drawImage(image, {
+              x: imageX,
+              y: pageHeight - imageY - imageHeight, // Convert to bottom-left coordinate system
+              width: imageWidth,
+              height: imageHeight,
+            });
+
+            console.log('Image embedded successfully in adikart form');
           }
-        }
-
-        if (image) {
-          // Use the standard image configuration from fill-pdf-form
-          const imageX = 484; // X position for photo
-          const imageY = 260; // Y position for photo
-          const imageWidth = 85; // Width of the photo
-          const imageHeight = 105; // Height of the photo
-
-          // Draw the image on the PDF using bottom-left coordinate system
-          firstPage.drawImage(image, {
-            x: imageX,
-            y: pageHeight - imageY - imageHeight, // Convert to bottom-left coordinate system
-            width: imageWidth,
-            height: imageHeight,
-          });
-
-          console.log('Image embedded successfully in adikart form');
         }
       } catch (error) {
         console.error('Error embedding image:', error);

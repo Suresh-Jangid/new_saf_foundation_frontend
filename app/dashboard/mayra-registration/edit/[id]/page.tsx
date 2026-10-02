@@ -16,6 +16,7 @@ import { CalendarDays } from "lucide-react"
 import { post, API_ENDPOINTS, buildEditFormData, createFormData } from "@/lib/api"
 import { toast } from "sonner"
 import { MediaUploadControl } from "@/components/media-upload"
+import { uploadMediaFile } from "@/lib/upload-client"
 import { formatDate, parseDateFromDDMMYYYY, validatePhoneNumber, getApplicantPhotoPath, getNomineePhotoPath, getProxiedPhotoSrc, getRecordField, unwrapApiRecordById } from "@/lib/utils"
 import { normalizePaymentModeInput, PAYMENT_MODE_OPTIONS, GENDER_OPTIONS } from "@/lib/form-values"
 import { RoleGuard } from "@/components/role-guard"
@@ -457,6 +458,38 @@ export default function EditMayraRegistrationPage() {
       const nomineeMobile = formData.nomineeMobile.replace(/\D/g, "")
       const selectedAgent = agents.find((a) => a.id.toString() === formData.selectedAgentId)
 
+      let newPassportUrl = "";
+      if (formData.passportPhoto instanceof File) {
+        try {
+          const uploadRes = await uploadMediaFile(formData.passportPhoto, {
+            category: "passport",
+            entityType: "mayra",
+            entityId: String(id),
+          });
+          if (uploadRes.success && uploadRes.url) {
+            newPassportUrl = uploadRes.url;
+          }
+        } catch (uploadErr) {
+          console.warn("Mayra edit passportPhoto upload fallback note:", uploadErr);
+        }
+      }
+
+      let newNomineeUrl = "";
+      if (formData.nomineePassportPhoto instanceof File) {
+        try {
+          const uploadRes = await uploadMediaFile(formData.nomineePassportPhoto, {
+            category: "nominee",
+            entityType: "mayra",
+            entityId: String(id),
+          });
+          if (uploadRes.success && uploadRes.url) {
+            newNomineeUrl = uploadRes.url;
+          }
+        } catch (uploadErr) {
+          console.warn("Mayra edit nomineePhoto upload fallback note:", uploadErr);
+        }
+      }
+
       const apiFormData = buildEditFormData(id as string, {
         applicationDate: convertToYYYYMMDD(formData.applicationDate),
         offlineFormNumber: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : "",
@@ -492,8 +525,9 @@ export default function EditMayraRegistrationPage() {
         seniorOfflineFormNumber: resolvedSeniorOfflineCode || undefined,
         seniorAgentOfflineFormNumber: resolvedSeniorOfflineCode || undefined,
         seniorWorker: resolvedSeniorName || undefined,
-        passportPhoto: formData.passportPhoto ?? undefined,
-        nomineePassportPhoto: formData.nomineePassportPhoto ?? undefined,
+        passportPhoto: newPassportUrl || (formData.passportPhoto ?? undefined),
+        nomineePassportPhoto: newNomineeUrl || (formData.nomineePassportPhoto ?? undefined),
+        photoUrl: newPassportUrl || (!formData.passportPhoto && formData.existingPassportPhoto ? formData.existingPassportPhoto : undefined),
         existingPassportPhoto:
           !formData.passportPhoto && formData.existingPassportPhoto
             ? formData.existingPassportPhoto

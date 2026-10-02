@@ -3,6 +3,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { loadImageBytes, pickPhotoSource } from '../../utils/pdfImage';
 
 export const runtime = 'nodejs';
 
@@ -75,140 +76,48 @@ export async function POST(request: NextRequest) {
     const firstPage = pages[0];
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
-    // Handle image embedding if imageData is provided
-    if (imageData && typeof imageData === 'string' && imageData.trim().length > 0) {
-      console.log('Processing image data...');
-      console.log('Image data type:', typeof imageData);
-      console.log('Image data length:', imageData.length);
-      
+    // Handle image embedding
+    const photoSource = pickPhotoSource(
+      imageData,
+      data?.imageData,
+      data?.passportPhoto,
+      data?.passport_photo,
+      data?.passportPhotoUrl,
+      data?.photo
+    );
+
+    if (photoSource) {
       try {
-        let imageBytes: Uint8Array;
-        let imageFormat: string;
-        
-        // Check if it's a base64 data URL or a regular URL
-        if (imageData.startsWith('data:image/')) {
-          // Handle base64 data URL
-          console.log('Processing base64 image data...');
-          
-          // Helper function to decode base64 in Node.js environment
-          const base64ToUint8Array = (base64String: string): Uint8Array => {
-            try {
-              // Remove data URL prefix if present
-              const base64Data = base64String.includes(',') ? base64String.split(',')[1] : base64String;
-              
-              // Convert base64 to Uint8Array directly using Buffer
-              return new Uint8Array(Buffer.from(base64Data, 'base64'));
-            } catch (error) {
-              console.error('Error decoding base64:', error);
-              throw new Error('Invalid base64 image data');
-            }
-          };
-
-          imageBytes = base64ToUint8Array(imageData);
-          imageFormat = imageData.split(';')[0];
-          console.log('Base64 image bytes length:', imageBytes.length);
-        } else if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
-          // Handle regular URL
-          console.log('Processing image from URL:', imageData);
-          
-          try {
-            const response = await fetch(imageData);
-            if (!response.ok) {
-              throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
-            }
-            
-            const arrayBuffer = await response.arrayBuffer();
-            imageBytes = new Uint8Array(arrayBuffer);
-            
-            // Determine format from content-type header or URL extension
-            const contentType = response.headers.get('content-type');
-            if (contentType) {
-              imageFormat = contentType;
-            } else {
-              // Fallback to URL extension
-              const url = new URL(imageData);
-              const pathname = url.pathname.toLowerCase();
-              if (pathname.endsWith('.jpg') || pathname.endsWith('.jpeg')) {
-                imageFormat = 'image/jpeg';
-              } else if (pathname.endsWith('.png')) {
-                imageFormat = 'image/png';
-              } else {
-                imageFormat = 'image/jpeg'; // Default assumption
-              }
-            }
-            
-            console.log('URL image bytes length:', imageBytes.length);
-            console.log('Detected format:', imageFormat);
-          } catch (fetchError) {
-            console.error('Error fetching image from URL:', fetchError);
-            throw fetchError;
+        const loaded = await loadImageBytes(photoSource);
+        if (loaded) {
+          const { bytes, mime } = loaded;
+          let image;
+          if (mime && mime.includes('png')) {
+            image = await pdfDoc.embedPng(bytes);
+          } else {
+            image = await pdfDoc.embedJpg(bytes);
           }
-        } else {
-          console.warn('Invalid image data format. Expected data:image/... or http(s)://... but got:', imageData.substring(0, 50));
-          console.log('Skipping image embedding due to invalid format');
-          return;
-        }
-        
-        // Determine image type and embed accordingly
-        let image;
-        console.log('Image format detection:', {
-          fullFormat: imageFormat,
-          isJPEG: imageFormat.includes('jpeg') || imageFormat.includes('jpg'),
-          isPNG: imageFormat.includes('png'),
-          dataLength: imageBytes.length
-        });
-        
-        if (imageFormat.includes('jpeg') || imageFormat.includes('jpg')) {
-          console.log('Embedding JPEG image...');
-          try {
-            image = await pdfDoc.embedJpg(imageBytes);
-            console.log('JPEG image embedded successfully');
-          } catch (jpgError) {
-            console.error('Error embedding JPEG:', jpgError);
-            throw jpgError;
+
+          if (image) {
+            // Calculate image position and size for passport photo
+            // Preserving exact original coordinates
+            const imageX = 484; // X position for photo
+            const imageY = 280; // Y position for photo
+            const imageWidth = 85; // Width of the photo
+            const imageHeight = 107; // Height of the photo
+
+            firstPage.drawImage(image, {
+              x: imageX,
+              y: pageHeight - imageY - imageHeight, // Convert to bottom-left coordinate system
+              width: imageWidth,
+              height: imageHeight,
+            });
+
+            console.log('Image drawn successfully');
           }
-        } else if (imageFormat.includes('png')) {
-          console.log('Embedding PNG image...');
-          try {
-            image = await pdfDoc.embedPng(imageBytes);
-            console.log('PNG image embedded successfully');
-          } catch (pngError) {
-            console.error('Error embedding PNG:', pngError);
-            throw pngError;
-          }
-        } else {
-          console.warn('Unsupported image format, skipping image embedding');
-          console.log('Supported formats: image/jpeg, image/jpg, image/png');
-          console.log('Received format:', imageFormat);
-        }
-
-        if (image) {
-          console.log('Image embedded successfully, drawing to PDF...');
-          // Calculate image position and size for passport photo
-          // Adjust these coordinates based on your form layout
-          const imageX = 484; // X position for photo
-          const imageY = 280; // Y position for photo
-          const imageWidth = 85; // Width of the photo
-          const imageHeight = 107; // Height of the photo
-
-          console.log('Image coordinates:', { imageX, imageY, imageWidth, imageHeight });
-          console.log('Page dimensions:', { pageWidth, pageHeight });
-
-          // Draw the image on the PDF
-          firstPage.drawImage(image, {
-            x: imageX,
-            y: pageHeight - imageY - imageHeight, // Convert to bottom-left coordinate system
-            width: imageWidth,
-            height: imageHeight,
-          });
-
-          console.log('Image drawn successfully');
-        } else {
-          console.log('No image object created, skipping drawing');
         }
       } catch (imageError) {
         console.error('Error embedding image:', imageError);
-        console.error('Image error details:', imageError);
         // Continue without image if there's an error
       }
     }

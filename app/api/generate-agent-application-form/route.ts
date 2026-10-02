@@ -5,6 +5,7 @@ import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { loadImageBytes } from '../../utils/pdfImage';
 
 export const runtime = 'nodejs';
 
@@ -217,35 +218,19 @@ export async function POST(request: NextRequest) {
 
     if (imageToUse) {
       try {
-        let imageBytes: Uint8Array | null = null;
-        
-        // Check if it's a URL or base64 data
-        if (typeof imageToUse === 'string' && (imageToUse.startsWith('http://') || imageToUse.startsWith('https://'))) {
-          const response = await fetch(imageToUse);
-          if (response.ok) {
-            const arrayBuffer = await response.arrayBuffer();
-            imageBytes = new Uint8Array(arrayBuffer);
-          }
-        } else if (typeof imageToUse === 'string' && imageToUse.startsWith('data:')) {
-          const base64Data = imageToUse.replace(/^data:image\/[a-z]+;base64,/, '');
-          imageBytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-        }
-
-        if (imageBytes) {
+        const loaded = await loadImageBytes(imageToUse);
+        if (loaded) {
+          const { bytes, mime } = loaded;
           let image;
-          try {
-            image = await pdfDoc.embedPng(imageBytes);
-          } catch {
-            try {
-              image = await pdfDoc.embedJpg(imageBytes);
-            } catch (imgErr) {
-              console.warn('Failed to embed image as PNG or JPEG:', imgErr);
-            }
+          if (mime && mime.includes('png')) {
+            image = await pdfDoc.embedPng(bytes);
+          } else {
+            image = await pdfDoc.embedJpg(bytes);
           }
 
           if (image) {
             // Designated photo box in template: BL x=452.8..557.8, y=510.7..631.9 (w=105, h=121.2)
-            // Placing image neatly inside photo box with padding
+            // Preserving exact original coordinates and dimensions
             firstPage.drawImage(image, {
               x: 455.0,
               y: 513.0,

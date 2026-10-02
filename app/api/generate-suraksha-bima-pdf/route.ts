@@ -3,6 +3,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { loadImageBytes, pickPhotoSource } from '../../utils/pdfImage';
 
 export const runtime = 'nodejs';
 
@@ -57,39 +58,48 @@ export async function POST(request: NextRequest) {
     const firstPage = pages[0];
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
-    // Handle image embedding if imageData is provided
-    if (imageData) {
+    // Handle image embedding
+    const photoSource = pickPhotoSource(
+      imageData,
+      data?.imageData,
+      data?.passportPhoto,
+      data?.passport_photo,
+      data?.passportPhotoUrl,
+      data?.photo
+    );
+
+    if (photoSource) {
       try {
-        const imageBytes = Uint8Array.from(atob(imageData.split(',')[1]), c => c.charCodeAt(0));
-        
-        let image;
-        if (imageData.startsWith('data:image/jpeg')) {
-          image = await pdfDoc.embedJpg(imageBytes);
-        } else if (imageData.startsWith('data:image/png')) {
-          image = await pdfDoc.embedPng(imageBytes);
-        } else {
-          console.warn('Unsupported image format, skipping image embedding');
-        }
+        const loaded = await loadImageBytes(photoSource);
+        if (loaded) {
+          const { bytes, mime } = loaded;
+          let image;
+          if (mime && mime.includes('png')) {
+            image = await pdfDoc.embedPng(bytes);
+          } else {
+            image = await pdfDoc.embedJpg(bytes);
+          }
 
-        if (image) {
-          // Calculate image position and size for passport photo
-          // Adjust these coordinates based on your suraksha bima form layout
-          const imageX = 481; // X position for photo
-          const imageY = 205; // Y position for photo
-          const imageWidth = 80; // Width of the photo
-          const imageHeight = 100; // Height of the photo
+          if (image) {
+            // Calculate image position and size for passport photo
+            // Exact original coordinates
+            const imageX = 481; // X position for photo
+            const imageY = 205; // Y position for photo
+            const imageWidth = 80; // Width of the photo
+            const imageHeight = 100; // Height of the photo
 
-          firstPage.drawImage(image, {
-            x: imageX,
-            y: pageHeight - imageY - imageHeight,
-            width: imageWidth,
-            height: imageHeight,
-          });
+            firstPage.drawImage(image, {
+              x: imageX,
+              y: pageHeight - imageY - imageHeight,
+              width: imageWidth,
+              height: imageHeight,
+            });
 
-          console.log('Image embedded successfully');
+            console.log('Image embedded successfully in Suraksha Bima PDF');
+          }
         }
       } catch (imageError) {
-        console.error('Error embedding image:', imageError);
+        console.error('Error embedding image in Suraksha Bima PDF:', imageError);
       }
     }
 

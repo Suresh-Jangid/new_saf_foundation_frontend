@@ -19,6 +19,7 @@ import { useCRUD } from "@/hooks/use-crud"
 import { API_ENDPOINTS, post } from "@/lib/api"
 import { toast } from "sonner"
 import { formatDate, formatDateForAPI, unwrapApiRecordById, getRecordField, getProxiedPhotoSrc } from "@/lib/utils"
+import { prepareMediaPayload } from "@/lib/upload-client"
 import { RoleGuard } from "@/components/role-guard"
 
 interface LoanApplicationRecord {
@@ -60,17 +61,21 @@ export default function EditLoanApplicationPage() {
   // Use direct API call instead of useCRUD for better control
   const updateLoanApplication = async (id: string, data: any): Promise<boolean> => {
     try {
+      const preparedData = await prepareMediaPayload(data, {
+        entityType: "loan",
+        entityId: id,
+      });
       const formData = new FormData();
       
       // Add all form fields
-      Object.keys(data).forEach(key => {
-        if (data[key] !== null && data[key] !== undefined) {
-          if (data[key] instanceof File) {
-            formData.append(key, data[key]);
-            console.log(`Adding file ${key}:`, data[key].name, data[key].size);
+      Object.keys(preparedData).forEach(key => {
+        if (preparedData[key] !== null && preparedData[key] !== undefined) {
+          if (preparedData[key] instanceof File) {
+            formData.append(key, preparedData[key]);
+            console.log(`Adding file ${key}:`, preparedData[key].name, preparedData[key].size);
           } else {
-            formData.append(key, String(data[key]));
-            console.log(`Adding field ${key}:`, data[key]);
+            formData.append(key, String(preparedData[key]));
+            console.log(`Adding field ${key}:`, preparedData[key]);
           }
         }
       });

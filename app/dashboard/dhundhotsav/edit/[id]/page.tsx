@@ -35,6 +35,7 @@ import {
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { resolvePhotoUrl } from "@/lib/utils";
+import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 
 export default function EditDhundhotsavPage() {
@@ -118,11 +119,13 @@ export default function EditDhundhotsavPage() {
 
   // Photo / Document state
   const [passportPhotoBase64, setPassportPhotoBase64] = useState<string | null>(null);
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [nomineePhotoBase64, setNomineePhotoBase64] = useState<string | null>(null);
   const [existingNomineePhotoUrl, setExistingNomineePhotoUrl] = useState<string | null>(null);
   const [nomineePhotoPreview, setNomineePhotoPreview] = useState<string | null>(null);
   const [documentBase64, setDocumentBase64] = useState<string | null>(null);
+  const [existingDocumentUrl, setExistingDocumentUrl] = useState<string | null>(null);
 
   // Load Record Data
   const loadRecord = useCallback(async () => {
@@ -195,8 +198,16 @@ export default function EditDhundhotsavPage() {
           epinCode: reg.epinCode || (reg as any).epin_code || "",
         });
 
-        if (reg.passportPhotoUrl) {
-          setPhotoPreview(resolvePhotoUrl(reg.passportPhotoUrl) || reg.passportPhotoUrl);
+        const rawPhoto =
+          reg.passportPhotoUrl ||
+          (reg as any).passport_photo_url ||
+          (reg as any).passportPhoto ||
+          (reg as any).passport_photo ||
+          (reg as any).photo ||
+          null;
+        if (rawPhoto) {
+          setExistingPhotoUrl(rawPhoto);
+          setPhotoPreview(resolvePhotoUrl(rawPhoto) || rawPhoto);
         }
 
         const rawNomineePhoto =
@@ -210,6 +221,15 @@ export default function EditDhundhotsavPage() {
         if (rawNomineePhoto) {
           setExistingNomineePhotoUrl(rawNomineePhoto);
           setNomineePhotoPreview(resolvePhotoUrl(rawNomineePhoto) || rawNomineePhoto);
+        }
+
+        const rawDoc =
+          (reg as any).documentUrl ||
+          (reg as any).document_url ||
+          (reg as any).document ||
+          null;
+        if (rawDoc) {
+          setExistingDocumentUrl(rawDoc);
         }
       } else {
         toast.error("पंजीकरण विवरण नहीं मिला / Registration details not found");
@@ -444,7 +464,60 @@ export default function EditDhundhotsavPage() {
     try {
       const trimmedOffline = (formData.offlineFormNumber || "").trim();
       const trimmedDuration = (formData.benefitDuration || "").trim();
-      const resolvedNomineePhoto = nomineePhotoBase64 || existingNomineePhotoUrl || null;
+      let updatedPassportUrl = existingPhotoUrl || undefined;
+      if (passportPhotoBase64 && passportPhotoBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(passportPhotoBase64, {
+            category: "passport",
+            entityType: "dhundhotsav",
+            entityId: id,
+          });
+          if (uploadRes.success && uploadRes.url) {
+            updatedPassportUrl = uploadRes.url;
+          } else {
+            updatedPassportUrl = passportPhotoBase64;
+          }
+        } catch (err) {
+          console.warn("Dhundhotsav edit passport upload note:", err);
+        }
+      }
+
+      let updatedNomineeUrl = existingNomineePhotoUrl || undefined;
+      if (nomineePhotoBase64 && nomineePhotoBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(nomineePhotoBase64, {
+            category: "nominee",
+            entityType: "dhundhotsav",
+            entityId: id,
+          });
+          if (uploadRes.success && uploadRes.url) {
+            updatedNomineeUrl = uploadRes.url;
+          } else {
+            updatedNomineeUrl = nomineePhotoBase64;
+          }
+        } catch (err) {
+          console.warn("Dhundhotsav edit nominee upload note:", err);
+        }
+      }
+
+      let updatedDocumentUrl = existingDocumentUrl || undefined;
+      if (documentBase64 && documentBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(documentBase64, {
+            category: "document",
+            entityType: "dhundhotsav",
+            entityId: id,
+          });
+          if (uploadRes.success && uploadRes.url) {
+            updatedDocumentUrl = uploadRes.url;
+          } else {
+            updatedDocumentUrl = documentBase64;
+          }
+        } catch (err) {
+          console.warn("Dhundhotsav edit document upload note:", err);
+        }
+      }
+
       const payload: UpdateDhundhotsavPayload = {
         offlineFormNumber: trimmedOffline || null,
         offline_form_number: trimmedOffline || null,
@@ -469,10 +542,10 @@ export default function EditDhundhotsavPage() {
         nomineeRelation: formData.nomineeRelation.trim() || null,
         nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || null,
         nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || null,
-        passportPhotoUrl: passportPhotoBase64 || undefined,
-        nomineePhotoUrl: resolvedNomineePhoto || undefined,
-        nomineePhoto: resolvedNomineePhoto || undefined,
-        documentUrl: documentBase64 || undefined,
+        passportPhotoUrl: updatedPassportUrl,
+        nomineePhotoUrl: updatedNomineeUrl,
+        nomineePhoto: updatedNomineeUrl,
+        documentUrl: updatedDocumentUrl,
         gender: formData.gender,
         category: formData.category,
         selectedAgentId: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,

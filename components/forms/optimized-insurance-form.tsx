@@ -23,6 +23,7 @@ import { useAgeCategory } from "@/hooks/use-age-category"
 import APIService from "@/lib/services"
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
 import { EpinService } from "@/lib/epin-service"
+import { prepareMediaPayload } from "@/lib/upload-client"
 import { WorkerOption } from "@/components/worker-search-selector"
 
 import { post, API_ENDPOINTS } from "@/lib/api"
@@ -137,7 +138,8 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
         pinNumber: (formData as any).epinNumber || "",
       }
 
-      const response = await APIService.createInsuranceApplication(applicationData)
+      const preparedData = await prepareMediaPayload(applicationData, { entityType: "insurance" });
+      const response = await APIService.createInsuranceApplication(preparedData)
 
       if (response.status) {
         toast.success(formatBilingual("messages.applicationSubmitted"))

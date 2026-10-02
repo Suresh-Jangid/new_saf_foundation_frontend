@@ -33,6 +33,7 @@ import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
 import { validatePhoneNumber } from "@/lib/utils";
+import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 
 export default function AddAawasPage() {
@@ -266,6 +267,36 @@ export default function AddAawasPage() {
     setIsLoading(true);
 
     try {
+      let finalPassportUrl = passportPhotoBase64 || undefined;
+      if (passportPhotoBase64 && passportPhotoBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(passportPhotoBase64, {
+            category: "passport",
+            entityType: "aawas",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            finalPassportUrl = uploadRes.url;
+          }
+        } catch (err) {
+          console.warn("Aawas passport upload note:", err);
+        }
+      }
+
+      let finalDocumentUrl = documentBase64 || undefined;
+      if (documentBase64 && documentBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(documentBase64, {
+            category: "document",
+            entityType: "aawas",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            finalDocumentUrl = uploadRes.url;
+          }
+        } catch (err) {
+          console.warn("Aawas document upload note:", err);
+        }
+      }
+
       const payload: CreateAawasPayload = {
         applicationDate: formData.applicationDate,
         applicantName: formData.applicantName.trim(),
@@ -287,8 +318,8 @@ export default function AddAawasPage() {
         nomineeRelation: formData.nomineeRelation.trim() || undefined,
         nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || undefined,
         nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || undefined,
-        passportPhotoUrl: passportPhotoBase64 || undefined,
-        documentUrl: documentBase64 || undefined,
+        passportPhotoUrl: finalPassportUrl,
+        documentUrl: finalDocumentUrl,
         gender: formData.gender,
         category: formData.category,
         totalAmount: 15000,

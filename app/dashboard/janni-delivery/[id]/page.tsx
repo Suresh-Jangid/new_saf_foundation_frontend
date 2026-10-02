@@ -30,6 +30,7 @@ import {
 } from "@/lib/janni-delivery-service";
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
+import { uploadMediaFile } from "@/lib/upload-client";
 import {
   formatDate,
   parseDateFromDDMMYYYY,
@@ -456,6 +457,44 @@ export default function EditJanniDeliveryPage() {
     const pendAmt = Math.max(0, totAmt - paidAmt);
 
     // Prepare Update Payload
+    setIsLoading(true);
+
+    let updatedPassportUrl = existingPhotoUrl || null;
+    if (passportPhotoBase64 && passportPhotoBase64.startsWith("data:")) {
+      try {
+        const uploadRes = await uploadMediaFile(passportPhotoBase64, {
+          category: "passport",
+          entityType: "janni",
+          entityId: String(id),
+        });
+        if (uploadRes.success && uploadRes.url) {
+          updatedPassportUrl = uploadRes.url;
+        } else {
+          updatedPassportUrl = passportPhotoBase64;
+        }
+      } catch (err) {
+        console.warn("Janni edit passport upload note:", err);
+      }
+    }
+
+    let updatedNomineeUrl = existingNomineePhotoUrl || null;
+    if (nomineePhotoBase64 && nomineePhotoBase64.startsWith("data:")) {
+      try {
+        const uploadRes = await uploadMediaFile(nomineePhotoBase64, {
+          category: "nominee",
+          entityType: "janni",
+          entityId: String(id),
+        });
+        if (uploadRes.success && uploadRes.url) {
+          updatedNomineeUrl = uploadRes.url;
+        } else {
+          updatedNomineeUrl = nomineePhotoBase64;
+        }
+      } catch (err) {
+        console.warn("Janni edit nominee upload note:", err);
+      }
+    }
+
     const payload: UpdateJanniDeliveryPayload = {
       applicantName: formData.applicantName.trim(),
       fatherName: formData.fatherName.trim(),
@@ -478,8 +517,8 @@ export default function EditJanniDeliveryPage() {
       nomineeRelation: formData.nomineeRelation.trim() || null,
       nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || null,
       nomineeAadhar: rawNomineeAadhar || null,
-      passportPhotoUrl: passportPhotoBase64 || existingPhotoUrl || null,
-      nomineePhotoUrl: nomineePhotoBase64 || existingNomineePhotoUrl || null,
+      passportPhotoUrl: updatedPassportUrl,
+      nomineePhotoUrl: updatedNomineeUrl,
       offlineFormNumber: formData.offlineFormNumber.trim() || null,
       gender: formData.gender,
       category: formData.category,
@@ -489,8 +528,6 @@ export default function EditJanniDeliveryPage() {
       addedById: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
       agentId: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
     };
-
-    setIsLoading(true);
     try {
       await JanniDeliveryService.updateRegistration(id, payload);
       toast.success(

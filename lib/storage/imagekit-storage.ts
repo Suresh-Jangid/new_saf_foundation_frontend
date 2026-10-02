@@ -35,6 +35,9 @@ export class ImageKitStorageProvider {
   }
 
   public isConfigured(): boolean {
+    if (!this.client) {
+      this.initConfig();
+    }
     return this.client !== null && this.config !== null;
   }
 

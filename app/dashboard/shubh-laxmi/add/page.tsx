@@ -37,6 +37,7 @@ import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
+import { uploadMediaFile } from "@/lib/upload-client";
 
 export default function AddShubhLaxmiPage() {
   const router = useRouter();
@@ -257,6 +258,36 @@ export default function AddShubhLaxmiPage() {
     setIsLoading(true);
 
     try {
+      let finalPassportUrl = passportPhotoBase64 || undefined;
+      if (passportPhotoBase64 && passportPhotoBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(passportPhotoBase64, {
+            category: "passport",
+            entityType: "shubh_laxmi",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            finalPassportUrl = uploadRes.url;
+          }
+        } catch (err) {
+          console.warn("Shubh Laxmi passport upload note:", err);
+        }
+      }
+
+      let finalDocumentUrl = documentBase64 || undefined;
+      if (documentBase64 && documentBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(documentBase64, {
+            category: "document",
+            entityType: "shubh_laxmi",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            finalDocumentUrl = uploadRes.url;
+          }
+        } catch (err) {
+          console.warn("Shubh Laxmi document upload note:", err);
+        }
+      }
+
       const payload: CreateShubhLaxmiPayload = {
         applicationDate: formData.applicationDate,
         applicantName: formData.applicantName.trim(),
@@ -277,8 +308,8 @@ export default function AddShubhLaxmiPage() {
         nomineeRelation: formData.nomineeRelation.trim() || undefined,
         nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || undefined,
         nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || undefined,
-        passportPhotoUrl: passportPhotoBase64 || undefined,
-        documentUrl: documentBase64 || undefined,
+        passportPhotoUrl: finalPassportUrl,
+        documentUrl: finalDocumentUrl,
         gender: formData.gender,
         category: formData.category,
         schemeType: "SHUBH_LAXMI",

@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS, postUrlEncoded, agentRegistrationAPI } from "@/lib/api";
 import { toast } from "sonner";
+import { uploadMediaFile } from "@/lib/upload-client";
 import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, mapAgentFormRecord, unwrapApiRecordById, getProxiedPhotoSrc, fileToBase64, formatAgentLevel } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard";
 import { isAdmin, isAgent } from "@/lib/permissions";
@@ -345,8 +346,22 @@ export default function EditAgentRegistrationForm() {
         : null;
 
       let serializedProfileImage: string | null = null;
-      if (form.profile_image instanceof File) {
-        serializedProfileImage = await fileToBase64(form.profile_image);
+      if (form.profile_image instanceof File || (typeof form.profile_image === "string" && form.profile_image.startsWith("data:"))) {
+        try {
+          const uploadRes = await uploadMediaFile(form.profile_image, {
+            category: "profile",
+            entityType: "agent",
+            entityId: id,
+          });
+          if (uploadRes.success && uploadRes.url) {
+            serializedProfileImage = uploadRes.url;
+          }
+        } catch (uploadErr) {
+          console.warn("Direct agent edit upload error:", uploadErr);
+        }
+        if (!serializedProfileImage && form.profile_image instanceof File) {
+          serializedProfileImage = await fileToBase64(form.profile_image);
+        }
       } else if (typeof form.profile_image === "string" && form.profile_image.trim() !== "") {
         serializedProfileImage = form.profile_image;
       } else if (existingProfileImage && typeof existingProfileImage === "string") {

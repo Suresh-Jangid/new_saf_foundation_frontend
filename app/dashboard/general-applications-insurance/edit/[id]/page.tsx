@@ -23,6 +23,7 @@ import { PAYMENT_MODE, PAYMENT_MODE_OPTIONS, isRazorpayPaymentMode, GENDER_OPTIO
 import { formatBilingual } from '@/lib/translations'
 import { RazorpayPayment } from "@/components/razorpay-payment"
 import { useAgeCategory } from "@/hooks/use-age-category"
+import { prepareMediaPayload } from "@/lib/upload-client"
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector"
 
 import {
@@ -395,7 +396,8 @@ export default function EditGeneralInsuranceApplicationPage() {
             ? formData.existingNomineePhoto
             : undefined,
       }
-      const response = await APIService.updateInsuranceApplication(id, updateData)
+      const preparedData = await prepareMediaPayload(updateData, { entityType: "insurance", entityId: id });
+      const response = await APIService.updateInsuranceApplication(id, preparedData)
       if (response.status) {
         toast.success("Application updated successfully")
         router.push("/dashboard/general-applications-insurance")

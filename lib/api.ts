@@ -1,5 +1,6 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { getApiBaseUrl, getBackendOrigin } from "./api-url";
+import { uploadMediaFile, prepareMediaPayload } from "./upload-client";
 
 // Create an Axios instance with default config
 const api = axios.create({
@@ -707,7 +708,8 @@ export const surakshaBimaPaymentAPI = {
 // General Applications API Services
 export const generalApplicationsAPI = {
   create: async (data: any): Promise<ApiResponse> => {
-    const formData = createFormData(data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "application" });
+    const formData = createFormData(preparedData);
     const response = await post<ApiResponse>(API_ENDPOINTS.CREATE_APPLICATION, formData);
     return response.data;
   },
@@ -719,7 +721,8 @@ export const generalApplicationsAPI = {
   },
 
   update: async (id: string, data: any): Promise<ApiResponse> => {
-    const formData = buildEditFormData(id, data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "application", entityId: id });
+    const formData = buildEditFormData(id, preparedData);
     const response = await post<ApiResponse>(API_ENDPOINTS.UPDATE_APPLICATION, formData);
     return response.data;
   },
@@ -756,7 +759,8 @@ export const generalApplicationsAPI = {
 // Insurance Applications API Services
 export const insuranceApplicationsAPI = {
   create: async (data: any): Promise<ApiResponse> => {
-    const formData = createFormData(data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "insurance" });
+    const formData = createFormData(preparedData);
     const response = await post<ApiResponse>(API_ENDPOINTS.CREATE_INSURANCE_APPLICATION, formData);
     return response.data;
   },
@@ -774,7 +778,8 @@ export const insuranceApplicationsAPI = {
   },
 
   update: async (id: string, data: any): Promise<ApiResponse> => {
-    const formData = buildEditFormData(id, data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "insurance", entityId: id });
+    const formData = buildEditFormData(id, preparedData);
     const response = await post<ApiResponse>(API_ENDPOINTS.UPDATE_INSURANCE_APPLICATION, formData);
     return response.data;
   },
@@ -796,7 +801,8 @@ export const insuranceApplicationsAPI = {
 // Loan Applications API Services
 export const loanApplicationsAPI = {
   create: async (data: any): Promise<ApiResponse> => {
-    const formData = createFormData(data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "loan" });
+    const formData = createFormData(preparedData);
     const response = await post<ApiResponse>(API_ENDPOINTS.CREATE_LOAN_APPLICATION, formData);
     return response.data;
   },
@@ -808,7 +814,8 @@ export const loanApplicationsAPI = {
   },
 
   update: async (id: string, data: any): Promise<ApiResponse> => {
-    const formData = createFormData({ ...data, id });
+    const preparedData = await prepareMediaPayload(data, { entityType: "loan", entityId: id });
+    const formData = createFormData({ ...preparedData, id });
     const response = await post<ApiResponse>(API_ENDPOINTS.UPDATE_LOAN_APPLICATION, formData);
     return response.data;
   },
@@ -898,7 +905,8 @@ export const financialHelpInstallmentsAPI = {
 // Disability Cycle API Services
 export const disabilityCycleAPI = {
   create: async (data: any): Promise<ApiResponse> => {
-    const formData = createFormData(data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "application" });
+    const formData = createFormData(preparedData);
     const response = await post<ApiResponse>(API_ENDPOINTS.CREATE_DISABILITY_CYCLE, formData);
     return response.data;
   },
@@ -910,7 +918,8 @@ export const disabilityCycleAPI = {
   },
 
   update: async (id: string, data: any): Promise<ApiResponse> => {
-    const formData = createFormData({ ...data, id });
+    const preparedData = await prepareMediaPayload(data, { entityType: "application", entityId: id });
+    const formData = createFormData({ ...preparedData, id });
     const response = await post<ApiResponse>(API_ENDPOINTS.UPDATE_DISABILITY_CYCLE, formData);
     return response.data;
   },
@@ -927,19 +936,32 @@ export const agentRegistrationAPI = {
   create: async (data: any): Promise<ApiResponse> => {
     try {
       let payload = data;
-      if (data && typeof data === "object") {
-        if (typeof File !== "undefined" && data.profile_image instanceof File) {
-          const reader = new FileReader();
-          const b64 = await new Promise<string>((resolve, reject) => {
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = () => reject(reader.error);
-            reader.readAsDataURL(data.profile_image);
-          });
-          payload = { ...data, profile_image: b64 };
+        const isFile = typeof File !== "undefined" && data.profile_image instanceof File;
+        const isBase64 = typeof data.profile_image === "string" && data.profile_image.startsWith("data:");
+        if (isFile || isBase64) {
+          try {
+            const uploadRes = await uploadMediaFile(data.profile_image, {
+              category: "profile",
+              entityType: "agent",
+            });
+            if (uploadRes.success && uploadRes.url) {
+              payload = { ...data, profile_image: uploadRes.url };
+            }
+          } catch (uploadErr) {
+            console.warn("Agent profile image upload fallback note:", uploadErr);
+          }
+          if (payload.profile_image instanceof File) {
+            const reader = new FileReader();
+            const b64 = await new Promise<string>((resolve, reject) => {
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(reader.error);
+              reader.readAsDataURL(data.profile_image);
+            });
+            payload = { ...data, profile_image: b64 };
+          }
         } else if (data.profile_image === undefined || data.profile_image === null) {
           payload = { ...data, profile_image: null };
         }
-      }
       const response = await api.post("/v1/agents", payload);
       return response.data;
     } catch (error: any) {
@@ -1030,17 +1052,31 @@ export const agentRegistrationAPI = {
   update: async (id: string, data: any): Promise<ApiResponse> => {
     try {
       let payload = data;
-      if (data && typeof data === "object") {
-        if (typeof File !== "undefined" && data.profile_image instanceof File) {
-          const reader = new FileReader();
-          const b64 = await new Promise<string>((resolve, reject) => {
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = () => reject(reader.error);
-            reader.readAsDataURL(data.profile_image);
-          });
-          payload = { ...data, profile_image: b64 };
+        const isFile = typeof File !== "undefined" && data.profile_image instanceof File;
+        const isBase64 = typeof data.profile_image === "string" && data.profile_image.startsWith("data:");
+        if (isFile || isBase64) {
+          try {
+            const uploadRes = await uploadMediaFile(data.profile_image, {
+              category: "profile",
+              entityType: "agent",
+              entityId: id,
+            });
+            if (uploadRes.success && uploadRes.url) {
+              payload = { ...data, profile_image: uploadRes.url };
+            }
+          } catch (uploadErr) {
+            console.warn("Agent edit profile image upload fallback note:", uploadErr);
+          }
+          if (payload.profile_image instanceof File) {
+            const reader = new FileReader();
+            const b64 = await new Promise<string>((resolve, reject) => {
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(reader.error);
+              reader.readAsDataURL(data.profile_image);
+            });
+            payload = { ...data, profile_image: b64 };
+          }
         }
-      }
       const response = await api.put(`/v1/agents/${id}`, payload);
       return response.data;
     } catch (error: any) {
@@ -1090,7 +1126,8 @@ export const marriageCongratulationsAPI = {
 // Mayra Registration (Application) API Services
 export const mayraApplicationAPI = {
   create: async (data: any): Promise<ApiResponse> => {
-    const formData = createFormData(data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "mayra" });
+    const formData = createFormData(preparedData);
     const response = await post<ApiResponse>(API_ENDPOINTS.CREATE_MAYRA_APPLICATION, formData);
     return response.data;
   },
@@ -1102,7 +1139,8 @@ export const mayraApplicationAPI = {
   },
 
   update: async (id: string, data: any): Promise<ApiResponse> => {
-    const formData = createFormData({ ...data, id });
+    const preparedData = await prepareMediaPayload(data, { entityType: "mayra", entityId: id });
+    const formData = createFormData({ ...preparedData, id });
     const response = await post<ApiResponse>(API_ENDPOINTS.UPDATE_MAYRA_APPLICATION, formData);
     return response.data;
   },
@@ -1262,7 +1300,8 @@ export const marriageSewingMachineAPI = {
 // Pension Yojana API Services
 export const pensionYojanaAPI = {
   create: async (data: any): Promise<ApiResponse> => {
-    const formData = createFormData(data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "pension" });
+    const formData = createFormData(preparedData);
     const response = await post<ApiResponse>(API_ENDPOINTS.CREATE_PENSION_YOJANA, formData);
     return response.data;
   },
@@ -1274,7 +1313,8 @@ export const pensionYojanaAPI = {
   },
 
   update: async (id: string, data: any): Promise<ApiResponse> => {
-    const formData = createFormData({ ...data, id });
+    const preparedData = await prepareMediaPayload(data, { entityType: "pension", entityId: id });
+    const formData = createFormData({ ...preparedData, id });
     const response = await post<ApiResponse>(API_ENDPOINTS.UPDATE_PENSION_YOJANA, formData);
     return response.data;
   },
@@ -1309,7 +1349,8 @@ export const pensionYojanaPaymentAPI = {
 // Sewing Machine Camp API Services
 export const sewingMachineCampAPI = {
   create: async (data: any): Promise<ApiResponse> => {
-    const formData = createFormData(data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "sewing_machine" });
+    const formData = createFormData(preparedData);
     const response = await post<ApiResponse>(API_ENDPOINTS.CREATE_SEWING_CAMP, formData);
     return response.data;
   },
@@ -1327,7 +1368,8 @@ export const sewingMachineCampAPI = {
   },
 
   update: async (id: string, data: any): Promise<ApiResponse> => {
-    const formData = createFormData({ ...data, id });
+    const preparedData = await prepareMediaPayload(data, { entityType: "sewing_machine", entityId: id });
+    const formData = createFormData({ ...preparedData, id });
     const response = await post<ApiResponse>(API_ENDPOINTS.UPDATE_SEWING_CAMP, formData);
     return response.data;
   },
@@ -1455,7 +1497,8 @@ export const agentCommissionAPI = {
 // Janni Delivery Registration API Services
 export const janniDeliveryAPI = {
   create: async (data: any): Promise<ApiResponse<any>> => {
-    const response = await api.post("/v1/janni-delivery", data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "janni" });
+    const response = await api.post("/v1/janni-delivery", preparedData);
     return response.data;
   },
   getAll: async (filters?: Record<string, any>): Promise<ApiResponse<any>> => {
@@ -1468,7 +1511,8 @@ export const janniDeliveryAPI = {
     return response.data;
   },
   update: async (id: string, data: any): Promise<ApiResponse<any>> => {
-    const response = await api.put(`/v1/janni-delivery/${id}`, data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "janni", entityId: id });
+    const response = await api.put(`/v1/janni-delivery/${id}`, preparedData);
     return response.data;
   },
   delete: async (id: string): Promise<ApiResponse<any>> => {
@@ -1492,7 +1536,8 @@ export const janniDeliveryAPI = {
 // Aawas (Home) Registration API Services
 export const aawasAPI = {
   create: async (data: any): Promise<ApiResponse<any>> => {
-    const response = await api.post("/v1/aawas", data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "aawas" });
+    const response = await api.post("/v1/aawas", preparedData);
     return response.data;
   },
   getAll: async (filters?: Record<string, any>): Promise<ApiResponse<any>> => {
@@ -1505,7 +1550,8 @@ export const aawasAPI = {
     return response.data;
   },
   update: async (id: string, data: any): Promise<ApiResponse<any>> => {
-    const response = await api.put(`/v1/aawas/${id}`, data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "aawas", entityId: id });
+    const response = await api.put(`/v1/aawas/${id}`, preparedData);
     return response.data;
   },
   delete: async (id: string): Promise<ApiResponse<any>> => {
@@ -1529,7 +1575,8 @@ export const aawasAPI = {
 // Lado Bahin (Muklawa) Registration API Services
 export const ladoBahinAPI = {
   create: async (data: any): Promise<ApiResponse<any>> => {
-    const response = await api.post("/v1/lado-bahin", data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "lado_bahin" });
+    const response = await api.post("/v1/lado-bahin", preparedData);
     return response.data;
   },
   getAll: async (filters?: Record<string, any>): Promise<ApiResponse<any>> => {
@@ -1542,7 +1589,8 @@ export const ladoBahinAPI = {
     return response.data;
   },
   update: async (id: string, data: any): Promise<ApiResponse<any>> => {
-    const response = await api.put(`/v1/lado-bahin/${id}`, data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "lado_bahin", entityId: id });
+    const response = await api.put(`/v1/lado-bahin/${id}`, preparedData);
     return response.data;
   },
   delete: async (id: string): Promise<ApiResponse<any>> => {
@@ -1566,7 +1614,8 @@ export const ladoBahinAPI = {
 // Dhundhotsav Registration API Services
 export const dhundhotsavAPI = {
   create: async (data: any): Promise<ApiResponse<any>> => {
-    const response = await api.post("/v1/dhundhotsav", data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "dhundhotsav" });
+    const response = await api.post("/v1/dhundhotsav", preparedData);
     return response.data;
   },
   getAll: async (filters?: Record<string, any>): Promise<ApiResponse<any>> => {
@@ -1579,7 +1628,8 @@ export const dhundhotsavAPI = {
     return response.data;
   },
   update: async (id: string, data: any): Promise<ApiResponse<any>> => {
-    const response = await api.put(`/v1/dhundhotsav/${id}`, data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "dhundhotsav", entityId: id });
+    const response = await api.put(`/v1/dhundhotsav/${id}`, preparedData);
     return response.data;
   },
   delete: async (id: string): Promise<ApiResponse<any>> => {
@@ -1603,7 +1653,8 @@ export const dhundhotsavAPI = {
 // ShubhLaxmi Registration API Services
 export const shubhLaxmiAPI = {
   create: async (data: any): Promise<ApiResponse<any>> => {
-    const response = await api.post("/v1/shubh-laxmi", data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "shubh_laxmi" });
+    const response = await api.post("/v1/shubh-laxmi", preparedData);
     return response.data;
   },
   getAll: async (filters?: Record<string, any>): Promise<ApiResponse<any>> => {
@@ -1616,7 +1667,8 @@ export const shubhLaxmiAPI = {
     return response.data;
   },
   update: async (id: string, data: any): Promise<ApiResponse<any>> => {
-    const response = await api.put(`/v1/shubh-laxmi/${id}`, data);
+    const preparedData = await prepareMediaPayload(data, { entityType: "shubh_laxmi", entityId: id });
+    const response = await api.put(`/v1/shubh-laxmi/${id}`, preparedData);
     return response.data;
   },
   delete: async (id: string): Promise<ApiResponse<any>> => {

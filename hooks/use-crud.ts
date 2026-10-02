@@ -7,6 +7,7 @@ import { toast } from "sonner"
 
 import { formatBilingual } from '@/lib/translations'
 import { unwrapApiRecordById } from "@/lib/utils"
+import { prepareMediaPayload } from "@/lib/upload-client"
 import { AxiosResponse } from "axios"
 interface ApiResponse<T> {
   status: boolean
@@ -138,6 +139,22 @@ export function useCRUD<T extends { id: string; createdAt: string }>(
     loadInitialData()
   }, [storageKey, initialData, hasLoaded, options?.autoLoad, options?.defaultFilters]) // Removed memoizedApiEndpoints?.read from dependencies
 
+function resolveEntityTypeFromStorageKey(key: string): any {
+  const k = key.toLowerCase();
+  if (k.includes("insurance")) return "insurance";
+  if (k.includes("loan")) return "loan";
+  if (k.includes("mayra")) return "mayra";
+  if (k.includes("janni")) return "janni";
+  if (k.includes("lado")) return "lado_bahin";
+  if (k.includes("dhundh")) return "dhundhotsav";
+  if (k.includes("aawas")) return "aawas";
+  if (k.includes("shubh")) return "shubh_laxmi";
+  if (k.includes("pension")) return "pension";
+  if (k.includes("sewing")) return "sewing_machine";
+  if (k.includes("agent")) return "agent";
+  return "application";
+}
+
   // API CRUD operations
   const createApi = useCallback(async (data: any): Promise<T | null> => {
     if (!memoizedApiEndpoints?.create) return null
@@ -146,7 +163,10 @@ export function useCRUD<T extends { id: string; createdAt: string }>(
       setLoading(true)
       setError(null)
       
-      const formData = createFormData(data)
+      const preparedData = await prepareMediaPayload(data, {
+        entityType: resolveEntityTypeFromStorageKey(storageKey),
+      })
+      const formData = createFormData(preparedData)
       const response = await post<ApiResponse<T>>(memoizedApiEndpoints.create!, formData)
       
       // Check for both 'status' and 'success' fields to handle different API response formats
@@ -154,7 +174,7 @@ export function useCRUD<T extends { id: string; createdAt: string }>(
       
       if (isSuccess) {
         const newRecord = {
-          ...data,
+          ...preparedData,
           id: Date.now().toString(),
           createdAt: new Date().toISOString(),
         } as T
@@ -259,7 +279,11 @@ export function useCRUD<T extends { id: string; createdAt: string }>(
       setLoading(true)
       setError(null)
       
-      const formData = createFormData({ ...data, id })
+      const preparedData = await prepareMediaPayload(data, {
+        entityType: resolveEntityTypeFromStorageKey(storageKey),
+        entityId: id,
+      })
+      const formData = createFormData({ ...preparedData, id })
       const response = await post<ApiResponse<T>>(memoizedApiEndpoints.update!, formData)
       
       // Check for both 'status' and 'success' fields to handle different API response formats
@@ -267,7 +291,7 @@ export function useCRUD<T extends { id: string; createdAt: string }>(
       
       if (isSuccess) {
         const updatedRecords = records.map((record) => 
-          record.id === id ? { ...record, ...data } : record
+          record.id === id ? { ...record, ...preparedData } : record
         )
         setRecords(updatedRecords)
         storage.set(storageKey, updatedRecords)

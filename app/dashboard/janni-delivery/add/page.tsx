@@ -27,6 +27,7 @@ import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
 import { formatDate, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
+import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 
 export default function AddJanniDeliveryPage() {
@@ -318,6 +319,38 @@ export default function AddJanniDeliveryPage() {
       return;
     }
 
+    setIsLoading(true);
+
+    let finalPassportUrl = passportPhotoBase64 || null;
+    if (passportPhotoBase64 && passportPhotoBase64.startsWith("data:")) {
+      try {
+        const uploadRes = await uploadMediaFile(passportPhotoBase64, {
+          category: "passport",
+          entityType: "janni",
+        });
+        if (uploadRes.success && uploadRes.url) {
+          finalPassportUrl = uploadRes.url;
+        }
+      } catch (err) {
+        console.warn("Janni passport upload note:", err);
+      }
+    }
+
+    let finalNomineeUrl = nomineePhotoBase64 || null;
+    if (nomineePhotoBase64 && nomineePhotoBase64.startsWith("data:")) {
+      try {
+        const uploadRes = await uploadMediaFile(nomineePhotoBase64, {
+          category: "nominee",
+          entityType: "janni",
+        });
+        if (uploadRes.success && uploadRes.url) {
+          finalNomineeUrl = uploadRes.url;
+        }
+      } catch (err) {
+        console.warn("Janni nominee upload note:", err);
+      }
+    }
+
     // Prepare payload
     const payload: CreateJanniDeliveryPayload = {
       applicationDate: convertToYYYYMMDD(formData.applicationDate),
@@ -343,8 +376,8 @@ export default function AddJanniDeliveryPage() {
       nomineeRelation: formData.nomineeRelation.trim() || null,
       nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || null,
       nomineeAadhar: rawNomineeAadhar || null,
-      passportPhotoUrl: passportPhotoBase64 || null,
-      nomineePhotoUrl: nomineePhotoBase64 || null,
+      passportPhotoUrl: finalPassportUrl,
+      nomineePhotoUrl: finalNomineeUrl,
       offlineFormNumber: formData.offlineFormNumber.trim() || null,
       gender: formData.gender,
       category: formData.category,
@@ -355,8 +388,6 @@ export default function AddJanniDeliveryPage() {
       epinCode: formData.epinCode.trim() || null,
       pinNumber: formData.epinCode.trim() || null,
     };
-
-    setIsLoading(true);
     try {
       await JanniDeliveryService.createRegistration(payload);
       toast.success(

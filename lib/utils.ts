@@ -152,9 +152,15 @@ export async function getPhotoDataUrl(photo?: string | null): Promise<string | n
   if (!url) return null;
 
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn("Failed to fetch image:", response.status, response.statusText);
+    let response = await fetch(url).catch(() => null);
+    if (!response || !response.ok) {
+      if (typeof window !== "undefined") {
+        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
+        response = await fetch(proxyUrl).catch(() => null);
+      }
+    }
+    if (!response || !response.ok) {
+      console.warn("Failed to fetch image:", response?.status);
       return null;
     }
     const blob = await response.blob();

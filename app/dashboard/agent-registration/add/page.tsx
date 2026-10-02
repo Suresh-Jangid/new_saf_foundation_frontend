@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS, agentRegistrationAPI } from "@/lib/api";
 import { toast } from "sonner";
+import { uploadMediaFile } from "@/lib/upload-client";
 import { formatDate, isValidDate, parseDateFromDDMMYYYY, getCurrentUserInfo, formatDateForAPI, fileToBase64, formatAgentLevel } from "@/lib/utils";
 import { RoleGuard } from "@/components/role-guard";
 import { isAdmin, isAgent, getAgentData } from "@/lib/permissions";
@@ -272,8 +273,21 @@ export default function AddAgentPage() {
       const selectedSeniorId = form.seniorEmployeeId && form.seniorEmployeeId.trim() !== "" ? form.seniorEmployeeId.trim() : null;
 
       let serializedProfileImage: string | null = null;
-      if (form.profile_image instanceof File) {
-        serializedProfileImage = await fileToBase64(form.profile_image);
+      if (form.profile_image instanceof File || (typeof form.profile_image === "string" && form.profile_image.startsWith("data:"))) {
+        try {
+          const uploadRes = await uploadMediaFile(form.profile_image, {
+            category: "profile",
+            entityType: "agent",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            serializedProfileImage = uploadRes.url;
+          }
+        } catch (uploadErr) {
+          console.warn("Direct upload error:", uploadErr);
+        }
+        if (!serializedProfileImage && form.profile_image instanceof File) {
+          serializedProfileImage = await fileToBase64(form.profile_image);
+        }
       } else if (typeof form.profile_image === "string" && form.profile_image.trim() !== "") {
         serializedProfileImage = form.profile_image;
       }

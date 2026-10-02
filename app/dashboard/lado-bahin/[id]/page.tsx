@@ -44,6 +44,7 @@ import {
   validatePhoneNumber,
   getProxiedPhotoSrc,
 } from "@/lib/utils";
+import { uploadMediaFile } from "@/lib/upload-client";
 
 export default function EditLadoBahinPage() {
   const params = useParams();
@@ -383,6 +384,42 @@ export default function EditLadoBahinPage() {
 
     try {
       const normalizedMuklawa = convertToYYYYMMDD(formData.muklawaDate);
+      let updatedPassportUrl: string | undefined = undefined;
+      if (passportPhotoBase64 && passportPhotoBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(passportPhotoBase64, {
+            category: "passport",
+            entityType: "lado_bahin",
+            entityId: String(id),
+          });
+          if (uploadRes.success && uploadRes.url) {
+            updatedPassportUrl = uploadRes.url;
+          } else {
+            updatedPassportUrl = passportPhotoBase64;
+          }
+        } catch (err) {
+          console.warn("Lado Bahin edit passport upload note:", err);
+        }
+      }
+
+      let updatedNomineeUrl: string | undefined = undefined;
+      if (nomineePhotoBase64 && nomineePhotoBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(nomineePhotoBase64, {
+            category: "nominee",
+            entityType: "lado_bahin",
+            entityId: String(id),
+          });
+          if (uploadRes.success && uploadRes.url) {
+            updatedNomineeUrl = uploadRes.url;
+          } else {
+            updatedNomineeUrl = nomineePhotoBase64;
+          }
+        } catch (err) {
+          console.warn("Lado Bahin edit nominee upload note:", err);
+        }
+      }
+
       const payload: UpdateLadoBahinPayload = {
         offlineFormNumber: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : null,
         offline_form_number: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : null,
@@ -409,8 +446,8 @@ export default function EditLadoBahinPage() {
         category: formData.category,
         totalAmount: Number(formData.totalAmount) || 5100,
         pendingAmount: Number(formData.pendingAmount) || 0,
-        ...(passportPhotoBase64 ? { passportPhotoUrl: passportPhotoBase64 } : {}),
-        ...(nomineePhotoBase64 ? { nomineePhotoUrl: nomineePhotoBase64, nominee_photo_url: nomineePhotoBase64 } : {}),
+        ...(updatedPassportUrl ? { passportPhotoUrl: updatedPassportUrl } : {}),
+        ...(updatedNomineeUrl ? { nomineePhotoUrl: updatedNomineeUrl, nominee_photo_url: updatedNomineeUrl } : {}),
       };
 
       const res = await LadoBahinService.updateRegistration(id, payload);

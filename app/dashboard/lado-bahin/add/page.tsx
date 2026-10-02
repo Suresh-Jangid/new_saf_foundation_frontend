@@ -38,6 +38,7 @@ import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
 import { cn, formatDate, formatDateForAPI, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
+import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 
 export default function AddLadoBahinPage() {
@@ -336,6 +337,36 @@ export default function AddLadoBahinPage() {
 
     try {
       const normalizedMuklawa = convertToYYYYMMDD(formData.muklawaDate);
+      let finalPassportUrl = passportPhotoBase64 || null;
+      if (passportPhotoBase64 && passportPhotoBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(passportPhotoBase64, {
+            category: "passport",
+            entityType: "lado_bahin",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            finalPassportUrl = uploadRes.url;
+          }
+        } catch (err) {
+          console.warn("Lado Bahin passport upload note:", err);
+        }
+      }
+
+      let finalNomineeUrl = nomineePhotoBase64 || null;
+      if (nomineePhotoBase64 && nomineePhotoBase64.startsWith("data:")) {
+        try {
+          const uploadRes = await uploadMediaFile(nomineePhotoBase64, {
+            category: "nominee",
+            entityType: "lado_bahin",
+          });
+          if (uploadRes.success && uploadRes.url) {
+            finalNomineeUrl = uploadRes.url;
+          }
+        } catch (err) {
+          console.warn("Lado Bahin nominee upload note:", err);
+        }
+      }
+
       const payload: CreateLadoBahinPayload = {
         applicationDate: convertToYYYYMMDD(formData.applicationDate) || formatDateForAPI(new Date()),
         offlineFormNumber: formData.offlineFormNumber.trim() || null,
@@ -360,9 +391,9 @@ export default function AddLadoBahinPage() {
         nomineeRelation: formData.nomineeRelation.trim() || null,
         nomineeMobile: formData.nomineeMobile.trim() || null,
         nomineeAadhar: formData.nomineeAadhar.replace(/\D/g, "") || null,
-        passportPhotoUrl: passportPhotoBase64 || null,
-        nomineePhotoUrl: nomineePhotoBase64 || null,
-        nominee_photo_url: nomineePhotoBase64 || null,
+        passportPhotoUrl: finalPassportUrl,
+        nomineePhotoUrl: finalNomineeUrl,
+        nominee_photo_url: finalNomineeUrl,
         gender: "Female",
         category: formData.category,
         schemeType: "LADO_BAHIN",

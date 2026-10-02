@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import 'regenerator-runtime/runtime';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { loadImageBytes, pickPhotoSource } from '../../utils/pdfImage';
 
 export const runtime = 'nodejs';
 
@@ -128,38 +129,49 @@ export async function POST(request: NextRequest) {
     const firstPage = pages[0];
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
-    // Handle image embedding if imageData is provided
-    if (imageData) {
+    // Handle image embedding
+    const photoSource = pickPhotoSource(
+      imageData,
+      record?.imageData,
+      record?.applicantPhotoData,
+      record?.passportPhoto,
+      record?.passport_photo,
+      record?.passportPhotoUrl,
+      record?.photo,
+      record?.photoUrl,
+      record?.applicantPhoto
+    );
+
+    if (photoSource) {
       try {
-        // Convert base64 to Uint8Array
-        const imageBytes = Uint8Array.from(atob(imageData.split(',')[1]), c => c.charCodeAt(0));
+        const loaded = await loadImageBytes(photoSource);
+        if (loaded) {
+          const { bytes, mime } = loaded;
+          const isPng = (mime && mime.includes('png')) || (bytes[0] === 0x89 && bytes[1] === 0x50);
+          let image;
+          if (isPng) {
+            image = await pdfDoc.embedPng(bytes);
+          } else {
+            image = await pdfDoc.embedJpg(bytes);
+          }
 
-        // Determine image type and embed accordingly
-        let image;
-        if (imageData.startsWith('data:image/jpeg') || imageData.startsWith('data:image/jpg')) {
-          image = await pdfDoc.embedJpg(imageBytes);
-        } else if (imageData.startsWith('data:image/png')) {
-          image = await pdfDoc.embedPng(imageBytes);
-        } else {
-          console.warn('Unsupported image format, skipping image embedding');
-        }
+          if (image) {
+            // Precise passport photo box dimensions for official saf_vivah_bond.pdf [453.47–540.30] x [519.44–624.84]
+            const imageX = 454.5;
+            const imageY = 520.5;
+            const imageWidth = 84.8;
+            const imageHeight = 103.3;
 
-        if (image) {
-          // Precise passport photo box dimensions for official saf_vivah_bond.pdf [453.47–540.30] x [519.44–624.84]
-          const imageX = 454.5;
-          const imageY = 520.5;
-          const imageWidth = 84.8;
-          const imageHeight = 103.3;
+            // Draw the image on the PDF directly using bottom-left coordinates
+            firstPage.drawImage(image, {
+              x: imageX,
+              y: imageY,
+              width: imageWidth,
+              height: imageHeight,
+            });
 
-          // Draw the image on the PDF directly using bottom-left coordinates
-          firstPage.drawImage(image, {
-            x: imageX,
-            y: imageY,
-            width: imageWidth,
-            height: imageHeight,
-          });
-
-          console.log('Image embedded successfully in General Bond PDF');
+            console.log('Image embedded successfully in General Bond PDF');
+          }
         }
       } catch (imageError) {
         console.error('Error embedding image in General Bond PDF:', imageError);

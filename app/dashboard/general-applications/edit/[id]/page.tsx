@@ -18,6 +18,7 @@ import { get, post, buildEditFormData } from "@/lib/api"
 import { toast } from "sonner"
 import { MediaUploadControl } from "@/components/media-upload"
 import { formatDate, isValidDate, calculateAge, formatDateForAPI, formatDateForInput, parseDateFromDDMMYYYY, validatePhoneNumber, unwrapApiRecordById, getApplicantPhotoPath, getProxiedPhotoSrc } from "@/lib/utils";
+import { FallbackImage } from "@/components/ui/fallback-image";
 import { RoleGuard } from "@/components/role-guard"
 import {
   AlertDialog,
@@ -142,6 +143,23 @@ export default function EditGeneralApplicationPage() {
 
   // Photo state
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string>("");
+  const [passportPhotoPreview, setPassportPhotoPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (formData.passportPhoto instanceof File) {
+      const url = URL.createObjectURL(formData.passportPhoto);
+      setPassportPhotoPreview(url);
+      return () => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      };
+    } else {
+      setPassportPhotoPreview(null);
+    }
+  }, [formData.passportPhoto]);
 
   // Phone validation state
   const [phoneError, setPhoneError] = useState("");
@@ -481,6 +499,8 @@ export default function EditGeneralApplicationPage() {
         selectedAgentId: formData.selectedAgentId,
         passportPhoto: formData.passportPhoto ?? undefined,
         existingPhotoUrl: !formData.passportPhoto && existingPhotoUrl ? existingPhotoUrl : undefined,
+        existing_photo_url: !formData.passportPhoto && existingPhotoUrl ? existingPhotoUrl : undefined,
+        photoUrl: !formData.passportPhoto && existingPhotoUrl ? existingPhotoUrl : undefined,
       })
 
       const response = await post("?apicall=updateApplication", apiFormData)
@@ -1020,15 +1040,16 @@ export default function EditGeneralApplicationPage() {
                     />
                   </div>
                   {/* Image preview - show existing photo or new selected photo */}
-                  {(existingPhotoUrl || formData.passportPhoto) && (
+                  {(existingPhotoUrl || passportPhotoPreview) && (
                     <div className="mt-2">
-                      <img
-                        src={formData.passportPhoto ? URL.createObjectURL(formData.passportPhoto) : getProxiedPhotoSrc(existingPhotoUrl)}
+                      <FallbackImage
+                        src={passportPhotoPreview || getProxiedPhotoSrc(existingPhotoUrl)}
                         alt="पासपोर्ट फोटो प्रीव्यू"
-                        className="h-24 w-24 object-cover rounded border"
+                        className="h-24 w-24 object-cover rounded border shadow-sm"
+                        showUnavailableBadge
                       />
-                      {existingPhotoUrl && !formData.passportPhoto && (
-                        <p className="text-xs text-gray-500 mt-1">Existing photo loaded</p>
+                      {existingPhotoUrl && !passportPhotoPreview && (
+                        <p className="text-xs text-gray-500 mt-1">मौजूदा फोटो लोड हुई / Existing photo loaded</p>
                       )}
                     </div>
                   )}

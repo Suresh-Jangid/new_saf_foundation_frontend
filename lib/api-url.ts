@@ -27,3 +27,10 @@ export function getBackendOrigin(): string {
 export function getUploadsBaseUrl(): string {
   return `${getBackendOrigin()}/uploads`;
 }
+
+/** Permanent public storage base URL (e.g. S3 bucket URL or CDN). */
+export function getStorageBaseUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_STORAGE_URL || process.env.S3_PUBLIC_BASE_URL;
+  if (fromEnv) return fromEnv.replace(/\/+$/, "");
+  return getUploadsBaseUrl();
+}

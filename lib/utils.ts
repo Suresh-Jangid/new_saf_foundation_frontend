@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { getUploadsBaseUrl, getBackendOrigin, getApiBaseUrl } from "./api-url"
+import { getUploadsBaseUrl, getBackendOrigin, getApiBaseUrl, getStorageBaseUrl } from "./api-url"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -32,6 +32,15 @@ export function resolvePhotoUrl(photo?: string): string {
   if (normalized.startsWith("user/") || normalized.startsWith("api/user/")) {
     const apiPath = normalized.startsWith("api/") ? normalized : `api/${normalized}`
     return `${getApiBaseUrl().replace(/\/api\/?$/, "")}/${apiPath}`
+  }
+
+  // Cloud object keys (saf-uploads/..., applications/..., documents/...)
+  if (
+    normalized.startsWith("saf-uploads/") ||
+    normalized.startsWith("applications/") ||
+    normalized.startsWith("documents/")
+  ) {
+    return `${getStorageBaseUrl()}/${normalized}`
   }
 
   return `${getUploadsBaseUrl()}/${normalized}`

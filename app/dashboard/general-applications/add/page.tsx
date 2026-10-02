@@ -16,6 +16,7 @@ import { CalendarDays } from "lucide-react"
 import { post } from "@/lib/api"
 import { toast } from "sonner"
 import { MediaUploadControl } from "@/components/media-upload"
+import { FallbackImage } from "@/components/ui/fallback-image"
 
 
 import { formatBilingual } from '@/lib/translations'
@@ -110,6 +111,23 @@ export default function AddGeneralApplicationPage() {
 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [epinConflictError, setEpinConflictError] = useState<string | null>(null);
+  const [passportPhotoPreview, setPassportPhotoPreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (formData.passportPhoto instanceof File) {
+      const url = URL.createObjectURL(formData.passportPhoto);
+      setPassportPhotoPreview(url);
+      return () => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      };
+    } else {
+      setPassportPhotoPreview(null);
+    }
+  }, [formData.passportPhoto]);
 
   // Helper function to convert dd-mm-yyyy to yyyymmdd format
   const convertToYYYYMMDD = (dateString: string): string => {
@@ -1014,11 +1032,11 @@ export default function AddGeneralApplicationPage() {
                     />
                   </div>
                   {/* Image preview */}
-                  {formData.passportPhoto && (
-                    <img
-                      src={URL.createObjectURL(formData.passportPhoto)}
+                  {passportPhotoPreview && (
+                    <FallbackImage
+                      src={passportPhotoPreview}
                       alt="पासपोर्ट फोटो प्रीव्यू"
-                      className="mt-2 h-24 w-24 object-cover rounded border"
+                      className="mt-2 h-24 w-24 object-cover rounded border shadow-sm"
                     />
                   )}
                 </div>

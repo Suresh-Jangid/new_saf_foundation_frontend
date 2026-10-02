@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const API_BASE_URL = 'https://firewallitsolution.com/fireconnect/api/api.php';
-const CLIENT_KEY = process.env.NEXT_PUBLIC_FIRECONNECT_CLIENT_KEY || '';
-const CLIENT_SECRET = process.env.NEXT_PUBLIC_FIRECONNECT_CLIENT_SECRET || '';
+const CLIENT_KEY = process.env.FIRECONNECT_CLIENT_KEY || process.env.NEXT_PUBLIC_FIRECONNECT_CLIENT_KEY || '';
+const CLIENT_SECRET = process.env.FIRECONNECT_CLIENT_SECRET || process.env.NEXT_PUBLIC_FIRECONNECT_CLIENT_SECRET || '';
 
 export async function POST(req: NextRequest) {
     try {

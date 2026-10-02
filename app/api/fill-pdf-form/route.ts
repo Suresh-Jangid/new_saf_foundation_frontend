@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
+import { validateApiRequest } from '@/lib/api-security';
 
 export const runtime = 'nodejs';
 
@@ -24,6 +25,11 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const securityCheck = validateApiRequest(request);
+    if (!securityCheck.valid && securityCheck.response) {
+      return securityCheck.response;
+    }
+
     const body = await request.json();
     const {
       data,

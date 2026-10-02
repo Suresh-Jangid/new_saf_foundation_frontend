@@ -382,6 +382,8 @@ interface MayraRegistrationRecord {
   address: string
   aadharNumber: string
   mobile: string
+  nomineeMobile?: string
+  nominee_mobile?: string
   nomineeName: string
   nomineeFathername?: string
   nomineeFatherName?: string
@@ -411,7 +413,9 @@ interface MayraRegistrationRecord {
   kistAmount?: string | number
   schemeAmount?: string | number
   totalAmount?: string | number
+  total_amount?: string | number
   paymentAmount?: string | number
+  fee?: string | number
 }
 
 export default function MayraRegistrationPage() {
@@ -560,12 +564,21 @@ export default function MayraRegistrationPage() {
         fetchPhotoAsDataUrl(nomineePhotoSource),
       ])
 
+      const nomineeMobile = record.nomineeMobile || (record as any).nominee_mobile || record.mobile || "";
+
+      const feeAmount = (record as any).fee || record.totalAmount || (record as any).total_amount || "";
+
       const response = await fetch('/api/generate-mayra-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           record: {
             ...record,
+            fee: feeAmount,
+            totalAmount: feeAmount || record.totalAmount,
+            total_amount: feeAmount || record.totalAmount,
+            nomineeMobile,
+            nominee_mobile: nomineeMobile,
             passportPhoto: photoSource,
             passportPhotoUrl: photoSource,
             nomineePhoto: nomineePhotoSource,

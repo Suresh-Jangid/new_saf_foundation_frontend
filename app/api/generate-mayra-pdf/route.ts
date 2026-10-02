@@ -19,6 +19,18 @@ function getField(record: Record<string, any>, ...keys: string[]): string {
   return '';
 }
 
+function formatIndianCurrency(val: unknown): string {
+  if (val === undefined || val === null) return '';
+  const rawStr = String(val).trim();
+  if (!rawStr) return '';
+  const cleaned = rawStr.replace(/[₹,\/\-]/g, '').trim();
+  const num = Number(cleaned);
+  if (!isNaN(num) && cleaned !== '') {
+    return `${num.toLocaleString('en-IN')}/-`;
+  }
+  return rawStr.endsWith('/-') ? rawStr : `${rawStr}/-`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     let body;
@@ -190,7 +202,7 @@ export async function POST(request: NextRequest) {
     const aadharNo = getField(record, 'aadharNumber', 'aadhar_number', 'aadhaarNumber', 'aadhaar_number', 'aadhar');
     const district = getField(record, 'district', 'nomineeDistrict', 'nominee_district', 'जिला');
     const state = getField(record, 'state', 'nomineeState', 'nominee_state', 'राज्य') || 'राजस्थान';
-    const mobile = getField(record, 'mobile', 'mobileNumber', 'phone', 'contact', 'applicantMobile');
+    const mobile = getField(record, 'applicantMobile', 'applicant_mobile', 'mobile', 'mobileNumber', 'phone', 'contact');
 
     drawBounded(applicantName, 62, 621.1, 10, 390);
     drawBounded(parentName, 122, 593.3, 10, 330);
@@ -207,11 +219,34 @@ export async function POST(request: NextRequest) {
     const nomineeName = getField(record, 'nomineeName', 'nominee_name');
     const nomineeRelation = getField(record, 'nomineeRelation', 'nominee_relation', 'relation');
     const nomineeAadhar = getField(record, 'nomineeAadhar', 'nominee_aadhar', 'nomineeAadhaar', 'nominee_aadhaar', 'nomineeAadharNumber', 'nomineeAadhaarNumber');
-    const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile', 'nomineePhone', 'nominee_phone');
+    const nomineeMobile = getField(
+      record,
+      'nomineeMobile',
+      'nominee_mobile',
+      'mobile',
+      'nomineePhone',
+      'nominee_phone',
+      'mobileNumber',
+      'phone',
+      'contact'
+    );
     const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'agentName');
 
-    const totalAmount = getField(record, 'totalAmount', 'total_amount', 'membershipFee', 'amount', 'fee', 'paymentAmount') || '5100';
-    const amountStr = totalAmount ? (String(totalAmount).endsWith('/-') ? String(totalAmount) : `${totalAmount}/-`) : '5,100/-';
+    const rawFee = getField(
+      record,
+      'fee',
+      'totalAmount',
+      'total_amount',
+      'totalFee',
+      'total_fee',
+      'permanentFee',
+      'joiningFee',
+      'registrationFee',
+      'membershipFee',
+      'amount',
+      'paymentAmount'
+    );
+    const amountStr = rawFee ? formatIndianCurrency(rawFee) : '';
     const paymentMode = [
       getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') || 'CASH',
       getField(record, 'epinCode', 'epin_code') ? `EPIN: ${getField(record, 'epinCode', 'epin_code')}` : ''

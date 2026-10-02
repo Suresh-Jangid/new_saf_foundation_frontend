@@ -290,6 +290,8 @@ export default function AddMayraRegistrationPage() {
       apiFormData.append("address", formData.address)
       apiFormData.append("aadharNumber", aadharDigits)
       apiFormData.append("mobile", formData.nomineeMobile) // Map nomineeMobile to mobile
+      apiFormData.append("nomineeMobile", formData.nomineeMobile)
+      apiFormData.append("nominee_mobile", formData.nomineeMobile)
       apiFormData.append("pinCode", formData.nomineePincode)
       apiFormData.append("tehsil", formData.nomineeTehsil)
       apiFormData.append("district", formData.nomineeDistrict)
@@ -310,7 +312,9 @@ export default function AddMayraRegistrationPage() {
       }
       apiFormData.append("affidavit", formData.affidavit)
       apiFormData.append("category", formData.category)
+      apiFormData.append("fee", totalAmount.toString())
       apiFormData.append("totalAmount", totalAmount.toString())
+      apiFormData.append("total_amount", totalAmount.toString())
       apiFormData.append("paymentAmount", paymentAmount.toString())
       apiFormData.append("pendingAmount", pendingAmount.toString())
       apiFormData.append("gender", formData.gender)

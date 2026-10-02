@@ -77,6 +77,12 @@ interface GeneralApplicationRecord {
   nomineePhone?: string
   nominee_mobile?: string
   nominee_phone?: string
+  nomineePhoto?: string | null
+  nominee_photo?: string | null
+  nomineePhotoUrl?: string | null
+  nominee_photo_url?: string | null
+  nomineePassportPhoto?: string | null
+  nominee_passport_photo?: string | null
   workerCode?: string
   worker_code?: string
   workerOfflineFormNumber?: string | null
@@ -428,6 +434,9 @@ function mapApplicationRecord(item: GeneralApplicationRecord & Record<string, an
     paymentModeRef,
     installmentAmount: item.installmentAmount ?? item.installment_amount ?? item.installment ?? "",
     passportPhoto: item.passportPhoto || item.passport_photo || item.passportPhotoUrl || item.photo || item.photoUrl || item.applicantPhoto,
+    nomineePhoto: item.nomineePassportPhoto || item.nominee_passport_photo || item.nomineePhoto || item.nominee_photo || item.nomineePhotoUrl || item.nominee_photo_url || "",
+    nomineePassportPhoto: item.nomineePassportPhoto || item.nominee_passport_photo || item.nomineePhoto || item.nominee_photo || item.nomineePhotoUrl || item.nominee_photo_url || "",
+    nomineePhotoUrl: item.nomineePhotoUrl || item.nomineePassportPhoto || item.nomineePhoto || "",
   };
 }
 

@@ -17,7 +17,7 @@ import { CalendarDays } from "lucide-react"
 import { get, post, buildEditFormData } from "@/lib/api"
 import { toast } from "sonner"
 import { MediaUploadControl } from "@/components/media-upload"
-import { formatDate, isValidDate, calculateAge, formatDateForAPI, formatDateForInput, parseDateFromDDMMYYYY, validatePhoneNumber, unwrapApiRecordById, getApplicantPhotoPath, getProxiedPhotoSrc } from "@/lib/utils";
+import { formatDate, isValidDate, calculateAge, formatDateForAPI, formatDateForInput, parseDateFromDDMMYYYY, validatePhoneNumber, unwrapApiRecordById, getApplicantPhotoPath, getNomineePhotoPath, getProxiedPhotoSrc } from "@/lib/utils";
 import { FallbackImage } from "@/components/ui/fallback-image";
 import { uploadMediaFile } from "@/lib/upload-client";
 import { RoleGuard } from "@/components/role-guard"
@@ -59,6 +59,10 @@ export type GeneralApplicationFormData = {
   nomineeAadhaar?: string;
   nomineeMobile?: string;
   nomineePhone?: string;
+  nomineePhoto?: File | null;
+  nomineePhotoUrl?: string | null;
+  nomineePassportPhoto?: File | string | null;
+  existingNomineePhoto?: string | null;
   affidavit: string;
   passportPhoto: File | null;
   gender: string;
@@ -98,6 +102,7 @@ export default function EditGeneralApplicationPage() {
     nomineeRelation: "",
     nomineeAadhar: "",
     nomineeMobile: "",
+    nomineePhoto: null,
     affidavit: "",
     passportPhoto: null,
     gender: "",
@@ -144,7 +149,9 @@ export default function EditGeneralApplicationPage() {
 
   // Photo state
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string>("");
+  const [existingNomineePhotoUrl, setExistingNomineePhotoUrl] = useState<string>("");
   const [passportPhotoPreview, setPassportPhotoPreview] = useState<string | null>(null);
+  const [nomineePhotoPreview, setNomineePhotoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (formData.passportPhoto instanceof File) {
@@ -161,6 +168,22 @@ export default function EditGeneralApplicationPage() {
       setPassportPhotoPreview(null);
     }
   }, [formData.passportPhoto]);
+
+  useEffect(() => {
+    if (formData.nomineePhoto instanceof File) {
+      const url = URL.createObjectURL(formData.nomineePhoto);
+      setNomineePhotoPreview(url);
+      return () => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      };
+    } else {
+      setNomineePhotoPreview(null);
+    }
+  }, [formData.nomineePhoto]);
 
   // Phone validation state
   const [phoneError, setPhoneError] = useState("");
@@ -345,6 +368,7 @@ export default function EditGeneralApplicationPage() {
             nomineeRelation: record.nomineeRelation || "",
             nomineeAadhar,
             nomineeMobile,
+            nomineePhoto: null,
             affidavit: record.affidavit || "",
             passportPhoto: null,
             gender: record.gender || "",
@@ -363,6 +387,11 @@ export default function EditGeneralApplicationPage() {
           const photoPath = getApplicantPhotoPath(record);
           if (photoPath) {
             setExistingPhotoUrl(photoPath);
+          }
+
+          const nomineePhotoPath = getNomineePhotoPath(record);
+          if (nomineePhotoPath) {
+            setExistingNomineePhotoUrl(nomineePhotoPath);
           }
 
           // Set date objects - handle both API format (YYYY-MM-DD) and display format (DD-MM-YYYY)
@@ -483,6 +512,22 @@ export default function EditGeneralApplicationPage() {
         }
       }
 
+      let newUploadedNomineePhotoUrl = ""
+      if (formData.nomineePhoto instanceof File) {
+        try {
+          const uploadRes = await uploadMediaFile(formData.nomineePhoto, {
+            category: "nominee",
+            entityType: "application",
+            entityId: id,
+          })
+          if (uploadRes.success && uploadRes.url) {
+            newUploadedNomineePhotoUrl = uploadRes.url
+          }
+        } catch (uploadErr) {
+          console.warn("Edit nominee image upload fallback note:", uploadErr)
+        }
+      }
+
       const apiFormData = buildEditFormData(id, {
         applicationDate: formatDateForAPI(applicationDateObj),
         offlineFormNumber: formData.offlineFormNumber ? formData.offlineFormNumber.trim() : "",
@@ -517,6 +562,12 @@ export default function EditGeneralApplicationPage() {
         existingPhotoUrl: !formData.passportPhoto && existingPhotoUrl ? existingPhotoUrl : undefined,
         existing_photo_url: !formData.passportPhoto && existingPhotoUrl ? existingPhotoUrl : undefined,
         photoUrl: newUploadedPhotoUrl || (!formData.passportPhoto && existingPhotoUrl ? existingPhotoUrl : undefined),
+        nomineePassportPhoto: newUploadedNomineePhotoUrl || (formData.nomineePhoto instanceof File ? formData.nomineePhoto : (!formData.nomineePhoto && existingNomineePhotoUrl ? existingNomineePhotoUrl : undefined)),
+        nominee_passport_photo: newUploadedNomineePhotoUrl || (!formData.nomineePhoto && existingNomineePhotoUrl ? existingNomineePhotoUrl : undefined),
+        nomineePhoto: newUploadedNomineePhotoUrl || (!formData.nomineePhoto && existingNomineePhotoUrl ? existingNomineePhotoUrl : undefined),
+        nominee_photo: newUploadedNomineePhotoUrl || (!formData.nomineePhoto && existingNomineePhotoUrl ? existingNomineePhotoUrl : undefined),
+        nomineePhotoUrl: newUploadedNomineePhotoUrl || (!formData.nomineePhoto && existingNomineePhotoUrl ? existingNomineePhotoUrl : undefined),
+        existingNomineePhoto: !formData.nomineePhoto && existingNomineePhotoUrl ? existingNomineePhotoUrl : undefined,
       })
 
       const response = await post("?apicall=updateApplication", apiFormData)
@@ -998,6 +1049,81 @@ export default function EditGeneralApplicationPage() {
                     placeholder="10 अंकों का मोबाइल दर्ज करें"
                   />
                 </div>
+              </div>
+
+              {/* Nominee Photo Upload & Preview Section */}
+              <div className="space-y-2">
+                <Label htmlFor="nomineePhoto">नामांकित व्यक्ति का फोटो / Nominee Photo</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="nomineePhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        nomineePhoto: e.target.files?.[0] || null,
+                      }))
+                    }
+                    className="flex-1"
+                  />
+                  <MediaUploadControl
+                    id="nomineePhoto-camera"
+                    mode="image"
+                    label="नामांकित व्यक्ति का फोटो"
+                    standaloneCameraOnly
+                    onFileSelect={(file) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        nomineePhoto: file,
+                      }))
+                    }
+                  />
+                  {formData.nomineePhoto && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, nomineePhoto: null }));
+                        const fileInput = document.getElementById("nomineePhoto") as HTMLInputElement;
+                        if (fileInput) fileInput.value = "";
+                      }}
+                    >
+                      हटाएं / Remove
+                    </Button>
+                  )}
+                </div>
+
+                {/* Nominee Photo Preview: Shows existing photo or newly selected photo */}
+                {nomineePhotoPreview ? (
+                  <div className="mt-2 flex items-center gap-3">
+                    <FallbackImage
+                      src={nomineePhotoPreview}
+                      alt="नामांकित व्यक्ति का नया फोटो प्रीव्यू"
+                      className="h-24 w-24 object-cover rounded border shadow-sm"
+                    />
+                    <div>
+                      <p className="text-xs font-medium text-emerald-600">नई फोटो चुनी गई / New photo selected</p>
+                      <p className="text-xs text-muted-foreground">सेव करने पर अपडेट होगी / Will update on save</p>
+                    </div>
+                  </div>
+                ) : existingNomineePhotoUrl ? (
+                  <div className="mt-2">
+                    <p className="text-xs font-medium text-gray-700 mb-1">मौजूदा नॉमिनी फोटो / Existing Nominee Photo:</p>
+                    <div className="flex items-center gap-3">
+                      <FallbackImage
+                        src={getProxiedPhotoSrc(existingNomineePhotoUrl)}
+                        alt="मौजूदा नामांकित व्यक्ति का फोटो"
+                        className="h-24 w-24 object-cover rounded border shadow-sm"
+                        showUnavailableBadge
+                      />
+                      <p className="text-xs text-muted-foreground">नई फोटो चुनने के लिए ऊपर फाइल चुनें / Choose file above to replace</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">कोई नॉमिनी फोटो अपलोड नहीं है / No nominee photo uploaded</p>
+                )}
               </div>
 
               {/* Worker Information Section */}

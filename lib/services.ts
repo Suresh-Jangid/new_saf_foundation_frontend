@@ -54,6 +54,11 @@ export interface GeneralApplication {
   nomineeAadhar?: string | null;
   nomineeAadhaar?: string | null;
   nomineeMobile?: string | null;
+  nomineePhoto?: File | string | null;
+  nomineePhotoUrl?: string | null;
+  nomineePassportPhoto?: File | string | null;
+  nominee_photo?: string | null;
+  existingNomineePhoto?: string | null;
   workerName: string;
   workerMobile: string;
   affidavit: string;

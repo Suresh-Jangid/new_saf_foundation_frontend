@@ -64,6 +64,7 @@ export default function AddGeneralApplicationPage() {
     nomineeRelation: string;
     nomineeAadhar: string;
     nomineeMobile: string;
+    nomineePhoto: File | null;
     affidavit: string;
     passportPhoto: File | null;
     gender: string;
@@ -96,6 +97,7 @@ export default function AddGeneralApplicationPage() {
     nomineeRelation: "",
     nomineeAadhar: "",
     nomineeMobile: "",
+    nomineePhoto: null,
     affidavit: "",
     passportPhoto: null,
     gender: "",
@@ -113,6 +115,7 @@ export default function AddGeneralApplicationPage() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [epinConflictError, setEpinConflictError] = useState<string | null>(null);
   const [passportPhotoPreview, setPassportPhotoPreview] = useState<string | null>(null);
+  const [nomineePhotoPreview, setNomineePhotoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (formData.passportPhoto instanceof File) {
@@ -129,6 +132,22 @@ export default function AddGeneralApplicationPage() {
       setPassportPhotoPreview(null);
     }
   }, [formData.passportPhoto]);
+
+  useEffect(() => {
+    if (formData.nomineePhoto instanceof File) {
+      const url = URL.createObjectURL(formData.nomineePhoto);
+      setNomineePhotoPreview(url);
+      return () => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // ignore
+        }
+      };
+    } else {
+      setNomineePhotoPreview(null);
+    }
+  }, [formData.nomineePhoto]);
 
   // Helper function to convert dd-mm-yyyy to yyyymmdd format
   const convertToYYYYMMDD = (dateString: string): string => {
@@ -326,6 +345,37 @@ export default function AddGeneralApplicationPage() {
           apiFormData.append("photoUrl", uploadedPhotoUrl)
         } else {
           apiFormData.append("passportPhoto", formData.passportPhoto)
+        }
+      }
+
+      // Add nominee photo if available (pre-uploaded to persistent ImageKit storage)
+      if (formData.nomineePhoto) {
+        let uploadedNomineePhotoUrl = ""
+        if (formData.nomineePhoto instanceof File) {
+          try {
+            const uploadRes = await uploadMediaFile(formData.nomineePhoto, {
+              category: "nominee",
+              entityType: "application",
+            })
+            if (uploadRes.success && uploadRes.url) {
+              uploadedNomineePhotoUrl = uploadRes.url
+            }
+          } catch (uploadErr) {
+            console.warn("Nominee image upload fallback note:", uploadErr)
+          }
+        } else if (typeof formData.nomineePhoto === "string") {
+          uploadedNomineePhotoUrl = formData.nomineePhoto
+        }
+
+        if (uploadedNomineePhotoUrl) {
+          apiFormData.append("nomineePassportPhoto", uploadedNomineePhotoUrl)
+          apiFormData.append("nominee_passport_photo", uploadedNomineePhotoUrl)
+          apiFormData.append("nomineePhoto", uploadedNomineePhotoUrl)
+          apiFormData.append("nominee_photo", uploadedNomineePhotoUrl)
+          apiFormData.append("nomineePhotoUrl", uploadedNomineePhotoUrl)
+        } else {
+          apiFormData.append("nomineePassportPhoto", formData.nomineePhoto)
+          apiFormData.append("nomineePhoto", formData.nomineePhoto)
         }
       }
 
@@ -999,6 +1049,62 @@ export default function AddGeneralApplicationPage() {
                     placeholder="10 अंकों का मोबाइल दर्ज करें"
                   />
                 </div>
+              </div>
+
+              {/* Nominee Photo Upload Section */}
+              <div className="space-y-2">
+                <Label htmlFor="nomineePhoto">नामांकित व्यक्ति का फोटो / Nominee Photo</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="nomineePhoto"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        nomineePhoto: e.target.files?.[0] || null,
+                      }))
+                    }
+                    className="flex-1"
+                  />
+                  <MediaUploadControl
+                    id="nomineePhoto-camera"
+                    mode="image"
+                    label="नामांकित व्यक्ति का फोटो"
+                    standaloneCameraOnly
+                    onFileSelect={(file) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        nomineePhoto: file,
+                      }))
+                    }
+                  />
+                  {formData.nomineePhoto && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, nomineePhoto: null }));
+                        const fileInput = document.getElementById("nomineePhoto") as HTMLInputElement;
+                        if (fileInput) fileInput.value = "";
+                      }}
+                    >
+                      हटाएं / Remove
+                    </Button>
+                  )}
+                </div>
+                {/* Image preview */}
+                {nomineePhotoPreview && (
+                  <div className="mt-2 flex items-center gap-3">
+                    <FallbackImage
+                      src={nomineePhotoPreview}
+                      alt="नामांकित व्यक्ति का फोटो प्रीव्यू"
+                      className="h-24 w-24 object-cover rounded border shadow-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">चयनित फोटो / Selected Photo</p>
+                  </div>
+                )}
               </div>
 
               {/* Worker Information Section */}

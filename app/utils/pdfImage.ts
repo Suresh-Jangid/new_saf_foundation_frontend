@@ -1,4 +1,5 @@
 import { getBackendOrigin } from "@/lib/api-url";
+import { resolvePhotoUrl } from "@/lib/utils";
 import { pushGraphicsState, popGraphicsState, clip, endPath, rectangle } from 'pdf-lib';
 
 const getBackendBaseUrl = () => getBackendOrigin();
@@ -17,12 +18,7 @@ export function toAbsoluteImageUrl(source: string): string {
     return source;
   }
 
-  const normalized = source.replace(/^\/+/, '');
-  if (normalized.startsWith('uploads/')) {
-    return `${getBackendBaseUrl()}/${normalized}`;
-  }
-
-  return `${getBackendBaseUrl()}/uploads/${normalized}`;
+  return resolvePhotoUrl(source);
 }
 
 function detectMimeFromBytes(bytes: Uint8Array): string | null {

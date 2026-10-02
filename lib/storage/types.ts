@@ -3,7 +3,13 @@
  * SAF Foundation CRM
  */
 
-export type StorageProviderType = "s3" | "r2" | "supabase" | "local";
+export type StorageProviderType = "imagekit" | "s3" | "r2" | "supabase" | "local";
+
+export interface ImageKitConfig {
+  publicKey: string;
+  privateKey: string;
+  urlEndpoint: string;
+}
 
 export interface StorageConfig {
   provider: StorageProviderType;
@@ -16,8 +22,8 @@ export interface StorageConfig {
 }
 
 export interface UploadOptions {
-  category: "passport" | "nominee" | "document" | "affidavit" | "general";
-  entityType?: "application" | "insurance" | "mayra" | "janni" | "lado_bahin" | "dhundhotsav" | "agent" | "document";
+  category: "passport" | "nominee" | "father" | "mother" | "document" | "affidavit" | "general" | "profile";
+  entityType?: "application" | "insurance" | "mayra" | "janni" | "lado_bahin" | "dhundhotsav" | "agent" | "document" | "aawas" | "general";
   entityId?: string;
   originalFilename?: string;
   contentType?: string;
@@ -28,6 +34,7 @@ export interface UploadResult {
   success: boolean;
   key: string;
   url: string;
+  fileId?: string;
   contentType: string;
   size: number;
   provider: string;

@@ -19,6 +19,7 @@ import { toast } from "sonner"
 import { MediaUploadControl } from "@/components/media-upload"
 import { formatDate, isValidDate, calculateAge, formatDateForAPI, formatDateForInput, parseDateFromDDMMYYYY, validatePhoneNumber, unwrapApiRecordById, getApplicantPhotoPath, getProxiedPhotoSrc } from "@/lib/utils";
 import { FallbackImage } from "@/components/ui/fallback-image";
+import { uploadMediaFile } from "@/lib/upload-client";
 import { RoleGuard } from "@/components/role-guard"
 import {
   AlertDialog,
@@ -466,6 +467,21 @@ export default function EditGeneralApplicationPage() {
       const aadharDigits = (formData.aadharNumber || '').replace(/\D/g, '')
       const nomineeAadharDigits = (formData.nomineeAadhar || '').replace(/\D/g, '').slice(0, 12)
       const nomineeMobileDigits = (formData.nomineeMobile || '').replace(/\D/g, '').slice(0, 10)
+      let newUploadedPhotoUrl = ""
+      if (formData.passportPhoto instanceof File) {
+        try {
+          const uploadRes = await uploadMediaFile(formData.passportPhoto, {
+            category: "passport",
+            entityType: "application",
+            entityId: id,
+          })
+          if (uploadRes.success && uploadRes.url) {
+            newUploadedPhotoUrl = uploadRes.url
+          }
+        } catch (uploadErr) {
+          console.warn("Edit image upload fallback note:", uploadErr)
+        }
+      }
 
       const apiFormData = buildEditFormData(id, {
         applicationDate: formatDateForAPI(applicationDateObj),
@@ -497,10 +513,10 @@ export default function EditGeneralApplicationPage() {
         installment_amount: formData.installmentAmount ? formData.installmentAmount : undefined,
         installment: formData.installmentAmount ? formData.installmentAmount : undefined,
         selectedAgentId: formData.selectedAgentId,
-        passportPhoto: formData.passportPhoto ?? undefined,
+        passportPhoto: newUploadedPhotoUrl || (formData.passportPhoto ?? undefined),
         existingPhotoUrl: !formData.passportPhoto && existingPhotoUrl ? existingPhotoUrl : undefined,
         existing_photo_url: !formData.passportPhoto && existingPhotoUrl ? existingPhotoUrl : undefined,
-        photoUrl: !formData.passportPhoto && existingPhotoUrl ? existingPhotoUrl : undefined,
+        photoUrl: newUploadedPhotoUrl || (!formData.passportPhoto && existingPhotoUrl ? existingPhotoUrl : undefined),
       })
 
       const response = await post("?apicall=updateApplication", apiFormData)

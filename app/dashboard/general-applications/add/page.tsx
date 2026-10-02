@@ -17,6 +17,7 @@ import { post } from "@/lib/api"
 import { toast } from "sonner"
 import { MediaUploadControl } from "@/components/media-upload"
 import { FallbackImage } from "@/components/ui/fallback-image"
+import { uploadMediaFile } from "@/lib/upload-client"
 
 
 import { formatBilingual } from '@/lib/translations'
@@ -299,9 +300,33 @@ export default function AddGeneralApplicationPage() {
         apiFormData.append("payment_status", "completed")
       }
 
-      // Add passport photo if available
+      // Add passport photo if available (pre-uploaded to persistent ImageKit storage)
       if (formData.passportPhoto) {
-        apiFormData.append("passportPhoto", formData.passportPhoto)
+        let uploadedPhotoUrl = ""
+        if (formData.passportPhoto instanceof File) {
+          try {
+            const uploadRes = await uploadMediaFile(formData.passportPhoto, {
+              category: "passport",
+              entityType: "application",
+            })
+            if (uploadRes.success && uploadRes.url) {
+              uploadedPhotoUrl = uploadRes.url
+            }
+          } catch (uploadErr) {
+            console.warn("Image upload fallback note:", uploadErr)
+          }
+        } else if (typeof formData.passportPhoto === "string") {
+          uploadedPhotoUrl = formData.passportPhoto
+        }
+
+        if (uploadedPhotoUrl) {
+          apiFormData.append("passportPhoto", uploadedPhotoUrl)
+          apiFormData.append("passport_photo", uploadedPhotoUrl)
+          apiFormData.append("passportPhotoUrl", uploadedPhotoUrl)
+          apiFormData.append("photoUrl", uploadedPhotoUrl)
+        } else {
+          apiFormData.append("passportPhoto", formData.passportPhoto)
+        }
       }
 
       apiFormData.append('age', computedAge)

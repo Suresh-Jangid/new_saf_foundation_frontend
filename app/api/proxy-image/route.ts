@@ -69,6 +69,7 @@ function isAllowedDomain(hostname: string): boolean {
 
   // Explicit allowed domains
   const allowedSuffixes = [
+    "imagekit.io",
     "onrender.com",
     "amazonaws.com",
     "cloudflarestorage.com",

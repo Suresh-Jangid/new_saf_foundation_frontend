@@ -1,13 +1,16 @@
 import crypto from "crypto";
 import path from "path";
+import { ImageKitStorageProvider } from "./imagekit-storage";
 import { S3StorageProvider } from "./s3-storage";
 import { FileValidationResult, UploadOptions, UploadResult } from "./types";
 
 export class StorageService {
   private static instance: StorageService;
+  private imagekitProvider: ImageKitStorageProvider;
   private s3Provider: S3StorageProvider;
 
   private constructor() {
+    this.imagekitProvider = new ImageKitStorageProvider();
     this.s3Provider = new S3StorageProvider();
   }
 
@@ -19,7 +22,13 @@ export class StorageService {
   }
 
   public isConfigured(): boolean {
-    return this.s3Provider.isConfigured();
+    return this.imagekitProvider.isConfigured() || this.s3Provider.isConfigured();
+  }
+
+  public getActiveProviderName(): string {
+    if (this.imagekitProvider.isConfigured()) return "imagekit";
+    if (this.s3Provider.isConfigured()) return "s3";
+    return "none";
   }
 
   /**
@@ -45,7 +54,6 @@ export class StorageService {
 
     // Sanitize filename to prevent path traversal
     const cleanFilename = path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, "");
-    const ext = path.extname(cleanFilename).toLowerCase();
 
     // Check magic numbers (file signature)
     const header = Buffer.from(buffer.slice(0, 12));
@@ -101,7 +109,6 @@ export class StorageService {
       normalizedDeclared !== "application/octet-stream" &&
       !normalizedDeclared.includes(detectedMime.replace("image/", ""))
     ) {
-      // Allow minor subtype variations (e.g. image/jpg vs image/jpeg)
       if (!(detectedMime === "image/jpeg" && normalizedDeclared === "image/jpg")) {
         console.warn(
           `MIME mismatch warning: declared=${declaredMimeType}, detected=${detectedMime}`
@@ -113,21 +120,37 @@ export class StorageService {
   }
 
   /**
-   * Generate collision-resistant object key.
-   * Format: applications/{entityId}/{category}/{uuid}.{ext}
+   * Constructs the structured ImageKit folder taxonomy.
    */
-  public generateKey(options: UploadOptions, extension: string): string {
+  public getFolder(options: UploadOptions): string {
     const entityType = options.entityType || "general";
     const entityId = (options.entityId || "new").replace(/[^a-zA-Z0-9_-]/g, "");
     const category = (options.category || "document").replace(/[^a-zA-Z0-9_-]/g, "");
-    const uuid = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
-    const cleanExt = extension.replace(/^\./, "").toLowerCase();
 
-    return `saf-uploads/${entityType}/${entityId}/${category}/${uuid}.${cleanExt}`;
+    if (entityType === "agent") {
+      return `/saf-foundation/agents/${entityId}`;
+    }
+
+    if (category === "document" || category === "affidavit") {
+      return `/saf-foundation/documents/${entityType}/${entityId}`;
+    }
+
+    return `/saf-foundation/applications/${entityType}/${entityId}/${category}`;
   }
 
   /**
-   * Upload file to persistent object storage.
+   * Generate collision-resistant unique filename.
+   */
+  public generateFileName(options: UploadOptions, extension: string): string {
+    const category = (options.category || "upload").replace(/[^a-zA-Z0-9_-]/g, "");
+    const uuid = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
+    const cleanExt = extension.replace(/^\./, "").toLowerCase();
+
+    return `${category}_${uuid}.${cleanExt}`;
+  }
+
+  /**
+   * Upload file to persistent object storage (ImageKit prioritized).
    */
   public async upload(
     buffer: Buffer | Uint8Array,
@@ -164,53 +187,104 @@ export class StorageService {
     };
 
     const ext = mimeToExt[validation.mimeType] || "bin";
-    const key = this.generateKey(options, ext);
+    const fileName = this.generateFileName(options, ext);
+    const folder = this.getFolder(options);
 
-    if (!this.s3Provider.isConfigured()) {
-      return {
-        success: false,
-        key: "",
-        url: "",
-        contentType: validation.mimeType,
-        size: rawBuffer.length,
-        provider: "none",
-        error:
-          "Persistent object storage is not yet configured. Please set S3_BUCKET, S3_ACCESS_KEY_ID, and S3_SECRET_ACCESS_KEY in environment variables.",
-      };
+    // Primary: ImageKit Storage
+    if (this.imagekitProvider.isConfigured()) {
+      try {
+        const uploadRes = await this.imagekitProvider.upload(
+          rawBuffer,
+          fileName,
+          folder,
+          [options.category, options.entityType || "general"]
+        );
+
+        return {
+          success: true,
+          key: uploadRes.key,
+          url: uploadRes.url,
+          fileId: uploadRes.fileId,
+          contentType: validation.mimeType,
+          size: rawBuffer.length,
+          provider: "imagekit",
+        };
+      } catch (ikErr: any) {
+        console.error("ImageKit upload error:", ikErr);
+        return {
+          success: false,
+          key: "",
+          url: "",
+          contentType: validation.mimeType,
+          size: rawBuffer.length,
+          provider: "imagekit",
+          error: ikErr.message || "Failed to upload to ImageKit",
+        };
+      }
     }
 
-    try {
-      const uploadRes = await this.s3Provider.upload(rawBuffer, key, validation.mimeType);
-      return {
-        success: true,
-        key: uploadRes.key,
-        url: uploadRes.url,
-        contentType: validation.mimeType,
-        size: rawBuffer.length,
-        provider: "s3",
-      };
-    } catch (err: any) {
-      console.error("StorageService upload failed:", err);
-      return {
-        success: false,
-        key: "",
-        url: "",
-        contentType: validation.mimeType,
-        size: rawBuffer.length,
-        provider: "s3",
-        error: err.message || "Failed to upload file to persistent storage",
-      };
+    // Fallback: S3 Storage (retained for backward compatibility)
+    if (this.s3Provider.isConfigured()) {
+      try {
+        const s3Key = `saf-uploads/${(options.entityType || "general").replace(/[^a-zA-Z0-9_-]/g, "")}/${(options.entityId || "new").replace(/[^a-zA-Z0-9_-]/g, "")}/${fileName}`;
+        const uploadRes = await this.s3Provider.upload(rawBuffer, s3Key, validation.mimeType);
+        return {
+          success: true,
+          key: uploadRes.key,
+          url: uploadRes.url,
+          contentType: validation.mimeType,
+          size: rawBuffer.length,
+          provider: "s3",
+        };
+      } catch (s3Err: any) {
+        console.error("S3 fallback upload error:", s3Err);
+        return {
+          success: false,
+          key: "",
+          url: "",
+          contentType: validation.mimeType,
+          size: rawBuffer.length,
+          provider: "s3",
+          error: s3Err.message || "Failed to upload to S3",
+        };
+      }
     }
+
+    return {
+      success: false,
+      key: "",
+      url: "",
+      contentType: validation.mimeType,
+      size: rawBuffer.length,
+      provider: "none",
+      error:
+        "Persistent media storage is not yet configured. Please set IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY, and IMAGEKIT_URL_ENDPOINT in environment variables.",
+    };
   }
 
-  public async delete(key: string): Promise<boolean> {
-    if (!key) return false;
-    return this.s3Provider.delete(key);
+  public async delete(keyOrFileId: string): Promise<boolean> {
+    if (!keyOrFileId) return false;
+
+    if (this.imagekitProvider.isConfigured()) {
+      return this.imagekitProvider.delete(keyOrFileId);
+    }
+
+    if (this.s3Provider.isConfigured()) {
+      return this.s3Provider.delete(keyOrFileId);
+    }
+
+    return false;
   }
 
-  public getPublicUrl(key: string): string {
-    if (!key) return "";
-    return this.s3Provider.getPublicUrl(key);
+  public getPublicUrl(pathOrUrl: string): string {
+    if (!pathOrUrl) return "";
+    if (this.imagekitProvider.isConfigured()) {
+      return this.imagekitProvider.getPublicUrl(pathOrUrl);
+    }
+    if (this.s3Provider.isConfigured()) {
+      return this.s3Provider.getPublicUrl(pathOrUrl);
+    }
+    return pathOrUrl;
   }
 }
 

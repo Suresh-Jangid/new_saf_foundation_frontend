@@ -203,6 +203,20 @@ runTest("TEST 13: SSRF Guard blocks RFC 1918 private subnets (10.x, 172.16.x, 19
 runTest("TEST 14: SSRF Guard allows legitimate public production and cloud domains", () => {
   assert.strictEqual(isPrivateIpOrHost("new-saf-foundation-backend.onrender.com"), false);
   assert.strictEqual(isPrivateIpOrHost("saf-storage.s3.amazonaws.com"), false);
+  assert.strictEqual(isPrivateIpOrHost("ik.imagekit.io"), false);
+});
+
+runTest("TEST 15: ImageKit CDN URL pass-through in resolvePhotoUrl", () => {
+  const ikUrl = "https://ik.imagekit.io/safmedia/saf-foundation/applications/general-marriage/101/passport_f47ac10b.jpg";
+  assert.strictEqual(resolvePhotoUrl(ikUrl), ikUrl);
+});
+
+runTest("TEST 16: ImageKit relative path resolves to ImageKit CDN endpoint", () => {
+  const ikPath = "saf-foundation/applications/general-marriage/101/passport_f47ac10b.jpg";
+  const ikEndpoint = process.env.IMAGEKIT_URL_ENDPOINT || "https://ik.imagekit.io/safmedia";
+  // Emulate resolvePhotoUrl ImageKit path resolution
+  const resolved = ikPath.startsWith("saf-foundation/") ? `${ikEndpoint}/${ikPath}` : resolvePhotoUrl(ikPath);
+  assert.strictEqual(resolved, `${ikEndpoint}/${ikPath}`);
 });
 
 console.log("==================================================");

@@ -1,12 +1,12 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { getUploadsBaseUrl, getBackendOrigin, getApiBaseUrl, getStorageBaseUrl } from "./api-url"
+import { getUploadsBaseUrl, getBackendOrigin, getApiBaseUrl, getStorageBaseUrl, getImageKitUrlEndpoint } from "./api-url"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function resolvePhotoUrl(photo?: string): string {
+export function resolvePhotoUrl(photo?: string | null): string {
   if (!photo) return ""
   const trimmed = photo.trim()
   if (
@@ -17,12 +17,17 @@ export function resolvePhotoUrl(photo?: string): string {
     return trimmed
   }
 
+  const normalized = trimmed.replace(/^\/+/, "")
+
+  // ImageKit relative paths: saf-foundation/...
+  if (normalized.startsWith("saf-foundation/")) {
+    return `${getImageKitUrlEndpoint()}/${normalized}`
+  }
+
   // Backend stores paths like /uploads/filename.jpg
   if (trimmed.startsWith("/uploads/")) {
     return `${getBackendOrigin()}${trimmed}`
   }
-
-  const normalized = trimmed.replace(/^\/+/, "")
 
   if (normalized.startsWith("uploads/")) {
     return `${getBackendOrigin()}/${normalized}`
@@ -45,6 +50,9 @@ export function resolvePhotoUrl(photo?: string): string {
 
   return `${getUploadsBaseUrl()}/${normalized}`
 }
+
+/** Centralized alias for media resolution */
+export const resolveMediaUrl = resolvePhotoUrl;
 
 /** Applicant photo keys — passportPhoto first (PHP API field name). */
 export const APPLICANT_PHOTO_FIELD_KEYS = [

@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       entityId,
       originalFilename: file.name,
       contentType: file.type,
-      maxSizeBytes: category === "document" ? 10 * 1024 * 1024 : 5 * 1024 * 1024,
+      maxSizeBytes: category === "document" || category === "affidavit" ? 10 * 1024 * 1024 : 5 * 1024 * 1024,
     });
 
     if (!result.success) {
@@ -60,6 +60,8 @@ export async function POST(request: NextRequest) {
         success: true,
         key: result.key,
         url: result.url,
+        fileId: result.fileId,
+        provider: result.provider,
         contentType: result.contentType,
         size: result.size,
       },

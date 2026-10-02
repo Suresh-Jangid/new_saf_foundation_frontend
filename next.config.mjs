@@ -33,7 +33,7 @@ const nextConfig = {
       'recharts'
     ],
     // Enable server components
-    serverComponentsExternalPackages: ['pdf-lib', 'pdfkit', 'fontkit'],
+    serverComponentsExternalPackages: ['pdf-lib', 'pdfkit', 'fontkit', 'imagekit'],
   },
   
   // Image optimization
@@ -46,6 +46,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'new-saf-foundation-backend.onrender.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ik.imagekit.io',
       },
       {
         protocol: 'https',

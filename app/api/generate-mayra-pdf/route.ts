@@ -232,8 +232,13 @@ export async function POST(request: NextRequest) {
     );
     const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'agentName');
 
-    const rawFee = getField(
+    const firstInstallmentAmount = Array.isArray(record?.installments) && record.installments.length > 0
+      ? getField(record.installments[0], 'amount', 'installmentAmount', 'installment_amount')
+      : '';
+    const rawFee = firstInstallmentAmount || getField(
       record,
+      'paymentAmount',
+      'payment_amount',
       'fee',
       'totalAmount',
       'total_amount',
@@ -243,8 +248,7 @@ export async function POST(request: NextRequest) {
       'joiningFee',
       'registrationFee',
       'membershipFee',
-      'amount',
-      'paymentAmount'
+      'amount'
     );
     const amountStr = rawFee ? formatIndianCurrency(rawFee) : '';
     const paymentMode = [

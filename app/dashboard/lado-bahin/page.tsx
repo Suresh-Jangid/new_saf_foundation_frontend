@@ -27,6 +27,7 @@ import { LadoBahinService, LadoBahinRegistration } from "@/lib/lado-bahin-servic
 import { formatDate, getPhotoDataUrl } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { PdfActionButton } from "@/components/pdf-action-button";
+import { agentRegistrationAPI } from "@/lib/api";
 
 interface Column<T> {
   key: keyof T | string;
@@ -35,9 +36,287 @@ interface Column<T> {
   className?: string;
 }
 
+interface ResolvedAgentOfflineNumbers {
+  workerOfflineFormNumber: string;
+  seniorOfflineFormNumber: string;
+  workerMobile: string;
+}
+
+function resolveAgentOfflineNumbers(
+  record: LadoBahinRegistration & Record<string, any>,
+  agentsList: any[] = []
+): ResolvedAgentOfflineNumbers {
+  let workerOffline = String(
+    record.workerOfflineFormNumber ||
+    record.worker_offline_form_number ||
+    record.agentOfflineFormNumber ||
+    record.agent_offline_form_number ||
+    ""
+  ).trim();
+
+  let seniorOffline = String(
+    record.seniorOfflineFormNumber ||
+    record.senior_offline_form_number ||
+    record.seniorAgentOfflineFormNumber ||
+    record.senior_agent_offline_form_number ||
+    ""
+  ).trim();
+
+  let workerMobile = String(
+    record.workerMobile ||
+    record.worker_mobile ||
+    record.agentMobile ||
+    record.agent_mobile ||
+    ""
+  ).trim();
+
+  const agentById = new Map<string, any>();
+  const agentByCode = new Map<string, any>();
+  const agentByName = new Map<string, any>();
+  const agentByMobile = new Map<string, any>();
+
+  if (agentsList && agentsList.length > 0) {
+    for (const agent of agentsList) {
+      const ids = [
+        agent.id,
+        agent.userId,
+        agent.user_id,
+        agent.agentProfile?.id,
+        agent.agentProfile?.userId,
+        agent.agentProfile?.user_id,
+        agent.agent_profile?.id,
+        agent.agent_profile?.user_id,
+      ].filter(Boolean);
+
+      ids.forEach((id) => {
+        const normalized = String(id).trim();
+        if (normalized) agentById.set(normalized, agent);
+      });
+
+      const empIds = [
+        agent.employeeId,
+        agent.employee_id,
+        agent.agentProfile?.employeeId,
+        agent.agent_profile?.employee_id,
+        agent.agentCode,
+        agent.agent_code,
+        agent.code,
+      ].filter(Boolean);
+
+      empIds.forEach((emp) => {
+        const normalized = String(emp).trim().toUpperCase();
+        if (normalized) agentByCode.set(normalized, agent);
+      });
+
+      const names = [
+        agent.name,
+        agent.fullName,
+        agent.username,
+        agent.user_name,
+        agent.user?.name,
+        agent.user?.username,
+        agent.agentProfile?.name,
+        agent.agentProfile?.username,
+      ].filter(Boolean);
+
+      names.forEach((n) => {
+        const normalized = String(n).trim().toLowerCase();
+        if (normalized && normalized !== "default agent" && normalized !== "admin") {
+          agentByName.set(normalized, agent);
+        }
+      });
+
+      const mobiles = [
+        agent.mobile,
+        agent.phone,
+        agent.contactNumber,
+        agent.agentProfile?.mobile,
+        agent.agent_profile?.mobile,
+        agent.user?.mobile,
+      ].filter(Boolean);
+
+      mobiles.forEach((m) => {
+        const cleanMob = String(m).replace(/\D/g, "");
+        if (cleanMob && cleanMob.length >= 10) {
+          agentByMobile.set(cleanMob.slice(-10), agent);
+        }
+      });
+    }
+  }
+
+  const targetWorkerId = String(
+    record.addedById ||
+    (record as any).addedby_id ||
+    (record as any).selectedAgentId ||
+    (record as any).agentId ||
+    (record as any).agent_id ||
+    (record as any).userId ||
+    (record as any).user_id ||
+    record.addedBy?.id ||
+    (record.addedBy as any)?.userId ||
+    (record.addedBy as any)?.user_id ||
+    (record as any).agent?.id ||
+    (record as any).agent?.userId ||
+    (record as any).agent?.user_id ||
+    ""
+  ).trim();
+
+  const targetWorkerCode = String(
+    record.workerCode ||
+    (record as any).worker_code ||
+    (record as any).agentCode ||
+    (record as any).agent_code ||
+    (record as any).added_code ||
+    record.addedBy?.employee_id ||
+    (record.addedBy as any)?.employeeId ||
+    (record.addedBy as any)?.agentCode ||
+    (record.addedBy as any)?.code ||
+    ""
+  ).trim().toUpperCase();
+
+  const targetWorkerName = String(
+    (record as any).workerName ||
+    (record as any).worker_name ||
+    (record as any).added_name ||
+    (record as any).addedby ||
+    record.addedBy?.name ||
+    (record as any).agent?.name ||
+    ""
+  ).trim().toLowerCase();
+
+  const rawTargetMobile = String(
+    record.workerMobile ||
+    (record as any).worker_mobile ||
+    (record as any).agentMobile ||
+    (record as any).agent_mobile ||
+    (record as any).added_mobile ||
+    record.addedBy?.mobile ||
+    ""
+  ).replace(/\D/g, "");
+  const targetWorkerMobile = rawTargetMobile.length >= 10 ? rawTargetMobile.slice(-10) : "";
+
+  const workerAgent =
+    (targetWorkerId && agentById.get(targetWorkerId)) ||
+    (targetWorkerCode && agentByCode.get(targetWorkerCode)) ||
+    (targetWorkerName && agentByName.get(targetWorkerName)) ||
+    (targetWorkerMobile && agentByMobile.get(targetWorkerMobile));
+
+  // Check if target is Default Agent / Admin
+  const isDefaultAgent =
+    (workerAgent && (
+      String(workerAgent.employeeId || workerAgent.employee_id || "").toUpperCase() === "EMP-001" ||
+      String(workerAgent.name || "").toLowerCase() === "default agent" ||
+      String(workerAgent.mobile || "") === "8888888888"
+    )) ||
+    (!workerAgent && (
+      targetWorkerCode === "ADMIN" ||
+      targetWorkerName === "admin" ||
+      targetWorkerName === "super admin" ||
+      targetWorkerName === "default agent" ||
+      targetWorkerMobile === "8888888888" ||
+      targetWorkerMobile === "9999999999" ||
+      (!targetWorkerId && !targetWorkerCode)
+    ));
+
+  if (isDefaultAgent) {
+    if (!workerOffline) workerOffline = "ADMIN";
+    if (!seniorOffline) seniorOffline = "ADMIN";
+    if (!workerMobile) workerMobile = "8888888888";
+  }
+
+  if (workerAgent) {
+    if (!workerOffline) {
+      workerOffline = String(
+        workerAgent.offlineFormNumber ||
+        workerAgent.offline_form_number ||
+        workerAgent.agentProfile?.offlineFormNumber ||
+        workerAgent.agent_profile?.offline_form_number ||
+        workerAgent.agentProfile?.offline_form_no ||
+        workerAgent.offlineFormNo ||
+        workerAgent.user?.offlineFormNumber ||
+        workerAgent.user?.offline_form_number ||
+        ""
+      ).trim();
+    }
+
+    if (!workerMobile) {
+      workerMobile = String(
+        workerAgent.mobile ||
+        workerAgent.phone ||
+        workerAgent.contactNumber ||
+        workerAgent.agentProfile?.mobile ||
+        workerAgent.agent_profile?.mobile ||
+        workerAgent.user?.mobile ||
+        workerAgent.user?.phone ||
+        ""
+      ).trim();
+    }
+
+    const parentSeniorId = String(
+      workerAgent.parentAgentId ||
+      workerAgent.parent_agent_id ||
+      workerAgent.seniorId ||
+      workerAgent.senior_id ||
+      workerAgent.agentProfile?.parentAgentId ||
+      workerAgent.agent_profile?.parent_agent_id ||
+      workerAgent.agentProfile?.seniorId ||
+      workerAgent.agent_profile?.senior_id ||
+      ""
+    ).trim();
+
+    const parentSeniorCode = String(
+      workerAgent.seniorEmployeeId ||
+      workerAgent.senior_employee_id ||
+      workerAgent.parentEmployeeId ||
+      workerAgent.parent_employee_id ||
+      workerAgent.seniorCode ||
+      workerAgent.senior_code ||
+      workerAgent.uplineCode ||
+      workerAgent.upline_code ||
+      workerAgent.agentProfile?.seniorEmployeeId ||
+      workerAgent.agent_profile?.senior_employee_id ||
+      workerAgent.agentProfile?.seniorCode ||
+      workerAgent.agent_profile?.senior_code ||
+      workerAgent.agentProfile?.parentEmployeeId ||
+      workerAgent.agent_profile?.parent_employee_id ||
+      workerAgent.agentProfile?.uplineCode ||
+      workerAgent.agent_profile?.upline_code ||
+      ""
+    ).trim().toUpperCase();
+
+    let seniorAgent: any = null;
+    if (parentSeniorId && agentById.has(parentSeniorId)) {
+      seniorAgent = agentById.get(parentSeniorId);
+    } else if (parentSeniorCode && parentSeniorCode !== "ADMIN" && parentSeniorCode !== "SUPER ADMIN" && agentByCode.has(parentSeniorCode)) {
+      seniorAgent = agentByCode.get(parentSeniorCode);
+    }
+
+    if (seniorAgent && !seniorOffline) {
+      seniorOffline = String(
+        seniorAgent.offlineFormNumber ||
+        seniorAgent.offline_form_number ||
+        seniorAgent.agentProfile?.offlineFormNumber ||
+        seniorAgent.agent_profile?.offline_form_number ||
+        seniorAgent.agentProfile?.offline_form_no ||
+        seniorAgent.offlineFormNo ||
+        seniorAgent.user?.offlineFormNumber ||
+        seniorAgent.user?.offline_form_number ||
+        ""
+      ).trim();
+    } else if (!seniorOffline && (workerAgent.seniorOfflineFormNumber || workerAgent.senior_offline_form_number)) {
+      seniorOffline = String(workerAgent.seniorOfflineFormNumber || workerAgent.senior_offline_form_number).trim();
+    } else if (!seniorOffline && (parentSeniorCode === "ADMIN" || !parentSeniorId)) {
+      seniorOffline = "ADMIN";
+    }
+  }
+
+  return { workerOfflineFormNumber: workerOffline, seniorOfflineFormNumber: seniorOffline, workerMobile };
+}
+
 export default function LadoBahinListPage() {
   const router = useRouter();
   const [registrations, setRegistrations] = useState<LadoBahinRegistration[]>([]);
+  const [agentsList, setAgentsList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentAddressFilter, setCurrentAddressFilter] = useState("all");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -101,26 +380,102 @@ export default function LadoBahinListPage() {
     }
   };
 
+  // Load agents on component mount (matching General Marriage & Mayra reference pattern)
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAgents = async () => {
+      try {
+        const res = await agentRegistrationAPI.getAll();
+        if (isMounted) {
+          if (res && res.status && Array.isArray(res.data)) {
+            setAgentsList(res.data);
+          } else if (Array.isArray(res)) {
+            setAgentsList(res);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not pre-load agents list in Lado Bahin:", err);
+      }
+    };
+    fetchAgents();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleGeneratePDFForm = async (record: LadoBahinRegistration) => {
     try {
       toast.loading("फॉर्म पीडीएफ जनरेट हो रहा है... / Generating PDF Form...", { id: "pdf-form" });
-      const photoSource = record.passportPhotoUrl || (record as any).passportPhoto || (record as any).photo || "";
-      const nomineePhotoSource = record.nomineePhotoUrl || (record as any).nomineePhoto || (record as any).nomineePassportPhoto || (record as any).nominee_photo || "";
+
+      // 1. Fresh fetch by ID to avoid stale or stripped list records
+      let latestRecord: any = record;
+      try {
+        if (record?.id) {
+          const freshRes = await LadoBahinService.getRegistrationById(String(record.id));
+          if (freshRes && freshRes.data) {
+            latestRecord = { ...record, ...freshRes.data };
+          }
+        }
+      } catch (freshErr) {
+        console.warn("Could not fetch fresh record for Lado Bahin PDF, using current record:", freshErr);
+      }
+
+      // 2. Ensure current agents list is available
+      let currentAgents = agentsList;
+      if (!currentAgents || currentAgents.length === 0) {
+        try {
+          const res = await agentRegistrationAPI.getAll();
+          if (res && res.status && Array.isArray(res.data)) {
+            currentAgents = res.data;
+            setAgentsList(res.data);
+          } else if (Array.isArray(res)) {
+            currentAgents = res;
+            setAgentsList(res);
+          }
+        } catch (e) {
+          console.warn("Could not fetch agents for Lado Bahin PDF resolution:", e);
+        }
+      }
+
+      // 3. Resolve agent and senior / upline codes
+      const { workerOfflineFormNumber, seniorOfflineFormNumber, workerMobile } = resolveAgentOfflineNumbers(
+        latestRecord,
+        currentAgents
+      );
+
+      // 4. Resolve photos
+      const photoSource = latestRecord.passportPhotoUrl || record.passportPhotoUrl || (record as any).passportPhoto || (record as any).photo || "";
+      const nomineePhotoSource = latestRecord.nomineePhotoUrl || record.nomineePhotoUrl || (record as any).nomineePhoto || (record as any).nomineePassportPhoto || (record as any).nominee_photo || "";
       const [imageData, nomineeImageData] = await Promise.all([
         photoSource ? getPhotoDataUrl(photoSource) : null,
         nomineePhotoSource ? getPhotoDataUrl(nomineePhotoSource) : null,
       ]);
+
+      // 5. Send enriched payload to PDF route
       const response = await fetch("/api/generate-lado-bahin-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           record: {
             ...record,
+            ...latestRecord,
+            workerOfflineFormNumber,
+            seniorOfflineFormNumber,
+            workerCode: workerOfflineFormNumber,
+            seniorCode: seniorOfflineFormNumber,
+            uplineCode: seniorOfflineFormNumber,
+            workerMobile: workerMobile || latestRecord.workerMobile || (record as any).workerMobile,
             passportPhoto: photoSource,
             passportPhotoUrl: photoSource,
             nomineePhoto: nomineePhotoSource,
             nomineePhotoUrl: nomineePhotoSource,
           },
+          workerOfflineFormNumber,
+          seniorOfflineFormNumber,
+          workerCode: workerOfflineFormNumber,
+          seniorCode: seniorOfflineFormNumber,
+          uplineCode: seniorOfflineFormNumber,
+          workerMobile: workerMobile || latestRecord.workerMobile || (record as any).workerMobile,
           imageData,
           nomineeImageData,
         }),
@@ -135,7 +490,7 @@ export default function LadoBahinListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `lado_bahin_form_${record.formNumber || record.id}.pdf`;
+      a.download = `lado_bahin_form_${latestRecord.formNumber || record.formNumber || record.id}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -150,6 +505,28 @@ export default function LadoBahinListPage() {
   const handleGenerateBond = async (record: LadoBahinRegistration) => {
     try {
       toast.loading("बॉन्ड पीडीएफ जनरेट हो रहा है... / Generating Bond PDF...", { id: "bond-pdf" });
+
+      let currentAgents = agentsList;
+      if (!currentAgents || currentAgents.length === 0) {
+        try {
+          const res = await agentRegistrationAPI.getAll();
+          if (res && res.status && Array.isArray(res.data)) {
+            currentAgents = res.data;
+            setAgentsList(res.data);
+          } else if (Array.isArray(res)) {
+            currentAgents = res;
+            setAgentsList(res);
+          }
+        } catch (e) {
+          console.warn("Could not fetch agents for Lado Bahin Bond resolution:", e);
+        }
+      }
+
+      const { workerOfflineFormNumber, seniorOfflineFormNumber, workerMobile } = resolveAgentOfflineNumbers(
+        record,
+        currentAgents
+      );
+
       const photoDataUrl = record.passportPhotoUrl ? await getPhotoDataUrl(record.passportPhotoUrl) : null;
       const response = await fetch("/api/generate-lado-bahin-bond-pdf", {
         method: "POST",
@@ -157,8 +534,20 @@ export default function LadoBahinListPage() {
         body: JSON.stringify({
           record: {
             ...record,
+            workerOfflineFormNumber,
+            seniorOfflineFormNumber,
+            workerCode: workerOfflineFormNumber,
+            seniorCode: seniorOfflineFormNumber,
+            uplineCode: seniorOfflineFormNumber,
+            workerMobile,
             imageData: photoDataUrl || (record as any).imageData,
           },
+          workerOfflineFormNumber,
+          seniorOfflineFormNumber,
+          workerCode: workerOfflineFormNumber,
+          seniorCode: seniorOfflineFormNumber,
+          uplineCode: seniorOfflineFormNumber,
+          workerMobile,
           imageData: photoDataUrl || (record as any).imageData,
         }),
       });

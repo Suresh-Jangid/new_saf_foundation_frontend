@@ -214,25 +214,135 @@ export async function POST(request: NextRequest) {
     const nomineeRelation = getField(record, 'nomineeRelation', 'nominee_relation', 'relation');
     const nomineeAadhar = getField(record, 'nomineeAadhar', 'nominee_aadhar', 'nomineeAadhaar', 'nominee_aadhaar', 'nomineeAadharNumber', 'nomineeAadhaarNumber');
     const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile') || mobile;
-    const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'referralName', 'addedByName', 'agentName');
+    const workerCodeOrName =
+      getField(
+        record,
+        'workerOfflineFormNumber',
+        'worker_offline_form_number',
+        'agentOfflineFormNumber',
+        'agent_offline_form_number',
+        'karyakartaOfflineFormNumber',
+        'workerOfflineFormNo',
+        'agentOfflineFormNo',
+        'workerCode',
+        'worker_code',
+        'agentCode',
+        'agent_code',
+        'workerName',
+        'worker_name',
+        'referralName',
+        'addedByName',
+        'agentName'
+      ) ||
+      getField(
+        body,
+        'workerOfflineFormNumber',
+        'worker_offline_form_number',
+        'agentOfflineFormNumber',
+        'agent_offline_form_number',
+        'karyakartaOfflineFormNumber',
+        'workerOfflineFormNo',
+        'agentOfflineFormNo',
+        'workerCode',
+        'worker_code',
+        'agentCode',
+        'agent_code',
+        'workerName',
+        'worker_name',
+        'referralName',
+        'addedByName',
+        'agentName'
+      );
 
-    const totalAmount = getField(record, 'totalAmount', 'total_amount', 'membershipFee', 'grantFee', 'amount', 'fee', 'paymentAmount') || '5100';
+    const totalAmount =
+      getField(record, 'totalAmount', 'total_amount', 'membershipFee', 'grantFee', 'amount', 'fee', 'paymentAmount') ||
+      getField(body, 'totalAmount', 'total_amount', 'membershipFee', 'grantFee', 'amount', 'fee', 'paymentAmount') ||
+      '5100';
     const amountStr = totalAmount ? (String(totalAmount).endsWith('/-') ? String(totalAmount) : `${totalAmount}/-`) : '5,100/-';
     const paymentMode = [
-      getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') || 'CASH',
-      getField(record, 'epinCode', 'epin_code') ? `EPIN: ${getField(record, 'epinCode', 'epin_code')}` : ''
+      getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') || getField(body, 'paymentModeRef', 'paymentMode', 'payment_mode') || 'CASH',
+      getField(record, 'epinCode', 'epin_code') || getField(body, 'epinCode', 'epin_code') ? `EPIN: ${getField(record, 'epinCode', 'epin_code') || getField(body, 'epinCode', 'epin_code')}` : ''
     ].filter(Boolean).join(' / ');
-    const seniorWorker = getField(record, 'seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'seniorCode', 'senior_code', 'seniorWorker', 'senior_worker', 'seniorName', 'senior_name');
+    const seniorWorker =
+      getField(
+        record,
+        'seniorOfflineFormNumber',
+        'senior_offline_form_number',
+        'seniorAgentOfflineFormNumber',
+        'senior_agent_offline_form_number',
+        'seniorOfflineFormNo',
+        'seniorCode',
+        'senior_code',
+        'uplineCode',
+        'upline_code',
+        'seniorWorker',
+        'senior_worker',
+        'seniorName',
+        'senior_name'
+      ) ||
+      getField(
+        body,
+        'seniorOfflineFormNumber',
+        'senior_offline_form_number',
+        'seniorAgentOfflineFormNumber',
+        'senior_agent_offline_form_number',
+        'seniorOfflineFormNo',
+        'seniorCode',
+        'senior_code',
+        'uplineCode',
+        'upline_code',
+        'seniorWorker',
+        'senior_worker',
+        'seniorName',
+        'senior_name'
+      );
+
+    let finalWorkerCode = workerCodeOrName;
+    let finalSeniorCode = seniorWorker;
+
+    // Intelligent fallback for Admin / Default Agent or when addedBy is present
+    if (!finalWorkerCode || !finalSeniorCode) {
+      const addedBy = record?.addedBy || body?.addedBy || record?.agent || body?.agent;
+      const addedRole = String(addedBy?.role || '').toUpperCase();
+      const addedName = String(addedBy?.name || '').toLowerCase();
+      const addedMobile = String(addedBy?.mobile || '');
+
+      const isDefaultOrAdmin =
+        addedRole === 'ADMIN' ||
+        addedRole === 'SUPER_ADMIN' ||
+        addedName.includes('super admin') ||
+        addedName === 'admin' ||
+        addedName === 'default agent' ||
+        addedMobile === '9999999999' ||
+        addedMobile === '8888888888' ||
+        addedMobile.startsWith('del-');
+
+      if (isDefaultOrAdmin) {
+        if (!finalWorkerCode) finalWorkerCode = 'ADMIN';
+        if (!finalSeniorCode) finalSeniorCode = 'ADMIN';
+      } else if (addedBy) {
+        const addedOffline = String(
+          addedBy.offlineFormNumber ||
+          addedBy.offline_form_number ||
+          addedBy.employee_id ||
+          addedBy.employeeId ||
+          ''
+        ).trim();
+        if (addedOffline && !finalWorkerCode) {
+          finalWorkerCode = addedOffline;
+        }
+      }
+    }
 
     drawBounded(nomineeName, 108, 454.7, 10, 185);
     drawBounded(nomineeRelation, 338, 454.7, 10, 210);
     drawBounded(nomineeAadhar, 130, 427.0, 9.5, 120);
     drawBounded(nomineeMobile, 275, 427.0, 9.5, 125);
-    drawBounded(workerCodeOrName, 472, 427.0, 9.5, 75);
+    drawBounded(finalWorkerCode, 472, 427.0, 9.5, 75);
 
     drawBounded(amountStr, 60, 399.3, 9.5, 90);
     drawBounded(paymentMode, 285, 399.3, 9.5, 120);
-    drawBounded(seniorWorker, 472, 399.3, 9.5, 75);
+    drawBounded(finalSeniorCode, 472, 399.3, 9.5, 75);
 
     // ── 4. Section 2: सदस्यता फार्म रसीद (Receipt Section) ──────
     drawBounded(formNo, 125, 181.3, 10, 100, rgb(0, 0.15, 0.6));

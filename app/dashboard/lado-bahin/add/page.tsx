@@ -180,6 +180,7 @@ export default function AddLadoBahinPage() {
         if (isMounted && list.length > 0) {
           setAgents(
             list.map((a: any) => ({
+              ...a,
               id: String(a.userId || a.user_id || a.user?.id || a.id),
               name: a.name || a.applicantName || "Worker",
               mobile: a.mobile || a.mobileNumber || "",

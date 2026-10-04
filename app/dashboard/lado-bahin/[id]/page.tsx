@@ -374,6 +374,7 @@ export default function EditLadoBahinPage() {
         if (isMounted && list.length > 0) {
           setAgents(
             list.map((a: any) => ({
+              ...a,
               id: String(a.userId || a.user_id || a.user?.id || a.id),
               name: a.name || a.applicantName || "Worker",
               mobile: a.mobile || a.mobileNumber || "",
@@ -406,10 +407,16 @@ export default function EditLadoBahinPage() {
   const selectedAgent = agents.find(
     (a) => String(a.id) === String(formData.selectedAgentId)
   );
-  const displayAgentName =
+  const selectedOffline =
+    selectedAgent?.offlineFormNumber ||
+    selectedAgent?.offline_form_number ||
+    (record?.addedBy as any)?.offlineFormNumber ||
+    "";
+  const rawAgentName =
     selectedAgent?.name ||
     record?.addedBy?.name ||
     (formData.selectedAgentId ? "असाइंड कार्यकर्ता (Assigned Worker)" : "स्वयं / Self (No Specific Worker)");
+  const displayAgentName = selectedOffline ? `${selectedOffline} — ${rawAgentName}` : rawAgentName;
   const displayAgentMobile =
     selectedAgent?.mobile || record?.addedBy?.mobile || "";
 

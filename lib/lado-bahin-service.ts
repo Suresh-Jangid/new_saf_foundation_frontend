@@ -74,8 +74,22 @@ export interface LadoBahinRegistration {
     mobile: string;
     role?: string;
     employee_id?: string;
+    employeeId?: string;
+    agentCode?: string;
+    code?: string;
+    userId?: string;
+    user_id?: string;
     offlineFormNumber?: string;
+    [key: string]: any;
   } | null;
+  workerOfflineFormNumber?: string;
+  worker_offline_form_number?: string;
+  seniorOfflineFormNumber?: string;
+  senior_offline_form_number?: string;
+  workerCode?: string;
+  seniorCode?: string;
+  uplineCode?: string;
+  workerMobile?: string;
 }
 
 export interface CreateLadoBahinPayload {

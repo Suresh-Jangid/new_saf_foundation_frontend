@@ -200,9 +200,63 @@ export async function POST(request: NextRequest) {
     const nomineeAadhaar = getField(record, 'nomineeAadhar', 'nominee_aadhar', 'nomineeAadhaar', 'nominee_aadhaar', 'nomineeAadharNumber', 'nomineeAadhaarNumber');
     const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile', 'nomineePhone');
     const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'agentName');
-    const rawAmount = getField(record, 'paymentAmount', 'payment_amount', 'amount', 'fee', 'rashi', 'राशि', 'membershipFee');
+
+    // Amount resolution with strict priority: installments[0].amount -> paymentAmount -> payment_amount -> totalAmount -> total_amount -> other fallbacks
+    const installments = Array.isArray(record?.installments)
+      ? record.installments
+      : Array.isArray(body?.installments)
+      ? body.installments
+      : [];
+    const firstInstallment = installments.length > 0 ? installments[0] : null;
+    const firstInstallmentAmount =
+      firstInstallment?.amount !== undefined &&
+      firstInstallment?.amount !== null &&
+      String(firstInstallment.amount).trim() !== ''
+        ? String(firstInstallment.amount).trim()
+        : '';
+
+    let rawAmount = '';
+    if (firstInstallmentAmount) {
+      rawAmount = firstInstallmentAmount;
+    } else {
+      rawAmount =
+        getField(record, 'paymentAmount', 'payment_amount', 'totalAmount', 'total_amount', 'amount', 'fee', 'rashi', 'राशि', 'membershipFee') ||
+        getField(body, 'paymentAmount', 'payment_amount', 'totalAmount', 'total_amount', 'amount', 'fee', 'rashi', 'राशि', 'membershipFee');
+    }
     const amountStr = rawAmount ? (rawAmount.endsWith('/-') ? rawAmount : `${rawAmount}/-`) : '';
-    const paymentRef = getField(record, 'paymentModeRef', 'transactionId', 'transaction_id', 'utr', 'utrNo', 'utr_no', 'paymentRef', 'payment_ref', 'referenceNo', 'paymentMode', 'payment_mode');
+
+    const firstInstallmentRef = firstInstallment?.paymentMode || firstInstallment?.receiptNo || '';
+    const paymentRef =
+      getField(
+        record,
+        'paymentModeRef',
+        'transactionId',
+        'transaction_id',
+        'utr',
+        'utrNo',
+        'utr_no',
+        'paymentRef',
+        'payment_ref',
+        'referenceNo',
+        'paymentMode',
+        'payment_mode'
+      ) ||
+      getField(
+        body,
+        'paymentModeRef',
+        'transactionId',
+        'transaction_id',
+        'utr',
+        'utrNo',
+        'utr_no',
+        'paymentRef',
+        'payment_ref',
+        'referenceNo',
+        'paymentMode',
+        'payment_mode'
+      ) ||
+      (firstInstallmentRef ? String(firstInstallmentRef) : '');
+
     const seniorCodeOrName = getField(record, 'seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'seniorCode', 'senior_code', 'seniorWorkerName', 'senior_worker_name', 'seniorName', 'senior_name');
 
     drawBounded(nomineeName, 108, 454.7, 10, 185);

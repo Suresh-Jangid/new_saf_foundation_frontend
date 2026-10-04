@@ -25,6 +25,7 @@ import { RazorpayPayment } from "@/components/razorpay-payment"
 import { useAgeCategory } from "@/hooks/use-age-category"
 import { prepareMediaPayload } from "@/lib/upload-client"
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector"
+import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
 
 import {
   AlertDialog,
@@ -70,6 +71,8 @@ export type GeneralApplicationFormData = {
   paymentAmount?: string;
   paymentMode?: string;
   paymentDate?: string;
+  epinNumber?: string;
+  transactionId?: string;
 };
 
 // Remove local formatDate function - using imported one from utils
@@ -133,6 +136,8 @@ export default function EditGeneralInsuranceApplicationPage() {
     paymentAmount: "",
     paymentMode: "",
     paymentDate: "",
+    epinNumber: "",
+    transactionId: "",
   })
 
   const [applicationDateObj, setApplicationDateObj] = useState<Date | undefined>(
@@ -282,6 +287,32 @@ export default function EditGeneralInsuranceApplicationPage() {
           const nomineeAadhar = getRecordField(record, "nomineeAadhar", "nominee_aadhar", "nomineeAadhaar", "nominee_aadhaar")
           const nomineeMobile = getRecordField(record, "nomineeMobile", "nominee_mobile")
 
+          const firstInstallment = Array.isArray(record.installments) && record.installments.length > 0 ? record.installments[0] : null
+          const rawPayAmount = getRecordField(record, "paymentAmount", "payment_amount")
+          const rawTotalAmount = getRecordField(record, "totalAmount", "total_amount")
+          const firstInstallmentAmount = (firstInstallment?.amount != null && String(firstInstallment.amount).trim() !== "") ? String(firstInstallment.amount) : ""
+
+          let initialPaymentAmount = ""
+          if (rawPayAmount !== undefined && rawPayAmount !== null && String(rawPayAmount).trim() !== "") {
+            initialPaymentAmount = String(rawPayAmount)
+          } else if (firstInstallmentAmount) {
+            initialPaymentAmount = firstInstallmentAmount
+          } else if (rawTotalAmount !== undefined && rawTotalAmount !== null && String(rawTotalAmount).trim() !== "") {
+            initialPaymentAmount = String(rawTotalAmount)
+          }
+
+          const initialPaymentMode = getRecordField(record, "paymentMode", "payment_mode")
+            || (firstInstallment?.paymentMode ? String(firstInstallment.paymentMode) : "")
+            || PAYMENT_MODE.CASH
+
+          const initialPaymentDate = paymentDate
+            || (firstInstallment?.date ? String(firstInstallment.date) : "")
+            || applicationDate
+            || ""
+
+          const initialEpin = getRecordField(record, "epinNumber", "epin_number", "epin") || ""
+          const initialTxId = getRecordField(record, "transactionId", "transaction_id") || ""
+
           setFormData({
             formNumber: getRecordField(record, "formNumber", "form_number"),
             offlineFormNumber: offNo,
@@ -312,9 +343,11 @@ export default function EditGeneralInsuranceApplicationPage() {
             existingPassportPhoto: photoPath,
             gender,
             category: getRecordField(record, "category"),
-            paymentAmount: getRecordField(record, "paymentAmount", "payment_amount"),
-            paymentMode: getRecordField(record, "paymentMode", "payment_mode"),
-            paymentDate,
+            paymentAmount: initialPaymentAmount,
+            paymentMode: initialPaymentMode,
+            paymentDate: initialPaymentDate,
+            epinNumber: initialEpin,
+            transactionId: initialTxId,
           })
 
           const appDate = parseApiDate(applicationDate)
@@ -325,13 +358,13 @@ export default function EditGeneralInsuranceApplicationPage() {
           setDateOfBirthObj(dobDate)
           setDateOfBirthValue(dobDate ? formatDate(dobDate) : "")
 
-          if (paymentDate) {
-            const payDate = parseApiDate(paymentDate)
+          if (initialPaymentDate) {
+            const payDate = parseApiDate(initialPaymentDate)
             setPaymentDateObj(payDate)
             setPaymentDateValue(payDate ? formatDate(payDate) : "")
           }
 
-          if (isRazorpayPaymentMode(getRecordField(record, "paymentMode", "payment_mode")) && getRecordField(record, "paymentAmount", "payment_amount")) {
+          if (isRazorpayPaymentMode(initialPaymentMode) && initialPaymentAmount) {
             setPaymentStatus("paid")
           }
         } else {
@@ -395,6 +428,17 @@ export default function EditGeneralInsuranceApplicationPage() {
           !formData.nomineePhoto && formData.existingNomineePhoto
             ? formData.existingNomineePhoto
             : undefined,
+        affidavit: formData.affidavit,
+        remarks: formData.remarks,
+        totalAmount: String(formData.paymentAmount || '0'),
+        paymentAmount: formData.paymentAmount || '',
+        paymentMode: formData.paymentMode || '',
+        paymentDate: formData.paymentDate || '',
+        pendingAmount: String(Math.max(0, (Number(formData.paymentAmount) || 0) - (Number(formData.paymentAmount) || 0))),
+        epinNumber: formData.epinNumber || '',
+        epin: formData.epinNumber || '',
+        transactionId: formData.transactionId || paymentData?.payment_id || undefined,
+        transaction_id: formData.transactionId || paymentData?.payment_id || undefined,
       }
       const preparedData = await prepareMediaPayload(updateData, { entityType: "insurance", entityId: id });
       const response = await APIService.updateInsuranceApplication(id, preparedData)
@@ -989,6 +1033,163 @@ export default function EditGeneralInsuranceApplicationPage() {
                 placeholder="टिप्पणी दर्ज करें"
                 rows={3}
               />
+            </div>
+
+            {/* Payment Details Section */}
+            <div className="mt-8 space-y-4 pt-6 border-t">
+              <h2 className="text-lg font-semibold">Payment Details / भुगतान विवरण</h2>
+
+              {/* E-PIN Voucher Verification */}
+              <div className="p-4 bg-muted/20 border rounded-lg">
+                <EpinInputVerifier
+                  value={formData.epinNumber || ""}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, epinNumber: val }))}
+                  agentId={formData.selectedAgentId}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label htmlFor="paymentAmount">राशि / Payment Amount *</Label>
+                  <Input
+                    id="paymentAmount"
+                    type="number"
+                    inputMode="numeric"
+                    placeholder="राशि दर्ज करें"
+                    value={formData.paymentAmount || ""}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, paymentAmount: e.target.value }))}
+                    required
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="paymentMode">भुगतान का प्रकार / Payment Mode *</Label>
+                  <select
+                    id="paymentMode"
+                    className="w-full border rounded px-3 py-2 mt-1 bg-background"
+                    value={formData.paymentMode || ""}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, paymentMode: e.target.value }))}
+                    required
+                  >
+                    <option value="">भुगतान का प्रकार चुनें / Select Payment Mode</option>
+                    {paymentModeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <Label htmlFor="paymentDate">भुगतान की तिथि / Payment Date *</Label>
+                  <div className="relative flex gap-2">
+                    <Input
+                      id="paymentDate"
+                      value={paymentDateValue}
+                      placeholder="01 June, 2025"
+                      className="bg-background pr-10 mt-1"
+                      onChange={(e) => {
+                        const value = e.target.value
+                        setPaymentDateValue(value)
+                        const parsed = parseDateFromDDMMYYYY(value) || undefined
+                        if (parsed) {
+                          setPaymentDateObj(parsed)
+                          setFormData((prev) => ({
+                            ...prev,
+                            paymentDate: formatDateForAPI(parsed),
+                          }))
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowDown") {
+                          e.preventDefault()
+                          setPaymentDateOpen(true)
+                        }
+                      }}
+                      required
+                    />
+                    <Popover open={paymentDateOpen} onOpenChange={setPaymentDateOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          id="paymentDate-picker"
+                          variant="ghost"
+                          className="absolute top-1/2 right-2 w-8 h-8 p-0 -translate-y-1/2"
+                          tabIndex={-1}
+                          type="button"
+                        >
+                          <CalendarDays className="w-4 h-4" />
+                          <span className="sr-only">Select date</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-auto overflow-hidden p-0"
+                        align="end"
+                        alignOffset={-8}
+                        sideOffset={10}
+                      >
+                        <Calendar
+                          mode="single"
+                          selected={paymentDateObj}
+                          captionLayout="dropdown"
+                          month={paymentDateObj}
+                          onMonthChange={setPaymentDateObj}
+                          onSelect={(date: any) => {
+                            setPaymentDateObj(date)
+                            setPaymentDateValue(formatDate(date))
+                            setFormData((prev) => ({
+                              ...prev,
+                              paymentDate: date ? formatDateForAPI(date) : "",
+                            }))
+                            setPaymentDateOpen(false)
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment Status Display */}
+              {paymentStatus === 'paid' && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-green-800 font-medium">✅ Payment Completed Successfully</p>
+                  {(paymentData?.payment_id || formData.transactionId) && (
+                    <p className="text-green-600 text-sm">Payment ID: {paymentData?.payment_id || formData.transactionId}</p>
+                  )}
+                </div>
+              )}
+
+              {paymentStatus === 'failed' && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-red-800 font-medium">❌ Payment Failed</p>
+                  <p className="text-red-600 text-sm">Please try again or use manual payment method</p>
+                </div>
+              )}
+
+              {/* Razorpay Payment Button */}
+              {isRazorpayPaymentMode(formData.paymentMode) && formData.paymentAmount && Number(formData.paymentAmount) > 0 && paymentStatus !== 'paid' && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h3 className="font-medium text-blue-900">Online Payment</h3>
+                      <p className="text-sm text-blue-700">
+                        Pay ₹{formData.paymentAmount} securely using Razorpay
+                      </p>
+                    </div>
+                    <RazorpayPayment
+                      amount={Number(formData.paymentAmount)}
+                      description={`Insurance Bima Application Fee - ${formData.applicantName || 'Applicant'}`}
+                      onSuccess={handlePaymentSuccess}
+                      onError={handlePaymentError}
+                      disabled={loading || !formData.paymentAmount}
+                      className="bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-400"
+                    >
+                      Pay ₹{formData.paymentAmount} Now
+                    </RazorpayPayment>
+                  </div>
+                </div>
+              )}
             </div>
 
 

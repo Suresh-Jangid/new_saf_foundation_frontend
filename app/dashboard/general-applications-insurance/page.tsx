@@ -108,6 +108,9 @@ interface GeneralInsuranceApplicationRecord {
   paymentMode?: string
   paymentDate?: string
   transactionId?: string
+  totalAmount?: string | number
+  total_amount?: string | number
+  installments?: any[]
   createdAt: string
   is_active?: number
   added_name?: string
@@ -352,7 +355,10 @@ export default function GeneralInsuranceApplicationsPage() {
             workerMobile: item.added_mobile || item.workerMobile || item.addedBy?.mobile,
             affidavit: item.affidavit || item.affidavitUrl,
             passportPhoto: item.passport_photo || item.passportPhoto || item.passportPhotoUrl || item.photo || item.photoUrl || item.applicantPhoto,
-            paymentAmount: item.payment_amount || item.paymentAmount,
+            totalAmount: item.totalAmount ?? item.total_amount,
+            total_amount: item.total_amount ?? item.totalAmount,
+            installments: Array.isArray(item.installments) ? item.installments : [],
+            paymentAmount: item.payment_amount || item.paymentAmount || item.totalAmount || item.total_amount,
             paymentMode: item.payment_mode || item.paymentMode,
             paymentDate: item.payment_date || item.paymentDate,
             transactionId: item.transaction_id || item.transactionId,
@@ -653,9 +659,25 @@ export default function GeneralInsuranceApplicationsPage() {
         processImageData(nomineePhotoSource),
       ]);
 
+      const rawPay = record.paymentAmount ?? (record as any).payment_amount;
+      const rawTotal = record.totalAmount ?? (record as any).total_amount;
+      const resolvedPaymentAmount =
+        (rawPay !== undefined && rawPay !== null && String(rawPay).trim() !== '')
+          ? String(rawPay).trim()
+          : (rawTotal !== undefined && rawTotal !== null && String(rawTotal).trim() !== '')
+          ? String(rawTotal).trim()
+          : '';
+
       // Prepare data for PDF generation
       const pdfData: any = {
         ...record,
+        paymentAmount: resolvedPaymentAmount,
+        totalAmount: rawTotal || resolvedPaymentAmount,
+        total_amount: rawTotal || resolvedPaymentAmount,
+        paymentMode: record.paymentMode || (record as any).payment_mode || '',
+        paymentDate: record.paymentDate || (record as any).payment_date || record.applicationDate,
+        transactionId: record.transactionId || (record as any).transaction_id || '',
+        installments: Array.isArray(record.installments) ? record.installments : ((record as any).installments || []),
         passportPhoto: photoSource,
         passportPhotoUrl: photoSource,
         nomineePhoto: nomineePhotoSource,

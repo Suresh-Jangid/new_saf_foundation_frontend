@@ -171,6 +171,8 @@ export default function EditGeneralInsuranceApplicationPage() {
   const [computedAge, setComputedAge] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
+  const [originalPaymentMode, setOriginalPaymentMode] = useState<string>("");
+  const [originalPaymentAmount, setOriginalPaymentAmount] = useState<string>("");
 
   const { age: calculatedAge, category: calculatedCategory, fee: calculatedFee } = useAgeCategory(formData.dateOfBirth);
 
@@ -287,31 +289,74 @@ export default function EditGeneralInsuranceApplicationPage() {
           const nomineeAadhar = getRecordField(record, "nomineeAadhar", "nominee_aadhar", "nomineeAadhaar", "nominee_aadhaar")
           const nomineeMobile = getRecordField(record, "nomineeMobile", "nominee_mobile")
 
-          const firstInstallment = Array.isArray(record.installments) && record.installments.length > 0 ? record.installments[0] : null
-          const rawPayAmount = getRecordField(record, "paymentAmount", "payment_amount")
-          const rawTotalAmount = getRecordField(record, "totalAmount", "total_amount")
-          const firstInstallmentAmount = (firstInstallment?.amount != null && String(firstInstallment.amount).trim() !== "") ? String(firstInstallment.amount) : ""
-
-          let initialPaymentAmount = ""
-          if (rawPayAmount !== undefined && rawPayAmount !== null && String(rawPayAmount).trim() !== "") {
-            initialPaymentAmount = String(rawPayAmount)
-          } else if (firstInstallmentAmount) {
-            initialPaymentAmount = firstInstallmentAmount
-          } else if (rawTotalAmount !== undefined && rawTotalAmount !== null && String(rawTotalAmount).trim() !== "") {
-            initialPaymentAmount = String(rawTotalAmount)
+          let installments = Array.isArray(record.installments) && record.installments.length > 0 ? record.installments : [];
+          if (installments.length === 0) {
+            try {
+              const instRes = await APIService.getInsuranceApplicationInstallments(String(id));
+              if (instRes?.status && Array.isArray(instRes?.data) && instRes.data.length > 0) {
+                installments = instRes.data;
+              }
+            } catch (e) {
+              console.warn("Could not fetch installments for edit:", e);
+            }
           }
 
-          const initialPaymentMode = getRecordField(record, "paymentMode", "payment_mode")
-            || (firstInstallment?.paymentMode ? String(firstInstallment.paymentMode) : "")
-            || PAYMENT_MODE.CASH
+          const firstInstallment = installments.length > 0 ? installments[0] : null;
+          const lastInstallment = installments.length > 0 ? installments[installments.length - 1] : null;
+
+          const normalizePaymentMode = (mode: any): string => {
+            const trimmed = String(mode || '').trim();
+            const upper = trimmed.toUpperCase();
+            if (upper === 'CASH') return PAYMENT_MODE.CASH;
+            if (upper === 'RAZORPAY') return PAYMENT_MODE.RAZORPAY;
+            if (upper === 'CHEQUE') return 'Cheque';
+            if (upper === 'DD') return 'DD';
+            return trimmed;
+          };
+
+          const rawPayAmount = getRecordField(record, "paymentAmount", "payment_amount");
+          const rawTotalAmount = getRecordField(record, "totalAmount", "total_amount");
+          const installmentAmount = (lastInstallment?.amount != null && String(lastInstallment.amount).trim() !== "")
+            ? String(lastInstallment.amount)
+            : (firstInstallment?.amount != null && String(firstInstallment.amount).trim() !== "")
+            ? String(firstInstallment.amount)
+            : "";
+
+          let initialPaymentAmount = "";
+          if (rawPayAmount !== undefined && rawPayAmount !== null && String(rawPayAmount).trim() !== "") {
+            initialPaymentAmount = String(rawPayAmount);
+          } else if (installmentAmount) {
+            initialPaymentAmount = installmentAmount;
+          } else if (rawTotalAmount !== undefined && rawTotalAmount !== null && String(rawTotalAmount).trim() !== "") {
+            initialPaymentAmount = String(rawTotalAmount);
+          }
+
+          const initialPaymentMode =
+            normalizePaymentMode(
+              lastInstallment?.paymentMode ||
+              lastInstallment?.payment_mode ||
+              getRecordField(record, "paymentMode", "payment_mode") ||
+              firstInstallment?.paymentMode ||
+              firstInstallment?.payment_mode
+            ) || PAYMENT_MODE.CASH;
+
+          setOriginalPaymentMode(initialPaymentMode);
+          setOriginalPaymentAmount(initialPaymentAmount);
 
           const initialPaymentDate = paymentDate
+            || (lastInstallment?.date ? String(lastInstallment.date) : "")
             || (firstInstallment?.date ? String(firstInstallment.date) : "")
             || applicationDate
-            || ""
+            || "";
 
-          const initialEpin = getRecordField(record, "epinNumber", "epin_number", "epin") || ""
-          const initialTxId = getRecordField(record, "transactionId", "transaction_id") || ""
+          const initialEpin = getRecordField(record, "epinNumber", "epin_number", "epin") || "";
+          const initialTxId =
+            lastInstallment?.transactionId ||
+            lastInstallment?.utr ||
+            getRecordField(record, "transactionId", "transaction_id") ||
+            firstInstallment?.transactionId ||
+            firstInstallment?.utr ||
+            "";
 
           setFormData({
             formNumber: getRecordField(record, "formNumber", "form_number"),
@@ -431,9 +476,13 @@ export default function EditGeneralInsuranceApplicationPage() {
         affidavit: formData.affidavit,
         remarks: formData.remarks,
         totalAmount: String(formData.paymentAmount || '0'),
+        total_amount: String(formData.paymentAmount || '0'),
         paymentAmount: formData.paymentAmount || '',
+        payment_amount: formData.paymentAmount || '',
         paymentMode: formData.paymentMode || '',
+        payment_mode: formData.paymentMode || '',
         paymentDate: formData.paymentDate || '',
+        payment_date: formData.paymentDate || '',
         pendingAmount: String(Math.max(0, (Number(formData.paymentAmount) || 0) - (Number(formData.paymentAmount) || 0))),
         epinNumber: formData.epinNumber || '',
         epin: formData.epinNumber || '',
@@ -443,6 +492,24 @@ export default function EditGeneralInsuranceApplicationPage() {
       const preparedData = await prepareMediaPayload(updateData, { entityType: "insurance", entityId: id });
       const response = await APIService.updateInsuranceApplication(id, preparedData)
       if (response.status) {
+        const modeChanged = Boolean(formData.paymentMode && formData.paymentMode !== originalPaymentMode);
+        const amountChanged = Boolean(formData.paymentAmount && formData.paymentAmount !== originalPaymentAmount);
+        if (modeChanged || amountChanged) {
+          try {
+            await APIService.addInsuranceApplicationInstallment({
+              application_insurance_id: id,
+              amount: formData.paymentAmount || '0',
+              date: formData.paymentDate || formatDateForAPI(new Date()),
+              note: `Payment mode updated to ${formData.paymentMode}`,
+              payment_mode: formData.paymentMode,
+              paymentMode: formData.paymentMode,
+              transactionId: formData.transactionId || paymentData?.payment_id || undefined,
+              transaction_id: formData.transactionId || paymentData?.payment_id || undefined,
+            } as any);
+          } catch (instErr) {
+            console.warn("Insurance installment sync note:", instErr);
+          }
+        }
         toast.success("Application updated successfully")
         router.push("/dashboard/general-applications-insurance")
       } else {

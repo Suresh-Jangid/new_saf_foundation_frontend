@@ -176,7 +176,10 @@ export async function POST(request: NextRequest) {
       (record.gender === 'Female' ? getField(record, 'wifeName', 'wife_name') : '');
     const dob = formatDate(getField(record, 'dateOfBirth', 'date_of_birth', 'dob'));
     const gender = getField(record, 'gender', 'लिंग');
-    const education = getField(record, 'education', 'qualification', 'शिक्षा', 'caste', 'category');
+    const gotra =
+      getField(record, 'gotra', 'gotra_name') ||
+      getField(body, 'gotra', 'gotra_name') ||
+      '';
     const aadhaar = getField(record, 'aadharNumber', 'aadhar_number', 'aadhaarNumber', 'aadhaar_number', 'aadhar');
     const address = getField(record, 'address', 'resident', 'village', 'पता');
     const district = getField(record, 'district', 'जिला');
@@ -187,7 +190,7 @@ export async function POST(request: NextRequest) {
     drawBounded(fatherOrHusband, 122, 593.3, 10, 330);
     drawBounded(dob, 92, 565.6, 9.5, 75);
     drawBounded(gender, 198, 565.6, 9.5, 62);
-    drawBounded(education, 295, 565.6, 9.5, 155);
+    drawBounded(gotra, 295, 565.6, 9.5, 155);
     drawBounded(aadhaar, 130, 537.9, 10, 320);
     drawBounded(address, 58, 510.2, 9.5, 390);
     drawBounded(district, 65, 482.4, 9.5, 92);
@@ -226,8 +229,22 @@ export async function POST(request: NextRequest) {
     const amountStr = rawAmount ? (rawAmount.endsWith('/-') ? rawAmount : `${rawAmount}/-`) : '';
 
     // Payment mode resolution with strict priority:
-    // paymentMode -> payment_mode -> installments[0].paymentMode -> installments[0].payment_mode
-    const resolvedPaymentMode =
+    // paymentMode -> payment_mode -> installments.paymentMode -> installments.payment_mode
+    const lastInstallment = installments.length > 0 ? installments[installments.length - 1] : null;
+
+    const normalizeMode = (mode: string): string => {
+      const trimmed = String(mode || '').trim();
+      const upper = trimmed.toUpperCase();
+      if (upper === 'CASH') return 'Cash';
+      if (upper === 'RAZORPAY') return 'Razorpay';
+      if (upper === 'CHEQUE') return 'Cheque';
+      if (upper === 'DD') return 'DD';
+      return trimmed;
+    };
+
+    const rawPaymentMode =
+      (lastInstallment?.paymentMode ? String(lastInstallment.paymentMode).trim() : '') ||
+      (lastInstallment?.payment_mode ? String(lastInstallment.payment_mode).trim() : '') ||
       getField(record, 'paymentMode') ||
       getField(record, 'payment_mode') ||
       getField(body, 'paymentMode') ||
@@ -235,7 +252,17 @@ export async function POST(request: NextRequest) {
       (firstInstallment?.paymentMode ? String(firstInstallment.paymentMode).trim() : '') ||
       (firstInstallment?.payment_mode ? String(firstInstallment.payment_mode).trim() : '');
 
-    const firstInstallmentRef = firstInstallment?.receiptNo || firstInstallment?.transactionId || firstInstallment?.utr || '';
+    const resolvedPaymentMode = normalizeMode(rawPaymentMode);
+
+    const firstInstallmentRef =
+      lastInstallment?.receiptNo ||
+      lastInstallment?.transactionId ||
+      lastInstallment?.utr ||
+      firstInstallment?.receiptNo ||
+      firstInstallment?.transactionId ||
+      firstInstallment?.utr ||
+      '';
+
     const paymentDisplayValue =
       resolvedPaymentMode ||
       getField(

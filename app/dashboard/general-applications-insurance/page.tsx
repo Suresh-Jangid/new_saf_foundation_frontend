@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation"
 import APIService from "@/lib/services"
 import { agentRegistrationAPI } from "@/lib/api"
 import { toast } from "sonner"
-import { getCurrentUserInfo, calculateAge, getPhotoDataUrl } from "@/lib/utils"
+import { getCurrentUserInfo, calculateAge, getPhotoDataUrl, unwrapApiRecordById } from "@/lib/utils"
 import { isMale, isFemale } from "@/lib/form-values"
 import {
   AlertDialog,
@@ -651,62 +651,210 @@ export default function GeneralInsuranceApplicationsPage() {
 
   const handleGenerateInsurancePDF = async (record: GeneralInsuranceApplicationRecord) => {
     try {
-      // Get image data if available
-      const photoSource = record.passportPhoto || (record as any).passport_photo || (record as any).passportPhotoUrl || (record as any).photo || (record as any).applicantPhoto || "";
-      const nomineePhotoSource = (record as any).nomineePassportPhoto || (record as any).nominee_passport_photo || (record as any).nomineePhoto || (record as any).nominee_photo || (record as any).nomineePhotoUrl || (record as any).nominee_photo_url || "";
+      // 1. Fetch latest Insurance Application record by ID so we don't rely on stale/partial list data
+      let latestRecord: any = record;
+      try {
+        if (record?.id) {
+          const [detailRes, instRes] = await Promise.all([
+            APIService.getInsuranceApplicationById(String(record.id)),
+            APIService.getInsuranceApplicationInstallments(String(record.id)).catch(() => null),
+          ]);
+
+          if (detailRes && detailRes.status && detailRes.data) {
+            const unwrapped = unwrapApiRecordById<any>(detailRes.data, String(record.id));
+            if (unwrapped) {
+              latestRecord = unwrapped;
+            }
+          }
+
+          if (instRes && instRes.status && Array.isArray(instRes.data) && instRes.data.length > 0) {
+            latestRecord = {
+              ...latestRecord,
+              installments: instRes.data,
+            };
+          }
+        }
+      } catch (fetchErr) {
+        console.warn("Could not fetch fresh insurance application record by id, using list record:", fetchErr);
+      }
+
+      // 2. Resolve agent offline numbers
+      const { workerOfflineFormNumber, seniorOfflineFormNumber, workerMobile } = resolveAgentOfflineNumbers(
+        latestRecord,
+        agentsList
+      );
+
+      // 3. Resolve images
+      const photoSource =
+        latestRecord.passportPhoto ||
+        latestRecord.passport_photo ||
+        latestRecord.passportPhotoUrl ||
+        latestRecord.photo ||
+        latestRecord.applicantPhoto ||
+        record.passportPhoto ||
+        (record as any).passport_photo ||
+        (record as any).passportPhotoUrl ||
+        (record as any).photo ||
+        (record as any).applicantPhoto ||
+        "";
+
+      const nomineePhotoSource =
+        latestRecord.nomineePassportPhoto ||
+        latestRecord.nominee_passport_photo ||
+        latestRecord.nomineePhoto ||
+        latestRecord.nominee_photo ||
+        latestRecord.nomineePhotoUrl ||
+        latestRecord.nominee_photo_url ||
+        (record as any).nomineePassportPhoto ||
+        (record as any).nominee_passport_photo ||
+        (record as any).nomineePhoto ||
+        (record as any).nominee_photo ||
+        (record as any).nomineePhotoUrl ||
+        (record as any).nominee_photo_url ||
+        "";
+
       const [imageData, nomineeImageData] = await Promise.all([
         processImageData(photoSource),
         processImageData(nomineePhotoSource),
       ]);
 
-      const rawPay = record.paymentAmount ?? (record as any).payment_amount;
-      const rawTotal = record.totalAmount ?? (record as any).total_amount;
-      const resolvedPaymentAmount =
-        (rawPay !== undefined && rawPay !== null && String(rawPay).trim() !== '')
-          ? String(rawPay).trim()
-          : (rawTotal !== undefined && rawTotal !== null && String(rawTotal).trim() !== '')
-          ? String(rawTotal).trim()
+      // 4. Installments & payment resolution
+      const installments =
+        Array.isArray(latestRecord?.installments) && latestRecord.installments.length > 0
+          ? latestRecord.installments
+          : Array.isArray(record?.installments) && record.installments.length > 0
+          ? record.installments
+          : [];
+
+      const firstInstallment = installments.length > 0 ? installments[0] : null;
+      const lastInstallment = installments.length > 0 ? installments[installments.length - 1] : null;
+
+      const normalizeMode = (mode: any): string => {
+        const trimmed = String(mode || '').trim();
+        const upper = trimmed.toUpperCase();
+        if (upper === 'CASH') return 'Cash';
+        if (upper === 'RAZORPAY') return 'Razorpay';
+        if (upper === 'CHEQUE') return 'Cheque';
+        if (upper === 'DD') return 'DD';
+        return trimmed;
+      };
+
+      // Strict priority resolution:
+      // lastInstallment -> latestRecord.paymentMode -> record.paymentMode -> firstInstallment
+      const rawPaymentMode =
+        lastInstallment?.paymentMode ||
+        lastInstallment?.payment_mode ||
+        latestRecord?.paymentMode ||
+        latestRecord?.payment_mode ||
+        record?.paymentMode ||
+        (record as any)?.payment_mode ||
+        firstInstallment?.paymentMode ||
+        firstInstallment?.payment_mode ||
+        '';
+
+      const resolvedPaymentMode = normalizeMode(rawPaymentMode);
+
+      const rawPay =
+        latestRecord.paymentAmount ??
+        latestRecord.payment_amount ??
+        record.paymentAmount ??
+        (record as any).payment_amount;
+
+      const rawTotal =
+        latestRecord.totalAmount ??
+        latestRecord.total_amount ??
+        record.totalAmount ??
+        (record as any).total_amount;
+
+      const installmentAmount =
+        lastInstallment?.amount !== undefined &&
+        lastInstallment?.amount !== null &&
+        String(lastInstallment.amount).trim() !== ''
+          ? String(lastInstallment.amount).trim()
+          : firstInstallment?.amount !== undefined &&
+            firstInstallment?.amount !== null &&
+            String(firstInstallment.amount).trim() !== ''
+          ? String(firstInstallment.amount).trim()
           : '';
 
-      // Prepare data for PDF generation
+      const resolvedPaymentAmount =
+        installmentAmount ||
+        (rawPay !== undefined && rawPay !== null && String(rawPay).trim() !== ''
+          ? String(rawPay).trim()
+          : rawTotal !== undefined && rawTotal !== null && String(rawTotal).trim() !== ''
+          ? String(rawTotal).trim()
+          : '');
+
+      const resolvedPaymentDate =
+        latestRecord.paymentDate ||
+        latestRecord.payment_date ||
+        lastInstallment?.date ||
+        firstInstallment?.date ||
+        record.paymentDate ||
+        (record as any).payment_date ||
+        latestRecord.applicationDate ||
+        record.applicationDate ||
+        '';
+
+      const resolvedTransactionId =
+        latestRecord.transactionId ||
+        latestRecord.transaction_id ||
+        lastInstallment?.transactionId ||
+        lastInstallment?.utr ||
+        firstInstallment?.transactionId ||
+        firstInstallment?.utr ||
+        record.transactionId ||
+        (record as any).transaction_id ||
+        '';
+
+      // 5. Prepare data for PDF generation
       const pdfData: any = {
         ...record,
+        ...latestRecord,
         paymentAmount: resolvedPaymentAmount,
         totalAmount: rawTotal || resolvedPaymentAmount,
         total_amount: rawTotal || resolvedPaymentAmount,
-        paymentMode: record.paymentMode || (record as any).payment_mode || '',
-        paymentDate: record.paymentDate || (record as any).payment_date || record.applicationDate,
-        transactionId: record.transactionId || (record as any).transaction_id || '',
-        installments: Array.isArray(record.installments) ? record.installments : ((record as any).installments || []),
+        paymentMode: resolvedPaymentMode,
+        payment_mode: resolvedPaymentMode,
+        paymentDate: resolvedPaymentDate,
+        transactionId: resolvedTransactionId,
+        installments,
         passportPhoto: photoSource,
         passportPhotoUrl: photoSource,
         nomineePhoto: nomineePhotoSource,
         nomineePhotoUrl: nomineePhotoSource,
         nomineePassportPhoto: nomineePhotoSource,
-        formNumber: record.formNumber,
-        offlineFormNumber: (record as any).offlineFormNumber || (record as any).offline_form_number || "",
-        applicationDate: record.applicationDate,
-        applicantName: record.applicantName,
-        fatherName: record.fatherName || record.wifeName || "",
-        wifeName: record.wifeName || "",
-        motherName: record.motherName,
-        dateOfBirth: record.dateOfBirth,
-        aadharNumber: record.aadharNumber,
-        gotra: record.gotra,
-        mobile: record.mobile,
-        address: record.address,
-        pinCode: record.pinCode,
-        tehsil: record.tehsil,
-        district: record.district,
-        state: record.state,
-        nomineeName: record.nomineeName,
-        nomineeRelation: record.nomineeRelation,
-        workerName: record.workerName,
-        workerMobile: record.workerMobile,
-        affidavit: record.affidavit,
-        gender: record.gender,
-        category: record.category,
-        age: record.age,
+        formNumber: latestRecord.formNumber || record.formNumber,
+        offlineFormNumber:
+          latestRecord.offlineFormNumber ||
+          latestRecord.offline_form_number ||
+          record.offlineFormNumber ||
+          (record as any).offline_form_number ||
+          "",
+        applicationDate: latestRecord.applicationDate || record.applicationDate,
+        applicantName: latestRecord.applicantName || record.applicantName,
+        fatherName: latestRecord.fatherName || latestRecord.wifeName || record.fatherName || record.wifeName || "",
+        wifeName: latestRecord.wifeName || record.wifeName || "",
+        motherName: latestRecord.motherName || record.motherName,
+        dateOfBirth: latestRecord.dateOfBirth || record.dateOfBirth,
+        aadharNumber: latestRecord.aadharNumber || record.aadharNumber,
+        gotra: latestRecord.gotra || (latestRecord as any).gotra_name || record.gotra || (record as any).gotra_name || "",
+        mobile: latestRecord.mobile || record.mobile,
+        address: latestRecord.address || record.address,
+        pinCode: latestRecord.pinCode || record.pinCode,
+        tehsil: latestRecord.tehsil || record.tehsil,
+        district: latestRecord.district || record.district,
+        state: latestRecord.state || record.state,
+        nomineeName: latestRecord.nomineeName || record.nomineeName,
+        nomineeRelation: latestRecord.nomineeRelation || record.nomineeRelation,
+        workerName: latestRecord.workerName || record.workerName,
+        workerMobile: workerMobile || latestRecord.workerMobile || record.workerMobile,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+        affidavit: latestRecord.affidavit || record.affidavit,
+        gender: latestRecord.gender || record.gender,
+        category: latestRecord.category || record.category,
+        age: latestRecord.age || record.age,
       };
 
       // Generate PDF using the service

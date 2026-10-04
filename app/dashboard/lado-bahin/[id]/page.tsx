@@ -45,6 +45,9 @@ import {
   getProxiedPhotoSrc,
 } from "@/lib/utils";
 import { uploadMediaFile } from "@/lib/upload-client";
+import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
+import { agentRegistrationAPI, post } from "@/lib/api";
+import { isAdmin } from "@/lib/permissions";
 
 export default function EditLadoBahinPage() {
   const params = useParams();
@@ -67,6 +70,8 @@ export default function EditLadoBahinPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [record, setRecord] = useState<LadoBahinRegistration | null>(null);
+  const [agents, setAgents] = useState<WorkerOption[]>([]);
+  const [loadingAgents, setLoadingAgents] = useState(false);
 
   // Date Popover States
   const [appDateOpen, setAppDateOpen] = useState(false);
@@ -112,6 +117,7 @@ export default function EditLadoBahinPage() {
     totalAmount: string;
     pendingAmount: string;
     epinCode: string;
+    selectedAgentId: string;
   }>({
     applicationDate: "",
     formNumber: "",
@@ -144,6 +150,7 @@ export default function EditLadoBahinPage() {
     totalAmount: "5100",
     pendingAmount: "0",
     epinCode: "",
+    selectedAgentId: "",
   });
 
   // Photo state
@@ -296,6 +303,14 @@ export default function EditLadoBahinPage() {
           setNomineePhotoPreview(null);
         }
 
+        const rawAgentId = String(
+          data.addedById ||
+          (data.addedBy as any)?.id ||
+          (data as any).selectedAgentId ||
+          (data as any).agentId ||
+          ""
+        ).trim();
+
         setFormData({
           applicationDate: formattedAppDate,
           formNumber: data.formNumber || "",
@@ -328,6 +343,7 @@ export default function EditLadoBahinPage() {
           totalAmount: String(data.totalAmount || 5100),
           pendingAmount: String(data.pendingAmount ?? 0),
           epinCode: data.epinCode || "",
+          selectedAgentId: rawAgentId,
         });
       }
     } catch (err: any) {
@@ -338,9 +354,64 @@ export default function EditLadoBahinPage() {
     }
   }, [id]);
 
+  // Load agents list on mount
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAgents = async () => {
+      try {
+        setLoadingAgents(true);
+        const response = await post("?apicall=getAgents").catch(() => null);
+        let list: any[] = [];
+        if (response?.data?.status && Array.isArray(response.data.data)) {
+          list = response.data.data;
+        } else {
+          const apiRes = await agentRegistrationAPI.getAll().catch(() => null);
+          if (apiRes && Array.isArray(apiRes.data)) {
+            list = apiRes.data;
+          }
+        }
+
+        if (isMounted && list.length > 0) {
+          setAgents(
+            list.map((a: any) => ({
+              id: String(a.userId || a.user_id || a.user?.id || a.id),
+              name: a.name || a.applicantName || "Worker",
+              mobile: a.mobile || a.mobileNumber || "",
+              offlineFormNumber:
+                a.offlineFormNumber ||
+                a.offline_form_number ||
+                a.agentProfile?.offlineFormNumber ||
+                "",
+              level: a.level || a.agentProfile?.level || a.hierarchy?.level,
+            }))
+          );
+        }
+      } catch (err: any) {
+        console.warn("Could not load agents list in Edit page:", err);
+      } finally {
+        if (isMounted) setLoadingAgents(false);
+      }
+    };
+
+    fetchAgents();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useEffect(() => {
     fetchRecord();
   }, [fetchRecord]);
+
+  const selectedAgent = agents.find(
+    (a) => String(a.id) === String(formData.selectedAgentId)
+  );
+  const displayAgentName =
+    selectedAgent?.name ||
+    record?.addedBy?.name ||
+    (formData.selectedAgentId ? "असाइंड कार्यकर्ता (Assigned Worker)" : "स्वयं / Self (No Specific Worker)");
+  const displayAgentMobile =
+    selectedAgent?.mobile || record?.addedBy?.mobile || "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -446,6 +517,8 @@ export default function EditLadoBahinPage() {
         category: formData.category,
         totalAmount: Number(formData.totalAmount) || 5100,
         pendingAmount: Number(formData.pendingAmount) || 0,
+        selectedAgentId: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
+        addedById: formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined,
         ...(updatedPassportUrl ? { passportPhotoUrl: updatedPassportUrl } : {}),
         ...(updatedNomineeUrl ? { nomineePhotoUrl: updatedNomineeUrl, nominee_photo_url: updatedNomineeUrl } : {}),
       };
@@ -1237,12 +1310,91 @@ export default function EditLadoBahinPage() {
                 </div>
               </div>
 
-              {/* 6. Payment & Financial Summary Card */}
+              {/* 6. E-PIN & Worker Details Card */}
+              <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+                <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+                  <KeyRound className="w-5 h-5 text-primary" />
+                  <h2 className="text-base sm:text-lg font-semibold text-foreground">
+                    6. ई-पिन एवं कार्यकर्ता विवरण (E-PIN & Worker Details)
+                  </h2>
+                </div>
+
+                <div className="space-y-4">
+                  {/* E-PIN Status / Voucher Display (Immutable) */}
+                  {formData.epinCode ? (
+                    <div className="p-4 bg-violet-50/70 border border-violet-200 rounded-lg flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 shrink-0">
+                          <KeyRound className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-violet-900">
+                            लिंक किया गया ई-पिन वाउचर (Linked E-PIN Voucher)
+                          </p>
+                          <p className="font-mono text-sm font-bold text-violet-950 tracking-wide">
+                            {formData.epinCode}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="inline-flex items-center px-2.5 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-800 shrink-0">
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                        सत्यापित / Verified (सुरक्षित / Read Only)
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-muted/40 border border-border/60 rounded-lg text-xs text-muted-foreground flex items-center gap-2">
+                      <KeyRound className="h-4 w-4 text-muted-foreground/60 shrink-0" />
+                      <span>इस पंजीकरण के साथ कोई ई-पिन कोड लिंक नहीं है / No E-PIN was attached to this registration.</span>
+                    </div>
+                  )}
+
+                  {/* Worker / Agent Information & Selection */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="selectedAgentId" className="text-xs sm:text-sm font-semibold text-foreground">
+                        कार्यकर्ता / एजेंट चयन (Worker / Agent Selection)
+                      </Label>
+                      <WorkerSearchSelector
+                        id="selectedAgentId"
+                        value={formData.selectedAgentId}
+                        onValueChange={(val) => handleInputChange("selectedAgentId", val)}
+                        agents={agents}
+                        isLoading={loadingAgents}
+                        disabled={loadingAgents}
+                        defaultOption={{
+                          value: "",
+                          label: "स्वयं / Self",
+                          secondary: "No Specific Worker",
+                        }}
+                        placeholder="कार्यकर्ता चुनें / Select Worker"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                        असाइन्ड कार्यकर्ता विवरण (Assigned Worker Details)
+                      </Label>
+                      <div className="h-10 px-3 rounded-md border border-input bg-muted/30 text-xs sm:text-sm flex items-center justify-between">
+                        <span className="font-medium text-foreground truncate">
+                          {displayAgentName}
+                        </span>
+                        {displayAgentMobile && (
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {displayAgentMobile}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 7. Payment & Financial Summary Card */}
               <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
                 <div className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <CreditCard className="w-5 h-5 text-primary" />
                   <h2 className="text-base sm:text-lg font-semibold text-foreground">
-                    6. वित्तीय स्थिति (Financial Status)
+                    7. वित्तीय स्थिति (Financial Status)
                   </h2>
                 </div>
 

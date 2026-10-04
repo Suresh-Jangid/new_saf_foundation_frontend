@@ -34,7 +34,7 @@ import {
   CreateLadoBahinPayload,
   LadoBahinAccountType,
 } from "@/lib/lado-bahin-service";
-import { agentRegistrationAPI } from "@/lib/api";
+import { agentRegistrationAPI, post } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
 import { cn, formatDate, formatDateForAPI, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
@@ -158,32 +158,51 @@ export default function AddLadoBahinPage() {
     }
   };
 
-  // Load agents if Admin
+  // Load agents on component mount (matching General Marriage & Mayra reference pattern)
   useEffect(() => {
-    if (isAdmin()) {
-      setLoadingAgents(true);
-      agentRegistrationAPI
-        .getAll()
-        .then((res: any) => {
-          if (res && res.data && Array.isArray(res.data)) {
-            setAgents(
-              res.data.map((a: any) => ({
-                id: String(a.id || a.user_id),
-                name: a.name || a.applicantName || "Agent",
-                mobile: a.mobile || a.mobileNumber || "",
-                offlineFormNumber: a.offlineFormNumber || a.offline_form_number || a.agentProfile?.offlineFormNumber || "",
-                level: a.level || a.agentProfile?.level || a.hierarchy?.level,
-              }))
-            );
+    let isMounted = true;
+    const fetchAgents = async () => {
+      try {
+        setLoadingAgents(true);
+        // Primary: post('?apicall=getAgents')
+        const response = await post("?apicall=getAgents").catch(() => null);
+        let list: any[] = [];
+        if (response?.data?.status && Array.isArray(response.data.data)) {
+          list = response.data.data;
+        } else {
+          // Secondary fallback: agentRegistrationAPI.getAll()
+          const apiRes = await agentRegistrationAPI.getAll().catch(() => null);
+          if (apiRes && Array.isArray(apiRes.data)) {
+            list = apiRes.data;
           }
-        })
-        .catch((err: any) => {
-          console.warn("Could not load agents list:", err);
-        })
-        .finally(() => {
-          setLoadingAgents(false);
-        });
-    }
+        }
+
+        if (isMounted && list.length > 0) {
+          setAgents(
+            list.map((a: any) => ({
+              id: String(a.userId || a.user_id || a.user?.id || a.id),
+              name: a.name || a.applicantName || "Worker",
+              mobile: a.mobile || a.mobileNumber || "",
+              offlineFormNumber:
+                a.offlineFormNumber ||
+                a.offline_form_number ||
+                a.agentProfile?.offlineFormNumber ||
+                "",
+              level: a.level || a.agentProfile?.level || a.hierarchy?.level,
+            }))
+          );
+        }
+      } catch (err: any) {
+        console.warn("Could not load agents list:", err);
+      } finally {
+        if (isMounted) setLoadingAgents(false);
+      }
+    };
+
+    fetchAgents();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Calculate age when DOB changes
@@ -330,6 +349,15 @@ export default function AddLadoBahinPage() {
     }
     if (!formData.address.trim()) {
       toast.error("कृपया पता दर्ज करें / Please enter Address");
+      return;
+    }
+
+    // E-PIN Validation check if E-PIN code entered
+    if (formData.epinCode.trim() && epinVerified && !epinVerified.valid) {
+      toast.error(
+        epinVerified.message ||
+          "ई-पिन अमान्य है, कृपया मान्य ई-पिन दर्ज करें या खाली छोड़ें / Invalid E-PIN voucher"
+      );
       return;
     }
 
@@ -1220,6 +1248,7 @@ export default function AddLadoBahinPage() {
                       onChange={(val) => handleInputChange("epinCode", val)}
                       onVerified={handleEpinVerified}
                       disabled={isLoading}
+                      agentId={formData.selectedAgentId || undefined}
                     />
                   </div>
 
@@ -1255,28 +1284,26 @@ export default function AddLadoBahinPage() {
                       </select>
                     </div>
 
-                    {/* Agent Selection if Admin */}
-                    {isAdmin() && (
-                      <div className="space-y-1.5">
-                        <Label htmlFor="selectedAgentId" className="text-xs sm:text-sm font-semibold text-foreground">
-                          कार्यकर्ता / एजेंट (Worker / Agent)
-                        </Label>
-                        <WorkerSearchSelector
-                          id="selectedAgentId"
-                          value={formData.selectedAgentId}
-                          onValueChange={(val) => handleInputChange("selectedAgentId", val)}
-                          agents={agents}
-                          isLoading={loadingAgents}
-                          disabled={loadingAgents}
-                          defaultOption={{
-                            value: "",
-                            label: "स्वयं / Self",
-                            secondary: "No Specific Worker",
-                          }}
-                          placeholder="कार्यकर्ता चुनें / Select Worker"
-                        />
-                      </div>
-                    )}
+                    {/* Agent / Worker Selection */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="selectedAgentId" className="text-xs sm:text-sm font-semibold text-foreground">
+                        कार्यकर्ता / एजेंट (Worker / Agent)
+                      </Label>
+                      <WorkerSearchSelector
+                        id="selectedAgentId"
+                        value={formData.selectedAgentId}
+                        onValueChange={(val) => handleInputChange("selectedAgentId", val)}
+                        agents={agents}
+                        isLoading={loadingAgents}
+                        disabled={loadingAgents}
+                        defaultOption={{
+                          value: "",
+                          label: "स्वयं / Self",
+                          secondary: "No Specific Worker",
+                        }}
+                        placeholder="कार्यकर्ता चुनें / Select Worker"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

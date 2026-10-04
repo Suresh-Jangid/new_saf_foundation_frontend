@@ -72,7 +72,9 @@ export interface LadoBahinRegistration {
     id: string;
     name: string;
     mobile: string;
+    role?: string;
     employee_id?: string;
+    offlineFormNumber?: string;
   } | null;
 }
 
@@ -153,6 +155,9 @@ export interface UpdateLadoBahinPayload {
   category?: "A" | "B" | "C" | "D" | "E" | "F";
   totalAmount?: number;
   pendingAmount?: number;
+  selectedAgentId?: string;
+  addedById?: string;
+  agentId?: string;
 }
 
 export interface LadoBahinFilters {

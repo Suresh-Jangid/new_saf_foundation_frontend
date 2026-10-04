@@ -225,8 +225,26 @@ export async function POST(request: NextRequest) {
     }
     const amountStr = rawAmount ? (rawAmount.endsWith('/-') ? rawAmount : `${rawAmount}/-`) : '';
 
-    const firstInstallmentRef = firstInstallment?.paymentMode || firstInstallment?.receiptNo || '';
-    const paymentRef =
+    // IMPORTANT: The printed template label is fixed as
+    // "नकद/चेक/डी.डी./यूटीआर नंबर :-". The value immediately after it
+    // must be the selected Payment Mode (Cash/Razorpay), not a transaction ID.
+    // Transaction/UTR/reference values are only fallbacks when Payment Mode is absent.
+    const resolvedPaymentMode =
+      getField(record, 'paymentMode', 'payment_mode') ||
+      getField(body, 'paymentMode', 'payment_mode') ||
+      (firstInstallment?.paymentMode != null ? String(firstInstallment.paymentMode).trim() : '') ||
+      (firstInstallment?.payment_mode != null ? String(firstInstallment.payment_mode).trim() : '');
+
+    const firstInstallmentRef =
+      firstInstallment?.receiptNo ||
+      firstInstallment?.transactionId ||
+      firstInstallment?.transaction_id ||
+      firstInstallment?.utr ||
+      firstInstallment?.utrNo ||
+      '';
+
+    const paymentDisplayValue =
+      resolvedPaymentMode ||
       getField(
         record,
         'paymentModeRef',
@@ -237,9 +255,7 @@ export async function POST(request: NextRequest) {
         'utr_no',
         'paymentRef',
         'payment_ref',
-        'referenceNo',
-        'paymentMode',
-        'payment_mode'
+        'referenceNo'
       ) ||
       getField(
         body,
@@ -251,11 +267,9 @@ export async function POST(request: NextRequest) {
         'utr_no',
         'paymentRef',
         'payment_ref',
-        'referenceNo',
-        'paymentMode',
-        'payment_mode'
+        'referenceNo'
       ) ||
-      (firstInstallmentRef ? String(firstInstallmentRef) : '');
+      (firstInstallmentRef ? String(firstInstallmentRef).trim() : '');
 
     const seniorCodeOrName = getField(record, 'seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'seniorCode', 'senior_code', 'seniorWorkerName', 'senior_worker_name', 'seniorName', 'senior_name');
 
@@ -265,7 +279,7 @@ export async function POST(request: NextRequest) {
     drawBounded(nomineeMobile, 275, 427.0, 9.5, 125);
     drawBounded(workerCodeOrName, 472, 427.0, 9.5, 75);
     drawBounded(amountStr, 60, 399.3, 9.5, 90);
-    drawBounded(paymentRef, 285, 399.3, 9.5, 120);
+    drawBounded(paymentDisplayValue, 285, 399.3, 9.5, 120);
     drawBounded(seniorCodeOrName, 472, 399.3, 9.5, 75);
 
     // ── 4. Section 2: सदस्यता फार्म रसीद (Receipt Section) ──────
@@ -275,7 +289,7 @@ export async function POST(request: NextRequest) {
     drawBounded(fatherOrHusband, 330, 159.5, 10, 218);
     drawBounded(address, 58, 137.6, 9.5, 490);
     drawBounded(mobile, 55, 115.7, 9.5, 172);
-    drawBounded(paymentRef, 308, 115.7, 9.5, 240);
+    drawBounded(paymentDisplayValue, 308, 115.7, 9.5, 240);
     drawBounded(amountStr, 88, 93.8, 9.5, 142);
     drawBounded(amountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 

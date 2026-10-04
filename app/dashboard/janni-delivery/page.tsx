@@ -567,8 +567,57 @@ export default function JanniDeliveryListPage() {
   const handleGeneratePDFForm = async (record: JanniDeliveryRegistration) => {
     try {
       toast.loading("Generating PDF Form...", { id: "pdf-form" });
-      const photoSource = record.passportPhotoUrl || (record as any).passportPhoto || (record as any).photo || "";
-      const nomineePhotoSource = record.nomineePhotoUrl || (record as any).nomineePhoto || (record as any).nomineePassportPhoto || (record as any).nominee_photo || "";
+
+      let latestRecord: JanniDeliveryRegistration = record;
+      try {
+        const freshRes = await JanniDeliveryService.getRegistrationById(record.id);
+        if (freshRes?.success && freshRes?.data) {
+          latestRecord = { ...record, ...freshRes.data };
+        }
+      } catch (freshErr) {
+        console.warn("Could not fetch fresh record for Janni PDF:", freshErr);
+      }
+
+      const installments = Array.isArray(latestRecord.installments) ? latestRecord.installments : [];
+      const firstInstallment = installments.length > 0 ? installments[0] : null;
+      const lastInstallment = installments.length > 0 ? installments[installments.length - 1] : null;
+
+      const normalizeMode = (mode: any): string => {
+        const trimmed = String(mode || '').trim();
+        const upper = trimmed.toUpperCase();
+        if (upper === 'CASH') return 'Cash';
+        if (upper === 'RAZORPAY') return 'Razorpay';
+        if (upper === 'CHEQUE') return 'Cheque';
+        if (upper === 'DD') return 'DD';
+        if (upper === 'ONLINE') return 'Online';
+        if (upper === 'BANK_TRANSFER') return 'Bank Transfer';
+        return trimmed;
+      };
+
+      const rawPaymentMode =
+        (lastInstallment?.paymentMode ? String(lastInstallment.paymentMode).trim() : '') ||
+        (latestRecord as any).paymentMode ||
+        (latestRecord as any).payment_mode ||
+        (record as any).paymentMode ||
+        (record as any).payment_mode ||
+        (firstInstallment?.paymentMode ? String(firstInstallment.paymentMode).trim() : '');
+
+      const resolvedPaymentMode = normalizeMode(rawPaymentMode);
+
+      const firstInstallmentAmount =
+        lastInstallment?.amount !== undefined && lastInstallment?.amount !== null && String(lastInstallment.amount).trim() !== ''
+          ? String(lastInstallment.amount).trim()
+          : firstInstallment?.amount !== undefined && firstInstallment?.amount !== null && String(firstInstallment.amount).trim() !== ''
+          ? String(firstInstallment.amount).trim()
+          : '';
+
+      const resolvedPaymentAmount =
+        firstInstallmentAmount ||
+        (latestRecord.totalAmount != null ? String(latestRecord.totalAmount) : '') ||
+        (record.totalAmount != null ? String(record.totalAmount) : '');
+
+      const photoSource = latestRecord.passportPhotoUrl || record.passportPhotoUrl || (record as any).passportPhoto || (record as any).photo || "";
+      const nomineePhotoSource = latestRecord.nomineePhotoUrl || record.nomineePhotoUrl || (record as any).nomineePhoto || (record as any).nomineePassportPhoto || (record as any).nominee_photo || "";
       const [imageData, nomineeImageData] = await Promise.all([
         photoSource ? getPhotoDataUrl(photoSource) : null,
         nomineePhotoSource ? getPhotoDataUrl(nomineePhotoSource) : null,
@@ -579,6 +628,11 @@ export default function JanniDeliveryListPage() {
         body: JSON.stringify({
           record: {
             ...record,
+            ...latestRecord,
+            paymentMode: resolvedPaymentMode,
+            payment_mode: resolvedPaymentMode,
+            paymentAmount: resolvedPaymentAmount,
+            installments,
             passportPhoto: photoSource,
             passportPhotoUrl: photoSource,
             nomineePhoto: nomineePhotoSource,
@@ -593,7 +647,7 @@ export default function JanniDeliveryListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Janni_Application_${record.formNumber || record.id}.pdf`;
+      a.download = `Janni_Application_${latestRecord.formNumber || record.formNumber || record.id}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

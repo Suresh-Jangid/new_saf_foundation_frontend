@@ -49,6 +49,8 @@ export default function EditJanniDeliveryPage() {
   const [record, setRecord] = useState<JanniDeliveryRegistration | null>(null);
   const [agents, setAgents] = useState<WorkerOption[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
+  const [originalPaymentMode, setOriginalPaymentMode] = useState<string>("CASH");
+  const [originalPaymentAmount, setOriginalPaymentAmount] = useState<string>("");
 
   // Date Popover States
   const [appDateOpen, setAppDateOpen] = useState(false);
@@ -214,20 +216,28 @@ export default function EditJanniDeliveryPage() {
           }
 
           // Installment / Paid amount
-          const firstInstallment = Array.isArray(data.installments) && data.installments.length > 0
-            ? data.installments[0]
-            : null;
-          const initialPaid = firstInstallment?.amount != null
+          const installments = Array.isArray(data.installments) && data.installments.length > 0
+            ? data.installments
+            : [];
+          const firstInstallment = installments.length > 0 ? installments[0] : null;
+          const lastInstallment = installments.length > 0 ? installments[installments.length - 1] : null;
+
+          const initialPaid = lastInstallment?.amount != null
+            ? String(lastInstallment.amount)
+            : firstInstallment?.amount != null
             ? String(firstInstallment.amount)
             : data.totalAmount != null && data.pendingAmount != null
               ? String(Math.max(0, data.totalAmount - data.pendingAmount))
               : "0";
 
-          const paymentModeVal = (firstInstallment?.paymentMode || "CASH").toUpperCase();
+          const rawMode = (lastInstallment?.paymentMode || firstInstallment?.paymentMode || "CASH").toUpperCase();
           const validPaymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER" =
-            ["CASH", "ONLINE", "RAZORPAY", "BANK_TRANSFER"].includes(paymentModeVal)
-              ? (paymentModeVal as any)
+            ["CASH", "ONLINE", "RAZORPAY", "BANK_TRANSFER"].includes(rawMode)
+              ? (rawMode as any)
               : "CASH";
+
+          setOriginalPaymentMode(validPaymentMode);
+          setOriginalPaymentAmount(initialPaid);
 
           // Photo
           if (data.passportPhotoUrl) {
@@ -530,6 +540,22 @@ export default function EditJanniDeliveryPage() {
     };
     try {
       await JanniDeliveryService.updateRegistration(id, payload);
+
+      const modeChanged = Boolean(formData.paymentMode && formData.paymentMode.toUpperCase() !== originalPaymentMode.toUpperCase());
+      const amountChanged = Boolean(formData.paymentAmount && formData.paymentAmount !== originalPaymentAmount);
+      if (modeChanged || amountChanged) {
+        try {
+          await JanniDeliveryService.addInstallment(id, {
+            amount: Number(formData.paymentAmount) || 0,
+            date: convertToYYYYMMDD(formData.applicationDate) || new Date().toISOString().split("T")[0],
+            paymentMode: formData.paymentMode,
+            note: `Payment mode updated to ${formData.paymentMode}`,
+          });
+        } catch (instErr) {
+          console.warn("Janni installment sync note:", instErr);
+        }
+      }
+
       toast.success(
         "जननी प्रसूति पंजीकरण सफलतापूर्वक अपडेट किया गया! / Janni Delivery Registration Updated Successfully!"
       );

@@ -186,7 +186,10 @@ export async function POST(request: NextRequest) {
     const dob = formatDate(getField(record, 'dateOfBirth', 'date_of_birth', 'dob'));
     const rawGender = getField(record, 'gender', 'childGender') || 'महिला';
     const gender = rawGender.includes('/') ? rawGender.split('/')[0].trim() : rawGender;
-    const education = getField(record, 'education', 'qualification', 'शिक्षा', 'caste', 'category');
+    const resolvedGotra =
+      getField(record, 'gotra', 'gotra_name') ||
+      getField(body, 'gotra', 'gotra_name') ||
+      '';
     const aadhar = getField(record, 'aadharNumber', 'aadhar_number', 'aadhaarNumber', 'aadhaar_number', 'aadhar');
     const address = [getField(record, 'address'), getField(record, 'tehsil')].filter(Boolean).join(', ');
     const district = getField(record, 'district', 'जिला');
@@ -197,7 +200,7 @@ export async function POST(request: NextRequest) {
     drawBounded(fatherHusbandName, 122, 593.3, 10, 330);
     drawBounded(dob, 92, 565.6, 9.5, 75);
     drawBounded(gender, 198, 565.6, 9.5, 62);
-    drawBounded(education, 295, 565.6, 9.5, 155);
+    drawBounded(resolvedGotra, 295, 565.6, 9.5, 155);
     drawBounded(aadhar, 130, 537.9, 10, 320);
     drawBounded(address, 58, 510.2, 9.5, 390);
     drawBounded(district, 65, 482.4, 9.5, 92);
@@ -211,12 +214,51 @@ export async function POST(request: NextRequest) {
     const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile') || mobile;
     const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'referralName');
 
-    const totalAmount = getField(record, 'totalAmount', 'total_amount', 'amount', 'fee', 'paymentAmount', 'payment_amount');
-    const amountStr = totalAmount ? (String(totalAmount).endsWith('/-') ? String(totalAmount) : `${totalAmount}/-`) : '';
-    const paymentMode = [
-      getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode'),
-      getField(record, 'epinCode', 'epin_code') ? `EPIN: ${getField(record, 'epinCode', 'epin_code')}` : ''
-    ].filter(Boolean).join(' / ');
+    const installments = Array.isArray(record?.installments)
+      ? record.installments
+      : Array.isArray(body?.installments)
+      ? body.installments
+      : [];
+    const firstInstallment = installments.length > 0 ? installments[0] : null;
+    const lastInstallment = installments.length > 0 ? installments[installments.length - 1] : null;
+
+    const normalizeMode = (mode: string): string => {
+      const trimmed = String(mode || '').trim();
+      const upper = trimmed.toUpperCase();
+      if (upper === 'CASH') return 'Cash';
+      if (upper === 'RAZORPAY') return 'Razorpay';
+      if (upper === 'CHEQUE') return 'Cheque';
+      if (upper === 'DD') return 'DD';
+      if (upper === 'ONLINE') return 'Online';
+      if (upper === 'BANK_TRANSFER') return 'Bank Transfer';
+      return trimmed;
+    };
+
+    const rawPaymentMode =
+      (lastInstallment?.paymentMode ? String(lastInstallment.paymentMode).trim() : '') ||
+      (lastInstallment?.payment_mode ? String(lastInstallment.payment_mode).trim() : '') ||
+      getField(record, 'paymentMode') ||
+      getField(record, 'payment_mode') ||
+      getField(body, 'paymentMode') ||
+      getField(body, 'payment_mode') ||
+      (firstInstallment?.paymentMode ? String(firstInstallment.paymentMode).trim() : '') ||
+      (firstInstallment?.payment_mode ? String(firstInstallment.payment_mode).trim() : '');
+
+    const resolvedPaymentMode = normalizeMode(rawPaymentMode);
+
+    const firstInstallmentAmount =
+      lastInstallment?.amount !== undefined && lastInstallment?.amount !== null && String(lastInstallment.amount).trim() !== ''
+        ? String(lastInstallment.amount).trim()
+        : firstInstallment?.amount !== undefined && firstInstallment?.amount !== null && String(firstInstallment.amount).trim() !== ''
+        ? String(firstInstallment.amount).trim()
+        : '';
+
+    const rawAmount =
+      firstInstallmentAmount ||
+      getField(record, 'totalAmount', 'total_amount', 'amount', 'fee', 'paymentAmount', 'payment_amount') ||
+      getField(body, 'totalAmount', 'total_amount', 'amount', 'fee', 'paymentAmount', 'payment_amount');
+    const amountStr = rawAmount ? (String(rawAmount).endsWith('/-') ? String(rawAmount) : `${rawAmount}/-`) : '';
+
     const seniorWorker = getField(record, 'seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'seniorCode', 'senior_code', 'seniorWorker', 'senior_worker', 'seniorName', 'senior_name');
 
     drawBounded(nomineeName, 108, 454.7, 10, 185);
@@ -226,7 +268,7 @@ export async function POST(request: NextRequest) {
     drawBounded(workerCodeOrName, 472, 427.0, 9.5, 75);
 
     drawBounded(amountStr, 60, 399.3, 9.5, 90);
-    drawBounded(paymentMode, 285, 399.3, 9.5, 120);
+    drawBounded(resolvedPaymentMode, 285, 399.3, 9.5, 120);
     drawBounded(seniorWorker, 472, 399.3, 9.5, 75);
 
     // ── 4. Section 2: सदस्यता फार्म रसीद (Receipt Section) ──────
@@ -236,7 +278,7 @@ export async function POST(request: NextRequest) {
     drawBounded(fatherHusbandName, 330, 159.5, 10, 218);
     drawBounded(address, 58, 137.6, 9.5, 490);
     drawBounded(mobile, 55, 115.7, 9.5, 172);
-    drawBounded(paymentMode, 308, 115.7, 9.5, 240);
+    drawBounded(resolvedPaymentMode, 308, 115.7, 9.5, 240);
     drawBounded(amountStr, 88, 93.8, 9.5, 142);
     drawBounded(amountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 

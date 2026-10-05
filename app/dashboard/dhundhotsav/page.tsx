@@ -554,6 +554,19 @@ export default function DhundhotsavListPage() {
   // 1. Generate PDF Form Handler
   const handleGeneratePDFForm = async (record: DhundhotsavRegistration) => {
     try {
+      // Fresh fetch by ID to avoid stale or stripped list records
+      let latestRecord: DhundhotsavRegistration = record;
+      try {
+        if (record?.id) {
+          const freshRes = await DhundhotsavService.getRegistrationById(String(record.id));
+          if (freshRes?.data) {
+            latestRecord = { ...record, ...freshRes.data };
+          }
+        }
+      } catch (freshErr) {
+        console.warn("Could not fetch fresh record for Dhundhotsav PDF, using current record:", freshErr);
+      }
+
       let currentAgents = agentsList;
       if (!currentAgents || currentAgents.length === 0) {
         try {
@@ -574,12 +587,12 @@ export default function DhundhotsavListPage() {
         workerName,
         seniorName,
       } = resolveAgentOfflineNumbers(
-        record as any,
+        latestRecord as any,
         currentAgents
       );
 
       const enrichedRecord = {
-        ...record,
+        ...latestRecord,
         workerOfflineFormNumber,
         seniorOfflineFormNumber,
         workerMobile,
@@ -596,11 +609,11 @@ export default function DhundhotsavListPage() {
         seniorOfflineFormNumber,
         workerName,
         seniorName,
-        gender: record.gender || "Male",
+        gender: latestRecord.gender || "Male",
       };
 
-      const photoSource = record.passportPhotoUrl || (record as any).passportPhoto || "";
-      const nomineePhotoSource = record.nomineePhotoUrl || (record as any).nomineePhoto || (record as any).nomineePassportPhoto || (record as any).nominee_photo || "";
+      const photoSource = latestRecord.passportPhotoUrl || (latestRecord as any).passportPhoto || "";
+      const nomineePhotoSource = latestRecord.nomineePhotoUrl || (latestRecord as any).nomineePhoto || (latestRecord as any).nomineePassportPhoto || (latestRecord as any).nominee_photo || "";
       const [imageData, nomineeImageData] = await Promise.all([
         getPhotoDataUrl(photoSource),
         getPhotoDataUrl(nomineePhotoSource),
@@ -637,7 +650,7 @@ export default function DhundhotsavListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `dhundhotsav_application_form_${record.offlineFormNumber || record.formNumber || "filled"}.pdf`;
+      a.download = `dhundhotsav_application_form_${latestRecord.offlineFormNumber || latestRecord.formNumber || "filled"}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();

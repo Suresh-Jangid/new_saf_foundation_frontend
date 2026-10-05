@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,7 @@ import {
   Heart,
   Shield,
   CreditCard,
-  Building,
+  KeyRound,
 } from "lucide-react";
 import { RoleGuard } from "@/components/role-guard";
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier";
@@ -35,8 +35,8 @@ import {
   LadoBahinAccountType,
 } from "@/lib/lado-bahin-service";
 import { agentRegistrationAPI, post } from "@/lib/api";
-import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
+import { EpinService } from "@/lib/epin-service";
 import { cn, formatDate, formatDateForAPI, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
 import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
@@ -153,7 +153,7 @@ export default function AddLadoBahinPage() {
     setEpinVerified(result);
     if (result && result.valid && result.schemeAmount) {
       toast.success(
-        `E-PIN Validated: ₹${result.schemeAmount.toLocaleString("hi-IN")} voucher applied / ई-पिन मान्य है`
+        `E-PIN Validated: ₹${result.schemeAmount.toLocaleString("hi-IN")} voucher applied / ई-पिन स्वीकृत`
       );
     }
   };
@@ -164,13 +164,11 @@ export default function AddLadoBahinPage() {
     const fetchAgents = async () => {
       try {
         setLoadingAgents(true);
-        // Primary: post('?apicall=getAgents')
         const response = await post("?apicall=getAgents").catch(() => null);
         let list: any[] = [];
         if (response?.data?.status && Array.isArray(response.data.data)) {
           list = response.data.data;
         } else {
-          // Secondary fallback: agentRegistrationAPI.getAll()
           const apiRes = await agentRegistrationAPI.getAll().catch(() => null);
           if (apiRes && Array.isArray(apiRes.data)) {
             list = apiRes.data;
@@ -181,7 +179,7 @@ export default function AddLadoBahinPage() {
           setAgents(
             list.map((a: any) => ({
               ...a,
-              id: String(a.userId || a.user_id || a.user?.id || a.id),
+              id: String(a.id || a.userId || a.user_id || a.user?.id),
               name: a.name || a.applicantName || "Worker",
               mobile: a.mobile || a.mobileNumber || "",
               offlineFormNumber:
@@ -227,10 +225,7 @@ export default function AddLadoBahinPage() {
     return age >= 0 ? String(age) : "";
   };
 
-  const handleInputChange = (
-    field: string,
-    value: any
-  ) => {
+  const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => {
       const next = { ...prev, [field]: value };
       if (field === "dateOfBirth") {
@@ -245,12 +240,12 @@ export default function AddLadoBahinPage() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("कृपया केवल इमेज फाइल अपलोड करें (JPEG/PNG) / Please select an image file");
+      toast.error("कृपया केवल इमेज फाइल चुनें (JPEG/PNG) / Please select an image file");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("इमेज का आकार 5MB से कम होना चाहिए / Image must be under 5MB");
+      toast.error("फोटो का आकार 5MB से कम होना चाहिए / Image must be under 5MB");
       return;
     }
 
@@ -273,12 +268,12 @@ export default function AddLadoBahinPage() {
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      toast.error("कृपया केवल इमेज फाइल अपलोड करें (JPEG/PNG) / Please select an image file");
+      toast.error("कृपया केवल इमेज फाइल चुनें (JPEG/PNG) / Please select an image file");
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("इमेज का आकार 5MB से कम होना चाहिए / Image must be under 5MB");
+      toast.error("फोटो का आकार 5MB से कम होना चाहिए / Image must be under 5MB");
       return;
     }
 
@@ -295,6 +290,10 @@ export default function AddLadoBahinPage() {
     setNomineePhotoBase64(null);
     setNomineePhotoPreview(null);
   };
+
+  const selectedWorker = agents.find(
+    (a) => String(a.id) === String(formData.selectedAgentId)
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -316,6 +315,7 @@ export default function AddLadoBahinPage() {
       toast.error("कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें / Invalid 10-digit mobile number");
       return;
     }
+
     let hasAadhaarError = false;
     const aadharDigits = (formData.aadharNumber || "").replace(/\D/g, "");
     const nomineeAadharDigits = (formData.nomineeAadhar || "").replace(/\D/g, "");
@@ -335,29 +335,33 @@ export default function AddLadoBahinPage() {
     }
 
     if (hasAadhaarError) {
-      if ((!formData.aadharNumber.trim() || aadharDigits.length !== 12) && (formData.nomineeAadhar.trim() && nomineeAadharDigits.length !== 12)) {
-        toast.error("कृपया आवेदक और नॉमिनी के 12 अंकों का वैध आधार नंबर दर्ज करें / Please enter valid 12-digit Aadhaar numbers");
-      } else if (!formData.aadharNumber.trim() || aadharDigits.length !== 12) {
-        toast.error("कृपया आवेदक का 12 अंकों का वैध आधार नंबर दर्ज करें / Please enter valid 12-digit Applicant Aadhaar number");
-      } else {
-        toast.error("कृपया नॉमिनी का 12 अंकों का वैध आधार नंबर दर्ज करें / Please enter valid 12-digit Nominee Aadhaar number");
-      }
+      toast.error("कृपया 12 अंकों का वैध आधार नंबर दर्ज करें / Please enter valid 12-digit Aadhaar number");
       return;
     }
     if (!formData.district.trim()) {
-      toast.error("कृपया जिला चुनें / Please enter District");
+      toast.error("कृपया जिला चुनें या दर्ज करें / Please enter District");
       return;
     }
     if (!formData.address.trim()) {
       toast.error("कृपया पता दर्ज करें / Please enter Address");
       return;
     }
+    if (!formData.selectedAgentId) {
+      toast.error("कृपया कार्यकर्ता / एजेंट चुनें / Please select a worker");
+      return;
+    }
 
-    // E-PIN Validation check if E-PIN code entered
+    // E-PIN Validation guard: If E-PIN is entered, it MUST be successfully verified
     if (formData.epinCode.trim() && epinVerified && !epinVerified.valid) {
       toast.error(
-        epinVerified.message ||
-          "ई-पिन अमान्य है, कृपया मान्य ई-पिन दर्ज करें या खाली छोड़ें / Invalid E-PIN voucher"
+        epinVerified?.message ||
+          "ई-पिन अमान्य है / Invalid E-PIN. कृपया पंजीकरण सुरक्षित करने से पहले ई-पिन सत्यापित करें"
+      );
+      return;
+    }
+    if (formData.epinCode.trim() && !epinVerified) {
+      toast.error(
+        "कृपया पंजीकरण सुरक्षित करने से पहले ई-पिन सत्यापित करें / Please verify the E-PIN before submitting"
       );
       return;
     }
@@ -396,6 +400,9 @@ export default function AddLadoBahinPage() {
         }
       }
 
+      const activeEpin = formData.epinCode.trim() || null;
+      const resolvedAgentId = formData.selectedAgentId ? String(formData.selectedAgentId).trim() : undefined;
+
       const payload: CreateLadoBahinPayload = {
         applicationDate: convertToYYYYMMDD(formData.applicationDate) || formatDateForAPI(new Date()),
         offlineFormNumber: formData.offlineFormNumber.trim() || null,
@@ -432,22 +439,44 @@ export default function AddLadoBahinPage() {
         membershipFee: 5100,
         grantFee: 5100,
         totalAmount: 5100,
-        paymentAmount: Number(formData.paymentAmount) || 0,
+        paymentAmount: epinVerified?.valid ? 5100 : (Number(formData.paymentAmount) || 0),
         paymentMode: formData.paymentMode,
-        epinCode: formData.epinCode.trim() || null,
         selectedAgentId: formData.selectedAgentId || undefined,
+        addedById: formData.selectedAgentId || undefined,
+        agentId: formData.selectedAgentId || undefined,
+        addedby_id: formData.selectedAgentId || undefined,
+        epinCode: formData.epinCode.trim() || null,
+        pinNumber: formData.epinCode.trim() || null,
+        epin: formData.epinCode.trim() || null,
       };
 
       const res = await LadoBahinService.createRegistration(payload);
       if (res && res.data) {
-        toast.success("लाडो बहिन पंजीकरण सफलतापूर्वक सुरक्षित किया गया / Registration created successfully");
+        toast.success("लाडो बहिन पंजीयन सफलतापूर्वक दर्ज किया गया / Registration created successfully");
+
+        // Atomically consume E-PIN post-registration if applied
+        if (activeEpin) {
+          try {
+            await EpinService.consumeEpin({
+              pinNumber: activeEpin,
+              applicationId: String(res.data.id || res.data.formNumber || ""),
+              applicantName: formData.applicantName,
+              agentId: resolvedAgentId,
+              moduleType: "lado_bahin",
+              remarks: "Consumed for Lado Bahin Registration",
+            });
+          } catch (epinErr) {
+            console.error("E-PIN post-registration consumption note:", epinErr);
+          }
+        }
+
         router.push("/dashboard/lado-bahin");
       } else {
         throw new Error(res?.message || "Failed to create registration");
       }
     } catch (err: any) {
       console.error("Error creating registration:", err);
-      toast.error(err.message || "पंजीकरण सुरक्षित करने में विफल / Failed to create registration");
+      toast.error(err.message || "पंजीकरण विफल रहा / Failed to create registration");
     } finally {
       setIsLoading(false);
     }
@@ -471,10 +500,10 @@ export default function AddLadoBahinPage() {
                   ← वापस जाएं / Go Back
                 </Button>
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mt-2">
-                  नया लाडो बहिन पंजीकरण (New Lado Bahin Registration)
+                  नया लाडो बहिन पंजीयन (New Lado Bahin Registration)
                 </h1>
                 <p className="text-sm text-gray-600 mt-1">
-                  लाडो बहिन (मुकलावा) सहायता योजना के लिए नया आवेदन दर्ज करें / Add New Lado Bahin Registration
+                  लाडो बहिन (मुकलावा) सहायता योजना पंजीयन फॉर्म भरें / Add New Lado Bahin Registration
                 </p>
               </div>
             </div>
@@ -604,38 +633,28 @@ export default function AddLadoBahinPage() {
                       onChange={(e) => handleInputChange("accountType", e.target.value)}
                       className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/20"
                     >
-                      <option value="LADO_BAHIN_300">लाडो बहिन ₹300 (मासिक / Monthly)</option>
-                      <option value="LADO_BAHIN_1000">लाडो बहिन ₹1000 (मासिक / Monthly)</option>
+                      <option value="LADO_BAHIN_300">लाडो बहिन ₹300 (मासिक)</option>
+                      <option value="LADO_BAHIN_1000">लाडो बहिन ₹1000 (मासिक)</option>
                     </select>
                   </div>
 
-                  {/* Scheme Type (Fixed) */}
+                  {/* Scheme Type */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">योजना (Scheme)</Label>
+                    <Label className="text-xs sm:text-sm font-semibold text-foreground">योजना प्रकार (Scheme Type)</Label>
                     <Input
-                      value="लाडो बहिन (LADO_BAHIN)"
+                      value="लाडो बहिन योजना (LADO_BAHIN)"
                       disabled
                       className="h-10 bg-muted text-muted-foreground font-medium"
                     />
                   </div>
 
-                  {/* Pool (Fixed) */}
+                  {/* Pool */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">पूल (Pool)</Label>
+                    <Label className="text-xs sm:text-sm font-semibold text-foreground">पूल प्रकार (Pool Type)</Label>
                     <Input
-                      value="महिला पूल (FEMALE_POOL)"
+                      value="फीमेल पूल (FEMALE_POOL)"
                       disabled
                       className="h-10 bg-muted text-muted-foreground font-medium"
-                    />
-                  </div>
-
-                  {/* Scheme Value (Fixed) */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">योजना राशि (Scheme Fee)</Label>
-                    <Input
-                      value="₹5,100"
-                      disabled
-                      className="h-10 bg-muted text-muted-foreground font-semibold"
                     />
                   </div>
                 </div>
@@ -653,39 +672,41 @@ export default function AddLadoBahinPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {/* Applicant Name */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                    <Label htmlFor="applicantName" className="text-xs sm:text-sm font-semibold text-foreground">
                       आवेदक का नाम (Applicant Name) <span className="text-rose-500">*</span>
                     </Label>
                     <Input
-                      placeholder="उदा. सुनीता प्रजापत"
+                      id="applicantName"
+                      placeholder="आवेदक का पूरा नाम"
                       value={formData.applicantName}
                       onChange={(e) => handleInputChange("applicantName", e.target.value)}
-                      className="h-10"
                       required
+                      className="h-10"
                     />
                   </div>
 
                   {/* Father Name */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                      पिता का नाम (Father&apos;s Name) <span className="text-rose-500">*</span>
+                    <Label htmlFor="fatherName" className="text-xs sm:text-sm font-semibold text-foreground">
+                      पिता का नाम (Father Name)
                     </Label>
                     <Input
-                      placeholder="उदा. रमेश प्रजापत"
+                      id="fatherName"
+                      placeholder="पिता का पूरा नाम"
                       value={formData.fatherName}
                       onChange={(e) => handleInputChange("fatherName", e.target.value)}
                       className="h-10"
-                      required
                     />
                   </div>
 
                   {/* Husband Name */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                      पति का नाम (Husband&apos;s Name)
+                    <Label htmlFor="husbandName" className="text-xs sm:text-sm font-semibold text-foreground">
+                      पति का नाम (Husband Name)
                     </Label>
                     <Input
-                      placeholder="उदा. विक्रम प्रजापत"
+                      id="husbandName"
+                      placeholder="पति का पूरा नाम (यदि विवाहित हों)"
                       value={formData.husbandName}
                       onChange={(e) => handleInputChange("husbandName", e.target.value)}
                       className="h-10"
@@ -694,11 +715,12 @@ export default function AddLadoBahinPage() {
 
                   {/* Mother Name */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                      माता का नाम (Mother&apos;s Name)
+                    <Label htmlFor="motherName" className="text-xs sm:text-sm font-semibold text-foreground">
+                      माता का नाम (Mother Name)
                     </Label>
                     <Input
-                      placeholder="उदा. शांति देवी"
+                      id="motherName"
+                      placeholder="माता का पूरा नाम"
                       value={formData.motherName}
                       onChange={(e) => handleInputChange("motherName", e.target.value)}
                       className="h-10"
@@ -708,7 +730,7 @@ export default function AddLadoBahinPage() {
                   {/* Date of Birth */}
                   <div className="space-y-1.5">
                     <Label htmlFor="dateOfBirth" className="text-xs sm:text-sm font-semibold text-foreground">
-                      जन्म दिनांक (Date of Birth)
+                      जन्म तिथि (Date of Birth)
                     </Label>
                     <div className="relative flex gap-2">
                       <Input
@@ -772,73 +794,15 @@ export default function AddLadoBahinPage() {
 
                   {/* Age */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                      उम्र (Age in Years)
+                    <Label htmlFor="age" className="text-xs sm:text-sm font-semibold text-foreground">
+                      उम्र (Age)
                     </Label>
                     <Input
-                      placeholder="उदा. 24"
-                      type="number"
+                      id="age"
                       value={formData.age}
-                      onChange={(e) => handleInputChange("age", e.target.value)}
-                      className="h-10"
-                    />
-                  </div>
-
-                  {/* Gotra */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                      गोत्र (Gotra) <span className="text-rose-500">*</span>
-                    </Label>
-                    <Input
-                      placeholder="उदा. प्रजापत"
-                      value={formData.gotra}
-                      onChange={(e) => handleInputChange("gotra", e.target.value)}
-                      className="h-10"
-                      required
-                    />
-                  </div>
-
-                  {/* Aadhaar Number */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="aadharNumber" className="text-xs sm:text-sm font-semibold text-foreground">
-                      आधार कार्ड संख्या (Aadhaar Number) <span className="text-rose-500">*</span>
-                    </Label>
-                    <Input
-                      id="aadharNumber"
-                      type="tel"
-                      inputMode="numeric"
-                      placeholder="12 अंकों का आधार नंबर"
-                      maxLength={12}
-                      value={formData.aadharNumber}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
-                        handleInputChange("aadharNumber", digits);
-                        if (aadharError) {
-                          if (digits.length === 12) {
-                            setAadharError("");
-                          }
-                        }
-                      }}
-                      className={cn("h-10", aadharError && "border-rose-500 focus-visible:ring-rose-500")}
-                      required
-                    />
-                    {aadharError && (
-                      <p className="text-xs sm:text-sm text-rose-500 mt-1">{aadharError}</p>
-                    )}
-                  </div>
-
-                  {/* Mobile Number */}
-                  <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                      मोबाइल नंबर (Mobile Number) <span className="text-rose-500">*</span>
-                    </Label>
-                    <Input
-                      placeholder="10 अंकों का मोबाइल नंबर"
-                      maxLength={10}
-                      value={formData.mobile}
-                      onChange={(e) => handleInputChange("mobile", e.target.value)}
-                      className="h-10"
-                      required
+                      readOnly
+                      placeholder="स्वतः गणना"
+                      className="h-10 bg-muted font-medium text-foreground cursor-not-allowed"
                     />
                   </div>
 
@@ -894,8 +858,8 @@ export default function AddLadoBahinPage() {
                             mode="single"
                             selected={muklawaDateObj}
                             captionLayout="dropdown"
-                            fromYear={1950}
-                            toYear={new Date().getFullYear() + 20}
+                            month={muklawaDateObj}
+                            onMonthChange={setMuklawaDateObj}
                             onSelect={(date: any) => {
                               setMuklawaDateObj(date);
                               handleInputChange("muklawaDate", date ? formatDate(date) : "");
@@ -907,19 +871,74 @@ export default function AddLadoBahinPage() {
                     </div>
                   </div>
 
-                  {/* Gender (Fixed) */}
+                  {/* Gotra */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">लिंग (Gender)</Label>
+                    <Label htmlFor="gotra" className="text-xs sm:text-sm font-semibold text-foreground">
+                      गोत्र (Gotra) <span className="text-rose-500">*</span>
+                    </Label>
                     <Input
-                      value="महिला (Female)"
-                      disabled
-                      className="h-10 bg-muted text-muted-foreground font-medium"
+                      id="gotra"
+                      placeholder="उदा. प्रजापत / सुथार"
+                      value={formData.gotra}
+                      onChange={(e) => handleInputChange("gotra", e.target.value)}
+                      required
+                      className="h-10"
                     />
+                  </div>
+
+                  {/* Mobile */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="mobile" className="text-xs sm:text-sm font-semibold text-foreground">
+                      मोबाइल नंबर (Mobile) <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input
+                      id="mobile"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="10 अंकों का मोबाइल नंबर"
+                      maxLength={10}
+                      value={formData.mobile}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        handleInputChange("mobile", digits);
+                      }}
+                      required
+                      className="h-10"
+                    />
+                  </div>
+
+                  {/* Aadhaar Number */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="aadharNumber" className="text-xs sm:text-sm font-semibold text-foreground">
+                      आधार नंबर (Aadhaar Number) <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input
+                      id="aadharNumber"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="12 अंकों का आधार नंबर"
+                      maxLength={12}
+                      value={formData.aadharNumber}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
+                        handleInputChange("aadharNumber", digits);
+                        if (aadharError) {
+                          if (!digits || digits.length === 12) {
+                            setAadharError("");
+                          }
+                        }
+                      }}
+                      required
+                      className={cn("h-10", aadharError && "border-rose-500 focus-visible:ring-rose-500")}
+                    />
+                    {aadharError && (
+                      <p className="text-xs text-rose-500 mt-1">{aadharError}</p>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* 3. Address & Location Card */}
+              {/* 3. Address & Location Details Card */}
               <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
                 <div className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <MapPin className="w-5 h-5 text-primary" />
@@ -929,70 +948,82 @@ export default function AddLadoBahinPage() {
                 </div>
 
                 <div className="space-y-4">
-                  {/* Full Address - Full Width */}
-                  <div className="space-y-1.5 w-full">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                      पूरा पता (Full Address) <span className="text-rose-500">*</span>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="address" className="text-xs sm:text-sm font-semibold text-foreground">
+                      पूर्ण पता (Full Address) <span className="text-rose-500">*</span>
                     </Label>
                     <Textarea
-                      placeholder="मकान नं., गली, गाँव/मोहल्ला"
-                      rows={2}
+                      id="address"
+                      placeholder="मकान नं., गली/मोहल्ला, गाँव/वार्ड विवरण"
                       value={formData.address}
                       onChange={(e) => handleInputChange("address", e.target.value)}
-                      className="w-full"
                       required
+                      className="min-h-[70px] resize-none"
                     />
                   </div>
 
-                  {/* 4-column location grid matching General Marriage */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                    {/* State */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                        तहसील (Tehsil) <span className="text-rose-500">*</span>
+                      <Label htmlFor="state" className="text-xs sm:text-sm font-semibold text-foreground">
+                        राज्य (State) <span className="text-rose-500">*</span>
                       </Label>
                       <Input
-                        placeholder="उदा. समदड़ी"
-                        value={formData.tehsil}
-                        onChange={(e) => handleInputChange("tehsil", e.target.value)}
-                        className="h-10"
+                        id="state"
+                        value={formData.state}
+                        onChange={(e) => handleInputChange("state", e.target.value)}
                         required
+                        className="h-10"
                       />
                     </div>
 
+                    {/* District */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                      <Label htmlFor="district" className="text-xs sm:text-sm font-semibold text-foreground">
                         जिला (District) <span className="text-rose-500">*</span>
                       </Label>
                       <Input
-                        placeholder="उदा. बालोतरा"
+                        id="district"
+                        placeholder="जिला दर्ज करें"
                         value={formData.district}
                         onChange={(e) => handleInputChange("district", e.target.value)}
-                        className="h-10"
                         required
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                        राज्य (State)
-                      </Label>
-                      <Input
-                        placeholder="उदा. राजस्थान"
-                        value={formData.state}
-                        onChange={(e) => handleInputChange("state", e.target.value)}
                         className="h-10"
                       />
                     </div>
 
+                    {/* Tehsil */}
                     <div className="space-y-1.5">
-                      <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                        पिन कोड (Pin Code)
+                      <Label htmlFor="tehsil" className="text-xs sm:text-sm font-semibold text-foreground">
+                        तहसील (Tehsil) <span className="text-rose-500">*</span>
                       </Label>
                       <Input
+                        id="tehsil"
+                        placeholder="तहसील दर्ज करें"
+                        value={formData.tehsil}
+                        onChange={(e) => handleInputChange("tehsil", e.target.value)}
+                        required
+                        className="h-10"
+                      />
+                    </div>
+
+                    {/* Pin Code */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pinCode" className="text-xs sm:text-sm font-semibold text-foreground">
+                        पिन कोड (Pin Code) <span className="text-rose-500">*</span>
+                      </Label>
+                      <Input
+                        id="pinCode"
+                        type="tel"
+                        inputMode="numeric"
                         placeholder="6 अंकों का पिन कोड"
                         maxLength={6}
                         value={formData.pinCode}
-                        onChange={(e) => handleInputChange("pinCode", e.target.value)}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+                          handleInputChange("pinCode", digits);
+                        }}
+                        required
                         className="h-10"
                       />
                     </div>
@@ -1005,23 +1036,26 @@ export default function AddLadoBahinPage() {
                 <div className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <Heart className="w-5 h-5 text-primary" />
                   <h2 className="text-base sm:text-lg font-semibold text-foreground">
-                    4. नॉमिनी विवरण (Nominee Details)
+                    4. नामांकित विवरण (Nominee Details)
                   </h2>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                  {/* Nominee Name */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                      नॉमिनी का नाम (Nominee Name)
+                    <Label htmlFor="nomineeName" className="text-xs sm:text-sm font-semibold text-foreground">
+                      नामांकित का नाम (Nominee Name)
                     </Label>
                     <Input
-                      placeholder="उदा. विक्रम प्रजापत"
+                      id="nomineeName"
+                      placeholder="नामांकित व्यक्ति का नाम"
                       value={formData.nomineeName}
                       onChange={(e) => handleInputChange("nomineeName", e.target.value)}
                       className="h-10"
                     />
                   </div>
 
+                  {/* Relation */}
                   <div className="space-y-1.5">
                     <Label className="text-xs sm:text-sm font-semibold text-foreground">
                       संबंध (Relationship)
@@ -1042,22 +1076,30 @@ export default function AddLadoBahinPage() {
                     </select>
                   </div>
 
+                  {/* Nominee Mobile */}
                   <div className="space-y-1.5">
-                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                      नॉमिनी मोबाइल (Mobile)
+                    <Label htmlFor="nomineeMobile" className="text-xs sm:text-sm font-semibold text-foreground">
+                      नामांकित मोबाइल (Nominee Mobile)
                     </Label>
                     <Input
+                      id="nomineeMobile"
+                      type="tel"
+                      inputMode="numeric"
                       placeholder="10 अंकों का मोबाइल"
                       maxLength={10}
                       value={formData.nomineeMobile}
-                      onChange={(e) => handleInputChange("nomineeMobile", e.target.value)}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        handleInputChange("nomineeMobile", digits);
+                      }}
                       className="h-10"
                     />
                   </div>
 
+                  {/* Nominee Aadhaar */}
                   <div className="space-y-1.5">
                     <Label htmlFor="nomineeAadhar" className="text-xs sm:text-sm font-semibold text-foreground">
-                      नॉमिनी आधार (Aadhaar)
+                      नामांकित आधार (Nominee Aadhaar)
                     </Label>
                     <Input
                       id="nomineeAadhar"
@@ -1067,7 +1109,7 @@ export default function AddLadoBahinPage() {
                       maxLength={12}
                       value={formData.nomineeAadhar}
                       onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, '').slice(0, 12);
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
                         handleInputChange("nomineeAadhar", digits);
                         if (nomineeAadharError) {
                           if (!digits || digits.length === 12) {
@@ -1078,23 +1120,23 @@ export default function AddLadoBahinPage() {
                       className={cn("h-10", nomineeAadharError && "border-rose-500 focus-visible:ring-rose-500")}
                     />
                     {nomineeAadharError && (
-                      <p className="text-xs sm:text-sm text-rose-500 mt-1">{nomineeAadharError}</p>
+                      <p className="text-xs text-rose-500 mt-1">{nomineeAadharError}</p>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* 5. Photo Upload Card */}
-              <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-6">
+              {/* 5. Photo Details Card */}
+              <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
                 <div className="flex items-center gap-2 border-b border-border/40 pb-3">
                   <Upload className="w-5 h-5 text-primary" />
                   <h2 className="text-base sm:text-lg font-semibold text-foreground">
-                    5. फोटो संलग्न करें (Photo Upload)
+                    5. फोटो विवरण (Photo Details)
                   </h2>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* 1. Applicant Photo */}
+                  {/* Applicant Photo */}
                   <div className="space-y-3 p-4 rounded-lg border border-border/40 bg-muted/10">
                     <Label className="text-xs sm:text-sm font-semibold text-foreground block">
                       आवेदक फोटो (Applicant Photo)
@@ -1112,7 +1154,7 @@ export default function AddLadoBahinPage() {
                             type="button"
                             onClick={removePhoto}
                             className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 text-xs hover:bg-rose-700 shadow-xs"
-                            title="फोटो हटाएं / Remove photo"
+                            title="फोटो हटाएं / Remove Photo"
                           >
                             ✕
                           </button>
@@ -1120,19 +1162,19 @@ export default function AddLadoBahinPage() {
                       ) : (
                         <div className="w-24 h-32 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground bg-muted/30 shrink-0">
                           <User className="w-7 h-7 opacity-40 mb-1" />
-                          <span className="text-[10px]">कोई फोटो नहीं</span>
+                          <span className="text-[10px]">फोटो नहीं है</span>
                         </div>
                       )}
 
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Label htmlFor="photo-upload" className="cursor-pointer inline-block">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Label htmlFor="passport-photo-upload" className="cursor-pointer inline-block">
                             <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
                               <Upload className="w-4 h-4" />
-                              <span>{photoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
+                              <span>{photoPreview ? "फोटो बदलें / Replace" : "फोटो चुनें / Choose"}</span>
                             </div>
                             <input
-                              id="photo-upload"
+                              id="passport-photo-upload"
                               type="file"
                               accept="image/*"
                               className="hidden"
@@ -1140,32 +1182,31 @@ export default function AddLadoBahinPage() {
                             />
                           </Label>
                           <MediaUploadControl
-                            id="lado-photo-camera"
                             mode="image"
-                            label="बालिका का फोटो"
                             standaloneCameraOnly
                             onFileSelect={(file) => {
                               const reader = new FileReader();
-                              reader.onloadend = () => {
-                                const b64 = reader.result as string;
-                                setPassportPhotoBase64(b64);
-                                setPhotoPreview(b64);
+                              reader.onload = () => {
+                                const result = reader.result as string;
+                                setPassportPhotoBase64(result);
+                                setPhotoPreview(result);
                               };
                               reader.readAsDataURL(file);
                             }}
+                            label="कैमरा से लें"
                           />
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          पासपोर्ट साइज़ फोटो (JPG, PNG). अधिकतम साइज़: 5MB
+                          पासपोर्ट साइज फोटो (JPG, PNG). अधिकतम 5MB.
                         </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* 2. Nominee Photo */}
+                  {/* Nominee Photo */}
                   <div className="space-y-3 p-4 rounded-lg border border-border/40 bg-muted/10">
                     <Label className="text-xs sm:text-sm font-semibold text-foreground block">
-                      नॉमिनी फोटो (Nominee Photo)
+                      नामांकित फोटो (Nominee Photo)
                     </Label>
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                       {nomineePhotoPreview ? (
@@ -1180,7 +1221,7 @@ export default function AddLadoBahinPage() {
                             type="button"
                             onClick={removeNomineePhoto}
                             className="absolute top-1 right-1 bg-rose-600 text-white rounded-full p-1 text-xs hover:bg-rose-700 shadow-xs"
-                            title="नॉमिनी फोटो हटाएं / Remove nominee photo"
+                            title="फोटो हटाएं / Remove Photo"
                           >
                             ✕
                           </button>
@@ -1188,16 +1229,16 @@ export default function AddLadoBahinPage() {
                       ) : (
                         <div className="w-24 h-32 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground bg-muted/30 shrink-0">
                           <User className="w-7 h-7 opacity-40 mb-1" />
-                          <span className="text-[10px]">कोई फोटो नहीं</span>
+                          <span className="text-[10px]">फोटो नहीं है</span>
                         </div>
                       )}
 
                       <div className="space-y-2">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Label htmlFor="nominee-photo-upload" className="cursor-pointer inline-block">
                             <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs sm:text-sm font-medium transition-colors">
                               <Upload className="w-4 h-4" />
-                              <span>{nomineePhotoPreview ? "फोटो बदलें / Replace Photo" : "फोटो चुनें / Choose Photo"}</span>
+                              <span>{nomineePhotoPreview ? "फोटो बदलें / Replace" : "फोटो चुनें / Choose"}</span>
                             </div>
                             <input
                               id="nominee-photo-upload"
@@ -1208,23 +1249,22 @@ export default function AddLadoBahinPage() {
                             />
                           </Label>
                           <MediaUploadControl
-                            id="lado-nominee-photo-camera"
                             mode="image"
-                            label="नॉमिनी फोटो"
                             standaloneCameraOnly
                             onFileSelect={(file) => {
                               const reader = new FileReader();
-                              reader.onloadend = () => {
-                                const b64 = reader.result as string;
-                                setNomineePhotoBase64(b64);
-                                setNomineePhotoPreview(b64);
+                              reader.onload = () => {
+                                const result = reader.result as string;
+                                setNomineePhotoBase64(result);
+                                setNomineePhotoPreview(result);
                               };
                               reader.readAsDataURL(file);
                             }}
+                            label="कैमरा से लें"
                           />
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          नॉमिनी पासपोर्ट साइज़ फोटो (JPG, PNG). अधिकतम साइज़: 5MB
+                          नामांकित पासपोर्ट फोटो (JPG, PNG). अधिकतम 5MB.
                         </p>
                       </div>
                     </div>
@@ -1232,79 +1272,150 @@ export default function AddLadoBahinPage() {
                 </div>
               </div>
 
-              {/* 6. E-PIN & Payment Details Card */}
+              {/* 6. E-PIN & Worker Details Card */}
               <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
                 <div className="flex items-center gap-2 border-b border-border/40 pb-3">
-                  <CreditCard className="w-5 h-5 text-primary" />
+                  <KeyRound className="w-5 h-5 text-primary" />
                   <h2 className="text-base sm:text-lg font-semibold text-foreground">
-                    6. ई-पिन एवं भुगतान विवरण (E-PIN & Payment Details)
+                    6. ई-पिन एवं कार्यकर्ता विवरण (E-PIN & Worker Details)
                   </h2>
                 </div>
 
                 <div className="space-y-4">
+                  {/* Worker / Agent Selection */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="selectedAgentId" className="text-xs sm:text-sm font-semibold text-foreground">
+                      कार्यकर्ता / एजेंट (Worker / Agent) <span className="text-rose-500">*</span>
+                    </Label>
+                    <WorkerSearchSelector
+                      id="selectedAgentId"
+                      value={formData.selectedAgentId}
+                      onValueChange={(val) => {
+                        handleInputChange("selectedAgentId", val);
+                        // Invalidate previous E-PIN verification when agent changes
+                        setEpinVerified(null);
+                      }}
+                      agents={agents}
+                      isLoading={loadingAgents}
+                      disabled={loadingAgents}
+                      defaultOption={{
+                        value: "",
+                        label: "स्वयं / Self",
+                        secondary: "No Specific Worker",
+                      }}
+                      placeholder="कार्यकर्ता चुनें / Select Worker"
+                    />
+                  </div>
+
+                  {/* Selected Worker Info Summary Box */}
+                  {selectedWorker && (
+                    <div className="p-3.5 bg-muted/40 rounded-lg border border-border/60 flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
+                      <div className="space-y-0.5">
+                        <p className="font-semibold text-foreground">
+                          {selectedWorker.name}
+                        </p>
+                        <p className="text-muted-foreground">
+                          Mobile: {selectedWorker.mobile || "N/A"}
+                        </p>
+                      </div>
+                      {selectedWorker.offlineFormNumber && (
+                        <span className="px-2.5 py-1 bg-primary/10 text-primary font-mono font-medium rounded-md">
+                          Code / Form: {selectedWorker.offlineFormNumber}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* E-PIN Verifier Component */}
-                  <div className="p-4 bg-muted/20 border rounded-lg">
+                  <div className="p-4 bg-muted/20 border rounded-lg space-y-2">
+                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                      ई-पिन वाउचर (E-PIN Voucher)
+                    </Label>
                     <EpinInputVerifier
                       value={formData.epinCode}
-                      onChange={(val) => handleInputChange("epinCode", val)}
+                      onChange={(val) => {
+                        handleInputChange("epinCode", val);
+                        // Reset verification if E-PIN code text is modified
+                        setEpinVerified(null);
+                      }}
                       onVerified={handleEpinVerified}
                       disabled={isLoading}
                       agentId={formData.selectedAgentId || undefined}
                     />
+
+                    {epinVerified && epinVerified.valid && (
+                      <div className="mt-2 flex items-center justify-between text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 p-2.5 rounded-md">
+                        <span className="flex items-center font-medium">
+                          <CheckCircle2 className="w-4 h-4 mr-1 text-emerald-600" />
+                          E-PIN Status: Verified
+                        </span>
+                        <span className="font-semibold">
+                          Voucher Amount: ₹{(epinVerified.schemeAmount || 5100).toLocaleString("hi-IN")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 7. Financial Status & Payment Details Card */}
+              <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
+                <div className="flex items-center gap-2 border-b border-border/40 pb-3">
+                  <CreditCard className="w-5 h-5 text-primary" />
+                  <h2 className="text-base sm:text-lg font-semibold text-foreground">
+                    7. वित्तीय स्थिति (Financial Status)
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  {/* Total Membership Fee */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                      कुल सदस्यता शुल्क (Membership Fee)
+                    </Label>
+                    <Input
+                      value="₹5,100"
+                      disabled
+                      className="h-10 bg-muted text-muted-foreground font-semibold cursor-not-allowed"
+                    />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 pt-2">
-                    {/* Initial Payment Amount */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                        प्रारंभिक जमा राशि (Initial Paid Amount)
-                      </Label>
-                      <Input
-                        placeholder="₹ 0"
-                        type="number"
-                        value={formData.paymentAmount}
-                        onChange={(e) => handleInputChange("paymentAmount", e.target.value)}
-                        className="h-10"
-                      />
-                    </div>
+                  {/* Initial Paid Amount */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                      प्रारंभिक जमा राशि (Initial Paid Amount)
+                    </Label>
+                    <Input
+                      placeholder="₹ 0"
+                      type="number"
+                      value={epinVerified?.valid ? "5100" : formData.paymentAmount}
+                      disabled={Boolean(epinVerified?.valid)}
+                      onChange={(e) => handleInputChange("paymentAmount", e.target.value)}
+                      className={cn("h-10", epinVerified?.valid && "bg-muted cursor-not-allowed font-medium")}
+                    />
+                    {epinVerified?.valid && (
+                      <p className="text-[11px] text-emerald-600 font-medium">
+                        ✓ ई-पिन द्वारा ₹5,100 पूर्णतः समाहित / Covered by E-PIN voucher
+                      </p>
+                    )}
+                  </div>
 
-                    {/* Payment Mode */}
-                    <div className="space-y-1.5">
-                      <Label className="text-xs sm:text-sm font-semibold text-foreground">
-                        भुगतान माध्यम (Payment Mode)
-                      </Label>
-                      <select
-                        value={formData.paymentMode}
-                        onChange={(e) => handleInputChange("paymentMode", e.target.value)}
-                        className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/20"
-                      >
-                        <option value="CASH">नकद (CASH)</option>
-                        <option value="ONLINE">ऑनलाइन (ONLINE)</option>
-                        <option value="BANK_TRANSFER">बैंक ट्रांसफर (BANK_TRANSFER)</option>
-                        <option value="RAZORPAY">रेज़रपे (RAZORPAY)</option>
-                      </select>
-                    </div>
-
-                    {/* Agent / Worker Selection */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="selectedAgentId" className="text-xs sm:text-sm font-semibold text-foreground">
-                        कार्यकर्ता / एजेंट (Worker / Agent)
-                      </Label>
-                      <WorkerSearchSelector
-                        id="selectedAgentId"
-                        value={formData.selectedAgentId}
-                        onValueChange={(val) => handleInputChange("selectedAgentId", val)}
-                        agents={agents}
-                        isLoading={loadingAgents}
-                        disabled={loadingAgents}
-                        defaultOption={{
-                          value: "",
-                          label: "स्वयं / Self",
-                          secondary: "No Specific Worker",
-                        }}
-                        placeholder="कार्यकर्ता चुनें / Select Worker"
-                      />
-                    </div>
+                  {/* Payment Mode */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs sm:text-sm font-semibold text-foreground">
+                      भुगतान माध्यम (Payment Mode)
+                    </Label>
+                    <select
+                      value={formData.paymentMode}
+                      disabled={Boolean(epinVerified?.valid)}
+                      onChange={(e) => handleInputChange("paymentMode", e.target.value)}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/20 disabled:bg-muted disabled:cursor-not-allowed"
+                    >
+                      <option value="CASH">नकद (CASH)</option>
+                      <option value="ONLINE">ऑनलाइन (ONLINE)</option>
+                      <option value="BANK_TRANSFER">बैंक ट्रांसफर (BANK_TRANSFER)</option>
+                      <option value="RAZORPAY">रेज़रपे (RAZORPAY)</option>
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1328,7 +1439,7 @@ export default function AddLadoBahinPage() {
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      सुरक्षित कर रहे हैं... / Saving...
+                      सुरक्षित किया जा रहा है... / Saving...
                     </>
                   ) : (
                     <>

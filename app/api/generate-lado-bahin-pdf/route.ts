@@ -191,7 +191,10 @@ export async function POST(request: NextRequest) {
     ].filter(Boolean).join(' / ') || getField(record, 'fatherName', 'father_name');
     const dob = formatDate(getField(record, 'dateOfBirth', 'date_of_birth', 'dob'));
     const gender = getField(record, 'gender') || 'महिला';
-    const education = getField(record, 'education', 'qualification', 'शिक्षा', 'caste', 'category');
+    const casteOrGotra =
+      getField(record, 'gotra', 'gotraName', 'caste', 'जाति') ||
+      getField(body, 'gotra', 'gotraName', 'caste', 'जाति') ||
+      getField(record, 'education', 'qualification', 'शिक्षा');
     const aadhar = getField(record, 'aadharNumber', 'aadhar_number', 'aadhaarNumber', 'aadhaar_number', 'aadhar');
     const address = [getField(record, 'address'), getField(record, 'tehsil')].filter(Boolean).join(', ');
     const district = getField(record, 'district', 'जिला');
@@ -202,7 +205,7 @@ export async function POST(request: NextRequest) {
     drawBounded(fatherHusbandName, 122, 593.3, 10, 330);
     drawBounded(dob, 92, 565.6, 9.5, 75);
     drawBounded(gender, 198, 565.6, 9.5, 62);
-    drawBounded(education, 295, 565.6, 9.5, 155);
+    drawBounded(casteOrGotra, 295, 565.6, 9.5, 155);
     drawBounded(aadhar, 130, 537.9, 10, 320);
     drawBounded(address, 58, 510.2, 9.5, 390);
     drawBounded(district, 65, 482.4, 9.5, 92);
@@ -259,9 +262,16 @@ export async function POST(request: NextRequest) {
       getField(body, 'totalAmount', 'total_amount', 'membershipFee', 'grantFee', 'amount', 'fee', 'paymentAmount') ||
       '5100';
     const amountStr = totalAmount ? (String(totalAmount).endsWith('/-') ? String(totalAmount) : `${totalAmount}/-`) : '5,100/-';
+    const rawPaymentMode =
+      getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') ||
+      getField(body, 'paymentModeRef', 'paymentMode', 'payment_mode') ||
+      'CASH';
+    const cleanPaymentMode =
+      /razorpay|online/i.test(rawPaymentMode) ? 'Razorpay' : 'Cash';
+    const epin = getField(record, 'epinCode', 'epin_code') || getField(body, 'epinCode', 'epin_code');
     const paymentMode = [
-      getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') || getField(body, 'paymentModeRef', 'paymentMode', 'payment_mode') || 'CASH',
-      getField(record, 'epinCode', 'epin_code') || getField(body, 'epinCode', 'epin_code') ? `EPIN: ${getField(record, 'epinCode', 'epin_code') || getField(body, 'epinCode', 'epin_code')}` : ''
+      cleanPaymentMode,
+      epin ? `EPIN: ${epin}` : ''
     ].filter(Boolean).join(' / ');
     const seniorWorker =
       getField(

@@ -13,6 +13,11 @@ export interface LadoBahinInstallment {
   note?: string | null;
   rashidNumber?: string | null;
   addedById?: string;
+  addedby_id?: string;
+  epinCode?: string | null;
+  pinNumber?: string | null;
+  epin?: string | null;
+  membershipFee?: number;
   createdAt?: string;
 }
 
@@ -90,6 +95,11 @@ export interface LadoBahinRegistration {
   seniorCode?: string;
   uplineCode?: string;
   workerMobile?: string;
+  selectedAgentId?: string;
+  workerName?: string;
+  worker_name?: string;
+  agentId?: string;
+  addedby_id?: string;
 }
 
 export interface CreateLadoBahinPayload {
@@ -133,9 +143,12 @@ export interface CreateLadoBahinPayload {
   paymentAmount?: number;
   paymentMode?: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER";
   selectedAgentId?: string;
+  addedById?: string;
+  addedby_id?: string;
   agentId?: string;
   epinCode?: string | null;
   pinNumber?: string | null;
+  epin?: string | null;
 }
 
 export interface UpdateLadoBahinPayload {
@@ -171,7 +184,12 @@ export interface UpdateLadoBahinPayload {
   pendingAmount?: number;
   selectedAgentId?: string;
   addedById?: string;
+  addedby_id?: string;
   agentId?: string;
+  epinCode?: string | null;
+  pinNumber?: string | null;
+  epin?: string | null;
+  membershipFee?: number;
 }
 
 export interface LadoBahinFilters {

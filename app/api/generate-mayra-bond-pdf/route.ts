@@ -211,19 +211,19 @@ export async function POST(request: NextRequest) {
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
     // ── Measured Photo Boxes on Official A4 Template (595.28 x 841.89 pt) ─
-    // Top Photo Box (खाताधारक का फोटो):   x = 252.35, y = 578.75, w = 86.40, h = 80.18 (yFromTop = 182.96)
-    // Bottom Photo Box (नॉमिनी का फोटो): x = 252.35, y = 474.42, w = 86.40, h = 80.17 (yFromTop = 287.30)
-    // Safe inner inset (1.8 pt) ensures photos never touch or overwrite the original PDF borders on all 4 sides
-    const PHOTO_INSET = 1.8;
-    const BOX_X = 252.35;
+    // Top Photo Box (खाताधारक का फोटो):   x = 252.41, y = 610.91, w = 86.40, h = 73.15 (yFromTop = 157.82)
+    // Bottom Photo Box (नॉमिनी का फोटो): x = 252.41, y = 515.71, w = 86.40, h = 73.15 (yFromTop = 253.03)
+    // Safe inner inset (1.5 pt) ensures photos never touch or overwrite the original PDF borders on all 4 sides
+    const PHOTO_INSET = 1.5;
+    const BOX_X = 252.41;
     const BOX_W = 86.40;
-    const TOP_BOX_Y_FROM_TOP = 182.96;
-    const TOP_BOX_H = 80.18;
-    const BTM_BOX_Y_FROM_TOP = 287.30;
-    const BTM_BOX_H = 80.17;
+    const TOP_BOX_Y_FROM_TOP = 157.82;
+    const TOP_BOX_H = 73.15;
+    const BTM_BOX_Y_FROM_TOP = 253.03;
+    const BTM_BOX_H = 73.15;
 
     const innerPhotoX = BOX_X + PHOTO_INSET;
-    const innerPhotoW = BOX_W - PHOTO_INSET * 2; // 82.80 pt
+    const innerPhotoW = BOX_W - PHOTO_INSET * 2; // 83.40 pt
 
     if (applicantPhotoSource) {
       try {
@@ -461,42 +461,42 @@ export async function POST(request: NextRequest) {
     const mayraAmountText = resolveMayraAmountText(record);
 
     // ── Draw Header Meta Fields Centered inside their respective boxes ────
-    // 1. Form No Box [X: 109.31, Y: 680.13, W: 88.45, H: 20.86]
-    drawCenteredInBox(formNumber, 109.31, 680.13, 88.45, 20.86, 11.0, navyColor);
+    // 1. Form No Box [X: 109.36, Y: 703.41, W: 88.45, H: 19.04]
+    drawCenteredInBox(formNumber, 109.36, 703.41, 88.45, 19.04, 11.0, navyColor);
 
-    // 2. Application Date Box [X: 457.94, Y: 680.13, W: 88.45, H: 20.86]
-    drawCenteredInBox(applicationDate, 457.94, 680.13, 88.45, 20.86, 11.0, navyColor);
+    // 2. Application Date Box [X: 457.99, Y: 703.41, W: 88.45, H: 19.04]
+    drawCenteredInBox(applicationDate, 457.99, 703.41, 88.45, 19.04, 11.0, navyColor);
 
-    // 3. Agent Code Box [X: 109.31, Y: 653.99, W: 88.45, H: 20.86]
-    drawCenteredInBox(agentCode, 109.31, 653.99, 88.45, 20.86, 11.0, navyColor);
+    // 3. Agent Code Box [X: 109.36, Y: 679.57, W: 88.45, H: 19.04]
+    drawCenteredInBox(agentCode, 109.36, 679.57, 88.45, 19.04, 11.0, navyColor);
 
-    // 4. Membership No Box [X: 457.94, Y: 653.99, W: 88.45, H: 20.86]
-    drawCenteredInBox(membershipNo, 457.94, 653.99, 88.45, 20.86, 11.0, navyColor);
+    // 4. Membership No Box [X: 457.99, Y: 679.57, W: 88.45, H: 19.04]
+    drawCenteredInBox(membershipNo, 457.99, 679.57, 88.45, 19.04, 11.0, navyColor);
 
-    // 5. Upline Code Box [X: 109.31, Y: 629.01, W: 88.45, H: 20.86]
-    drawCenteredInBox(uplineCode, 109.31, 629.01, 88.45, 20.86, 11.0, navyColor);
+    // 5. Upline Code Box [X: 109.36, Y: 656.77, W: 88.45, H: 19.04]
+    drawCenteredInBox(uplineCode, 109.36, 656.77, 88.45, 19.04, 11.0, navyColor);
 
     // ── Draw Column Body Fields on Official Calibrated Template Baselines ─
     // LEFT COLUMN: भाणेज-भाणजी का विवरण (Font size 10.5 pt, Charcoal)
-    drawBounded(applicantName, 96.0, 592.43, 10.5, 150, charcoalColor);
-    drawBounded(applicantAadhaar, 75.0, 567.20, 10.5, 170, charcoalColor);
-    drawBounded(fatherName, 110.0, 541.97, 10.5, 135, charcoalColor);
-    drawBounded(gotra, 58.0, 516.74, 10.5, 185, charcoalColor);
-    drawBounded(address, 65.0, 491.51, 10.5, 135, charcoalColor);
-    drawBounded(nomineeRelation, 117.0, 466.29, 10.5, 33, charcoalColor);
+    drawBounded(applicantName, 95.0, 623.40, 10.5, 150, charcoalColor);
+    drawBounded(applicantAadhaar, 74.0, 600.40, 10.5, 170, charcoalColor);
+    drawBounded(fatherName, 109.0, 577.30, 10.5, 135, charcoalColor);
+    drawBounded(gotra, 58.0, 554.30, 10.5, 185, charcoalColor);
+    drawBounded(address, 65.0, 531.30, 10.5, 135, charcoalColor);
+    drawBounded(nomineeRelation, 117.0, 508.30, 10.5, 33, charcoalColor);
 
     // RIGHT COLUMN: नॉमिनी का विवरण (Font size 10.5 pt, Charcoal)
-    drawBounded(nomineeName, 390.0, 604.28, 10.5, 165, charcoalColor);
-    drawBounded(nomineeAadhaar, 387.0, 580.82, 10.5, 168, charcoalColor);
-    drawBounded(nomineeFathername, 387.0, 557.35, 10.5, 168, charcoalColor);
-    drawBounded(nomineeGotra, 370.0, 533.88, 10.5, 72, charcoalColor);
-    drawBounded(age, 463.0, 533.88, 10.5, 90, charcoalColor);
-    drawBounded(nomineeAddress, 378.0, 510.41, 10.5, 177, charcoalColor);
-    drawBounded(nomineeMobile, 404.0, 486.94, 10.5, 150, charcoalColor);
-    drawBounded(agentMobile, 400.0, 463.47, 10.5, 154, charcoalColor);
+    drawBounded(nomineeName, 388.0, 634.20, 10.5, 165, charcoalColor);
+    drawBounded(nomineeAadhaar, 385.0, 612.80, 10.5, 168, charcoalColor);
+    drawBounded(nomineeFathername, 385.0, 591.40, 10.5, 168, charcoalColor);
+    drawBounded(nomineeGotra, 368.0, 570.00, 10.5, 72, charcoalColor);
+    drawBounded(age, 463.0, 570.00, 10.5, 90, charcoalColor);
+    drawBounded(nomineeAddress, 376.0, 548.60, 10.5, 177, charcoalColor);
+    drawBounded(nomineeMobile, 401.0, 527.10, 10.5, 150, charcoalColor);
+    drawBounded(agentMobile, 398.0, 505.70, 10.5, 154, charcoalColor);
 
     // BOTTOM MAYRA AMOUNT (Font size 11.0 pt, Navy)
-    drawBounded(mayraAmountText, 223.0, 437.40, 11.0, 65, navyColor);
+    drawBounded(mayraAmountText, 223.0, 481.90, 11.0, 65, navyColor);
 
     const pdfBytes = await pdfDoc.save();
     const rawSafeName = applicantName || membershipNo || formNumber || record?.id || 'bond';

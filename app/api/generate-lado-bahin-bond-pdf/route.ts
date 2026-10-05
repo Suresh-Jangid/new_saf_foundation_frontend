@@ -132,10 +132,10 @@ export async function POST(request: NextRequest) {
           firstPage,
           pageHeight,
           applicantPhotoSource,
-          465.8,
-          183.69,
+          467.1,
+          174.64,
           84.4,
-          78.2,
+          71.15,
           'cover'
         );
       } catch (err) {
@@ -143,8 +143,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Box 2 (Lower Box: Nominee Photo): [464.83, 492.11] to [551.23, 572.28] (w: 86.40, h: 80.17)
-    // Inset by ~1pt on all sides: x = 465.8, yFromTop = 270.61, width = 84.4, height = 78.2
+    // Box 2 (Lower Box: Nominee Photo): [466.08, 515.78] to [552.48, 588.94] (w: 86.40, h: 73.15)
+    // Inset by ~1pt on all sides: x = 467.1, yFromTop = 253.95, width = 84.4, height = 71.15
     const nomineePhotoSource = pickPhotoSource(
       record?.nomineePhotoUrl,
       record?.nominee_photo_url,
@@ -159,10 +159,10 @@ export async function POST(request: NextRequest) {
           firstPage,
           pageHeight,
           nomineePhotoSource,
-          465.8,
-          270.61,
+          467.1,
+          253.95,
           84.4,
-          78.2,
+          71.15,
           'cover'
         );
       } catch (err) {
@@ -415,69 +415,69 @@ export async function POST(request: NextRequest) {
     // =========================================================================
 
     // ── 5.1 Top Header Vector Boxes ──────────────────────────────
-    // 1. फॉर्म नं. (Box 1 Left: minX=112.95, maxX=201.41, minY=703.70, maxY=724.56)
-    drawCenteredInBox(applicationOfflineNo, 112.95, 201.41, 710.0, 11, rgb(0, 0.15, 0.6));
+    // 1. फॉर्म नं. (Box 1 Left: minX=114.20, maxX=202.66, minY=708.85, maxY=727.89)
+    drawCenteredInBox(applicationOfflineNo, 114.20, 202.66, 714.5, 11, rgb(0, 0.15, 0.6));
 
-    // 2. एजेंट कोड (Box 2 Left: minX=112.95, maxX=201.41, minY=677.57, maxY=698.43)
-    drawCenteredInBox(workerCode, 112.95, 201.41, 684.0, 11, rgb(0.8, 0, 0));
+    // 2. एजेंट कोड (Box 2 Left: minX=114.20, maxX=202.66, minY=685.01, maxY=704.04)
+    drawCenteredInBox(workerCode, 114.20, 202.66, 690.5, 11, rgb(0.8, 0, 0));
 
-    // 3. अपलाईन कोड (Box 3 Left: minX=112.95, maxX=201.41, minY=652.58, maxY=673.45)
-    drawCenteredInBox(seniorCode, 112.95, 201.41, 659.0, 11, rgb(0.8, 0, 0));
+    // 3. अपलाईन कोड (Box 3 Left: minX=114.20, maxX=202.66, minY=662.20, maxY=681.24)
+    drawCenteredInBox(seniorCode, 114.20, 202.66, 668.0, 11, rgb(0.8, 0, 0));
 
-    // 4. आवेदन दि. (Box 1 Right: minX=462.78, maxX=551.23, minY=703.70, maxY=724.56)
-    drawCenteredInBox(applicationDate, 462.78, 551.23, 710.0, 10.5, rgb(0, 0.15, 0.6));
+    // 4. आवेदन दि. (Box 1 Right: minX=464.03, maxX=552.48, minY=708.85, maxY=727.89)
+    drawCenteredInBox(applicationDate, 464.03, 552.48, 714.5, 10.5, rgb(0, 0.15, 0.6));
 
-    // 5. सदस्यता क्र. (Box 2 Right: minX=462.78, maxX=551.23, minY=675.85, maxY=696.72)
-    drawCenteredInBox(membershipNo, 462.78, 551.23, 682.0, 10.5, rgb(0, 0.15, 0.6));
+    // 5. सदस्यता क्र. (Box 2 Right: minX=464.03, maxX=552.48, minY=683.44, maxY=702.48)
+    drawCenteredInBox(membershipNo, 464.03, 552.48, 689.0, 10.5, rgb(0, 0.15, 0.6));
 
     // ── 5.2 Middle Table Section ─────────────────────────────────
     // Left Column (Rows 1-6)
-    // Row 1: नाम :- (blY: 625.89)
-    drawBounded(applicantName, 75, 625.89, 10.5, 170);
+    // Row 1: नाम :- (blY: 637.90)
+    drawBounded(applicantName, 78, 637.90, 10.5, 170);
 
-    // Row 2: पिता/पति का नाम :- (blY: 602.48)
-    drawBounded(fatherHusbandName, 140, 602.48, 10.5, 105);
+    // Row 2: पिता/पति का नाम :- (blY: 616.50)
+    drawBounded(fatherHusbandName, 142, 616.50, 10.5, 105);
 
-    // Row 3: आधार नं. :- (blY: 579.06)
-    drawBounded(applicantAadhaar, 100, 579.06, 10.5, 145);
+    // Row 3: आधार नं. :- (blY: 595.10)
+    drawBounded(applicantAadhaar, 103, 595.10, 10.5, 145);
 
-    // Row 4: जाति :- (blY: 555.65)
-    drawBounded(gotra, 80, 555.65, 10.5, 165);
+    // Row 4: जाति :- (blY: 573.80)
+    drawBounded(gotra, 83, 573.80, 10.5, 165);
 
-    // Row 5: सम्बन्ध :- (blY: 532.23)
-    drawBounded(relation, 90, 532.23, 10.5, 155);
+    // Row 5: सम्बन्ध :- (blY: 552.40)
+    drawBounded(relation, 92, 552.40, 10.5, 155);
 
-    // Row 6: गांव :- (blY: 508.82)
-    drawBounded(village, 76, 508.82, 10.5, 170);
+    // Row 6: गांव :- (blY: 531.00)
+    drawBounded(village, 79, 531.00, 10.5, 170);
 
     // Right Column (Rows 1-6)
-    // Row 1: नॉमिनी नाम :- (blY: 625.20)
-    drawBounded(nomineeName, 318, 625.20, 10.5, 140);
+    // Row 1: नॉमिनी नाम :- (blY: 637.90)
+    drawBounded(nomineeName, 320, 637.90, 10.5, 140);
 
-    // Row 2: नॉमिनी आधार नं. :- (blY: 601.78)
-    drawBounded(nomineeAadhaar, 342, 601.78, 10, 116);
+    // Row 2: नॉमिनी आधार नं. :- (blY: 616.50)
+    drawBounded(nomineeAadhaar, 345, 616.50, 10, 115);
 
-    // Row 3: नॉमिनी मो. नं. :- (blY: 578.36)
-    drawBounded(nomineeMobile, 328, 578.36, 10, 130);
+    // Row 3: नॉमिनी मो. नं. :- (blY: 595.10)
+    drawBounded(nomineeMobile, 330, 595.10, 10, 130);
 
-    // Row 4: एजेंट मो. नं. :- (blY: 554.95)
-    drawBounded(agentMobile, 323, 554.95, 10, 135);
+    // Row 4: एजेंट मो. नं. :- (blY: 573.80)
+    drawBounded(agentMobile, 325, 573.80, 10, 135);
 
-    // Row 5: जिला :- (blY: 531.53)
-    drawBounded(district, 291, 531.53, 10.5, 165);
+    // Row 5: जिला :- (blY: 552.40)
+    drawBounded(district, 293, 552.40, 10.5, 165);
 
-    // Row 6: राज्य :- (blY: 508.11)
-    drawBounded(state, 287, 508.11, 10.5, 240);
+    // Row 6: राज्य :- (blY: 531.00)
+    drawBounded(state, 290, 531.00, 10.5, 240);
 
     // ── 5.3 Bottom Amount Line ───────────────────────────────────
-    // मुकलावा ... रूपये प्रत्येक मुकलावा पर लागू (blY: 482.5)
+    // मुकलावा ... रूपये प्रत्येक मुकलावा पर लागू (blY: 506.30)
     const installmentText = '300 किस्त';
-    drawCenteredInBox(installmentText, 213.5, 284.66, 482.5, 10.5, rgb(0, 0.15, 0.6));
+    drawCenteredInBox(installmentText, 215.0, 285.0, 506.30, 10.5, rgb(0, 0.15, 0.6));
 
     // ── 5.4 Bottom Benefit / Muklawa Line ────────────────────────
-    // इस योजना का लाभ 01-03-2027 के बाद मिलेगा (blY: 454.85)
+    // इस योजना का लाभ 01-03-2027 के बाद मिलेगा (blY: 481.80)
     const fixedBenefitDate = '01-03-2027';
-    drawCenteredInBox(fixedBenefitDate, 284.2, 342.84, 454.85, 10.5, rgb(0.8, 0, 0));
+    drawCenteredInBox(fixedBenefitDate, 285.0, 342.0, 481.80, 10.5, rgb(0.8, 0, 0));
 
     // 6. Serialize and Return PDF
     const pdfBytes = await pdfDoc.save();

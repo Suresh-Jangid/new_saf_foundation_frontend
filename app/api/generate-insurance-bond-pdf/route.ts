@@ -138,11 +138,11 @@ export async function POST(request: NextRequest) {
     );
 
     // Embed photos inside inner photo area of calibrated photo boxes on official A4 template (595.28 x 841.89 pt):
-    // Top Photo Box (खाताधारक का फोटो):   inner x = 462.56, yFromTop = 213.62, w = 84.90, h = 78.67
-    // Bottom Photo Box (नॉमिनी का फोटो): inner x = 462.56, yFromTop = 300.54, w = 84.90, h = 78.67
+    // Top Photo Box (खाताधारक का फोटो):   inner x = 457.80, yFromTop = 186.65, w = 83.88, h = 71.15
+    // Bottom Photo Box (नॉमिनी का फोटो): inner x = 457.80, yFromTop = 265.96, w = 83.88, h = 71.15
     if (applicantPhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 462.56, 213.62, 84.90, 78.67, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 457.80, 186.65, 83.88, 71.15, 'cover');
       } catch (err) {
         console.warn('Could not embed applicant photo in Insurance Bond:', err);
       }
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     if (nomineePhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 462.56, 300.54, 84.90, 78.67, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 457.80, 265.96, 83.88, 71.15, 'cover');
       } catch (err) {
         console.warn('Could not embed nominee photo in Insurance Bond:', err);
       }
@@ -439,65 +439,65 @@ export async function POST(request: NextRequest) {
     });
 
     // ── Draw Header Meta Fields Centered inside their respective pre-printed boxes ──
-    // 1. Form No Box [X: 113.37, Y: 680.90, W: 88.45, H: 20.87]
-    drawCenteredInBox(formNumber, 113.37, 680.90, 88.45, 20.87, 11.0, navyColor);
+    // 1. Form No Box [X: 110.48, Y: 703.58, W: 87.92, H: 19.04]
+    drawCenteredInBox(formNumber, 110.48, 703.58, 87.92, 19.04, 11.0, navyColor);
 
-    // 2. Application Date Box [X: 459.76, Y: 674.21, W: 88.45, H: 20.87]
-    drawCenteredInBox(applicationDate, 459.76, 674.21, 88.45, 20.87, 11.0, navyColor);
+    // 2. Application Date Box [X: 454.77, Y: 697.47, W: 87.92, H: 19.04]
+    drawCenteredInBox(applicationDate, 454.77, 697.47, 87.92, 19.04, 11.0, navyColor);
 
-    // 3. Agent Code Box [X: 113.37, Y: 654.77, W: 88.45, H: 20.87]
-    drawCenteredInBox(workerOffline, 113.37, 654.77, 88.45, 20.87, 11.0, navyColor);
+    // 3. Agent Code Box [X: 110.48, Y: 679.73, W: 87.92, H: 19.04]
+    drawCenteredInBox(workerOffline, 110.48, 679.73, 87.92, 19.04, 11.0, navyColor);
 
-    // 4. Membership No Box [X: 459.76, Y: 642.24, W: 88.45, H: 20.87]
-    drawCenteredInBox(membershipNumber, 459.76, 642.24, 88.45, 20.87, 11.0, navyColor);
+    // 4. Membership No Box [X: 454.77, Y: 668.30, W: 87.92, H: 19.04]
+    drawCenteredInBox(membershipNumber, 454.77, 668.30, 87.92, 19.04, 11.0, navyColor);
 
-    // 5. Upline Code Box [X: 113.37, Y: 629.78, W: 88.45, H: 20.87]
-    drawCenteredInBox(seniorOffline, 113.37, 629.78, 88.45, 20.87, 11.0, navyColor);
+    // 5. Upline Code Box [X: 110.48, Y: 656.93, W: 87.92, H: 19.04]
+    drawCenteredInBox(seniorOffline, 110.48, 656.93, 87.92, 19.04, 11.0, navyColor);
 
     // ── Draw Left Column Fields (खाताधारक विवरण) on Calibrated Baselines ──
-    // नाम %& (Applicant Name) - baseline y = 604.66
-    drawBounded(applicantName, 75.0, 604.66, 10.5, 185, charcoalColor);
+    // नाम %& (Applicant Name) - baseline y = 634.00
+    drawBounded(applicantName, 70.0, 634.00, 10.5, 190, charcoalColor);
 
-    // पिता/पति का नाम %& (Father/Husband Name) - baseline y = 578.38
-    drawBounded(fatherHusbandName, 137.0, 578.38, 10.5, 125, charcoalColor);
+    // पिता/पति का नाम %& (Father/Husband Name) - baseline y = 610.00
+    drawBounded(fatherHusbandName, 134.0, 610.00, 10.5, 130, charcoalColor);
 
-    // आधार नं. %& (Applicant Aadhaar) - baseline y = 552.09
-    drawBounded(aadharNumber, 98.0, 552.09, 10.5, 160, charcoalColor);
+    // आधार नं. %& (Applicant Aadhaar) - baseline y = 586.00
+    drawBounded(aadharNumber, 94.0, 586.00, 10.5, 165, charcoalColor);
 
-    // जाति %& (Caste/Gotra) - baseline y = 525.80
-    drawBounded(caste, 78.0, 525.80, 10.5, 180, charcoalColor);
+    // जाति %& (Caste/Gotra) - baseline y = 562.10
+    drawBounded(caste, 74.0, 562.10, 10.5, 185, charcoalColor);
 
-    // सम्बन्ध %& (Nominee Relation) - baseline y = 499.51
-    drawBounded(nomineeRelation, 88.0, 499.51, 10.5, 170, charcoalColor);
+    // सम्बन्ध %& (Nominee Relation) - baseline y = 538.10
+    drawBounded(nomineeRelation, 84.0, 538.10, 10.5, 175, charcoalColor);
 
-    // गांव %& (Village/Address) - baseline y = 473.22
-    drawBounded(village, 74.0, 473.22, 10.5, 185, charcoalColor);
+    // गांव %& (Village/Address) - baseline y = 514.10
+    drawBounded(village, 70.0, 514.10, 10.5, 190, charcoalColor);
 
     // ── Draw Right Column Fields (नॉमिनी एवं अन्य विवरण) on Calibrated Baselines ──
-    // नॉमिनी नाम %& (Nominee Name) - baseline y = 604.31
-    drawBounded(nomineeName, 338.0, 604.31, 10.5, 115, charcoalColor);
+    // नॉमिनी नाम %& (Nominee Name) - baseline y = 634.00
+    drawBounded(nomineeName, 333.0, 634.00, 10.5, 120, charcoalColor);
 
-    // नॉमिनी आधार नं. %& (Nominee Aadhaar) - baseline y = 578.31
-    drawBounded(nomineeAadhar, 362.0, 578.31, 10.5, 95, charcoalColor);
+    // नॉमिनी आधार नं. %& (Nominee Aadhaar) - baseline y = 610.00
+    drawBounded(nomineeAadhar, 358.0, 610.00, 10.5, 95, charcoalColor);
 
-    // नॉमिनी मो. नं. %& (Nominee Mobile) - baseline y = 552.32
-    drawBounded(nomineeMobile, 348.0, 552.32, 10.5, 105, charcoalColor);
+    // नॉमिनी मो. नं. %& (Nominee Mobile) - baseline y = 586.00
+    drawBounded(nomineeMobile, 343.0, 586.00, 10.5, 110, charcoalColor);
 
-    // एजेंट मो. नं. %& (Agent Mobile) - baseline y = 526.33
-    drawBounded(agentMobile, 343.0, 526.33, 10.5, 110, charcoalColor);
+    // एजेंट मो. नं. %& (Agent Mobile) - baseline y = 562.10
+    drawBounded(agentMobile, 338.0, 562.10, 10.5, 115, charcoalColor);
 
-    // जिला %& (District) - baseline y = 500.33
-    drawBounded(district, 312.0, 500.33, 10.5, 140, charcoalColor);
+    // जिला %& (District) - baseline y = 538.10
+    drawBounded(district, 306.0, 538.10, 10.5, 145, charcoalColor);
 
-    // राज्य %& (State) - baseline y = 474.34
-    drawBounded(state, 308.0, 474.34, 10.5, 145, charcoalColor);
+    // राज्य %& (State) - baseline y = 514.10
+    drawBounded(state, 302.0, 514.10, 10.5, 150, charcoalColor);
 
     // ── Draw Bottom Insurance Amount on Dotted Line ──
     // "परिवार कल्याण बीमा [ 300 ] रुपये प्रत्येक बीमा पर लागू"
-    // Dotted line runs from X: 246.0 to 315.3 (W: 69.3) at baseline Y: 450.65
+    // Dotted line runs from X: 242.0 to 308.0 (W: 66.0) at baseline Y: 493.50
     const amtWidth = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(insuranceAmountText, 12.0) : 22.0;
-    const amtX = 246.0 + Math.max(0, (69.3 - amtWidth) / 2);
-    drawBounded(insuranceAmountText, amtX, 450.65, 12.0, 65, navyColor);
+    const amtX = 242.0 + Math.max(0, (66.0 - amtWidth) / 2);
+    drawBounded(insuranceAmountText, amtX, 493.50, 12.0, 65, navyColor);
 
     const pdfBytes = await pdfDoc.save();
 

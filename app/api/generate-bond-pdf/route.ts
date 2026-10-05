@@ -156,11 +156,11 @@ export async function POST(request: NextRequest) {
           }
 
           if (image) {
-            // Precise passport photo box dimensions for official saf_vivah_bond.pdf [453.47–540.30] x [519.44–624.84]
-            const imageX = 454.5;
-            const imageY = 520.5;
-            const imageWidth = 84.8;
-            const imageHeight = 103.3;
+            // Precise passport photo box dimensions for official saf_vivah_bond.pdf [458.19–544.49] x [547.83–644.01]
+            const imageX = 459.2;
+            const imageY = 548.8;
+            const imageWidth = 84.3;
+            const imageHeight = 94.2;
 
             // Draw the image on the PDF directly using bottom-left coordinates
             firstPage.drawImage(image, {
@@ -357,58 +357,58 @@ export async function POST(request: NextRequest) {
     // 1. TOP HEADER BOXES (Official saf_vivah_bond.pdf vector box coordinates)
     // =========================================================================
 
-    // 1.1 फॉर्म नं. (Box 1 Left: minX=113.57, maxX=202.02, minY=689.90, maxY=710.76)
-    drawCenteredInBox(applicationOfflineNo, 113.57, 202.02, 696.5, 11, rgb(0, 0.15, 0.6));
+    // 1.1 फॉर्म नं. (Box 1 Left: minX=120.34, maxX=208.26, minY=703.37, maxY=722.41)
+    drawCenteredInBox(applicationOfflineNo, 120.34, 208.26, 709.0, 11, rgb(0, 0.15, 0.6));
 
-    // 1.2 एजेंट कोड (Box 2 Left: minX=113.57, maxX=202.02, minY=663.76, maxY=684.63)
-    drawCenteredInBox(workerCode, 113.57, 202.02, 670.5, 11, rgb(0.8, 0, 0));
+    // 1.2 एजेंट कोड (Box 2 Left: minX=120.34, maxX=208.26, minY=679.52, maxY=698.56)
+    drawCenteredInBox(workerCode, 120.34, 208.26, 685.0, 11, rgb(0.8, 0, 0));
 
-    // 1.3 अपलाईन कोड (Box 3 Left: minX=113.57, maxX=202.02, minY=638.78, maxY=659.64)
-    drawCenteredInBox(seniorCode, 113.57, 202.02, 645.5, 11, rgb(0.8, 0, 0));
+    // 1.3 अपलाईन कोड (Box 3 Left: minX=120.34, maxX=208.26, minY=656.72, maxY=675.76)
+    drawCenteredInBox(seniorCode, 120.34, 208.26, 662.5, 11, rgb(0.8, 0, 0));
 
-    // 1.4 आवेदन दि. (Box 1 Right: minX=451.84, maxX=540.30, minY=689.90, maxY=710.76)
-    drawCenteredInBox(applicationDate, 451.84, 540.30, 696.5, 10.5, rgb(0, 0.15, 0.6));
+    // 1.4 आवेदन दि. (Box 1 Right: minX=456.57, maxX=544.49, minY=703.37, maxY=722.41)
+    drawCenteredInBox(applicationDate, 456.57, 544.49, 709.0, 10.5, rgb(0, 0.15, 0.6));
 
-    // 1.5 सदस्यता क्र. (Box 2 Right: minX=451.84, maxX=540.30, minY=657.72, maxY=678.59)
-    // drawCenteredInBox(membershipNo, 451.84, 540.30, 664.5, 10.5, rgb(0, 0.15, 0.6));
+    // 1.5 सदस्यता क्र. (Box 2 Right: minX=456.57, maxX=544.49, minY=674.01, maxY=693.05)
+    // drawCenteredInBox(membershipNo, 456.57, 544.49, 679.5, 10.5, rgb(0, 0.15, 0.6));
 
     // =========================================================================
     // 2. MIDDLE TABLE SECTION (Two columns, Rows 1-6)
     // =========================================================================
 
-    // Row 1: नाम :- (blY: 612.34) | नॉमिनी नाम :- (blY: 611.98)
-    drawBounded(applicantName, 72, 612.34, 10.5, 190);
-    drawBounded(warisdar, 340, 611.98, 10.5, 108);
+    // Row 1: नाम :- (blY: 632.60) | नॉमिनी नाम :- (blY: 632.60)
+    drawBounded(applicantName, 76, 632.60, 10.5, 195);
+    drawBounded(warisdar, 342, 632.60, 10.5, 110);
 
-    // Row 2: पिता/पति का नाम :- (blY: 589.11) | नॉमिनी आधार नं. :- (blY: 588.81)
-    drawBounded(fatherName, 136, 589.11, 10.5, 126);
-    drawBounded(nomineeAadhaar, 364, 588.81, 10, 84);
+    // Row 2: पिता/पति का नाम :- (blY: 611.40) | नॉमिनी आधार नं. :- (blY: 611.40)
+    drawBounded(fatherName, 140, 611.40, 10.5, 130);
+    drawBounded(nomineeAadhaar, 367, 611.40, 10, 88);
 
-    // Row 3: आधार नं. :- (blY: 565.88) | नॉमिनी मो. नं. :- (blY: 565.64)
-    drawBounded(applicantAadhaar, 96, 565.88, 10.5, 166);
-    drawBounded(nomineeMobile, 350, 565.64, 10, 98);
+    // Row 3: आधार नं. :- (blY: 590.20) | नॉमिनी मो. नं. :- (blY: 590.20)
+    drawBounded(applicantAadhaar, 101, 590.20, 10.5, 170);
+    drawBounded(nomineeMobile, 352, 590.20, 10, 100);
 
-    // Row 4: जाति :- (blY: 542.65) | एजेंट मो. नं. :- (blY: 542.48)
-    drawBounded(gotra, 76, 542.65, 10.5, 186);
-    drawBounded(agentMobile, 344, 542.48, 10, 104);
+    // Row 4: जाति :- (blY: 569.00) | एजेंट मो. नं. :- (blY: 569.00)
+    drawBounded(gotra, 81, 569.00, 10.5, 190);
+    drawBounded(agentMobile, 347, 569.00, 10, 105);
 
-    // Row 5: गांव :- (blY: 519.42) | सम्बन्ध :- (blY: 519.31)
-    drawBounded(village, 74, 519.42, 10.5, 188);
-    drawBounded(relation, 320, 519.31, 10.5, 128);
+    // Row 5: गांव :- (blY: 547.80) | सम्बन्ध :- (blY: 547.80)
+    drawBounded(village, 77, 547.80, 10.5, 195);
+    drawBounded(relation, 323, 547.80, 10.5, 130);
 
-    // Row 6: जिला :- (blY: 496.20) | राज्य :- (blY: 496.14)
-    drawBounded(district, 78, 496.20, 10.5, 184);
-    drawBounded(state, 310, 496.14, 10.5, 230);
+    // Row 6: जिला :- (blY: 526.60) | राज्य :- (blY: 526.60)
+    drawBounded(district, 83, 526.60, 10.5, 190);
+    drawBounded(state, 312, 526.60, 10.5, 230);
 
     // =========================================================================
     // 3. BOTTOM SECTION (Installment category on Kanyadaan line, Duration below)
     // =========================================================================
 
     // 3.1 कन्यादान ... रूपये प्रत्येक विवाह पर लागू (Installment Category: ₹300 किस्त / ₹1,000 किस्त)
-    drawCenteredInBox(kanyadaanInstallment, 212, 278, 471.56, 11, rgb(0, 0.15, 0.6));
+    drawCenteredInBox(kanyadaanInstallment, 216, 284, 504.10, 11, rgb(0, 0.15, 0.6));
 
     // 3.2 आपको विवाह योजना का लाभ ... के बाद मिलेगा । (Duration Text: बारह महीने)
-    drawCenteredInBox(durationText, 284, 365, 448.09, 11, rgb(0.8, 0, 0));
+    drawCenteredInBox(durationText, 288, 370, 482.70, 11, rgb(0.8, 0, 0));
 
     // Serialize the PDF
     const pdfBytes = await pdfDoc.save();

@@ -481,7 +481,8 @@ export async function POST(request: NextRequest) {
     drawBounded(applicantName, 95.0, 623.40, 10.5, 150, charcoalColor);
     drawBounded(applicantAadhaar, 74.0, 600.40, 10.5, 170, charcoalColor);
     drawBounded(fatherName, 109.0, 577.30, 10.5, 135, charcoalColor);
-    drawBounded(gotra, 58.0, 554.30, 10.5, 185, charcoalColor);
+    drawBounded(gotra, 58.0, 554.30, 10.5, 90, charcoalColor);
+    drawBounded(age, 166.0, 554.30, 10.5, 75, charcoalColor);
     drawBounded(address, 65.0, 531.30, 10.5, 135, charcoalColor);
     drawBounded(nomineeRelation, 117.0, 508.30, 10.5, 33, charcoalColor);
 
@@ -489,8 +490,7 @@ export async function POST(request: NextRequest) {
     drawBounded(nomineeName, 388.0, 634.20, 10.5, 165, charcoalColor);
     drawBounded(nomineeAadhaar, 385.0, 612.80, 10.5, 168, charcoalColor);
     drawBounded(nomineeFathername, 385.0, 591.40, 10.5, 168, charcoalColor);
-    drawBounded(nomineeGotra, 368.0, 570.00, 10.5, 72, charcoalColor);
-    drawBounded(age, 463.0, 570.00, 10.5, 90, charcoalColor);
+    drawBounded(nomineeGotra, 368.0, 570.00, 10.5, 172, charcoalColor);
     drawBounded(nomineeAddress, 376.0, 548.60, 10.5, 177, charcoalColor);
     drawBounded(nomineeMobile, 401.0, 527.10, 10.5, 150, charcoalColor);
     drawBounded(agentMobile, 398.0, 505.70, 10.5, 154, charcoalColor);

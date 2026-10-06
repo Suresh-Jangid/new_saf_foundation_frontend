@@ -86,23 +86,24 @@ function getField(record: Record<string, any>, ...keys: string[]): string {
 
 // Resolve authoritative Mayra dynamic amount for bottom line: "मायरा ...... रुपये प्रत्येक मायरा पर लागू"
 function resolveMayraAmountText(rec: any): string {
+  // Canonical per-Mayra installment / contribution fields ONLY.
+  // NEVER fall back to fee, totalAmount, membershipFee, or paymentAmount,
+  // which represent one-time age-based registration fees (e.g. ₹5,100 / ₹11,000).
   const rawAmt =
+    rec?.mayraInstallment ??
+    rec?.mayra_installment ??
     rec?.installmentAmount ??
     rec?.installment_amount ??
     rec?.kistAmount ??
     rec?.kist_amount ??
+    rec?.mayraKist ??
+    rec?.mayra_kist ??
     rec?.schemeAmount ??
     rec?.scheme_amount ??
     rec?.mayraAmount ??
     rec?.mayra_amount ??
     rec?.selectedAmount ??
     rec?.selected_amount ??
-    rec?.amount ??
-    rec?.fee ??
-    rec?.totalAmount ??
-    rec?.total_amount ??
-    rec?.paymentAmount ??
-    rec?.payment_amount ??
     '';
 
   if (rawAmt === undefined || rawAmt === null || rawAmt === '') {

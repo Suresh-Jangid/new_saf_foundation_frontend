@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
           253.95,
           84.4,
           71.15,
-          'cover'
+          'contain'
         );
       } catch (err) {
         console.warn('Could not embed nominee photo in Lado Bahin Bond:', err);

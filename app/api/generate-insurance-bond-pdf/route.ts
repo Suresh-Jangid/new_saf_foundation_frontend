@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     if (nomineePhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 457.80, 265.96, 83.88, 71.15, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 457.80, 265.96, 83.88, 71.15, 'contain');
       } catch (err) {
         console.warn('Could not embed nominee photo in Insurance Bond:', err);
       }

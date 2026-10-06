@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
 
     if (nomineePhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 471.5, 282.5, 74.0, 78.0, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, nomineePhotoSource, 471.5, 282.5, 74.0, 78.0, 'contain');
       } catch (err) {
         console.warn('Could not embed nominee photo in Dhundhotsav Bond:', err);
       }

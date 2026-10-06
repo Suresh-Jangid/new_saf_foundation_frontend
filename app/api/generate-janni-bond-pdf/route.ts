@@ -165,11 +165,11 @@ export async function POST(request: NextRequest) {
 
     // Embed photo in the single calibrated right-hand photo box on official Janni Delivery Bond:
     // Outer Charcoal Border: x = 448.0, yFromTop = 234.0, w = 86.5, h = 105.0
-    // Inner Image Box:       x = 449.5, yFromTop = 207.3, w = 85.0, h = 94.2 (1.0pt inset keeps border visible)
+    // Inner Image Box:       x = 455.6, yFromTop = 197.0, w = 84.3, h = 94.2 (1.0pt inset keeps border visible)
     const photoToEmbed = applicantPhotoSource || nomineePhotoSource;
     if (photoToEmbed) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, photoToEmbed, 449.5, 207.3, 85.0, 94.2, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, photoToEmbed, 455.6, 197.0, 84.3, 94.2, 'cover');
       } catch (err) {
         console.warn('Could not embed photo in Janni Bond:', err);
       }
@@ -395,61 +395,61 @@ export async function POST(request: NextRequest) {
     };
 
     // ── 1. Draw Header Boxes (Top 5 blue boxes) ──
-    // Form No: box at x=109.05, y=128.16, w=88.45, h=19.04
-    drawCenteredInBox(applicationNo, 109.05, 128.16, 88.45, 19.04, 10.5, navyColor);
-    // Agent Code: box at x=109.05, y=152.00, w=88.45, h=19.04
-    drawCenteredInBox(workerOffline, 109.05, 152.00, 88.45, 19.04, 10.5, navyColor);
-    // Upline Code: box at x=109.05, y=174.80, w=88.45, h=19.04
-    drawCenteredInBox(seniorOffline, 109.05, 174.80, 88.45, 19.04, 10.5, navyColor);
-    // Application Date: box at x=453.05, y=128.16, w=88.45, h=19.04
-    drawCenteredInBox(applicationDate, 453.05, 128.16, 88.45, 19.04, 10.0, navyColor);
-    // Membership No: box at x=453.05, y=157.33, w=88.45, h=19.04
-    drawCenteredInBox(membershipNumber, 453.05, 157.33, 88.45, 19.04, 10.5, navyColor);
+    // Form No: box at x=117.04, y=117.84, w=87.92, h=19.04
+    drawCenteredInBox(applicationNo, 117.04, 117.84, 87.92, 19.04, 10.5, navyColor);
+    // Agent Code: box at x=117.04, y=141.69, w=87.92, h=19.04
+    drawCenteredInBox(workerOffline, 117.04, 141.69, 87.92, 19.04, 10.5, navyColor);
+    // Upline Code: box at x=117.04, y=164.49, w=87.92, h=19.04
+    drawCenteredInBox(seniorOffline, 117.04, 164.49, 87.92, 19.04, 10.5, navyColor);
+    // Application Date: box at x=458.97, y=117.84, w=87.92, h=19.04
+    drawCenteredInBox(applicationDate, 458.97, 117.84, 87.92, 19.04, 10.0, navyColor);
+    // Membership No: box at x=458.97, y=147.01, w=87.92, h=19.04
+    drawCenteredInBox(membershipNumber, 458.97, 147.01, 87.92, 19.04, 10.5, navyColor);
 
     // ── 2. Draw Left Column Fields ──
     // नाम :-
-    drawBounded(applicantName, 66.0, 208.2, 10.0, 195, darkColor);
+    drawBounded(applicantName, 74.0, 197.9, 10.0, 188, darkColor);
     // पिता/पति का नाम :-
-    drawBounded(fatherHusbandName, 130.0, 231.6, 10.0, 130, darkColor);
+    drawBounded(fatherHusbandName, 138.0, 221.2, 10.0, 124, darkColor);
     // आधार नं. :-
-    drawBounded(aadharNumber, 91.0, 254.9, 10.0, 170, darkColor);
+    drawBounded(aadharNumber, 99.0, 244.6, 10.0, 163, darkColor);
     // जाति :-
-    drawBounded(caste, 71.0, 278.3, 10.0, 190, darkColor);
+    drawBounded(caste, 79.0, 268.0, 10.0, 183, darkColor);
     // सम्बन्ध :-
-    drawBounded(nomineeRelation, 81.0, 301.7, 10.0, 180, darkColor);
+    drawBounded(nomineeRelation, 89.0, 291.3, 10.0, 173, darkColor);
     // गांव :-
-    drawBounded(village, 67.0, 325.0, 10.0, 195, darkColor);
+    drawBounded(village, 75.0, 314.7, 10.0, 187, darkColor);
 
     // ── 3. Draw Center Column Fields ──
     // नॉमिनी नाम :-
-    drawBounded(nomineeName, 332.0, 208.2, 10.0, 112, darkColor);
+    drawBounded(nomineeName, 339.0, 197.6, 10.0, 108, darkColor);
     // नॉमिनी आधार नं. :-
-    drawBounded(nomineeAadhar, 357.0, 231.6, 10.0, 88, darkColor);
+    drawBounded(nomineeAadhar, 364.0, 221.0, 10.0, 83, darkColor);
     // नॉमिनी मो. नं. :-
-    drawBounded(nomineeMobile, 342.0, 254.9, 10.0, 100, darkColor);
+    drawBounded(nomineeMobile, 349.0, 244.3, 10.0, 98, darkColor);
     // एजेन्ट मो. नं. :-
-    drawBounded(agentMobile, 337.0, 278.3, 10.0, 105, darkColor);
+    drawBounded(agentMobile, 344.0, 267.7, 10.0, 103, darkColor);
     // जिला :-
-    drawBounded(district, 305.0, 301.7, 10.0, 140, darkColor);
+    drawBounded(district, 312.0, 291.0, 10.0, 135, darkColor);
     // राज्य :-
-    drawBounded(state, 302.0, 325.0, 10.0, 145, darkColor);
+    drawBounded(state, 309.0, 314.4, 10.0, 138, darkColor);
 
     // ── 4. Draw Bottom Scheme Amount Line ──
     // "जननी सुरक्षा प्रसव योजना [ 11000 ] रूपये प्रत्येक डिलीवरी पर लागू"
-    // Dotted line runs from X: 201.0 to 271.0 (W: 70.0) at baseline yTop: 342.6
+    // Dotted line runs from X: 209.0 to 278.0 (W: 69.0) at baseline yTop: 332.2
     if (janniAmount) {
       const amtW = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(janniAmount, 11.5) : 30.0;
-      const amtX = 201.0 + Math.max(0, (70.0 - amtW) / 2);
-      drawBounded(janniAmount, amtX, 342.6, 11.5, 68, navyColor);
+      const amtX = 209.0 + Math.max(0, (69.0 - amtW) / 2);
+      drawBounded(janniAmount, amtX, 332.2, 11.5, 67, navyColor);
     }
 
     // ── 5. Draw Benefit Duration Line ──
-    // "आपको विवाह योजना का लाभ [ नौ माह ] के बाद मिलेगा ।"
-    // Dotted line from X: 280.0 to 364.0 (W: 84.0) at baseline yTop: 364.6
+    // "इस योजना का लाभ [ नौ माह ] के बाद मिलेगा ।"
+    // Dotted line from X: 261.0 to 345.0 (W: 84.0) at baseline yTop: 354.3
     if (duration) {
       const durW = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(duration, 10.5) : 27.0;
-      const durX = 280.0 + Math.max(0, (84.0 - durW) / 2);
-      drawBounded(duration, durX, 364.6, 10.5, 78, redColor);
+      const durX = 261.0 + Math.max(0, (84.0 - durW) / 2);
+      drawBounded(duration, durX, 354.3, 10.5, 82, redColor);
     }
 
     const pdfBytes = await pdfDoc.save();

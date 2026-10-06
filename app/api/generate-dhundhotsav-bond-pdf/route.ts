@@ -282,24 +282,64 @@ export async function POST(request: NextRequest) {
       '';
     const nomineeMobile = sanitizeValue(rawNomineeMobile);
 
-    // Scheme / Benefit Amount (ढूंढ ... रूपये प्रत्येक ढूंढ पर लागू)
+    // ── Dhundhotsav Installment Amount Resolution ──
+    // The printed clause on the template: ढूंढ [ amount ] रूपये प्रत्येक ढूंढ पर लागू
+    // Represents the actual per-event installment / contribution amount for Dhundhotsav.
+    const rawInstallments = Array.isArray(record?.installments)
+      ? record.installments
+      : Array.isArray(body?.installments)
+      ? body.installments
+      : [];
+
+    let currentInstallmentAmt: any = undefined;
+    if (rawInstallments.length > 0) {
+      for (let i = rawInstallments.length - 1; i >= 0; i--) {
+        const item = rawInstallments[i];
+        const val = typeof item === 'object' && item !== null ? item.amount : item;
+        if (val !== undefined && val !== null && String(val).trim() !== '') {
+          currentInstallmentAmt = val;
+          break;
+        }
+      }
+    }
+
     const rawAmount =
+      record.installmentAmount ??
+      record.installment_amount ??
+      record.installment ??
+      currentInstallmentAmt ??
+      record.financialSummary?.installmentAmount ??
+      record.financialSummary?.installment_amount ??
+      record.financialSummary?.installment ??
+      body?.installmentAmount ??
+      body?.installment_amount ??
       record.paymentAmount ??
       record.payment_amount ??
-      record.membershipFee ??
-      record.membership_fee ??
+      body?.paymentAmount ??
+      body?.payment_amount ??
       record.amount ??
+      body?.amount ??
       record.schemeAmount ??
       record.scheme_amount ??
-      body?.amount ??
-      '5,100/-';
-    let cleanAmt = String(rawAmount || '').trim();
-    if (/^\d+$/.test(cleanAmt)) {
-      cleanAmt = Number(cleanAmt).toLocaleString('en-IN') + '/-';
-    } else if (cleanAmt && !cleanAmt.endsWith('/-') && /^\d+[\d,]*$/.test(cleanAmt)) {
-      cleanAmt += '/-';
+      record.totalAmount ??
+      record.total_amount ??
+      record.membershipFee ??
+      record.membership_fee ??
+      '';
+
+    let cleanAmt = '';
+    if (rawAmount !== undefined && rawAmount !== null && String(rawAmount).trim() !== '') {
+      const strVal = String(rawAmount).trim().replace(/^[₹Rs.\s]+/, '');
+      if (strVal.endsWith('/-')) {
+        cleanAmt = strVal;
+      } else {
+        const stripped = strVal.replace(/\/+$/, '').trim();
+        if (stripped) {
+          cleanAmt = `${stripped}/-`;
+        }
+      }
     }
-    const amount = sanitizeValue(cleanAmt || '5,100/-');
+    const amount = sanitizeValue(cleanAmt);
 
     const navyColor = rgb(0.0, 0.15, 0.6);
     const darkColor = rgb(0.12, 0.12, 0.12);
@@ -426,7 +466,7 @@ export async function POST(request: NextRequest) {
     drawBounded(state, 308.95 + gap, 483.75 + VERTICAL_OFFSET, labelSize, 140.0, darkColor);
 
     // ── 4. Bottom Clauses ──
-    // ढूंढ [ 5,100/- ] रूपये प्रत्येक ढूंढ पर लागू
+    // ढूंढ [ dynamic amount/- ] रूपये प्रत्येक ढूंढ पर लागू
     // Dotted space from 219.27 to 290.34, baseline y: 463.89
     drawCenteredInRange(amount, 219.27, 290.34, 463.89 + VERTICAL_OFFSET, labelSize, 68.0, navyColor);
 

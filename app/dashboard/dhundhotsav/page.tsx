@@ -703,6 +703,13 @@ export default function DhundhotsavListPage() {
         nomineeAadhar: record.nomineeAadhar || (record as any).nomineeAadhaar || (record as any).nominee_aadhar || "",
         gotra: record.gotra || (record as any).gotraName || (record as any).gotra_name || "",
         offlineFormNumber: record.offlineFormNumber || (record as any).offline_form_number || "",
+        installmentAmount:
+          (record as any).installmentAmount ||
+          (record as any).installment_amount ||
+          (record as any).financialSummary?.installmentAmount ||
+          (Array.isArray(record.installments) && record.installments.length > 0
+            ? (record.installments[record.installments.length - 1]?.amount ?? record.installments[0]?.amount)
+            : undefined),
       };
 
       const imageData = await getPhotoDataUrl(record.passportPhotoUrl || (record as any).passportPhoto);

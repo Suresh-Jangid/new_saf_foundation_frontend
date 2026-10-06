@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     // Bottom Photo Box (नॉमिनी का फोटो): inner x = 457.80, yFromTop = 265.96, w = 83.88, h = 71.15
     if (applicantPhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 457.80, 186.65, 83.88, 71.15, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 457.80, 186.65, 83.88, 71.15, 'contain');
       } catch (err) {
         console.warn('Could not embed applicant photo in Insurance Bond:', err);
       }

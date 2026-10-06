@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
           174.64,
           84.4,
           71.15,
-          'cover'
+          'contain'
         );
       } catch (err) {
         console.warn('Could not embed applicant photo in Lado Bahin Bond:', err);

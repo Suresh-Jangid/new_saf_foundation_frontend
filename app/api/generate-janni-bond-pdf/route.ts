@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
     const photoToEmbed = applicantPhotoSource || nomineePhotoSource;
     if (photoToEmbed) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, photoToEmbed, 455.6, 197.0, 84.3, 94.2, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, photoToEmbed, 455.6, 197.0, 84.3, 94.2, 'contain');
       } catch (err) {
         console.warn('Could not embed photo in Janni Bond:', err);
       }

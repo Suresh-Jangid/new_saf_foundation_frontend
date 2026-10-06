@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import 'regenerator-runtime/runtime';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
-import { loadImageBytes, pickPhotoSource } from '../../utils/pdfImage';
+import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 
 export const runtime = 'nodejs';
 
@@ -144,35 +144,20 @@ export async function POST(request: NextRequest) {
 
     if (photoSource) {
       try {
-        const loaded = await loadImageBytes(photoSource);
-        if (loaded) {
-          const { bytes, mime } = loaded;
-          const isPng = (mime && mime.includes('png')) || (bytes[0] === 0x89 && bytes[1] === 0x50);
-          let image;
-          if (isPng) {
-            image = await pdfDoc.embedPng(bytes);
-          } else {
-            image = await pdfDoc.embedJpg(bytes);
-          }
-
-          if (image) {
-            // Precise passport photo box dimensions for official saf_vivah_bond.pdf [458.19–544.49] x [547.83–644.01]
-            const imageX = 459.2;
-            const imageY = 548.8;
-            const imageWidth = 84.3;
-            const imageHeight = 94.2;
-
-            // Draw the image on the PDF directly using bottom-left coordinates
-            firstPage.drawImage(image, {
-              x: imageX,
-              y: imageY,
-              width: imageWidth,
-              height: imageHeight,
-            });
-
-            console.log('Image embedded successfully in General Bond PDF');
-          }
-        }
+        // Precise passport photo box dimensions for official saf_vivah_bond.pdf [458.19–544.49] x [547.83–644.01]
+        // Inset by ~1pt on all sides: x = 459.2, yFromTop = 198.89, width = 84.3, height = 94.2
+        await embedPdfImage(
+          pdfDoc,
+          firstPage,
+          pageHeight,
+          photoSource,
+          459.2,
+          198.89,
+          84.3,
+          94.2,
+          'contain'
+        );
+        console.log('Image embedded successfully in General Bond PDF');
       } catch (imageError) {
         console.error('Error embedding image in General Bond PDF:', imageError);
       }

@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     //   Inner Image:  x = 471.5, yFromTop = 282.5, w = 74.0, h = 78.0
     if (applicantPhotoSource) {
       try {
-        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 471.5, 195.5, 74.0, 78.0, 'cover');
+        await embedPdfImage(pdfDoc, firstPage, pageHeight, applicantPhotoSource, 471.5, 195.5, 74.0, 78.0, 'contain');
       } catch (err) {
         console.warn('Could not embed applicant photo in Dhundhotsav Bond:', err);
       }

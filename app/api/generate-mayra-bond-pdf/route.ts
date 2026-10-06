@@ -238,7 +238,7 @@ export async function POST(request: NextRequest) {
           applicantInnerYFromTop,
           innerPhotoW,
           applicantInnerH,
-          'cover'
+          'contain'
         );
       } catch (err) {
         console.warn('Could not embed applicant photo in Mayra Bond:', err);

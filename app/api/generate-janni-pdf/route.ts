@@ -6,7 +6,12 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
-import { formatPaymentModeForPdf } from '@/lib/form-values';
+import {
+  formatPaymentModeForPdf,
+  resolveCanonicalPaymentAmount,
+  formatAmountToHindiWords,
+  formatNumericAmountForPdf,
+} from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -235,21 +240,35 @@ export async function POST(request: NextRequest) {
 
     const resolvedPaymentMode = formatPaymentModeForPdf(rawPaymentMode);
 
-    // Membership receipt amount resolution: strict priority paymentAmount -> payment_amount -> paidAmount -> receivedAmount
-    // DO NOT use installments / totalAmount before paymentAmount
-    const rawReceiptAmount =
-      getField(record, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
-      getField(body, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
-      getField(record, 'totalAmount', 'total_amount', 'amount', 'fee', 'membershipFee') ||
-      getField(body, 'totalAmount', 'total_amount', 'amount', 'fee', 'membershipFee');
-    const receiptAmountStr = rawReceiptAmount ? (String(rawReceiptAmount).endsWith('/-') ? String(rawReceiptAmount) : `${rawReceiptAmount}/-`) : '';
+    // Canonical registration amount resolution:
+    // strict priority: paymentAmount -> payment_amount -> paidAmount -> receivedAmount -> totalAmount -> total_amount -> amount -> fee -> membershipFee
+    const canonicalAmount = resolveCanonicalPaymentAmount(record, body);
+    const hindiAmountWords = formatAmountToHindiWords(canonicalAmount);
+    const receiptAmountStr = canonicalAmount !== null
+      ? formatNumericAmountForPdf(canonicalAmount)
+      : '';
 
     // Form Line 10 (Registration fee / Amount field on upper section)
     const rawFormAmount =
-      getField(record, 'totalAmount', 'total_amount', 'amount', 'fee', 'membershipFee', 'paymentAmount', 'payment_amount') ||
-      getField(body, 'totalAmount', 'total_amount', 'amount', 'fee', 'membershipFee', 'paymentAmount', 'payment_amount') ||
-      rawReceiptAmount;
-    const formAmountStr = rawFormAmount ? (String(rawFormAmount).endsWith('/-') ? String(rawFormAmount) : `${rawFormAmount}/-`) : '';
+      canonicalAmount !== null
+        ? canonicalAmount
+        : getField(
+            record,
+            'totalAmount',
+            'total_amount',
+            'amount',
+            'fee',
+            'membershipFee'
+          ) ||
+          getField(
+            body,
+            'totalAmount',
+            'total_amount',
+            'amount',
+            'fee',
+            'membershipFee'
+          );
+    const formAmountStr = rawFormAmount ? (formatNumericAmountForPdf(rawFormAmount) || (String(rawFormAmount).endsWith('/-') ? String(rawFormAmount) : `${rawFormAmount}/-`)) : receiptAmountStr;
 
     const seniorWorker = getField(record, 'seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'seniorCode', 'senior_code', 'seniorWorker', 'senior_worker', 'seniorName', 'senior_name');
 
@@ -271,7 +290,7 @@ export async function POST(request: NextRequest) {
     drawBounded(address, 58, 137.6, 9.5, 490);
     drawBounded(mobile, 55, 115.7, 9.5, 172);
     drawBounded(resolvedPaymentMode, 308, 115.7, 9.5, 240);
-    drawBounded(receiptAmountStr, 88, 93.8, 9.5, 142);
+    drawBounded(hindiAmountWords, 88, 93.8, 9.5, 142);
     drawBounded(receiptAmountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 
     const pdfBytes = await pdfDoc.save();

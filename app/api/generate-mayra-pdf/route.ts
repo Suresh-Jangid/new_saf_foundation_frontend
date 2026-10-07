@@ -6,7 +6,12 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
-import { formatPaymentModeForPdf } from '@/lib/form-values';
+import {
+  formatPaymentModeForPdf,
+  resolveCanonicalPaymentAmount,
+  formatAmountToHindiWords,
+  formatNumericAmountForPdf,
+} from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -223,79 +228,46 @@ export async function POST(request: NextRequest) {
     const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile');
     const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'agentName');
 
-    const canonicalInstallment =
-      getField(record, 'mayraInstallment', 'mayra_installment', 'installmentAmount') ||
-      getField(body, 'mayraInstallment', 'mayra_installment', 'installmentAmount');
-
-    // Membership receipt amount resolution: strict priority paymentAmount -> payment_amount -> paidAmount -> receivedAmount
-    // DO NOT use installments[0].amount as the registration payment receipt
-    const rawReceiptAmount =
-      getField(record, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
-      getField(body, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
-      canonicalInstallment ||
-      getField(
-        record,
-        'fee',
-        'totalAmount',
-        'total_amount',
-        'totalFee',
-        'total_fee',
-        'permanentFee',
-        'joiningFee',
-        'registrationFee',
-        'membershipFee',
-        'amount'
-      ) ||
-      getField(
-        body,
-        'fee',
-        'totalAmount',
-        'total_amount',
-        'totalFee',
-        'total_fee',
-        'permanentFee',
-        'joiningFee',
-        'registrationFee',
-        'membershipFee',
-        'amount'
-      );
-    const receiptAmountStr = rawReceiptAmount ? formatIndianCurrency(rawReceiptAmount) : '';
+    // Canonical registration amount priority:
+    // paymentAmount -> payment_amount -> paidAmount -> receivedAmount -> totalAmount -> total_amount -> fee -> membershipFee
+    // DO NOT use mayraInstallment / canonicalInstallment as registration fee fallback!
+    const canonicalAmount = resolveCanonicalPaymentAmount(record, body);
+    const hindiAmountWords = formatAmountToHindiWords(canonicalAmount);
+    const receiptAmountStr = canonicalAmount !== null
+      ? formatNumericAmountForPdf(canonicalAmount)
+      : '';
 
     // Form Line 10 (Registration fee / Amount field on upper section)
     const rawFormAmount =
-      canonicalInstallment ||
-      getField(
-        record,
-        'totalAmount',
-        'total_amount',
-        'totalFee',
-        'total_fee',
-        'fee',
-        'permanentFee',
-        'joiningFee',
-        'registrationFee',
-        'membershipFee',
-        'amount',
-        'paymentAmount',
-        'payment_amount'
-      ) ||
-      getField(
-        body,
-        'totalAmount',
-        'total_amount',
-        'totalFee',
-        'total_fee',
-        'fee',
-        'permanentFee',
-        'joiningFee',
-        'registrationFee',
-        'membershipFee',
-        'amount',
-        'paymentAmount',
-        'payment_amount'
-      ) ||
-      rawReceiptAmount;
-    const formAmountStr = rawFormAmount ? formatIndianCurrency(rawFormAmount) : '';
+      canonicalAmount !== null
+        ? canonicalAmount
+        : getField(
+            record,
+            'totalAmount',
+            'total_amount',
+            'fee',
+            'totalFee',
+            'total_fee',
+            'joiningFee',
+            'permanentFee',
+            'registrationFee',
+            'membershipFee',
+            'amount'
+          ) ||
+          getField(
+            body,
+            'totalAmount',
+            'total_amount',
+            'fee',
+            'totalFee',
+            'total_fee',
+            'joiningFee',
+            'permanentFee',
+            'registrationFee',
+            'membershipFee',
+            'amount'
+          );
+    const formAmountStr = rawFormAmount ? formatIndianCurrency(rawFormAmount) : receiptAmountStr;
     const rawPaymentMode = getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') || 'CASH';
     const formattedPaymentMode = formatPaymentModeForPdf(rawPaymentMode);
     const paymentMode = [
@@ -322,7 +294,7 @@ export async function POST(request: NextRequest) {
     drawBounded(address, 58, 137.6, 9.5, 490);
     drawBounded(mobile, 55, 115.7, 9.5, 172);
     drawBounded(paymentMode, 308, 115.7, 9.5, 240);
-    drawBounded(receiptAmountStr, 88, 93.8, 9.5, 142);
+    drawBounded(hindiAmountWords, 88, 93.8, 9.5, 142);
     drawBounded(receiptAmountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 
     const pdfBytes = await pdfDoc.save();

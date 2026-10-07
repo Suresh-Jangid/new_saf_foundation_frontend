@@ -168,3 +168,171 @@ export function formatPaymentModeForPdf(value: unknown): string {
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
+/**
+ * Parse an unknown amount representation into a clean numeric value.
+ * Handles numbers, strings, comma formatting, currency symbols (₹), trailing slashes (/-),
+ * decimals, zero, null and undefined.
+ * Returns null if the value cannot be parsed to a finite number.
+ */
+export function parseAmountToNumber(val: unknown): number | null {
+  if (val === undefined || val === null) return null;
+  if (typeof val === "number") {
+    return isFinite(val) ? val : null;
+  }
+  const str = String(val).trim();
+  if (!str) return null;
+  // Strip currency symbols, commas, slashes, dashes, and whitespace
+  const cleaned = str.replace(/[₹,\/\-\s]/g, "").trim();
+  if (!cleaned) return null;
+  const num = Number(cleaned);
+  return isFinite(num) ? num : null;
+}
+
+/**
+ * Shared canonical resolver for actual registration / scheme payment amount.
+ *
+ * Strict priority:
+ * 1. paymentAmount
+ * 2. payment_amount
+ * 3. paidAmount
+ * 4. receivedAmount
+ * 5. totalAmount
+ * 6. total_amount
+ * 7. fee
+ * 8. membershipFee
+ * 9. amount
+ * 10. राशि
+ *
+ * Explicitly EXCLUDES recurring installments (mayraInstallment, installmentAmount, installments[0].amount)
+ * to prevent recurring contributions (e.g. ₹300) from overriding registration fees.
+ */
+export function resolveCanonicalPaymentAmount(
+  record?: unknown,
+  body?: unknown
+): number | null {
+  const keys = [
+    "paymentAmount",
+    "payment_amount",
+    "paidAmount",
+    "receivedAmount",
+    "totalAmount",
+    "total_amount",
+    "fee",
+    "membershipFee",
+    "amount",
+    "राशि",
+  ] as const;
+
+  const sources: any[] = [];
+  if (record && typeof record === "object") {
+    sources.push(record);
+    if ((record as any).record && typeof (record as any).record === "object") {
+      sources.push((record as any).record);
+    }
+    if ((record as any).data && typeof (record as any).data === "object") {
+      sources.push((record as any).data);
+    }
+  }
+  if (body && typeof body === "object") {
+    sources.push(body);
+    if ((body as any).record && typeof (body as any).record === "object") {
+      sources.push((body as any).record);
+    }
+    if ((body as any).data && typeof (body as any).data === "object") {
+      sources.push((body as any).data);
+    }
+  }
+
+  for (const key of keys) {
+    for (const src of sources) {
+      if (src && key in src) {
+        const val = src[key];
+        const parsed = parseAmountToNumber(val);
+        if (parsed !== null) {
+          return parsed;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Converts a non-negative integer into Hindi words according to the Indian Numbering System.
+ * Matches existing SAF Foundation implementation across receipts and bulk EMI schedules.
+ */
+export function numberToHindiWords(num: number): string {
+  if (num === 0) return "शून्य";
+
+  const ones = [
+    "", "एक", "दो", "तीन", "चार", "पाँच", "छः", "सात", "आठ", "नौ",
+    "दस", "ग्यारह", "बारह", "तेरह", "चौदह", "पंद्रह", "सोलह",
+    "सत्रह", "अठारह", "उन्नीस",
+  ];
+
+  const tens = [
+    "", "", "बीस", "तीस", "चालीस", "पचास",
+    "साठ", "सत्तर", "अस्सी", "नब्बे",
+  ];
+
+  const scales = ["", "हज़ार", "लाख", "करोड़"];
+
+  function chunkToWords(n: number): string {
+    let str = "";
+    if (n >= 100) {
+      str += ones[Math.floor(n / 100)] + " सौ ";
+      n %= 100;
+    }
+    if (n >= 20) {
+      str += tens[Math.floor(n / 10)] + " ";
+      n %= 10;
+    }
+    if (n > 0) {
+      str += ones[n] + " ";
+    }
+    return str.trim();
+  }
+
+  let words = "";
+  const parts: number[] = [];
+  parts.push(num % 1000);
+  num = Math.floor(num / 1000);
+
+  while (num > 0) {
+    parts.push(num % 100);
+    num = Math.floor(num / 100);
+  }
+
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (parts[i] > 0) {
+      words += chunkToWords(parts[i]) + " " + scales[i] + " ";
+    }
+  }
+
+  return words.trim();
+}
+
+/**
+ * Formats an amount value into standard Hindi amount words with suffix "रुपये मात्र".
+ * Handles numbers, strings, comma/currency formatted inputs, null/undefined, and decimals (Math.floor).
+ * Returns empty string if value is null/undefined or unparseable.
+ */
+export function formatAmountToHindiWords(value: unknown): string {
+  const num = parseAmountToNumber(value);
+  if (num === null) return "";
+  const integerPart = Math.floor(num);
+  const words = numberToHindiWords(integerPart);
+  return words ? `${words} रुपये मात्र` : "";
+}
+
+/**
+ * Formats a numeric amount for PDF display with Indian locale grouping and "/-" suffix.
+ * e.g. 11000 -> "11,000/-"
+ */
+export function formatNumericAmountForPdf(value: unknown): string {
+  const num = parseAmountToNumber(value);
+  if (num === null) return "";
+  const integerPart = Math.floor(num);
+  return `${integerPart.toLocaleString("en-IN")}/-`;
+}

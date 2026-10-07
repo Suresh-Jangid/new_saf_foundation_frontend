@@ -6,7 +6,13 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
-import { formatPaymentModeForPdf } from '@/lib/form-values';
+import {
+  formatPaymentModeForPdf,
+  resolveCanonicalPaymentAmount,
+  formatAmountToHindiWords,
+  formatNumericAmountForPdf,
+  parseAmountToNumber,
+} from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -258,22 +264,17 @@ export async function POST(request: NextRequest) {
         'agentName'
       );
 
-    // Membership receipt amount resolution: strict priority paymentAmount -> payment_amount -> paidAmount -> receivedAmount
-    // DO NOT use membershipFee/grantFee/totalAmount/installments when paymentAmount exists.
-    // Unsafe hardcoded "5100" fallback removed for actual received receipt amount.
-    const rawReceiptAmount =
-      getField(record, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
-      getField(body, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
-      getField(record, 'totalAmount', 'total_amount', 'membershipFee', 'grantFee', 'amount', 'fee') ||
-      getField(body, 'totalAmount', 'total_amount', 'membershipFee', 'grantFee', 'amount', 'fee');
-    const receiptAmountStr = rawReceiptAmount ? (String(rawReceiptAmount).endsWith('/-') ? String(rawReceiptAmount) : `${rawReceiptAmount}/-`) : '';
-
-    // Form Line 10 (Registration fee / Amount field on upper section)
-    const rawFormAmount =
-      getField(record, 'totalAmount', 'total_amount', 'membershipFee', 'grantFee', 'amount', 'fee', 'paymentAmount', 'payment_amount') ||
-      getField(body, 'totalAmount', 'total_amount', 'membershipFee', 'grantFee', 'amount', 'fee', 'paymentAmount', 'payment_amount') ||
-      '5100';
-    const formAmountStr = rawFormAmount ? (String(rawFormAmount).endsWith('/-') ? String(rawFormAmount) : `${rawFormAmount}/-`) : '5,100/-';
+    // Canonical registration amount resolution:
+    // strict priority: paymentAmount -> payment_amount -> paidAmount -> receivedAmount -> totalAmount -> total_amount -> fee -> membershipFee
+    // Fall back to grantFee or 5100 if no explicit payment amount is found, preserving 5100 default for Lado Bahin scheme.
+    const resolvedAmt = resolveCanonicalPaymentAmount(record, body);
+    const grantFeeAmt = parseAmountToNumber(
+      getField(record, 'grantFee') || getField(body, 'grantFee')
+    );
+    const canonicalAmount = resolvedAmt !== null ? resolvedAmt : (grantFeeAmt !== null ? grantFeeAmt : 5100);
+    const hindiAmountWords = formatAmountToHindiWords(canonicalAmount);
+    const receiptAmountStr = formatNumericAmountForPdf(canonicalAmount);
+    const formAmountStr = receiptAmountStr;
     const rawPaymentMode =
       getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') ||
       getField(body, 'paymentModeRef', 'paymentMode', 'payment_mode') ||
@@ -373,7 +374,7 @@ export async function POST(request: NextRequest) {
     drawBounded(address, 58, 137.6, 9.5, 490);
     drawBounded(mobile, 55, 115.7, 9.5, 172);
     drawBounded(paymentMode, 308, 115.7, 9.5, 240);
-    drawBounded(receiptAmountStr, 88, 93.8, 9.5, 142);
+    drawBounded(hindiAmountWords, 88, 93.8, 9.5, 142);
     drawBounded(receiptAmountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 
     const pdfBytes = await pdfDoc.save();

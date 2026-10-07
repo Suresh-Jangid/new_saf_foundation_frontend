@@ -7,7 +7,12 @@ import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { validateApiRequest } from '@/lib/api-security';
-import { formatPaymentModeForPdf } from '@/lib/form-values';
+import {
+  formatPaymentModeForPdf,
+  resolveCanonicalPaymentAmount,
+  formatAmountToHindiWords,
+  formatNumericAmountForPdf,
+} from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -251,6 +256,21 @@ export async function POST(request: NextRequest) {
 
     let fieldDefinitions: FieldDef[] = [];
 
+    // Resolve canonical payment amount and Hindi amount words
+    const canonicalPaymentAmount = resolveCanonicalPaymentAmount(data, body);
+    const hindiPaymentAmountWords = formatAmountToHindiWords(canonicalPaymentAmount);
+    const formattedNumericPaymentAmount = canonicalPaymentAmount !== null
+      ? formatNumericAmountForPdf(canonicalPaymentAmount)
+      : '';
+
+    if (hindiPaymentAmountWords) {
+      data['रसीद_राशि_शब्दों_में'] = hindiPaymentAmountWords;
+      data['amountInWords'] = hindiPaymentAmountWords;
+    }
+    if (formattedNumericPaymentAmount) {
+      data['रसीद_राशि_बॉक्स'] = formattedNumericPaymentAmount;
+    }
+
     if (type === 'dhundhotsav' || type === 'dhundhotsav-application') {
       // Resolve canonical gotra strictly from gotra properties (never category/gender/education/qualification/caste fallback)
       const resolvedGotra =
@@ -308,7 +328,7 @@ export async function POST(request: NextRequest) {
         { field: 'कार्यकर्ता_कोड', valueKeys: ['workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'कार्यकर्ता_कोड', 'workerCode', 'worker_code', 'agentCode', 'agent_code', 'workerName'], x: 472, y: 414.9, maxW: 75, size: 9.5 },
 
         // Line 10: राशि [Amount]  नकद/चैक/डी.डी./यूटीआर नं. [Payment Ref]  सीनियर कोड [Senior Offline Form No]
-        { field: 'राशि', valueKeys: ['amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee', 'registrationFee'], x: 60, y: 442.6, maxW: 90, size: 9.5, formatAmount: true },
+        { field: 'राशि', valueKeys: ['paymentAmount', 'payment_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee', 'registrationFee'], x: 60, y: 442.6, maxW: 90, size: 9.5, formatAmount: true },
         { field: 'भुगतान_विवरण', valueKeys: ['paymentModeRef', 'भुगतान_विवरण', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo'], x: 285, y: 442.6, maxW: 120, size: 9.5 },
         { field: 'सीनियर_कोड', valueKeys: ['seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'senior_offline_form_no', 'सीनियर_कोड', 'seniorCode', 'senior_code', 'seniorName'], x: 472, y: 442.6, maxW: 75, size: 9.5 },
 
@@ -330,11 +350,11 @@ export async function POST(request: NextRequest) {
         { field: 'रसीद_मोबाइल', valueKeys: ['mobile', 'मोबाइल', 'phone', 'mobileNumber'], x: 55, y: 726.2, maxW: 172, size: 9.5 },
         { field: 'रसीद_भुगतान_विवरण', valueKeys: ['paymentModeRef', 'भुगतान_विवरण', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo'], x: 308, y: 726.2, maxW: 240, size: 9.5 },
 
-        // Line R5: बाबत राशि [Amount Text]
-        { field: 'रसीद_राशि', valueKeys: ['paymentAmount', 'payment_amount', 'paidAmount', 'paid_amount', 'receivedAmount', 'received_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee', 'registrationFee'], x: 88, y: 748.1, maxW: 142, size: 9.5, formatAmount: true },
+        // Line R5: बाबत राशि [Amount Text - Hindi Words]
+        { field: 'रसीद_राशि', valueKeys: ['रसीद_राशि_शब्दों_में', 'amountInWords', 'रसीद_राशि_शब्द'], x: 88, y: 748.1, maxW: 142, size: 9.5, formatAmount: false },
 
         // Line R6: रु [Amount in Box]
-        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['paymentAmount', 'payment_amount', 'paidAmount', 'paid_amount', 'receivedAmount', 'received_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee', 'registrationFee'], x: 115, y: 790.9, maxW: 120, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
+        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['रसीद_राशि_बॉक्स', 'paymentAmount', 'payment_amount', 'paidAmount', 'paid_amount', 'receivedAmount', 'received_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee', 'registrationFee'], x: 115, y: 790.9, maxW: 120, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
       ];
     } else if (type === 'general-application') {
       // Calibrated single-page official template with 2 distinct sections
@@ -380,7 +400,7 @@ export async function POST(request: NextRequest) {
         { field: 'कार्यकर्ता_कोड', valueKeys: ['workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'कार्यकर्ता_कोड'], x: 472, y: 414.9, maxW: 75, size: 9.5 },
 
         // Line 10: राशि [Amount]  नकद/चैक/डी.डी./यूटीआर नं. [Payment Ref]  सीनियर कोड [Senior Offline Form No]
-        { field: 'राशि', valueKeys: ['amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 60, y: 442.6, maxW: 90, size: 9.5, formatAmount: true },
+        { field: 'राशि', valueKeys: ['paymentAmount', 'payment_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee'], x: 60, y: 442.6, maxW: 90, size: 9.5, formatAmount: true },
         { field: 'भुगतान_विवरण', valueKeys: ['paymentModeRef', 'भुगतान_विवरण', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo'], x: 285, y: 442.6, maxW: 120, size: 9.5 },
         { field: 'सीनियर_कोड', valueKeys: ['seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'senior_offline_form_no', 'सीनियर_कोड'], x: 472, y: 442.6, maxW: 75, size: 9.5 },
 
@@ -402,11 +422,11 @@ export async function POST(request: NextRequest) {
         { field: 'रसीद_मोबाइल', valueKeys: ['mobile', 'मोबाइल', 'phone', 'mobileNumber'], x: 55, y: 726.2, maxW: 172, size: 9.5 },
         { field: 'रसीद_भुगतान_विवरण', valueKeys: ['paymentModeRef', 'भुगतान_विवरण', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo'], x: 308, y: 726.2, maxW: 240, size: 9.5 },
 
-        // Line R5: बाबत राशि [Amount Text]
-        { field: 'रसीद_राशि', valueKeys: ['paymentAmount', 'payment_amount', 'paidAmount', 'paid_amount', 'receivedAmount', 'received_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee'], x: 88, y: 748.1, maxW: 142, size: 9.5, formatAmount: true },
+        // Line R5: बाबत राशि [Amount Text - Hindi Words]
+        { field: 'रसीद_राशि', valueKeys: ['रसीद_राशि_शब्दों_में', 'amountInWords', 'रसीद_राशि_शब्द'], x: 88, y: 748.1, maxW: 142, size: 9.5, formatAmount: false },
 
         // Line R6: रु [Amount in Box]
-        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['paymentAmount', 'payment_amount', 'paidAmount', 'paid_amount', 'receivedAmount', 'received_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee'], x: 115, y: 790.9, maxW: 120, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
+        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['रसीद_राशि_बॉक्स', 'paymentAmount', 'payment_amount', 'paidAmount', 'paid_amount', 'receivedAmount', 'received_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee'], x: 115, y: 790.9, maxW: 120, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
       ];
     } else {
       // Legacy / fallback mappings

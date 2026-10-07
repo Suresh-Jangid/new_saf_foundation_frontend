@@ -47,28 +47,55 @@ function sanitizeValue(val: any): string {
 }
 
 // Helper to resolve authoritative installment category text for the Kanyadaan line
-function resolveInstallmentCategoryText(rec: any): string {
+function resolveInstallmentCategoryText(rec: any, body?: any): string {
+  // 1. Canonical General Marriage installment field + aliases
   const rawAmt =
     rec?.installmentAmount ??
     rec?.installment_amount ??
     rec?.installment ??
+    rec?.kistAmount ??
+    rec?.kist_amount ??
+    body?.installmentAmount ??
+    body?.installment_amount ??
+    body?.kistAmount ??
     '';
 
   if (rawAmt === undefined || rawAmt === null || rawAmt === '') {
     return '';
   }
 
-  const num = typeof rawAmt === 'number' ? rawAmt : parseFloat(String(rawAmt).replace(/[^\d.]/g, ''));
-  if (num === 300) {
-    return '300 किस्त';
-  }
-  if (num === 1000) {
-    return '1000 किस्त';
+  // 2. Already formatted value
+  const str = String(rawAmt).trim();
+
+  if (/^\d+\s*किस्त$/.test(str)) {
+    return str;
   }
 
-  const str = String(rawAmt).trim();
-  if (str === '300' || str === '300 किस्त') return '300 किस्त';
-  if (str === '1000' || str === '1,000' || str === '1000 किस्त' || str === '1,000 किस्त') return '1000 किस्त';
+  // 3. Parse numeric value
+  const num =
+    typeof rawAmt === 'number'
+      ? rawAmt
+      : parseFloat(str.replace(/[^\d.]/g, ''));
+
+  if (isNaN(num) || num <= 0) {
+    return '';
+  }
+
+  // 4. Valid General Marriage scheme amounts
+  if (
+    num === 300 ||
+    num === 500 ||
+    num === 1000 ||
+    num === 1500
+  ) {
+    return `${num} किस्त`;
+  }
+
+  // 5. Allow other reasonable positive installment amounts
+  // below 2000, but NEVER registration-fee amounts.
+  if (num < 2000) {
+    return `${Math.round(num)} किस्त`;
+  }
 
   return '';
 }
@@ -88,7 +115,8 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { record, imageData, duration } = await request.json();
+    const body = await request.json();
+    const { record, imageData, duration } = body || {};
 
     console.log('Received record for General Bond PDF:', record?.applicantName || record?.formNumber || 'Unknown');
     console.log('Image data received for General Bond:', !!imageData);
@@ -330,7 +358,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Installment category text for Kanyadaan line (₹300 किस्त / ₹1,000 किस्त)
-    const kanyadaanInstallment = resolveInstallmentCategoryText(record);
+    const kanyadaanInstallment = resolveInstallmentCategoryText(record, body);
 
     // Benefit duration text for bottom line
     let durationText = duration || record?.duration || record?.durationText || 'बारह महीने';

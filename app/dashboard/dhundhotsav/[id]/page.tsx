@@ -588,9 +588,10 @@ export default function DhundhotsavDetailsPage() {
                   className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="CASH">नकद (Cash)</option>
+                  <option value="CHEQUE">चेक (Cheque)</option>
+                  <option value="DD">डी.डी. (D.D.)</option>
                   <option value="ONLINE">ऑनलाइन (Online / UPI)</option>
                   <option value="BANK_TRANSFER">बैंक ट्रांसफर (Bank Transfer)</option>
-                  <option value="CHEQUE">चेक (Cheque)</option>
                 </select>
               </div>
 

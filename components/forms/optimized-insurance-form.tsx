@@ -235,10 +235,10 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
     console.error('Payment error:', error)
   }, [])
 
-  const paymentModeOptions = PAYMENT_MODE_OPTIONS.filter(
-    (option) =>
-      option.value === PAYMENT_MODE.CASH || option.value === PAYMENT_MODE.RAZORPAY
-  ).map((option) => ({ value: option.value, label: option.label }))
+  const paymentModeOptions = PAYMENT_MODE_OPTIONS.map((option) => ({
+    value: option.value,
+    label: option.label,
+  }))
 
   return (
     <RoleGuard requiredModule="security_application" requiredAction="create">

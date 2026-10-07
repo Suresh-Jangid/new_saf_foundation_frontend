@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
+import { formatPaymentModeForPdf } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -222,18 +223,6 @@ export async function POST(request: NextRequest) {
     const firstInstallment = installments.length > 0 ? installments[0] : null;
     const lastInstallment = installments.length > 0 ? installments[installments.length - 1] : null;
 
-    const normalizeMode = (mode: string): string => {
-      const trimmed = String(mode || '').trim();
-      const upper = trimmed.toUpperCase();
-      if (upper === 'CASH') return 'Cash';
-      if (upper === 'RAZORPAY') return 'Razorpay';
-      if (upper === 'CHEQUE') return 'Cheque';
-      if (upper === 'DD') return 'DD';
-      if (upper === 'ONLINE') return 'Online';
-      if (upper === 'BANK_TRANSFER') return 'Bank Transfer';
-      return trimmed;
-    };
-
     const rawPaymentMode =
       (lastInstallment?.paymentMode ? String(lastInstallment.paymentMode).trim() : '') ||
       (lastInstallment?.payment_mode ? String(lastInstallment.payment_mode).trim() : '') ||
@@ -244,7 +233,7 @@ export async function POST(request: NextRequest) {
       (firstInstallment?.paymentMode ? String(firstInstallment.paymentMode).trim() : '') ||
       (firstInstallment?.payment_mode ? String(firstInstallment.payment_mode).trim() : '');
 
-    const resolvedPaymentMode = normalizeMode(rawPaymentMode);
+    const resolvedPaymentMode = formatPaymentModeForPdf(rawPaymentMode);
 
     // Membership receipt amount resolution: strict priority paymentAmount -> payment_amount -> paidAmount -> receivedAmount
     // DO NOT use installments / totalAmount before paymentAmount

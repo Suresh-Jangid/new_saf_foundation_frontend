@@ -99,7 +99,7 @@ export interface CreateJanniDeliveryPayload {
   category?: "A" | "B" | "C" | "D" | "E" | "F";
   totalAmount?: number;
   paymentAmount?: number;
-  paymentMode?: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER";
+  paymentMode?: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER" | "CHEQUE" | "DD" | string;
   selectedAgentId?: string;
   epinCode?: string | null;
   pinNumber?: string | null;

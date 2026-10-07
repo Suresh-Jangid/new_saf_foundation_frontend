@@ -103,7 +103,7 @@ export default function AddLadoBahinPage() {
     accountType: LadoBahinAccountType;
     membershipFee: number;
     paymentAmount: string;
-    paymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER";
+    paymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER" | "CHEQUE" | "DD";
     selectedAgentId: string;
     epinCode: string;
   }>({
@@ -1412,6 +1412,8 @@ export default function AddLadoBahinPage() {
                       className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-hidden focus:ring-2 focus:ring-primary/20 disabled:bg-muted disabled:cursor-not-allowed"
                     >
                       <option value="CASH">नकद (CASH)</option>
+                      <option value="CHEQUE">चेक (CHEQUE)</option>
+                      <option value="DD">डी.डी. (DD)</option>
                       <option value="ONLINE">ऑनलाइन (ONLINE)</option>
                       <option value="BANK_TRANSFER">बैंक ट्रांसफर (BANK_TRANSFER)</option>
                       <option value="RAZORPAY">रेज़रपे (RAZORPAY)</option>

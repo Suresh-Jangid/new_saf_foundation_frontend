@@ -65,7 +65,7 @@ export default function AddDhundhotsavPage() {
     pool: "MALE_POOL";
     membershipFee: number;
     paymentAmount: string;
-    paymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER";
+    paymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER" | "CHEQUE" | "DD";
     selectedAgentId: string;
     epinCode: string;
   }>({
@@ -1033,6 +1033,8 @@ export default function AddDhundhotsavPage() {
                       }
                     >
                       <option value="CASH">नकद (Cash)</option>
+                      <option value="CHEQUE">चेक (Cheque)</option>
+                      <option value="DD">डी.डी. (D.D.)</option>
                       <option value="ONLINE">ऑनलाइन (Online / UPI)</option>
                       <option value="BANK_TRANSFER">बैंक ट्रांसफर (Bank Transfer)</option>
                       <option value="RAZORPAY">Razorpay Gateway</option>

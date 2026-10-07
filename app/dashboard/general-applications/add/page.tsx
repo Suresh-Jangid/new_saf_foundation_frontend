@@ -1243,11 +1243,7 @@ export default function AddGeneralApplicationPage() {
                       onChange={(e) => handlePaymentModeChange(e.target.value)}
                     >
                       <option value="">Select Mode</option>
-                      {PAYMENT_MODE_OPTIONS.filter(
-                        (option) =>
-                          option.value === PAYMENT_MODE.CASH ||
-                          option.value === PAYMENT_MODE.RAZORPAY
-                      ).map((option) => (
+                      {PAYMENT_MODE_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>

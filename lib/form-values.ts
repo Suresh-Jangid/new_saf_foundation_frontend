@@ -1,6 +1,9 @@
 /** API wire-format values shared across all forms (lowercase snake_case). */
 export const PAYMENT_MODE = {
   CASH: "cash",
+  CHEQUE: "cheque",
+  DD: "dd",
+  ONLINE: "online",
   RAZORPAY: "razorpay",
   BANK_TRANSFER: "bank_transfer",
   UPI: "upi",
@@ -15,6 +18,9 @@ export const PAYMENT_MODE_OPTIONS: Array<{
   labelHi?: string;
 }> = [
   { value: PAYMENT_MODE.CASH, label: "Cash", labelHi: "नकद" },
+  { value: PAYMENT_MODE.CHEQUE, label: "Cheque", labelHi: "चेक" },
+  { value: PAYMENT_MODE.DD, label: "D.D.", labelHi: "डी.डी." },
+  { value: PAYMENT_MODE.ONLINE, label: "Online", labelHi: "ऑनलाइन" },
   {
     value: PAYMENT_MODE.BANK_TRANSFER,
     label: "Bank Transfer",
@@ -74,9 +80,12 @@ export function normalizePaymentModeInput(value: unknown): PaymentModeValue {
     .replace(/-/g, "_")
     .replace(/\s+/g, "_");
 
+  if (mode === "cheque" || mode === "check") return PAYMENT_MODE.CHEQUE;
+  if (mode === "dd" || mode === "d.d." || mode === "d.d") return PAYMENT_MODE.DD;
   if (mode === "razorpay") return PAYMENT_MODE.RAZORPAY;
   if (mode === "bank_transfer") return PAYMENT_MODE.BANK_TRANSFER;
-  if (mode === "upi" || mode === "online") return PAYMENT_MODE.UPI;
+  if (mode === "upi") return PAYMENT_MODE.UPI;
+  if (mode === "online") return PAYMENT_MODE.ONLINE;
   return PAYMENT_MODE.CASH;
 }
 
@@ -93,7 +102,69 @@ export function formatPaymentModeLabel(value: unknown): string {
 export function getPaymentModeBadgeClass(value: unknown): string {
   const mode = normalizePaymentModeInput(value);
   if (mode === PAYMENT_MODE.RAZORPAY) return "bg-blue-100 text-blue-800";
+  if (mode === PAYMENT_MODE.ONLINE) return "bg-blue-100 text-blue-800";
   if (mode === PAYMENT_MODE.UPI) return "bg-purple-100 text-purple-800";
   if (mode === PAYMENT_MODE.BANK_TRANSFER) return "bg-green-100 text-green-800";
+  if (mode === PAYMENT_MODE.CHEQUE) return "bg-amber-100 text-amber-800";
+  if (mode === PAYMENT_MODE.DD) return "bg-indigo-100 text-indigo-800";
   return "bg-gray-100 text-gray-800";
 }
+
+/**
+ * Canonical SAF Foundation Payment Mode Formatter for Form PDFs.
+ *
+ * Required behavior:
+ * "CASH" / "cash" / "Cash" => "Cash"
+ * "CHEQUE" / "cheque" / "Cheque" / "CHECK" / "check" => "Cheque"
+ * "DD" / "dd" / "D.D." / "d.d." / "D.D" => "D.D."
+ * "ONLINE" / "online" / "Online" => "Online"
+ * "RAZORPAY" / "razorpay" / "Razorpay" => "Online"
+ * "UPI" / "upi" / "Upi" => "Online"
+ * "BANK_TRANSFER" / "bank_transfer" / "Bank Transfer" => "Online"
+ * Electronic variants: NEFT, RTGS, IMPS, NETBANKING => "Online"
+ * Null / undefined / empty string => ""
+ * Do NOT throw.
+ */
+export function formatPaymentModeForPdf(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+
+  const upper = raw.toUpperCase().replace(/[\s\-_]+/g, "");
+
+  if (upper.includes("CASH")) {
+    return "Cash";
+  }
+
+  if (upper.includes("CHEQUE") || upper.includes("CHECK")) {
+    return "Cheque";
+  }
+
+  if (
+    upper.replace(/\./g, "") === "DD" ||
+    upper.includes("DD") ||
+    raw === "D.D." ||
+    raw.toLowerCase() === "d.d." ||
+    raw === "D.D"
+  ) {
+    return "D.D.";
+  }
+
+  if (
+    upper.includes("ONLINE") ||
+    upper.includes("RAZORPAY") ||
+    upper.includes("RAZOR") ||
+    upper.includes("UPI") ||
+    upper.includes("BANKTRANSFER") ||
+    upper.includes("BANK") ||
+    upper.includes("NEFT") ||
+    upper.includes("RTGS") ||
+    upper.includes("IMPS") ||
+    upper.includes("NETBANKING")
+  ) {
+    return "Online";
+  }
+
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+

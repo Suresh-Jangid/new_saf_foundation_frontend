@@ -7,6 +7,7 @@ import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { validateApiRequest } from '@/lib/api-security';
+import { formatPaymentModeForPdf } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -513,6 +514,11 @@ export async function POST(request: NextRequest) {
         if (textValue && !textValue.endsWith('/-') && !isNaN(Number(textValue.replace(/,/g, '')))) {
           textValue = `${textValue}/-`;
         }
+      }
+
+      // Format payment mode
+      if (def.field === 'भुगतान_विवरण' || def.field === 'रसीद_भुगतान_विवरण') {
+        textValue = formatPaymentModeForPdf(textValue);
       }
 
       const baseX = def.x + valueOffsetX + globalOffsetX;

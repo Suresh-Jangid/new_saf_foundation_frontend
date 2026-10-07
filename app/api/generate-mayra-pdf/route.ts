@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
+import { formatPaymentModeForPdf } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -295,8 +296,10 @@ export async function POST(request: NextRequest) {
       ) ||
       rawReceiptAmount;
     const formAmountStr = rawFormAmount ? formatIndianCurrency(rawFormAmount) : '';
+    const rawPaymentMode = getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') || 'CASH';
+    const formattedPaymentMode = formatPaymentModeForPdf(rawPaymentMode);
     const paymentMode = [
-      getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') || 'CASH',
+      formattedPaymentMode,
       getField(record, 'epinCode', 'epin_code') ? `EPIN: ${getField(record, 'epinCode', 'epin_code')}` : ''
     ].filter(Boolean).join(' / ');
     const seniorWorker = getField(record, 'seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'seniorCode', 'senior_code', 'seniorWorker', 'senior_worker', 'seniorName', 'senior_name');

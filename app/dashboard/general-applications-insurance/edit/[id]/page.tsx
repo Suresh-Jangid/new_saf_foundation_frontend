@@ -568,10 +568,10 @@ export default function EditGeneralInsuranceApplicationPage() {
     toast.error(error.message || "Payment failed. Please try again.")
   }, [])
 
-  const paymentModeOptions = PAYMENT_MODE_OPTIONS.filter(
-    (option) =>
-      option.value === PAYMENT_MODE.CASH || option.value === PAYMENT_MODE.RAZORPAY
-  ).map((option) => ({ value: option.value, label: option.label }))
+  const paymentModeOptions = PAYMENT_MODE_OPTIONS.map((option) => ({
+    value: option.value,
+    label: option.label,
+  }))
 
   if (initialLoading) {
     return (

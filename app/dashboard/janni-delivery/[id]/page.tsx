@@ -91,7 +91,7 @@ export default function EditJanniDeliveryPage() {
     category: "A" | "B" | "C" | "D" | "E" | "F";
     totalAmount: string;
     paymentAmount: string;
-    paymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER";
+    paymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER" | "CHEQUE" | "DD";
     selectedAgentId: string;
     epinCode: string;
   }>({
@@ -231,8 +231,8 @@ export default function EditJanniDeliveryPage() {
               : "0";
 
           const rawMode = (lastInstallment?.paymentMode || firstInstallment?.paymentMode || "CASH").toUpperCase();
-          const validPaymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER" =
-            ["CASH", "ONLINE", "RAZORPAY", "BANK_TRANSFER"].includes(rawMode)
+          const validPaymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER" | "CHEQUE" | "DD" =
+            ["CASH", "ONLINE", "RAZORPAY", "BANK_TRANSFER", "CHEQUE", "DD"].includes(rawMode)
               ? (rawMode as any)
               : "CASH";
 
@@ -1292,6 +1292,8 @@ export default function EditJanniDeliveryPage() {
                       className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
                     >
                       <option value="CASH">Cash / नकद</option>
+                      <option value="CHEQUE">Cheque / चेक</option>
+                      <option value="DD">D.D. / डी.डी.</option>
                       <option value="ONLINE">Online / ऑनलाइन</option>
                       <option value="RAZORPAY">Razorpay</option>
                       <option value="BANK_TRANSFER">Bank Transfer / बैंक ट्रांसफर</option>

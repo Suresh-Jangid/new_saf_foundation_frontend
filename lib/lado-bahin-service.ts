@@ -141,7 +141,7 @@ export interface CreateLadoBahinPayload {
   grantFee?: number;
   totalAmount?: number;
   paymentAmount?: number;
-  paymentMode?: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER";
+  paymentMode?: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER" | "CHEQUE" | "DD" | string;
   selectedAgentId?: string;
   addedById?: string;
   addedby_id?: string;

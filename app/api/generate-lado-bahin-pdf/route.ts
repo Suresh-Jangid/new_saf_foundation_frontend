@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
+import { formatPaymentModeForPdf } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -277,8 +278,7 @@ export async function POST(request: NextRequest) {
       getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') ||
       getField(body, 'paymentModeRef', 'paymentMode', 'payment_mode') ||
       'CASH';
-    const cleanPaymentMode =
-      /razorpay|online/i.test(rawPaymentMode) ? 'Razorpay' : 'Cash';
+    const cleanPaymentMode = formatPaymentModeForPdf(rawPaymentMode);
     const epin = getField(record, 'epinCode', 'epin_code') || getField(body, 'epinCode', 'epin_code');
     const paymentMode = [
       cleanPaymentMode,

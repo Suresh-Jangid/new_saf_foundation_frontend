@@ -84,6 +84,48 @@ function sanitizeValue(val: any): string {
   return str;
 }
 
+// Resolve authoritative Janni Delivery dynamic amount for clause: "जननी सुरक्षा प्रसव योजना ...... रूपये प्रत्येक डिलीवरी पर लागू"
+function resolveJanniDeliveryAmountText(rec: any, body?: any): string {
+  // Canonical per-delivery installment / contribution fields ONLY.
+  // NEVER fall back to fee, totalAmount, membershipFee, paymentAmount, or installments[0]?.amount,
+  // which represent one-time registration fees or ledger payments (e.g. ₹300, ₹3,100, ₹5,100),
+  // nor to total assistance grants (e.g. ₹11,000).
+  const rawAmt =
+    rec?.janniInstallment ??
+    rec?.janni_installment ??
+    rec?.deliveryAmount ??
+    rec?.delivery_amount ??
+    rec?.installmentAmount ??
+    rec?.installment_amount ??
+    rec?.kistAmount ??
+    rec?.kist_amount ??
+    rec?.janniKist ??
+    rec?.janni_kist ??
+    rec?.janniAmount ??
+    rec?.janni_amount ??
+    body?.janniInstallment ??
+    body?.janni_installment ??
+    body?.deliveryAmount ??
+    body?.delivery_amount ??
+    body?.installmentAmount ??
+    body?.installment_amount ??
+    body?.janniAmount ??
+    body?.janni_amount ??
+    '';
+
+  if (rawAmt === undefined || rawAmt === null || rawAmt === '') {
+    return '';
+  }
+
+  const numStr = String(rawAmt).replace(/[^\d.]/g, '');
+  if (!numStr) return '';
+  const parsedNum = parseFloat(numStr);
+  if (!isNaN(parsedNum) && parsedNum > 0) {
+    return parsedNum % 1 === 0 ? String(parsedNum) : numStr;
+  }
+  return '';
+}
+
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
@@ -321,40 +363,8 @@ export async function POST(request: NextRequest) {
     const nomineeAadhar = sanitizeValue(record.nomineeAadhar || record.nomineeAadhaar || record.nominee_aadhar || '');
     const nomineeMobile = sanitizeValue(record.nomineeMobile || record.nomineePhone || record.nominee_mobile || '');
 
-    // Selected installment amount / scheme amount (dynamically resolved from persisted record)
-    const rawAmt =
-      record.installmentAmount ??
-      record.installment_amount ??
-      (Array.isArray(record.installments) && record.installments.length > 0 && record.installments[0]?.amount !== undefined && record.installments[0]?.amount !== null
-        ? record.installments[0].amount
-        : undefined) ??
-      body?.installmentAmount ??
-      body?.installment_amount ??
-      record.paymentAmount ??
-      record.payment_amount ??
-      record.totalAmount ??
-      record.total_amount ??
-      record.janniAmount ??
-      record.grantAmount ??
-      record.schemeAmount ??
-      record.scheme_amount ??
-      record.deliveryAmount ??
-      record.amount ??
-      '';
-
-    let cleanAmt = '';
-    if (rawAmt !== undefined && rawAmt !== null && rawAmt !== '') {
-      const numStr = String(rawAmt).replace(/[^\d.]/g, '');
-      if (numStr) {
-        const parsedNum = parseFloat(numStr);
-        if (!isNaN(parsedNum) && parsedNum > 0) {
-          cleanAmt = parsedNum % 1 === 0 ? String(parsedNum) : numStr;
-        } else if (numStr === '0') {
-          cleanAmt = '0';
-        }
-      }
-    }
-    const janniAmount = sanitizeValue(cleanAmt);
+    // Selected per-delivery installment amount (strictly canonical per-delivery field)
+    const janniAmount = sanitizeValue(resolveJanniDeliveryAmountText(record, body));
 
     const navyColor = rgb(0.04, 0.15, 0.58);
     const darkColor = rgb(0.12, 0.12, 0.12);

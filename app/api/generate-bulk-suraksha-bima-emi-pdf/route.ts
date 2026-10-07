@@ -94,8 +94,39 @@ export async function POST(request: NextRequest) {
       throw new Error('No data provided for PDF generation');
     }
 
+    // Validate batch consistency across selected records
+    const bimaRecords = Array.isArray(data.bimaYojana) ? data.bimaYojana : [];
+    const validRecordEmis = bimaRecords
+      .map((r: any) => parseFloat(String(r.emiAmount)))
+      .filter((amt: number) => !isNaN(amt) && amt > 0);
+    const distinctRecordEmis = Array.from(new Set(validRecordEmis));
+
+    if (distinctRecordEmis.length > 1) {
+      return NextResponse.json(
+        {
+          error: 'Conflicting EMI amounts in batch',
+          details: `Selected records have differing EMI amounts: ${distinctRecordEmis.join(', ')}. All records in a batch must have the same EMI amount.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Canonical EMI resolution:
+    // 1. Uniform selected records emiAmount
+    // 2. Parent data.emiAmount if valid and positive
+    let canonicalBatchEmi = '';
+    if (distinctRecordEmis.length === 1) {
+      canonicalBatchEmi = String(distinctRecordEmis[0]);
+    } else {
+      const parentEmi = parseFloat(String(data.emiAmount));
+      if (!isNaN(parentEmi) && parentEmi > 0) {
+        canonicalBatchEmi = String(parentEmi);
+      }
+    }
+
     console.log('Received bulk Suraksha Bima EMI data:', JSON.stringify(data, null, 2));
     console.log('Gender for PDF template:', gender);
+    console.log('Canonical batch EMI resolved:', canonicalBatchEmi);
     console.log('Image data received:', !!imageData);
     console.log('Available fields:', Object.keys(data || {}));
 
@@ -203,7 +234,7 @@ export async function POST(request: NextRequest) {
         'address': data.address || '',
         'category': data.category || '',
         'gender': data.gender || '',
-        'emiAmount': data.emiAmount?.toString() || '',
+        'emiAmount': canonicalBatchEmi,
         'startDate': data.startDate || '',
         'endDate': data.endDate || '',
         'totalRecords': data.totalRecords?.toString() || '',
@@ -282,6 +313,7 @@ export async function POST(request: NextRequest) {
       address: data.address || data.पता || data.निवासी || '',
       todayDate: todayDate,
       village: data.village || data.गाँव || '',
+      emiAmount: canonicalBatchEmi,
     };
     
     console.log('Base PDF data:', basePdfData);
@@ -372,12 +404,24 @@ export async function POST(request: NextRequest) {
         console.log(`Page ${pageIndex + 1} - Total EMI Amount: ${pageTotalEmiAmount}, Amount in words: ${pageAmountInWords}`);
       }
 
+      // Resolve page-level EMI: use canonical batch EMI if present; otherwise, resolve from pageRecords
+      let resolvedPageEmi = canonicalBatchEmi;
+      if (!resolvedPageEmi && pageRecords.length > 0) {
+        const pageEmis = pageRecords
+          .map((r: any) => parseFloat(String(r.emiAmount)))
+          .filter((amt: number) => !isNaN(amt) && amt > 0);
+        const distinctPageEmis = Array.from(new Set(pageEmis));
+        if (distinctPageEmis.length === 1) {
+          resolvedPageEmi = String(distinctPageEmis[0]);
+        }
+      }
+
       // Create page-specific PDF data with per-page totals
       const pagePdfData = {
         ...basePdfData,
-        totalEmiAmount: `${pageTotalEmiAmount}`,
+        totalEmiAmount: pageTotalEmiAmount > 0 ? `${pageTotalEmiAmount}` : '',
         amountInWords: pageAmountInWords,
-        emiAmount: 200,
+        emiAmount: resolvedPageEmi,
       };
       
       // Fill header fields for each page

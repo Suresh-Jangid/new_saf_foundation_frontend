@@ -585,6 +585,33 @@ export default function BulkSurakshaBimaEMIPage() {
         selectedIds.includes(record.id),
       );
 
+      // Check batch consistency: all selected records must have the same EMI amount
+      const validEmis = selectedRecords
+        .map((r) => parseFloat(String(r.emiAmount)))
+        .filter((amt) => !isNaN(amt) && amt > 0);
+      const uniqueEmis = Array.from(new Set(validEmis));
+
+      if (uniqueEmis.length > 1) {
+        toast.error(
+          `चयनित रिकॉर्ड्स में अलग-अलग ईएमआई राशि है (${uniqueEmis.join(", ")}). कृपया एक जैसी ईएमआई वाले रिकॉर्ड्स चुनें।`,
+        );
+        return;
+      }
+
+      // Canonical EMI resolution: selected records first, then parent if valid
+      const parentUserEmi = parseFloat(String(filteredUserDetails[0]?.emiAmount));
+      const canonicalEmiAmount =
+        uniqueEmis.length === 1
+          ? uniqueEmis[0]
+          : !isNaN(parentUserEmi) && parentUserEmi > 0
+          ? parentUserEmi
+          : "";
+
+      if (canonicalEmiAmount === "") {
+        toast.error("वैध ईएमआई राशि नहीं मिली। कृपया रिकॉर्ड की ईएमआई राशि जांचें।");
+        return;
+      }
+
       // Determine gender from user details (assuming all records are for the same user)
       const userGender =
         filteredUserDetails.length > 0
@@ -604,7 +631,7 @@ export default function BulkSurakshaBimaEMIPage() {
         address: filteredUserDetails[0]?.address || "",
         category: filteredUserDetails[0]?.category || "",
         gender: filteredUserDetails[0]?.gender || "",
-        emiAmount: filteredUserDetails[0]?.emiAmount || 0,
+        emiAmount: canonicalEmiAmount,
 
         bimaYojana: selectedRecords.map((record) => ({
           bimaNumber: record.surakshaBimaNumber,

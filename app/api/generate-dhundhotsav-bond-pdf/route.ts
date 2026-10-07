@@ -295,7 +295,10 @@ export async function POST(request: NextRequest) {
     if (rawInstallments.length > 0) {
       for (let i = rawInstallments.length - 1; i >= 0; i--) {
         const item = rawInstallments[i];
-        const val = typeof item === 'object' && item !== null ? item.amount : item;
+        const val =
+          typeof item === 'object' && item !== null
+            ? (item.amount ?? item.installmentAmount ?? item.kistAmount)
+            : item;
         if (val !== undefined && val !== null && String(val).trim() !== '') {
           currentInstallmentAmt = val;
           break;
@@ -303,39 +306,37 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Approved canonical installment sources ONLY:
+    // 1. Explicit canonical installmentAmount / aliases
+    // 2. Verified installments[].amount
+    // 3. Request body installmentAmount / aliases
+    // STRICTLY FORBIDDEN: paymentAmount, paidAmount, totalAmount, totalGrantAmount, membershipFee, grantFee, fee, registrationFee, pendingAmount, grantAmount, schemeAmount
     const rawAmount =
-      record.installmentAmount ??
-      record.installment_amount ??
-      record.installment ??
+      record?.installmentAmount ??
+      record?.installment_amount ??
+      record?.installment ??
+      record?.kistAmount ??
+      record?.kist_amount ??
       currentInstallmentAmt ??
-      record.financialSummary?.installmentAmount ??
-      record.financialSummary?.installment_amount ??
-      record.financialSummary?.installment ??
+      record?.financialSummary?.installmentAmount ??
+      record?.financialSummary?.installment_amount ??
+      record?.financialSummary?.installment ??
       body?.installmentAmount ??
       body?.installment_amount ??
-      record.paymentAmount ??
-      record.payment_amount ??
-      body?.paymentAmount ??
-      body?.payment_amount ??
-      record.amount ??
-      body?.amount ??
-      record.schemeAmount ??
-      record.scheme_amount ??
-      record.totalAmount ??
-      record.total_amount ??
-      record.membershipFee ??
-      record.membership_fee ??
+      body?.installment ??
+      body?.kistAmount ??
       '';
 
     let cleanAmt = '';
     if (rawAmount !== undefined && rawAmount !== null && String(rawAmount).trim() !== '') {
-      const strVal = String(rawAmount).trim().replace(/^[₹Rs.\s]+/, '');
-      if (strVal.endsWith('/-')) {
-        cleanAmt = strVal;
+      const str = String(rawAmount).trim();
+      if (/^\d[\d,]*\s*किस्त$/.test(str)) {
+        cleanAmt = str.replace(/\s+/g, ' ');
       } else {
-        const stripped = strVal.replace(/\/+$/, '').trim();
-        if (stripped) {
-          cleanAmt = `${stripped}/-`;
+        const numStr = str.replace(/^[₹Rs.\s]+/, '').replace(/\/+$/, '').replace(/,/g, '').trim();
+        const num = parseFloat(numStr);
+        if (!isNaN(num) && num > 0) {
+          cleanAmt = `${Math.round(num)} किस्त`;
         }
       }
     }

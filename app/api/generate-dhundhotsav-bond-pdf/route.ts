@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { buildPdfFilename } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -476,12 +477,13 @@ export async function POST(request: NextRequest) {
     drawCenteredInRange(duration, 276.56, 344.35, 443.76 + VERTICAL_OFFSET, labelSize, 65.0, redColor);
 
     const pdfBytes = await pdfDoc.save();
-    const filename = `dhundhotsav_bond_${offlineFormNumber || record.formNumber || 'bond'}.pdf`;
+    const filename = buildPdfFilename(record, { prefix: 'dhundhotsav_bond' });
+    const encodedFilename = encodeURIComponent(filename);
 
     return new NextResponse(pdfBytes.buffer as ArrayBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
         'Cache-Control': 'no-store',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',

@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { loadImageBytes, pickPhotoSource } from '../../utils/pdfImage';
+import { buildPdfFilename } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -267,21 +268,20 @@ export async function POST(request: NextRequest) {
     );
 
     // Generate filename
-    const bimaNumber = data?.बीमा_नंबर || 'filled';
-    let filename = 'suraksha_bima_form.pdf';
-    
+    let prefix = 'suraksha_bima';
     if (gender === 'Female' || gender === 'महिला') {
-      filename = `female_suraksha_bima_${bimaNumber}.pdf`;
+      prefix = 'female_suraksha_bima';
     } else if (gender === 'Male' || gender === 'पुरुष') {
-      filename = `male_suraksha_bima_${bimaNumber}.pdf`;
-    } else {
-      filename = `suraksha_bima_${bimaNumber}.pdf`;
+      prefix = 'male_suraksha_bima';
     }
+
+    const filename = buildPdfFilename(data, { prefix });
+    const encodedFilename = encodeURIComponent(filename);
 
     return new NextResponse(arrayBuffer as ArrayBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
         'Cache-Control': 'no-store',
       },
     });

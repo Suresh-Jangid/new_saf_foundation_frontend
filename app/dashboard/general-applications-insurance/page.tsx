@@ -12,7 +12,7 @@ import APIService from "@/lib/services"
 import { agentRegistrationAPI } from "@/lib/api"
 import { toast } from "sonner"
 import { getCurrentUserInfo, calculateAge, getPhotoDataUrl, unwrapApiRecordById } from "@/lib/utils"
-import { isMale, isFemale } from "@/lib/form-values"
+import { isMale, isFemale, buildPdfFilename } from "@/lib/form-values"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -634,7 +634,7 @@ export default function GeneralInsuranceApplicationsPage() {
       const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `INSURANCE_BOND_${rawRecord.applicantName || rawRecord.formNumber || 'bond'}.pdf`;
+      a.download = buildPdfFilename(record, { prefix: 'INSURANCE_BOND' });
       document.body.appendChild(a);
       a.click();
       
@@ -871,7 +871,7 @@ export default function GeneralInsuranceApplicationsPage() {
       const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `insurance_application_${record.formNumber}.pdf`;
+      a.download = buildPdfFilename(pdfData, { prefix: 'INSURANCE_APPLICATION' });
       document.body.appendChild(a);
       a.click();
       

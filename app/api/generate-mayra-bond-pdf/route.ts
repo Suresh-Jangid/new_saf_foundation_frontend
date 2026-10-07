@@ -5,6 +5,7 @@ import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
+import { buildPdfFilename } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -500,13 +501,13 @@ export async function POST(request: NextRequest) {
     drawBounded(mayraAmountText, 223.0, 481.90, 11.0, 65, navyColor);
 
     const pdfBytes = await pdfDoc.save();
-    const rawSafeName = applicantName || membershipNo || formNumber || record?.id || 'bond';
-    const safeName = String(rawSafeName).trim().replace(/[^a-zA-Z0-9_\-\u0900-\u097F]/g, '_');
+    const filename = buildPdfFilename(record, { prefix: 'MAYRA_BOND' });
+    const encodedFilename = encodeURIComponent(filename);
 
     return new Response(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="MAYRA_BOND_${encodeURIComponent(safeName)}.pdf"`,
+        'Content-Disposition': `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
       },
     });
   } catch (error: any) {

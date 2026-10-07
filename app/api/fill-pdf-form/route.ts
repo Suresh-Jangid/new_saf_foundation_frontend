@@ -12,6 +12,7 @@ import {
   resolveCanonicalPaymentAmount,
   formatAmountToHindiWords,
   formatNumericAmountForPdf,
+  buildPdfFilename,
 } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
@@ -584,28 +585,27 @@ export async function POST(request: NextRequest) {
     );
 
     // Generate appropriate filename based on gender and type
-    let filename = 'filled_form.pdf';
+    let prefix = 'balika_avedan_form';
     if (type === 'dhundhotsav' || type === 'dhundhotsav-application') {
-      const formNumber = (data as any)?.offlineFormNumber || (data as any)?.formNumber || 'filled';
-      filename = `dhundhotsav_application_form_${formNumber}.pdf`;
+      prefix = 'dhundhotsav_application_form';
     } else if (type === 'general-application') {
       const gender = data?.gender || data?.लिंग;
-      const formNumber = (data as any)?.सदस्यता_क्रमांक || (data as any)?.formNumber || 'filled';
       if (gender === 'Female' || gender === 'महिला') {
-        filename = `balika_application_form_${formNumber}.pdf`;
+        prefix = 'balika_application_form';
       } else if (gender === 'Male' || gender === 'पुरुष') {
-        filename = `boys_application_form_${formNumber}.pdf`;
+        prefix = 'boys_application_form';
       } else {
-        filename = `general_application_form_${formNumber}.pdf`;
+        prefix = 'general_application_form';
       }
-    } else {
-      filename = `balika_avedan_form_${(data as any)?.सदस्यता_क्रमांक || 'filled'}.pdf`;
     }
+
+    const filename = buildPdfFilename(data, { prefix });
+    const encodedFilename = encodeURIComponent(filename);
 
     return new NextResponse(arrayBuffer as ArrayBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
         'Cache-Control': 'no-store',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',

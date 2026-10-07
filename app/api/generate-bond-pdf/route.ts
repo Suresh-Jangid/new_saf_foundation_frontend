@@ -5,6 +5,7 @@ import path from 'path';
 import 'regenerator-runtime/runtime';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
+import { buildPdfFilename } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -430,28 +431,22 @@ export async function POST(request: NextRequest) {
       pdfBytes.byteOffset + pdfBytes.byteLength
     );
 
-    // Safe filename without Hindi characters
-    const safeName = (record?.applicantName || record?.formNumber || 'bond')
-      .replace(/[^\x00-\x7F]/g, '')
-      .replace(/[^a-zA-Z0-9\s-_]/g, '')
-      .trim()
-      .replace(/\s+/g, '_');
-
     // Generate appropriate filename based on gender
     const gender = record?.gender || record?.लिंग;
-    let fileName: string;
+    let prefix = 'VIVAH_YOJANA_BOND';
     if (gender === 'Female' || gender === 'महिला') {
-      fileName = `GIRL_BOND_${safeName}.pdf`;
+      prefix = 'GIRL_BOND';
     } else if (gender === 'Male' || gender === 'पुरुष') {
-      fileName = `BOYS_BOND_${safeName}.pdf`;
-    } else {
-      fileName = `VIVAH_YOJANA_BOND_${safeName}.pdf`;
+      prefix = 'BOYS_BOND';
     }
+
+    const fileName = buildPdfFilename(record, { prefix });
+    const encodedFilename = encodeURIComponent(fileName);
 
     return new NextResponse(arrayBuffer as ArrayBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Content-Disposition': `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
         'Cache-Control': 'no-store',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',

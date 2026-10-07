@@ -28,6 +28,7 @@ import { formatDate, getPhotoDataUrl } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { PdfActionButton } from "@/components/pdf-action-button";
 import { agentRegistrationAPI } from "@/lib/api";
+import { buildPdfFilename } from "@/lib/form-values";
 
 interface Column<T> {
   key: keyof T | string;
@@ -451,25 +452,27 @@ export default function LadoBahinListPage() {
         nomineePhotoSource ? getPhotoDataUrl(nomineePhotoSource) : null,
       ]);
 
+      const enrichedRecord = {
+        ...record,
+        ...latestRecord,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+        workerCode: workerOfflineFormNumber,
+        seniorCode: seniorOfflineFormNumber,
+        uplineCode: seniorOfflineFormNumber,
+        workerMobile: workerMobile || latestRecord.workerMobile || (record as any).workerMobile,
+        passportPhoto: photoSource,
+        passportPhotoUrl: photoSource,
+        nomineePhoto: nomineePhotoSource,
+        nomineePhotoUrl: nomineePhotoSource,
+      };
+
       // 5. Send enriched payload to PDF route
       const response = await fetch("/api/generate-lado-bahin-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          record: {
-            ...record,
-            ...latestRecord,
-            workerOfflineFormNumber,
-            seniorOfflineFormNumber,
-            workerCode: workerOfflineFormNumber,
-            seniorCode: seniorOfflineFormNumber,
-            uplineCode: seniorOfflineFormNumber,
-            workerMobile: workerMobile || latestRecord.workerMobile || (record as any).workerMobile,
-            passportPhoto: photoSource,
-            passportPhotoUrl: photoSource,
-            nomineePhoto: nomineePhotoSource,
-            nomineePhotoUrl: nomineePhotoSource,
-          },
+          record: enrichedRecord,
           workerOfflineFormNumber,
           seniorOfflineFormNumber,
           workerCode: workerOfflineFormNumber,
@@ -490,7 +493,7 @@ export default function LadoBahinListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `lado_bahin_form_${latestRecord.formNumber || record.formNumber || record.id}.pdf`;
+      a.download = buildPdfFilename(enrichedRecord, { prefix: "lado_bahin_form" });
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -528,20 +531,22 @@ export default function LadoBahinListPage() {
       );
 
       const photoDataUrl = record.passportPhotoUrl ? await getPhotoDataUrl(record.passportPhotoUrl) : null;
+      const enrichedBondRecord = {
+        ...record,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+        workerCode: workerOfflineFormNumber,
+        seniorCode: seniorOfflineFormNumber,
+        uplineCode: seniorOfflineFormNumber,
+        workerMobile,
+        imageData: photoDataUrl || (record as any).imageData,
+      };
+
       const response = await fetch("/api/generate-lado-bahin-bond-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          record: {
-            ...record,
-            workerOfflineFormNumber,
-            seniorOfflineFormNumber,
-            workerCode: workerOfflineFormNumber,
-            seniorCode: seniorOfflineFormNumber,
-            uplineCode: seniorOfflineFormNumber,
-            workerMobile,
-            imageData: photoDataUrl || (record as any).imageData,
-          },
+          record: enrichedBondRecord,
           workerOfflineFormNumber,
           seniorOfflineFormNumber,
           workerCode: workerOfflineFormNumber,
@@ -561,8 +566,7 @@ export default function LadoBahinListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const downloadName = record.offlineFormNumber || record.formNumber || record.id;
-      a.download = `lado_bahin_bond_${downloadName}.pdf`;
+      a.download = buildPdfFilename(enrichedBondRecord, { prefix: "lado_bahin_bond" });
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

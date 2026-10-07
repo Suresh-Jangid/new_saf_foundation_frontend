@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
+import { buildPdfFilename } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -572,18 +573,13 @@ export async function POST(request: NextRequest) {
     // 6. Serialize and Return PDF
     const pdfBytes = await pdfDoc.save();
 
-    const safeName = (record?.applicantName || record?.formNumber || 'lado_bahin_bond')
-      .replace(/[^\x00-\x7F]/g, '')
-      .replace(/[^a-zA-Z0-9\s-_]/g, '')
-      .trim()
-      .replace(/\s+/g, '_');
-
-    const downloadFileName = `lado_bahin_bond_${applicationOfflineNo || membershipNo || safeName || 'document'}.pdf`;
+    const downloadFileName = buildPdfFilename(record, { prefix: 'lado_bahin_bond' });
+    const encodedFilename = encodeURIComponent(downloadFileName);
 
     return new NextResponse(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${downloadFileName}"`,
+        'Content-Disposition': `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
         'Cache-Control': 'no-store',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',

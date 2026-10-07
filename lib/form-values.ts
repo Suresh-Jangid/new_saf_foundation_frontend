@@ -336,3 +336,160 @@ export function formatNumericAmountForPdf(value: unknown): string {
   const integerPart = Math.floor(num);
   return `${integerPart.toLocaleString("en-IN")}/-`;
 }
+
+/**
+ * Sanitizes a single filename part according to SAF Foundation dynamic filename rules.
+ * Preserves alphanumeric, hyphen, underscore, and Devanagari Hindi characters (\u0900-\u097F).
+ * Converts everything else to '_', collapses consecutive underscores, and trims leading/trailing underscores.
+ * Empty, null, undefined, "null", "undefined", "NaN", "unknown" resolve to empty string.
+ */
+export function sanitizeFilenamePart(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+  const lower = raw.toLowerCase();
+  if (lower === "undefined" || lower === "null" || lower === "nan" || lower === "unknown") {
+    return "";
+  }
+  return raw
+    .replace(/[^a-zA-Z0-9_\-\u0900-\u097F]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+export interface PdfFilenameSource {
+  applicantName?: string | null;
+  applicant_name?: string | null;
+  name?: string | null;
+  fullName?: string | null;
+  full_name?: string | null;
+
+  offlineFormNumber?: string | null;
+  offline_form_number?: string | null;
+  formNumber?: string | null;
+  form_number?: string | null;
+  membershipNumber?: string | null;
+
+  workerOfflineFormNumber?: string | null;
+  worker_offline_form_number?: string | null;
+  agentOfflineFormNumber?: string | null;
+  agent_offline_form_number?: string | null;
+  workerCode?: string | null;
+  agentCode?: string | null;
+
+  seniorOfflineFormNumber?: string | null;
+  senior_offline_form_number?: string | null;
+  seniorAgentOfflineFormNumber?: string | null;
+  senior_agent_offline_form_number?: string | null;
+  seniorCode?: string | null;
+  uplineCode?: string | null;
+
+  [key: string]: any;
+}
+
+export interface BuildPdfFilenameOptions {
+  prefix?: string;
+  suffix?: string;
+  fallbackBase?: string;
+}
+
+function resolveFirstFilenamePart(
+  record: PdfFilenameSource | null | undefined,
+  keys: string[]
+): string {
+  if (!record || typeof record !== "object") return "";
+  for (const k of keys) {
+    if (k in record && record[k] !== undefined && record[k] !== null) {
+      const sanitized = sanitizeFilenamePart(record[k]);
+      if (sanitized) return sanitized;
+    }
+  }
+  return "";
+}
+
+/**
+ * Builds a standardized PDF filename from dynamic record attributes:
+ * <ApplicantName>_<OfflineFormNumber>_<AgentCode>_<UplineAgentCode>.pdf
+ *
+ * Missing fields are omitted without double underscores or dangling underscores.
+ * Preserves Devanagari Hindi characters.
+ * Defaults to "SAF_DOCUMENT.pdf" if all parts are empty.
+ */
+export function buildPdfFilename(
+  record?: PdfFilenameSource | null,
+  options?: BuildPdfFilenameOptions
+): string {
+  const name = resolveFirstFilenamePart(record, [
+    "applicantName",
+    "applicant_name",
+    "name",
+    "fullName",
+    "full_name",
+    "आवेदक_का_नाम",
+  ]);
+
+  const form = resolveFirstFilenamePart(record, [
+    "offlineFormNumber",
+    "offline_form_number",
+    "formNumber",
+    "form_number",
+    "membershipNumber",
+    "सदस्यता_क्रमांक",
+    "क्रमांक",
+    "bimaNumber",
+    "bima_number",
+    "बीमा_नंबर",
+  ]);
+
+  const agent = resolveFirstFilenamePart(record, [
+    "workerOfflineFormNumber",
+    "worker_offline_form_number",
+    "agentOfflineFormNumber",
+    "agent_offline_form_number",
+    "workerCode",
+    "agentCode",
+    "कार्यकर्ता_कोड",
+    "codeNumber",
+    "code_number",
+    "कोड_नंबर",
+  ]);
+
+  const upline = resolveFirstFilenamePart(record, [
+    "seniorOfflineFormNumber",
+    "senior_offline_form_number",
+    "seniorAgentOfflineFormNumber",
+    "senior_agent_offline_form_number",
+    "seniorCode",
+    "uplineCode",
+    "सीनियर_कोड",
+  ]);
+
+  const parts = [name, form, agent, upline].filter(Boolean);
+  const prefix = sanitizeFilenamePart(options?.prefix);
+  const suffix = sanitizeFilenamePart(options?.suffix);
+  const fallback = sanitizeFilenamePart(options?.fallbackBase);
+
+  let core = parts.join("_");
+  if (!core) {
+    core = fallback || (prefix || suffix ? "" : "SAF_DOCUMENT");
+  }
+
+  const allParts = [prefix, core, suffix].filter(Boolean);
+  const baseName = allParts.join("_") || "SAF_DOCUMENT";
+  const cleanBase = baseName
+    .replace(/\.pdf$/i, "")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return `${cleanBase || "SAF_DOCUMENT"}.pdf`;
+}
+
+/**
+ * Generates an RFC-compliant Content-Disposition header with UTF-8 encoding
+ * to prevent invalid header errors with Unicode/Hindi characters.
+ */
+export function buildContentDispositionHeader(filename: string): string {
+  const encodedFilename = encodeURIComponent(filename);
+  return `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`;
+}
+

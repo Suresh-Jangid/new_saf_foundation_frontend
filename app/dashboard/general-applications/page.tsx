@@ -26,7 +26,7 @@ import { Switch } from "@/components/ui/switch"
 import { RoleGuard } from "@/components/role-guard"
 import { PermissionGate } from "@/components/permission-gate"
 import { getCurrentUserInfo, calculateAge, getPhotoDataUrl } from "@/lib/utils"
-import { isMale, isFemale } from "@/lib/form-values"
+import { isMale, isFemale, buildPdfFilename } from "@/lib/form-values"
 import * as XLSX from "xlsx"
 import { isAdmin } from "@/lib/permissions"
 import {
@@ -830,16 +830,13 @@ export default function GeneralApplicationsPage() {
       a.href = url;
       
       // Generate appropriate filename based on gender
-      let filename = 'general_application_form.pdf';
-      if (record.gender === 'Female') {
-        filename = `balika_application_form_${record.formNumber}.pdf`;
-      } else if (record.gender === 'Male') {
-        filename = `boys_application_form_${record.formNumber}.pdf`;
-      } else {
-        filename = `general_application_form_${record.formNumber}.pdf`;
-      }
+      const prefix = (record.gender === 'Female' || (record as any).gender === 'महिला')
+        ? 'balika_application_form'
+        : (record.gender === 'Male' || (record as any).gender === 'पुरुष')
+        ? 'boys_application_form'
+        : 'general_application_form';
       
-      a.download = filename;
+      a.download = buildPdfFilename(dataForPdf, { prefix });
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -910,16 +907,14 @@ export default function GeneralApplicationsPage() {
       a.href = url;
       
       // Generate appropriate filename based on gender
-      let filename = 'BOND.pdf';
-      if (record.gender === 'Female') {
-        filename = `GIRL_BOND_${record.applicantName || record.formNumber || 'bond'}.pdf`;
-      } else if (record.gender === 'Male') {
-        filename = `BOYS_BOND_${record.applicantName || record.formNumber || 'bond'}.pdf`;
-      } else {
-        filename = `BOND_${record.applicantName || record.formNumber || 'bond'}.pdf`;
-      }
+      const gender = enrichedRecord.gender || (enrichedRecord as any).लिंग;
+      const prefix = (gender === 'Female' || gender === 'महिला')
+        ? 'GIRL_BOND'
+        : (gender === 'Male' || gender === 'पुरुष')
+        ? 'BOYS_BOND'
+        : 'VIVAH_YOJANA_BOND';
       
-      a.download = filename;
+      a.download = buildPdfFilename(enrichedRecord, { prefix });
       document.body.appendChild(a);
       a.click();
       

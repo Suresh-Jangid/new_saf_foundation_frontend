@@ -60,6 +60,7 @@ import { formatDate, getPhotoDataUrl, calculateAge } from "@/lib/utils";
 import { isAdmin } from "@/lib/permissions";
 import { agentRegistrationAPI } from "@/lib/api";
 import { PdfActionButton } from "@/components/pdf-action-button";
+import { buildPdfFilename } from "@/lib/form-values";
 
 interface ResolvedAgentOfflineNumbers {
   workerOfflineFormNumber: string;
@@ -650,7 +651,7 @@ export default function DhundhotsavListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `dhundhotsav_application_form_${latestRecord.offlineFormNumber || latestRecord.formNumber || "filled"}.pdf`;
+      a.download = buildPdfFilename(dataForPdf, { prefix: "dhundhotsav_application_form" });
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -739,7 +740,7 @@ export default function DhundhotsavListPage() {
       const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `dhundhotsav_bond_${record.offlineFormNumber || record.formNumber || "bond"}.pdf`;
+      a.download = buildPdfFilename(enrichedRecord, { prefix: "dhundhotsav_bond" });
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

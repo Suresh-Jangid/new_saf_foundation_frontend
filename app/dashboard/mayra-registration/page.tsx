@@ -24,6 +24,7 @@ import { getCurrentUserInfo, MAYRA_ASSOCIATION_DURATION_HI, parseDateFromDDMMYYY
 import { getPhotoDataUrl } from "@/lib/utils"
 import * as XLSX from "xlsx"
 import { BulkUploadButton } from "@/components/bulk-upload-button"
+import { buildPdfFilename } from "@/lib/form-values"
 
 interface ResolvedAgentOfflineNumbers {
   workerOfflineFormNumber: string
@@ -568,23 +569,55 @@ export default function MayraRegistrationPage() {
 
       const feeAmount = (record as any).fee || record.totalAmount || (record as any).total_amount || "";
 
+      let currentAgents = agentsList;
+      if (!currentAgents || currentAgents.length === 0) {
+        try {
+          const res = await agentRegistrationAPI.getAll();
+          if (res && res.status && Array.isArray(res.data)) {
+            currentAgents = res.data;
+            setAgentsList(res.data);
+          } else if (Array.isArray(res)) {
+            currentAgents = res;
+            setAgentsList(res);
+          }
+        } catch (e) {
+          console.warn("Could not fetch agents for Mayra PDF resolution:", e);
+        }
+      }
+
+      const { workerOfflineFormNumber, seniorOfflineFormNumber, workerMobile } = resolveAgentOfflineNumbers(
+        record,
+        currentAgents
+      );
+
+      const enrichedRecord = {
+        ...record,
+        fee: feeAmount,
+        totalAmount: feeAmount || record.totalAmount,
+        total_amount: feeAmount || record.totalAmount,
+        workerOfflineFormNumber,
+        seniorOfflineFormNumber,
+        workerCode: workerOfflineFormNumber || (record as any).workerCode || (record as any).agentCode || "",
+        seniorCode: seniorOfflineFormNumber || (record as any).seniorCode || (record as any).uplineCode || "",
+        agentCode: workerOfflineFormNumber || (record as any).agentCode || (record as any).workerCode || "",
+        uplineCode: seniorOfflineFormNumber || (record as any).uplineCode || (record as any).seniorCode || "",
+        workerMobile: workerMobile || record.workerMobile || "",
+        agentMobile: workerMobile || record.workerMobile || "",
+        offlineFormNumber: record.offlineFormNumber || (record as any).offline_form_number || record.formNumber || "",
+        nomineeMobile,
+        nominee_mobile: nomineeMobile,
+        passportPhoto: photoSource,
+        passportPhotoUrl: photoSource,
+        nomineePhoto: nomineePhotoSource,
+        nomineePhotoUrl: nomineePhotoSource,
+        nomineePassportPhoto: nomineePhotoSource,
+      };
+
       const response = await fetch('/api/generate-mayra-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          record: {
-            ...record,
-            fee: feeAmount,
-            totalAmount: feeAmount || record.totalAmount,
-            total_amount: feeAmount || record.totalAmount,
-            nomineeMobile,
-            nominee_mobile: nomineeMobile,
-            passportPhoto: photoSource,
-            passportPhotoUrl: photoSource,
-            nomineePhoto: nomineePhotoSource,
-            nomineePhotoUrl: nomineePhotoSource,
-            nomineePassportPhoto: nomineePhotoSource,
-          },
+          record: enrichedRecord,
           imageData,
           nomineeImageData,
         }),
@@ -596,8 +629,7 @@ export default function MayraRegistrationPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      const safeName = (record.applicantName || record.formNumber || record.id || 'form').replace(/[^a-zA-Z0-9_\-\u0900-\u097F]/g, '_')
-      a.download = `MAYRA_FORM_${safeName}.pdf`
+      a.download = buildPdfFilename(enrichedRecord, { prefix: 'MAYRA_FORM' })
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -674,7 +706,7 @@ export default function MayraRegistrationPage() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `MAYRA_BOND_${rawRecord.applicantName || 'Mayra'}.pdf`
+      a.download = buildPdfFilename(record, { prefix: 'MAYRA_BOND' })
       document.body.appendChild(a)
       a.click()
       a.remove()

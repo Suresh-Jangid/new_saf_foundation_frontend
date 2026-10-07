@@ -12,6 +12,7 @@ import {
   formatAmountToHindiWords,
   formatNumericAmountForPdf,
   parseAmountToNumber,
+  buildPdfFilename,
 } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
@@ -378,11 +379,13 @@ export async function POST(request: NextRequest) {
     drawBounded(receiptAmountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 
     const pdfBytes = await pdfDoc.save();
+    const filename = buildPdfFilename(record, { prefix: 'lado_bahin_form' });
+    const encodedFilename = encodeURIComponent(filename);
 
     return new NextResponse(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="lado_bahin_form_${formNo || 'document'}.pdf"`,
+        'Content-Disposition': `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
       },
     });
   } catch (error: any) {

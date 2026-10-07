@@ -64,6 +64,7 @@ import { formatDate, getPhotoDataUrl } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { agentRegistrationAPI } from "@/lib/api";
 import { PdfActionButton } from "@/components/pdf-action-button";
+import { buildPdfFilename } from "@/lib/form-values";
 
 interface ResolvedAgentOfflineNumbers {
   workerOfflineFormNumber: string;
@@ -622,22 +623,36 @@ export default function JanniDeliveryListPage() {
         photoSource ? getPhotoDataUrl(photoSource) : null,
         nomineePhotoSource ? getPhotoDataUrl(nomineePhotoSource) : null,
       ]);
+      const resolvedAgentDetails = resolveAgentOfflineNumbers(latestRecord || record, agentsList);
+      const combinedRecord = {
+        ...record,
+        ...latestRecord,
+        ...resolvedAgentDetails,
+        workerOfflineFormNumber:
+          resolvedAgentDetails.workerOfflineFormNumber ||
+          (latestRecord as any).workerOfflineFormNumber ||
+          (record as any).workerOfflineFormNumber ||
+          "",
+        seniorOfflineFormNumber:
+          resolvedAgentDetails.seniorOfflineFormNumber ||
+          (latestRecord as any).seniorOfflineFormNumber ||
+          (record as any).seniorOfflineFormNumber ||
+          "",
+        paymentMode: resolvedPaymentMode,
+        payment_mode: resolvedPaymentMode,
+        paymentAmount: resolvedPaymentAmount,
+        installments,
+        passportPhoto: photoSource,
+        passportPhotoUrl: photoSource,
+        nomineePhoto: nomineePhotoSource,
+        nomineePhotoUrl: nomineePhotoSource,
+      };
+
       const response = await fetch("/api/generate-janni-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          record: {
-            ...record,
-            ...latestRecord,
-            paymentMode: resolvedPaymentMode,
-            payment_mode: resolvedPaymentMode,
-            paymentAmount: resolvedPaymentAmount,
-            installments,
-            passportPhoto: photoSource,
-            passportPhotoUrl: photoSource,
-            nomineePhoto: nomineePhotoSource,
-            nomineePhotoUrl: nomineePhotoSource,
-          },
+          record: combinedRecord,
           imageData,
           nomineeImageData,
         }),
@@ -647,7 +662,7 @@ export default function JanniDeliveryListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Janni_Application_${latestRecord.formNumber || record.formNumber || record.id}.pdf`;
+      a.download = buildPdfFilename(combinedRecord, { prefix: "Janni_Application" });
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -695,7 +710,7 @@ export default function JanniDeliveryListPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Janni_Bond_${record.formNumber || record.id}.pdf`;
+      a.download = buildPdfFilename(enrichedRecord, { prefix: "Janni_Bond" });
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

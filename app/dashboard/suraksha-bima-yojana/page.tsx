@@ -11,6 +11,7 @@ import { FileSpreadsheet } from "lucide-react"
 import * as XLSX from "xlsx"
 import { mapSurakshaBimaListingRecord } from "@/lib/utils"
 import { BulkUploadButton } from "@/components/bulk-upload-button"
+import { buildPdfFilename } from "@/lib/form-values"
 
 // Helper to format dates to YYYY-MM-DD
 function formatExcelDate(val: any): string {
@@ -235,16 +236,15 @@ export default function SurakshaBimaYojanaListPage() {
       a.href = url;
       
       // Generate appropriate filename based on gender
-      let filename = 'suraksha_bima_form.pdf';
-      if (record.gender === 'Female') {
-        filename = `female_suraksha_bima_${record.bimaNumber}.pdf`;
-      } else if (record.gender === 'Male') {
-        filename = `male_suraksha_bima_${record.bimaNumber}.pdf`;
-      } else {
-        filename = `suraksha_bima_${record.bimaNumber}.pdf`;
+      const gender = record.gender;
+      let prefix = 'suraksha_bima';
+      if (gender === 'Female' || (record as any).gender === 'महिला') {
+        prefix = 'female_suraksha_bima';
+      } else if (gender === 'Male' || (record as any).gender === 'पुरुष') {
+        prefix = 'male_suraksha_bima';
       }
       
-      a.download = filename;
+      a.download = buildPdfFilename(record, { prefix });
       document.body.appendChild(a);
       a.click();
       a.remove();

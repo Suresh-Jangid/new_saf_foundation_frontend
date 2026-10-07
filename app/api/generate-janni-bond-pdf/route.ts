@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { buildPdfFilename } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
 
@@ -463,12 +464,13 @@ export async function POST(request: NextRequest) {
     }
 
     const pdfBytes = await pdfDoc.save();
-    const filename = `Janni_Bond_${applicationNo || record.formNumber || record.id || 'document'}.pdf`;
+    const filename = buildPdfFilename(record, { prefix: 'Janni_Bond' });
+    const encodedFilename = encodeURIComponent(filename);
 
     return new NextResponse(pdfBytes.buffer as ArrayBuffer, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
         'Cache-Control': 'no-store',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',

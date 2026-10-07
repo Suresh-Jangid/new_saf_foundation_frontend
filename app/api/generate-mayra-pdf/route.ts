@@ -11,6 +11,7 @@ import {
   resolveCanonicalPaymentAmount,
   formatAmountToHindiWords,
   formatNumericAmountForPdf,
+  buildPdfFilename,
 } from '@/lib/form-values';
 
 export const runtime = 'nodejs';
@@ -298,13 +299,13 @@ export async function POST(request: NextRequest) {
     drawBounded(receiptAmountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 
     const pdfBytes = await pdfDoc.save();
-    const rawSafeName = applicantName || systemFormNo || offlineFormNo || record?.id || 'form';
-    const safeName = String(rawSafeName).trim().replace(/[^a-zA-Z0-9_\-\u0900-\u097F]/g, '_');
+    const filename = buildPdfFilename(record, { prefix: 'MAYRA_FORM' });
+    const encodedFilename = encodeURIComponent(filename);
 
     return new Response(Buffer.from(pdfBytes), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="MAYRA_FORM_${encodeURIComponent(safeName)}.pdf"`,
+        'Content-Disposition': `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`,
       },
     });
   } catch (error: any) {

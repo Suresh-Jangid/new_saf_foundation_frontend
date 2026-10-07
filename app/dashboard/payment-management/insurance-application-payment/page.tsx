@@ -227,6 +227,7 @@ export default function InsuranceApplicationPaymentListPage() {
         applicationDate: applicationData.applicationDate,
         address: applicationData.address,
         mobile: applicationData.mobile,
+        paymentAmount: application.paymentAmount || applicationData.paymentAmount,
         totalAmount: `${applicationData.totalAmount + '/-' || 0}`,
       };
 

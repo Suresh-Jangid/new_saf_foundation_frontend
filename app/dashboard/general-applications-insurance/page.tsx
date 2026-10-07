@@ -778,12 +778,16 @@ export default function GeneralInsuranceApplicationsPage() {
           : '';
 
       const resolvedPaymentAmount =
-        installmentAmount ||
-        (rawPay !== undefined && rawPay !== null && String(rawPay).trim() !== ''
+        rawPay !== undefined && rawPay !== null && String(rawPay).trim() !== ''
           ? String(rawPay).trim()
           : rawTotal !== undefined && rawTotal !== null && String(rawTotal).trim() !== ''
           ? String(rawTotal).trim()
-          : '');
+          : '';
+
+      const resolvedTotalAmount =
+        rawTotal !== undefined && rawTotal !== null && String(rawTotal).trim() !== ''
+          ? String(rawTotal).trim()
+          : resolvedPaymentAmount;
 
       const resolvedPaymentDate =
         latestRecord.paymentDate ||
@@ -812,8 +816,11 @@ export default function GeneralInsuranceApplicationsPage() {
         ...record,
         ...latestRecord,
         paymentAmount: resolvedPaymentAmount,
-        totalAmount: rawTotal || resolvedPaymentAmount,
-        total_amount: rawTotal || resolvedPaymentAmount,
+        payment_amount: resolvedPaymentAmount,
+        totalAmount: resolvedTotalAmount,
+        total_amount: resolvedTotalAmount,
+        installmentAmount,
+        installment_amount: installmentAmount,
         paymentMode: resolvedPaymentMode,
         payment_mode: resolvedPaymentMode,
         paymentDate: resolvedPaymentDate,

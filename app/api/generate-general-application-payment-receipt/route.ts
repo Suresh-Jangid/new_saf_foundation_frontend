@@ -134,14 +134,35 @@ export async function POST(request: NextRequest) {
     }
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // Convert totalAmount to Hindi words if it exists
-    if (data.totalAmount) {
-      const amountNum = parseFloat(data.totalAmount.toString().replace(/[^\d.]/g, ''));
-      console.log('Total Amount:', data.totalAmount, 'Parsed:', amountNum);
-      if (!isNaN(amountNum)) {
-        data.amountInWords = numberToHindiWords(Math.floor(amountNum)) + " रुपये मात्र ";
-        console.log('Amount in words:', data.amountInWords);
+    // Resolve actual received payment amount from paymentAmount / paidAmount / receivedAmount (canonical source)
+    // Do NOT use totalAmount for receipt fields stating that money was received.
+    const rawReceivedAmount =
+      (data?.paymentAmount !== undefined && data?.paymentAmount !== null && String(data.paymentAmount).trim() !== '' ? data.paymentAmount : undefined) ??
+      (data?.payment_amount !== undefined && data?.payment_amount !== null && String(data.payment_amount).trim() !== '' ? data.payment_amount : undefined) ??
+      (data?.paidAmount !== undefined && data?.paidAmount !== null && String(data.paidAmount).trim() !== '' ? data.paidAmount : undefined) ??
+      (data?.paid_amount !== undefined && data?.paid_amount !== null && String(data.paid_amount).trim() !== '' ? data.paid_amount : undefined) ??
+      (data?.receivedAmount !== undefined && data?.receivedAmount !== null && String(data.receivedAmount).trim() !== '' ? data.receivedAmount : undefined) ??
+      (data?.received_amount !== undefined && data?.received_amount !== null && String(data.received_amount).trim() !== '' ? data.received_amount : undefined);
+
+    let resolvedAmountNum: number | null = null;
+    let numericDisplay = '';
+
+    if (rawReceivedAmount !== undefined && rawReceivedAmount !== null && String(rawReceivedAmount).trim() !== '') {
+      const parsed = parseFloat(String(rawReceivedAmount).replace(/[^\d.]/g, ''));
+      if (!isNaN(parsed)) {
+        resolvedAmountNum = parsed;
+        const cleanedStr = String(rawReceivedAmount).trim();
+        numericDisplay = cleanedStr.endsWith('/-') ? cleanedStr : `${cleanedStr}/-`;
       }
+    }
+
+    if (resolvedAmountNum !== null) {
+      data.amountInWords = numberToHindiWords(Math.floor(resolvedAmountNum)) + " रुपये मात्र ";
+      data.paymentAmount = numericDisplay;
+      console.log('Payment Amount:', numericDisplay, 'Parsed:', resolvedAmountNum, 'Words:', data.amountInWords);
+    } else {
+      data.amountInWords = '';
+      data.paymentAmount = '';
     }
 
     // Field mappings for the payment receipt PDF - adjust coordinates as needed
@@ -160,7 +181,7 @@ export async function POST(request: NextRequest) {
       { field: 'address', x: 490, y: 232, label: 'Address' },
      
       // Payment details
-      { field: 'totalAmount', x: 80, y: 385, label: 'Total Amount' },
+      { field: 'paymentAmount', x: 80, y: 385, label: 'Payment Amount' },
       { field: 'amountInWords', x: 150, y: 266, label: 'Amount in Words' },
      ];
 

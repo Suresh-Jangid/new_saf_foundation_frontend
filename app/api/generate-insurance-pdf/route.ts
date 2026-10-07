@@ -204,29 +204,28 @@ export async function POST(request: NextRequest) {
     const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile', 'nomineePhone');
     const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'agentName');
 
-    // Amount resolution with strict priority: installments[0].amount -> paymentAmount -> payment_amount -> totalAmount -> total_amount -> other fallbacks
     const installments = Array.isArray(record?.installments)
       ? record.installments
       : Array.isArray(body?.installments)
       ? body.installments
       : [];
     const firstInstallment = installments.length > 0 ? installments[0] : null;
-    const firstInstallmentAmount =
-      firstInstallment?.amount !== undefined &&
-      firstInstallment?.amount !== null &&
-      String(firstInstallment.amount).trim() !== ''
-        ? String(firstInstallment.amount).trim()
-        : '';
 
-    let rawAmount = '';
-    if (firstInstallmentAmount) {
-      rawAmount = firstInstallmentAmount;
-    } else {
-      rawAmount =
-        getField(record, 'paymentAmount', 'payment_amount', 'totalAmount', 'total_amount', 'amount', 'fee', 'rashi', 'राशि', 'membershipFee') ||
-        getField(body, 'paymentAmount', 'payment_amount', 'totalAmount', 'total_amount', 'amount', 'fee', 'rashi', 'राशि', 'membershipFee');
-    }
-    const amountStr = rawAmount ? (rawAmount.endsWith('/-') ? rawAmount : `${rawAmount}/-`) : '';
+    // Membership receipt amount resolution: strict priority paymentAmount -> payment_amount -> paidAmount -> receivedAmount
+    // DO NOT use installments[0].amount as the membership receipt amount
+    const rawReceiptAmount =
+      getField(record, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
+      getField(body, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
+      getField(record, 'totalAmount', 'total_amount', 'amount', 'fee', 'rashi', 'राशि', 'membershipFee') ||
+      getField(body, 'totalAmount', 'total_amount', 'amount', 'fee', 'rashi', 'राशि', 'membershipFee');
+    const receiptAmountStr = rawReceiptAmount ? (rawReceiptAmount.endsWith('/-') ? rawReceiptAmount : `${rawReceiptAmount}/-`) : '';
+
+    // Form Line 10 (Registration fee / Amount field on upper section)
+    const rawFormAmount =
+      getField(record, 'totalAmount', 'total_amount', 'amount', 'fee', 'rashi', 'राशि', 'membershipFee', 'paymentAmount', 'payment_amount') ||
+      getField(body, 'totalAmount', 'total_amount', 'amount', 'fee', 'rashi', 'राशि', 'membershipFee', 'paymentAmount', 'payment_amount') ||
+      rawReceiptAmount;
+    const formAmountStr = rawFormAmount ? (rawFormAmount.endsWith('/-') ? rawFormAmount : `${rawFormAmount}/-`) : '';
 
     // Payment mode resolution with strict priority:
     // paymentMode -> payment_mode -> installments.paymentMode -> installments.payment_mode
@@ -298,7 +297,7 @@ export async function POST(request: NextRequest) {
     drawBounded(nomineeAadhaar, 130, 427.0, 9.5, 120);
     drawBounded(nomineeMobile, 275, 427.0, 9.5, 125);
     drawBounded(workerCodeOrName, 472, 427.0, 9.5, 75);
-    drawBounded(amountStr, 60, 399.3, 9.5, 90);
+    drawBounded(formAmountStr, 60, 399.3, 9.5, 90);
     drawBounded(paymentDisplayValue, 285, 399.3, 9.5, 120);
     drawBounded(seniorCodeOrName, 472, 399.3, 9.5, 75);
 
@@ -310,8 +309,8 @@ export async function POST(request: NextRequest) {
     drawBounded(address, 58, 137.6, 9.5, 490);
     drawBounded(mobile, 55, 115.7, 9.5, 172);
     drawBounded(paymentDisplayValue, 308, 115.7, 9.5, 240);
-    drawBounded(amountStr, 88, 93.8, 9.5, 142);
-    drawBounded(amountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
+    drawBounded(receiptAmountStr, 88, 93.8, 9.5, 142);
+    drawBounded(receiptAmountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 
     const pdfBytes = await pdfDoc.save();
     const rawSafeName = applicantName || systemFormNo || offlineFormNo || record?.id || 'form';

@@ -330,10 +330,10 @@ export async function POST(request: NextRequest) {
         { field: 'रसीद_भुगतान_विवरण', valueKeys: ['paymentModeRef', 'भुगतान_विवरण', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo'], x: 308, y: 726.2, maxW: 240, size: 9.5 },
 
         // Line R5: बाबत राशि [Amount Text]
-        { field: 'रसीद_राशि', valueKeys: ['amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee', 'registrationFee'], x: 88, y: 748.1, maxW: 142, size: 9.5, formatAmount: true },
+        { field: 'रसीद_राशि', valueKeys: ['paymentAmount', 'payment_amount', 'paidAmount', 'paid_amount', 'receivedAmount', 'received_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee', 'registrationFee'], x: 88, y: 748.1, maxW: 142, size: 9.5, formatAmount: true },
 
         // Line R6: रु [Amount in Box]
-        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee', 'registrationFee'], x: 115, y: 790.9, maxW: 120, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
+        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['paymentAmount', 'payment_amount', 'paidAmount', 'paid_amount', 'receivedAmount', 'received_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee', 'registrationFee'], x: 115, y: 790.9, maxW: 120, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
       ];
     } else if (type === 'general-application') {
       // Calibrated single-page official template with 2 distinct sections
@@ -402,10 +402,10 @@ export async function POST(request: NextRequest) {
         { field: 'रसीद_भुगतान_विवरण', valueKeys: ['paymentModeRef', 'भुगतान_विवरण', 'paymentRef', 'payment_mode', 'paymentMode', 'utr_no', 'utrNo'], x: 308, y: 726.2, maxW: 240, size: 9.5 },
 
         // Line R5: बाबत राशि [Amount Text]
-        { field: 'रसीद_राशि', valueKeys: ['amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 88, y: 748.1, maxW: 142, size: 9.5, formatAmount: true },
+        { field: 'रसीद_राशि', valueKeys: ['paymentAmount', 'payment_amount', 'paidAmount', 'paid_amount', 'receivedAmount', 'received_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee'], x: 88, y: 748.1, maxW: 142, size: 9.5, formatAmount: true },
 
         // Line R6: रु [Amount in Box]
-        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'paymentAmount', 'payment_amount', 'membershipFee'], x: 115, y: 790.9, maxW: 120, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
+        { field: 'रसीद_राशि_बॉक्स', valueKeys: ['paymentAmount', 'payment_amount', 'paidAmount', 'paid_amount', 'receivedAmount', 'received_amount', 'amount', 'राशि', 'totalAmount', 'total_amount', 'fee', 'membershipFee'], x: 115, y: 790.9, maxW: 120, size: 11, color: { r: 0, g: 0.15, b: 0.6 }, formatAmount: true },
       ];
     } else {
       // Legacy / fallback mappings

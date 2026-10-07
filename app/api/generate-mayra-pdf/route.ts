@@ -232,25 +232,73 @@ export async function POST(request: NextRequest) {
     );
     const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'agentName');
 
-    const firstInstallmentAmount = Array.isArray(record?.installments) && record.installments.length > 0
-      ? getField(record.installments[0], 'amount', 'installmentAmount', 'installment_amount')
-      : '';
-    const rawFee = firstInstallmentAmount || getField(
-      record,
-      'paymentAmount',
-      'payment_amount',
-      'fee',
-      'totalAmount',
-      'total_amount',
-      'totalFee',
-      'total_fee',
-      'permanentFee',
-      'joiningFee',
-      'registrationFee',
-      'membershipFee',
-      'amount'
-    );
-    const amountStr = rawFee ? formatIndianCurrency(rawFee) : '';
+    // Membership receipt amount resolution: strict priority paymentAmount -> payment_amount -> paidAmount -> receivedAmount
+    // DO NOT use installments[0].amount as the registration payment receipt
+    const rawReceiptAmount =
+      getField(record, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
+      getField(body, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
+      getField(
+        record,
+        'fee',
+        'totalAmount',
+        'total_amount',
+        'totalFee',
+        'total_fee',
+        'permanentFee',
+        'joiningFee',
+        'registrationFee',
+        'membershipFee',
+        'amount'
+      ) ||
+      getField(
+        body,
+        'fee',
+        'totalAmount',
+        'total_amount',
+        'totalFee',
+        'total_fee',
+        'permanentFee',
+        'joiningFee',
+        'registrationFee',
+        'membershipFee',
+        'amount'
+      );
+    const receiptAmountStr = rawReceiptAmount ? formatIndianCurrency(rawReceiptAmount) : '';
+
+    // Form Line 10 (Registration fee / Amount field on upper section)
+    const rawFormAmount =
+      getField(
+        record,
+        'totalAmount',
+        'total_amount',
+        'totalFee',
+        'total_fee',
+        'fee',
+        'permanentFee',
+        'joiningFee',
+        'registrationFee',
+        'membershipFee',
+        'amount',
+        'paymentAmount',
+        'payment_amount'
+      ) ||
+      getField(
+        body,
+        'totalAmount',
+        'total_amount',
+        'totalFee',
+        'total_fee',
+        'fee',
+        'permanentFee',
+        'joiningFee',
+        'registrationFee',
+        'membershipFee',
+        'amount',
+        'paymentAmount',
+        'payment_amount'
+      ) ||
+      rawReceiptAmount;
+    const formAmountStr = rawFormAmount ? formatIndianCurrency(rawFormAmount) : '';
     const paymentMode = [
       getField(record, 'paymentModeRef', 'paymentMode', 'payment_mode') || 'CASH',
       getField(record, 'epinCode', 'epin_code') ? `EPIN: ${getField(record, 'epinCode', 'epin_code')}` : ''
@@ -263,7 +311,7 @@ export async function POST(request: NextRequest) {
     drawBounded(nomineeMobile, 275, 427.0, 9.5, 125);
     drawBounded(workerCodeOrName, 472, 427.0, 9.5, 75);
 
-    drawBounded(amountStr, 60, 399.3, 9.5, 90);
+    drawBounded(formAmountStr, 60, 399.3, 9.5, 90);
     drawBounded(paymentMode, 285, 399.3, 9.5, 120);
     drawBounded(seniorWorker, 472, 399.3, 9.5, 75);
 
@@ -275,8 +323,8 @@ export async function POST(request: NextRequest) {
     drawBounded(address, 58, 137.6, 9.5, 490);
     drawBounded(mobile, 55, 115.7, 9.5, 172);
     drawBounded(paymentMode, 308, 115.7, 9.5, 240);
-    drawBounded(amountStr, 88, 93.8, 9.5, 142);
-    drawBounded(amountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
+    drawBounded(receiptAmountStr, 88, 93.8, 9.5, 142);
+    drawBounded(receiptAmountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 
     const pdfBytes = await pdfDoc.save();
     const rawSafeName = applicantName || systemFormNo || offlineFormNo || record?.id || 'form';

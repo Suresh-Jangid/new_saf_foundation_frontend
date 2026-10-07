@@ -246,18 +246,21 @@ export async function POST(request: NextRequest) {
 
     const resolvedPaymentMode = normalizeMode(rawPaymentMode);
 
-    const firstInstallmentAmount =
-      lastInstallment?.amount !== undefined && lastInstallment?.amount !== null && String(lastInstallment.amount).trim() !== ''
-        ? String(lastInstallment.amount).trim()
-        : firstInstallment?.amount !== undefined && firstInstallment?.amount !== null && String(firstInstallment.amount).trim() !== ''
-        ? String(firstInstallment.amount).trim()
-        : '';
+    // Membership receipt amount resolution: strict priority paymentAmount -> payment_amount -> paidAmount -> receivedAmount
+    // DO NOT use installments / totalAmount before paymentAmount
+    const rawReceiptAmount =
+      getField(record, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
+      getField(body, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
+      getField(record, 'totalAmount', 'total_amount', 'amount', 'fee', 'membershipFee') ||
+      getField(body, 'totalAmount', 'total_amount', 'amount', 'fee', 'membershipFee');
+    const receiptAmountStr = rawReceiptAmount ? (String(rawReceiptAmount).endsWith('/-') ? String(rawReceiptAmount) : `${rawReceiptAmount}/-`) : '';
 
-    const rawAmount =
-      firstInstallmentAmount ||
-      getField(record, 'totalAmount', 'total_amount', 'amount', 'fee', 'paymentAmount', 'payment_amount') ||
-      getField(body, 'totalAmount', 'total_amount', 'amount', 'fee', 'paymentAmount', 'payment_amount');
-    const amountStr = rawAmount ? (String(rawAmount).endsWith('/-') ? String(rawAmount) : `${rawAmount}/-`) : '';
+    // Form Line 10 (Registration fee / Amount field on upper section)
+    const rawFormAmount =
+      getField(record, 'totalAmount', 'total_amount', 'amount', 'fee', 'membershipFee', 'paymentAmount', 'payment_amount') ||
+      getField(body, 'totalAmount', 'total_amount', 'amount', 'fee', 'membershipFee', 'paymentAmount', 'payment_amount') ||
+      rawReceiptAmount;
+    const formAmountStr = rawFormAmount ? (String(rawFormAmount).endsWith('/-') ? String(rawFormAmount) : `${rawFormAmount}/-`) : '';
 
     const seniorWorker = getField(record, 'seniorOfflineFormNumber', 'senior_offline_form_number', 'seniorAgentOfflineFormNumber', 'senior_agent_offline_form_number', 'seniorOfflineFormNo', 'seniorCode', 'senior_code', 'seniorWorker', 'senior_worker', 'seniorName', 'senior_name');
 
@@ -267,7 +270,7 @@ export async function POST(request: NextRequest) {
     drawBounded(nomineeMobile, 275, 427.0, 9.5, 125);
     drawBounded(workerCodeOrName, 472, 427.0, 9.5, 75);
 
-    drawBounded(amountStr, 60, 399.3, 9.5, 90);
+    drawBounded(formAmountStr, 60, 399.3, 9.5, 90);
     drawBounded(resolvedPaymentMode, 285, 399.3, 9.5, 120);
     drawBounded(seniorWorker, 472, 399.3, 9.5, 75);
 
@@ -279,8 +282,8 @@ export async function POST(request: NextRequest) {
     drawBounded(address, 58, 137.6, 9.5, 490);
     drawBounded(mobile, 55, 115.7, 9.5, 172);
     drawBounded(resolvedPaymentMode, 308, 115.7, 9.5, 240);
-    drawBounded(amountStr, 88, 93.8, 9.5, 142);
-    drawBounded(amountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
+    drawBounded(receiptAmountStr, 88, 93.8, 9.5, 142);
+    drawBounded(receiptAmountStr, 115, 51.0, 11, 120, rgb(0, 0.15, 0.6));
 
     const pdfBytes = await pdfDoc.save();
 

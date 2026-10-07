@@ -231,8 +231,8 @@ export default function GeneralApplicationPaymentListPage() {
         applicationDate: applicationData.applicationDate,
         address: applicationData.address,
         mobile: applicationData.mobile,
+        paymentAmount: application.paymentAmount || applicationData.paymentAmount,
         totalAmount: `${applicationData.totalAmount + '/-'|| 0}`,
-       
       };
 
       // Call the API to generate PDF

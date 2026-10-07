@@ -710,6 +710,26 @@ export default function GeneralApplicationsPage() {
       record.paymentAmount ||
       record.payment_amount ||
       "",
+    रसीद_राशि:
+      (record.paymentAmount !== undefined && record.paymentAmount !== null && String(record.paymentAmount).trim() !== '' ? record.paymentAmount : undefined) ??
+      (record.payment_amount !== undefined && record.payment_amount !== null && String(record.payment_amount).trim() !== '' ? record.payment_amount : undefined) ??
+      ((record as any).paidAmount !== undefined && (record as any).paidAmount !== null && String((record as any).paidAmount).trim() !== '' ? (record as any).paidAmount : undefined) ??
+      ((record as any).receivedAmount !== undefined && (record as any).receivedAmount !== null && String((record as any).receivedAmount).trim() !== '' ? (record as any).receivedAmount : undefined) ??
+      record.amount ??
+      record.totalAmount ??
+      record.total_amount ??
+      record.fee ??
+      "",
+    रसीद_राशि_बॉक्स:
+      (record.paymentAmount !== undefined && record.paymentAmount !== null && String(record.paymentAmount).trim() !== '' ? record.paymentAmount : undefined) ??
+      (record.payment_amount !== undefined && record.payment_amount !== null && String(record.payment_amount).trim() !== '' ? record.payment_amount : undefined) ??
+      ((record as any).paidAmount !== undefined && (record as any).paidAmount !== null && String((record as any).paidAmount).trim() !== '' ? (record as any).paidAmount : undefined) ??
+      ((record as any).receivedAmount !== undefined && (record as any).receivedAmount !== null && String((record as any).receivedAmount).trim() !== '' ? (record as any).receivedAmount : undefined) ??
+      record.amount ??
+      record.totalAmount ??
+      record.total_amount ??
+      record.fee ??
+      "",
     भुगतान_विवरण:
       record.paymentModeRef ||
       record.paymentRef ||

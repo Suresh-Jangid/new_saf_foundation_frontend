@@ -73,6 +73,7 @@ export default function AddMayraRegistrationPage() {
     affidavit: "",
     category: "",
     fee: "",
+    mayraInstallment: "300",
     paymentAmount: "",
     paymentMode: "",
     paymentDate: "",
@@ -256,6 +257,12 @@ export default function AddMayraRegistrationPage() {
       return false
     }
 
+    const validInstallments = ["300", "1000"];
+    if (!validInstallments.includes(String(formData.mayraInstallment))) {
+      toast.error('कृपया वैध किश्त राशि (₹300 या ₹1,000) चुनें');
+      return false;
+    }
+
     return true
   }
 
@@ -325,6 +332,9 @@ export default function AddMayraRegistrationPage() {
       apiFormData.append("total_amount", totalAmount.toString())
       apiFormData.append("paymentAmount", paymentAmount.toString())
       apiFormData.append("pendingAmount", pendingAmount.toString())
+      apiFormData.append("mayraInstallment", formData.mayraInstallment)
+      apiFormData.append("mayra_installment", formData.mayraInstallment)
+      apiFormData.append("installmentAmount", formData.mayraInstallment)
       apiFormData.append("gender", formData.gender)
       apiFormData.append("addedby", addedby)
       apiFormData.append("addedby_id", addedby_id)
@@ -656,8 +666,8 @@ export default function AddMayraRegistrationPage() {
                   </div>
                 </div>
 
-                {/* Row 3: Category, Fee, Gotra, Aadhar, Mobile */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* Row 3: Category, Fee, Installment, Gotra, Aadhar, Mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                   <div>
                     <Label>श्रेणी / Category</Label>
                     <Input
@@ -676,6 +686,26 @@ export default function AddMayraRegistrationPage() {
                       className="bg-gray-50 mt-1"
                       value={formData.fee}
                     />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="mayraInstallment">किश्त राशि (Installment Amount) *</Label>
+                    <select
+                      id="mayraInstallment"
+                      name="mayraInstallment"
+                      required
+                      className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1 text-sm"
+                      value={formData.mayraInstallment}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          mayraInstallment: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="300">₹300 (₹300 प्रति मायरा किश्त)</option>
+                      <option value="1000">₹1,000 (₹1000 प्रति मायरा किश्त)</option>
+                    </select>
                   </div>
 
                   <div>

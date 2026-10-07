@@ -222,11 +222,16 @@ export async function POST(request: NextRequest) {
     const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile');
     const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'agentName');
 
+    const canonicalInstallment =
+      getField(record, 'mayraInstallment', 'mayra_installment', 'installmentAmount') ||
+      getField(body, 'mayraInstallment', 'mayra_installment', 'installmentAmount');
+
     // Membership receipt amount resolution: strict priority paymentAmount -> payment_amount -> paidAmount -> receivedAmount
     // DO NOT use installments[0].amount as the registration payment receipt
     const rawReceiptAmount =
       getField(record, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
       getField(body, 'paymentAmount', 'payment_amount', 'paidAmount', 'receivedAmount') ||
+      canonicalInstallment ||
       getField(
         record,
         'fee',
@@ -257,6 +262,7 @@ export async function POST(request: NextRequest) {
 
     // Form Line 10 (Registration fee / Amount field on upper section)
     const rawFormAmount =
+      canonicalInstallment ||
       getField(
         record,
         'totalAmount',

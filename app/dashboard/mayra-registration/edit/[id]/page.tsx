@@ -50,6 +50,7 @@ export default function EditMayraRegistrationPage() {
   const [agents, setAgents] = useState<any[]>([])
   const [initialOfflineFormNumber, setInitialOfflineFormNumber] = useState<string>("")
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [isInstallmentModified, setIsInstallmentModified] = useState(false)
 
   const [formData, setFormData] = useState({
     applicationDate: "",
@@ -80,6 +81,7 @@ export default function EditMayraRegistrationPage() {
     affidavit: "",
     category: "",
     fee: "",
+    mayraInstallment: "300",
     paymentAmount: "",
     paymentMode: "",
     paymentDate: "",
@@ -349,6 +351,14 @@ export default function EditMayraRegistrationPage() {
               affidavit: getRecordField(record, "affidavit"),
               category: getRecordField(record, "category"),
               fee: record.totalAmount != null ? String(record.totalAmount) : "",
+              mayraInstallment: String(
+                getRecordField(
+                  record,
+                  "mayraInstallment",
+                  "mayra_installment",
+                  "installmentAmount"
+                ) ?? "300"
+              ),
               paymentAmount:
                 firstInstallment?.amount != null
                   ? String(firstInstallment.amount)
@@ -437,6 +447,12 @@ export default function EditMayraRegistrationPage() {
     if (formData.nomineeMobile && !validatePhoneNumber(formData.nomineeMobile)) {
       toast.error('कृपया नॉमिनी का वैध 10 अंकों का मोबाइल नंबर दर्ज करें')
       return false
+    }
+
+    const validInstallments = ["300", "1000"];
+    if (isInstallmentModified && !validInstallments.includes(String(formData.mayraInstallment))) {
+      toast.error('कृपया वैध किश्त राशि (₹300 या ₹1,000) चुनें');
+      return false;
     }
 
     return true
@@ -530,6 +546,18 @@ export default function EditMayraRegistrationPage() {
         totalAmount: formData.fee ? String(Number(formData.fee) || 0) : undefined,
         total_amount: formData.fee ? String(Number(formData.fee) || 0) : undefined,
         paymentAmount: formData.paymentAmount ? String(Number(formData.paymentAmount) || 0) : undefined,
+        mayraInstallment:
+          isInstallmentModified || formData.mayraInstallment === "300" || formData.mayraInstallment === "1000"
+            ? formData.mayraInstallment
+            : undefined,
+        mayra_installment:
+          isInstallmentModified || formData.mayraInstallment === "300" || formData.mayraInstallment === "1000"
+            ? formData.mayraInstallment
+            : undefined,
+        installmentAmount:
+          isInstallmentModified || formData.mayraInstallment === "300" || formData.mayraInstallment === "1000"
+            ? formData.mayraInstallment
+            : undefined,
         selectedAgentId: formData.selectedAgentId || undefined,
         agentId: formData.selectedAgentId || undefined,
         addedby_id: formData.selectedAgentId || undefined,
@@ -788,8 +816,8 @@ export default function EditMayraRegistrationPage() {
                   </div>
                 </div>
 
-                {/* Row 3: Age, Category, Fee, Gotra */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Row 3: Age, Category, Fee, Installment, Gotra */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <div>
                     <Label>उम्र / Age</Label>
                     <Input
@@ -817,6 +845,36 @@ export default function EditMayraRegistrationPage() {
                       className="bg-gray-50 mt-1"
                       value={formData.fee}
                     />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="mayraInstallment">किश्त राशि (Installment Amount) *</Label>
+                    <select
+                      id="mayraInstallment"
+                      name="mayraInstallment"
+                      required
+                      className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1 text-sm"
+                      value={
+                        formData.mayraInstallment === "300" || formData.mayraInstallment === "1000"
+                          ? formData.mayraInstallment
+                          : ""
+                      }
+                      onChange={(e) => {
+                        setIsInstallmentModified(true);
+                        setFormData((prev) => ({
+                          ...prev,
+                          mayraInstallment: e.target.value,
+                        }));
+                      }}
+                    >
+                      {formData.mayraInstallment !== "300" && formData.mayraInstallment !== "1000" && (
+                        <option value="" disabled hidden>
+                          किश्त राशि चुनें
+                        </option>
+                      )}
+                      <option value="300">₹300 (₹300 प्रति मायरा किश्त)</option>
+                      <option value="1000">₹1,000 (₹1000 प्रति मायरा किश्त)</option>
+                    </select>
                   </div>
 
                   <div>

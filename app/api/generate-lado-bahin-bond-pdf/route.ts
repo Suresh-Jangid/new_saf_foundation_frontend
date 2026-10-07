@@ -51,6 +51,96 @@ function sanitizeValue(val: any): string {
   return str;
 }
 
+function resolveLadoBahinInstallmentText(record: any, body: any): string {
+  // 1. Explicit canonical installment amounts
+  const candidateAmounts = [
+    record?.installmentAmount,
+    record?.installment_amount,
+    record?.kistAmount,
+    record?.kist_amount,
+    record?.ladoInstallment,
+    body?.installmentAmount,
+  ];
+
+  for (const cand of candidateAmounts) {
+    if (cand !== undefined && cand !== null) {
+      const num = Number(String(cand).replace(/[^0-9.]/g, ''));
+      if (num === 1000) return '1000 किस्त';
+      if (num === 300) return '300 किस्त';
+    }
+  }
+
+  // 2. Explicit accountType
+  const candidateTypes = [
+    record?.accountType,
+    record?.account_type,
+    record?.initialAccountType,
+    record?.initial_account_type,
+    record?.schemeType,
+    record?.scheme_type,
+    body?.accountType,
+  ];
+
+  for (const type of candidateTypes) {
+    if (type && typeof type === 'string') {
+      const clean = type.trim();
+      if (clean.includes('1000')) return '1000 किस्त';
+      if (clean.includes('300')) return '300 किस्त';
+    }
+  }
+
+  // 3. Installments array
+  const instList = Array.isArray(record?.installments)
+    ? record.installments
+    : Array.isArray(body?.installments)
+    ? body.installments
+    : [];
+
+  for (const inst of instList) {
+    const act = String(inst?.accountType || '').trim();
+    const amt = Number(
+      String(inst?.amount || '').replace(/[^0-9.]/g, '')
+    );
+
+    if (act.includes('1000') || amt === 1000) {
+      return '1000 किस्त';
+    }
+
+    if (act.includes('300') || amt === 300) {
+      return '300 किस्त';
+    }
+  }
+
+  // 4. Financial summary
+  const finSummary =
+    record?.financialSummary || body?.financialSummary;
+
+  if (finSummary) {
+    const count1000 = Number(
+      finSummary?.account1000?.installmentCount ||
+      finSummary?.account1000?.totalCollected ||
+      0
+    );
+
+    const count300 = Number(
+      finSummary?.account300?.installmentCount ||
+      finSummary?.account300?.totalCollected ||
+      0
+    );
+
+    if (count1000 > 0 && count300 === 0) {
+      return '1000 किस्त';
+    }
+
+    if (count300 > 0 && count1000 === 0) {
+      return '300 किस्त';
+    }
+  }
+
+  // Default baseline
+  return '300 किस्त';
+}
+
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
@@ -471,7 +561,7 @@ export async function POST(request: NextRequest) {
 
     // ── 5.3 Bottom Amount Line ───────────────────────────────────
     // मुकलावा ... रूपये प्रत्येक मुकलावा पर लागू (blY: 506.30)
-    const installmentText = '300 किस्त';
+    const installmentText = resolveLadoBahinInstallmentText(record, body);
     drawCenteredInBox(installmentText, 215.0, 285.0, 506.30, 10.5, rgb(0, 0.15, 0.6));
 
     // ── 5.4 Bottom Benefit / Muklawa Line ────────────────────────

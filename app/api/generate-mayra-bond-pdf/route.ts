@@ -453,7 +453,7 @@ export async function POST(request: NextRequest) {
     const rawAge = getField(record, 'age');
     const age = rawAge ? (/^\d+$/.test(rawAge) ? `${rawAge} वर्ष` : rawAge) : '';
     const nomineeAddress = sanitizeValue(getField(record, 'nomineeAddress', 'nominee_address'));
-    const nomineeMobile = sanitizeValue(getField(record, 'nomineeMobile', 'nominee_mobile', 'mobile'));
+    const nomineeMobile = sanitizeValue(getField(record, 'nomineeMobile', 'nominee_mobile'));
     const agentMobile = sanitizeValue(
       getField(record, 'workerMobile', 'worker_mobile', 'agentMobile', 'agent_mobile', 'added_mobile'),
     );

@@ -63,6 +63,7 @@ export default function EditMayraRegistrationPage() {
     gotra: "",
     address: "",
     aadharNumber: "",
+    mobile: "",
     nomineeName: "",
     nomineeFathername: "",
     nomineeHusbandName: "",
@@ -319,6 +320,7 @@ export default function EditMayraRegistrationPage() {
               gotra: getRecordField(record, "gotra"),
               address: getRecordField(record, "address"),
               aadharNumber: getRecordField(record, "aadharNumber", "aadhar_number", "aadhaarNumber"),
+              mobile: getRecordField(record, "mobile", "applicantMobile", "applicant_mobile") || "",
               nomineeName: getRecordField(record, "nomineeName", "nominee_name"),
               nomineeFathername: getRecordField(
                 record,
@@ -334,7 +336,7 @@ export default function EditMayraRegistrationPage() {
               ) || "",
               nomineeGotra: getRecordField(record, "nomineeGotra", "nominee_gotra"),
               nomineeAddress: getRecordField(record, "nomineeAddress", "nominee_address"),
-              nomineeMobile: getRecordField(record, "nomineeMobile", "nominee_mobile", "mobile"),
+              nomineeMobile: getRecordField(record, "nomineeMobile", "nominee_mobile") || "",
               nomineeTehsil: getRecordField(record, "tehsil", "nomineeTehsil", "nominee_tehsil"),
               nomineeDistrict: getRecordField(record, "district", "nomineeDistrict", "nominee_district"),
               nomineeState: getRecordField(record, "state", "nomineeState") || "Rajasthan",
@@ -427,8 +429,13 @@ export default function EditMayraRegistrationPage() {
       return false
     }
 
-    if (!validatePhoneNumber(formData.nomineeMobile)) {
-      toast.error('कृपया एक वैध 10 अंकों का मोबाइल नंबर दर्ज करें')
+    if (!validatePhoneNumber(formData.mobile)) {
+      toast.error('कृपया आवेदक का वैध 10 अंकों का मोबाइल नंबर दर्ज करें')
+      return false
+    }
+
+    if (formData.nomineeMobile && !validatePhoneNumber(formData.nomineeMobile)) {
+      toast.error('कृपया नॉमिनी का वैध 10 अंकों का मोबाइल नंबर दर्ज करें')
       return false
     }
 
@@ -455,7 +462,8 @@ export default function EditMayraRegistrationPage() {
 
     try {
       const aadharDigits = formData.aadharNumber.replace(/\D/g, '')
-      const nomineeMobile = formData.nomineeMobile.replace(/\D/g, "")
+      const applicantMobile = formData.mobile ? formData.mobile.replace(/\D/g, "") : ""
+      const nomineeMobile = formData.nomineeMobile ? formData.nomineeMobile.replace(/\D/g, "") : ""
       const selectedAgent = agents.find((a) => a.id.toString() === formData.selectedAgentId)
 
       let newPassportUrl = "";
@@ -501,7 +509,7 @@ export default function EditMayraRegistrationPage() {
         gotra: formData.gotra,
         address: formData.address,
         aadharNumber: aadharDigits,
-        mobile: nomineeMobile,
+        mobile: applicantMobile,
         nomineeMobile: nomineeMobile,
         nominee_mobile: nomineeMobile,
         pinCode: formData.nomineePincode,
@@ -823,7 +831,7 @@ export default function EditMayraRegistrationPage() {
                   </div>
                 </div>
 
-                {/* Row 4: Aadhar */}
+                {/* Row 4: Aadhar & Mobile */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
                     <Label>आधार नं. (Aadhar No.)</Label>
@@ -834,6 +842,20 @@ export default function EditMayraRegistrationPage() {
                       value={formData.aadharNumber}
                       className="mt-1"
                       onChange={e => setFormData(prev => ({ ...prev, aadharNumber: e.target.value.replace(/\D/g, '') }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="mobile">आवेदक मोबाइल नं.</Label>
+                    <Input
+                      id="mobile"
+                      name="mobile"
+                      required
+                      maxLength={10}
+                      placeholder="10 digit No."
+                      value={formData.mobile}
+                      className="mt-1"
+                      onChange={e => setFormData(prev => ({ ...prev, mobile: e.target.value.replace(/\D/g, '') }))}
                     />
                   </div>
                 </div>
@@ -900,9 +922,10 @@ export default function EditMayraRegistrationPage() {
                     />
                   </div>
                   <div>
-                    <Label>मोबाईल (Mobile)</Label>
+                    <Label htmlFor="nomineeMobile">नॉमिनी मोबाइल नं.</Label>
                     <Input
-                      required
+                      id="nomineeMobile"
+                      name="nomineeMobile"
                       maxLength={10}
                       placeholder="10 digit No."
                       value={formData.nomineeMobile}

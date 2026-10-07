@@ -202,7 +202,7 @@ export async function POST(request: NextRequest) {
     const aadharNo = getField(record, 'aadharNumber', 'aadhar_number', 'aadhaarNumber', 'aadhaar_number', 'aadhar');
     const district = getField(record, 'district', 'nomineeDistrict', 'nominee_district', 'जिला');
     const state = getField(record, 'state', 'nomineeState', 'nominee_state', 'राज्य') || 'राजस्थान';
-    const mobile = getField(record, 'applicantMobile', 'applicant_mobile', 'mobile', 'mobileNumber', 'phone', 'contact');
+    const mobile = getField(record, 'applicantMobile', 'applicant_mobile', 'mobile');
 
     drawBounded(applicantName, 62, 621.1, 10, 390);
     drawBounded(parentName, 122, 593.3, 10, 330);
@@ -219,17 +219,7 @@ export async function POST(request: NextRequest) {
     const nomineeName = getField(record, 'nomineeName', 'nominee_name');
     const nomineeRelation = getField(record, 'nomineeRelation', 'nominee_relation', 'relation');
     const nomineeAadhar = getField(record, 'nomineeAadhar', 'nominee_aadhar', 'nomineeAadhaar', 'nominee_aadhaar', 'nomineeAadharNumber', 'nomineeAadhaarNumber');
-    const nomineeMobile = getField(
-      record,
-      'nomineeMobile',
-      'nominee_mobile',
-      'mobile',
-      'nomineePhone',
-      'nominee_phone',
-      'mobileNumber',
-      'phone',
-      'contact'
-    );
+    const nomineeMobile = getField(record, 'nomineeMobile', 'nominee_mobile');
     const workerCodeOrName = getField(record, 'workerOfflineFormNumber', 'worker_offline_form_number', 'agentOfflineFormNumber', 'agent_offline_form_number', 'karyakartaOfflineFormNumber', 'workerOfflineFormNo', 'agentOfflineFormNo', 'workerCode', 'worker_code', 'agentCode', 'workerName', 'worker_name', 'agentName');
 
     // Membership receipt amount resolution: strict priority paymentAmount -> payment_amount -> paidAmount -> receivedAmount

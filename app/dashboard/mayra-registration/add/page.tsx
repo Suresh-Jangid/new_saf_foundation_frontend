@@ -56,6 +56,7 @@ export default function AddMayraRegistrationPage() {
     gotra: "",
     address: "",
     aadharNumber: "",
+    mobile: "",
     nomineeName: "",
     nomineeFathername: "",
     nomineeHusbandName: "",
@@ -245,8 +246,13 @@ export default function AddMayraRegistrationPage() {
       return false
     }
 
-    if (!validatePhoneNumber(formData.nomineeMobile)) {
-      toast.error('कृपया एक वैध 10 अंकों का मोबाइल नंबर दर्ज करें')
+    if (!validatePhoneNumber(formData.mobile)) {
+      toast.error('कृपया आवेदक का वैध 10 अंकों का मोबाइल नंबर दर्ज करें')
+      return false
+    }
+
+    if (formData.nomineeMobile && !validatePhoneNumber(formData.nomineeMobile)) {
+      toast.error('कृपया नॉमिनी का वैध 10 अंकों का मोबाइल नंबर दर्ज करें')
       return false
     }
 
@@ -271,6 +277,8 @@ export default function AddMayraRegistrationPage() {
 
     try {
       const aadharDigits = formData.aadharNumber.replace(/\D/g, '')
+      const cleanMobile = formData.mobile.replace(/\D/g, '')
+      const cleanNomineeMobile = formData.nomineeMobile ? formData.nomineeMobile.replace(/\D/g, '') : ""
       const { addedby, addedby_id } = getCurrentUserInfo()
       const totalAmount = Number(formData.fee) || 0
       const paymentAmount = Number(formData.paymentAmount) || 0
@@ -289,9 +297,9 @@ export default function AddMayraRegistrationPage() {
       apiFormData.append("gotra", formData.gotra)
       apiFormData.append("address", formData.address)
       apiFormData.append("aadharNumber", aadharDigits)
-      apiFormData.append("mobile", formData.nomineeMobile) // Map nomineeMobile to mobile
-      apiFormData.append("nomineeMobile", formData.nomineeMobile)
-      apiFormData.append("nominee_mobile", formData.nomineeMobile)
+      apiFormData.append("mobile", cleanMobile)
+      apiFormData.append("nomineeMobile", cleanNomineeMobile)
+      apiFormData.append("nominee_mobile", cleanNomineeMobile)
       apiFormData.append("pinCode", formData.nomineePincode)
       apiFormData.append("tehsil", formData.nomineeTehsil)
       apiFormData.append("district", formData.nomineeDistrict)
@@ -648,8 +656,8 @@ export default function AddMayraRegistrationPage() {
                   </div>
                 </div>
 
-                {/* Row 3: Category, Fee, Gotra, Aadhar */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Row 3: Category, Fee, Gotra, Aadhar, Mobile */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <div>
                     <Label>श्रेणी / Category</Label>
                     <Input
@@ -690,6 +698,20 @@ export default function AddMayraRegistrationPage() {
                       value={formData.aadharNumber}
                       className="mt-1"
                       onChange={e => setFormData(prev => ({ ...prev, aadharNumber: e.target.value.replace(/\D/g, '') }))}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="mobile">आवेदक मोबाइल नं.</Label>
+                    <Input
+                      id="mobile"
+                      name="mobile"
+                      required
+                      maxLength={10}
+                      placeholder="10 digit No."
+                      value={formData.mobile}
+                      className="mt-1"
+                      onChange={e => setFormData(prev => ({ ...prev, mobile: e.target.value.replace(/\D/g, '') }))}
                     />
                   </div>
                 </div>
@@ -756,9 +778,10 @@ export default function AddMayraRegistrationPage() {
                     />
                   </div>
                   <div>
-                    <Label>मोबाईल (Mobile)</Label>
+                    <Label htmlFor="nomineeMobile">नॉमिनी मोबाइल नं.</Label>
                     <Input
-                      required
+                      id="nomineeMobile"
+                      name="nomineeMobile"
                       maxLength={10}
                       placeholder="10 digit No."
                       value={formData.nomineeMobile}

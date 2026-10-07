@@ -318,6 +318,7 @@ export default function AddMayraRegistrationPage() {
       apiFormData.append("nomineeGotra", formData.nomineeGotra)
       apiFormData.append("nomineeAddress", formData.nomineeAddress)
       apiFormData.append("nomineeRelation", formData.nomineeRelation)
+      apiFormData.append("nominee_relation", formData.nomineeRelation)
       if (formData.nomineeAadhar) {
         const cleanNomineeAadhar = formData.nomineeAadhar.replace(/\D/g, "").slice(0, 12);
         if (cleanNomineeAadhar) {
@@ -866,19 +867,17 @@ export default function AddMayraRegistrationPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label>नॉमिनी से सम्बन्ध (Relation)</Label>
-                    <select
+                    <Label htmlFor="nomineeRelation">नॉमिनी से सम्बन्ध (Relation) *</Label>
+                    <Input
+                      id="nomineeRelation"
+                      name="nomineeRelation"
                       required
-                      className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1"
+                      maxLength={50}
+                      placeholder="सम्बन्ध दर्ज करें / Enter Relation (उदा. भांजा, भांजी, भाई, पुत्र, माता आदि)"
                       value={formData.nomineeRelation}
+                      className="mt-1"
                       onChange={e => setFormData(prev => ({ ...prev, nomineeRelation: e.target.value }))}
-                    >
-                      <option value="" disabled>
-                        सम्बन्ध चुनें / Select Relation
-                      </option>
-                      <option value="भांजा">भांजा / Bhanej</option>
-                      <option value="भांजी">भांजी / Bhenji</option>
-                    </select>
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="selectedAgentId">कार्यकर्त्ता का नाम (Worker Name) *</Label>

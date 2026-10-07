@@ -34,12 +34,7 @@ import {
 } from "@/components/ui/alert-dialog"
 
 const normalizeNomineeRelation = (relation?: string): string => {
-  const r = (relation || "").trim()
-  if (!r) return ""
-  const lower = r.toLowerCase()
-  if (r === "भांजा" || r === "भांजे" || lower === "bhanej" || lower === "bhanja" || lower === "bhanje") return "भांजा"
-  if (r === "भांजी" || lower === "bhenji" || lower === "bhanji") return "भांजी"
-  return r
+  return (relation || "").trim()
 }
 
 export default function EditMayraRegistrationPage() {
@@ -538,6 +533,7 @@ export default function EditMayraRegistrationPage() {
         nomineeGotra: formData.nomineeGotra,
         nomineeAddress: formData.nomineeAddress,
         nomineeRelation: formData.nomineeRelation,
+        nominee_relation: formData.nomineeRelation,
         nomineeAadhar: formData.nomineeAadhar ? formData.nomineeAadhar.replace(/\D/g, "") : null,
         nominee_aadhar: formData.nomineeAadhar ? formData.nomineeAadhar.replace(/\D/g, "") : null,
         gender: formData.gender,
@@ -1038,24 +1034,17 @@ export default function EditMayraRegistrationPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label>नॉमिनी से सम्बन्ध (Relation)</Label>
-                    <select
+                    <Label htmlFor="nomineeRelation">नॉमिनी से सम्बन्ध (Relation) *</Label>
+                    <Input
+                      id="nomineeRelation"
+                      name="nomineeRelation"
                       required
-                      className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1"
+                      maxLength={50}
+                      placeholder="सम्बन्ध दर्ज करें / Enter Relation"
                       value={formData.nomineeRelation}
+                      className="mt-1"
                       onChange={e => setFormData(prev => ({ ...prev, nomineeRelation: e.target.value }))}
-                    >
-                      <option value="" disabled>
-                        सम्बन्ध चुनें / Select Relation
-                      </option>
-                      <option value="भांजा">भांजा / Bhanej</option>
-                      <option value="भांजी">भांजी / Bhenji</option>
-                      {formData.nomineeRelation &&
-                        formData.nomineeRelation !== "भांजा" &&
-                        formData.nomineeRelation !== "भांजी" && (
-                          <option value={formData.nomineeRelation}>{formData.nomineeRelation}</option>
-                        )}
-                    </select>
+                    />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="selectedAgentId">कार्यकर्त्ता का नाम (Worker Name) *</Label>

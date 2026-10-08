@@ -375,10 +375,10 @@ export async function POST(request: NextRequest) {
         // Line 3: पिता/पति का नाम [Father/Husband Name]
         { field: 'पिता_का_नाम', valueKeys: ['fatherName', 'पिता_का_नाम', 'father_husband_name', 'father_name', 'husbandName', 'husband_name'], x: 122, y: 248.6, maxW: 330, size: 10 },
 
-        // Line 4: जन्म दिनांक [DOB]  लिंग [Gender]  शिक्षा [Education]
+        // Line 4: जन्म दिनांक [DOB]  लिंग [Gender]  जाति [Gotra]
         { field: 'जन्म_दिनांक', valueKeys: ['dateOfBirth', 'जन्म_तिथि', 'dob', 'date_of_birth'], x: 92, y: 276.3, maxW: 75, size: 9.5, isDate: true },
         { field: 'लिंग', valueKeys: ['gender', 'लिंग'], x: 198, y: 276.3, maxW: 62, size: 9.5 },
-        { field: 'शिक्षा', valueKeys: ['education', 'शिक्षा', 'qualification'], x: 295, y: 276.3, maxW: 155, size: 9.5 },
+        { field: 'जाति', valueKeys: ['gotra', 'gotra_name', 'gotraName', 'गोत्र', 'जाति'], x: 295, y: 276.3, maxW: 155, size: 9.5 },
 
         // Line 5: आवेदन के आधार नं. [Aadhaar Number]
         { field: 'आधार_संख्या', valueKeys: ['aadharNumber', 'आधार_संख्या', 'aadhar_no', 'aadhaar', 'aadhar_number', 'aadhaarNumber'], x: 130, y: 304.0, maxW: 320, size: 10 },

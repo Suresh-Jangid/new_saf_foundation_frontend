@@ -12,13 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 import { EpinRecord } from "@/lib/config-types";
 import { EpinService } from "@/lib/epin-service";
 import { post, API_ENDPOINTS } from "@/lib/api";
@@ -32,11 +26,15 @@ interface EpinAssignModalProps {
   onSuccess: () => void;
 }
 
-interface AgentOption {
+interface AgentOption extends WorkerOption {
   id: string;
   name: string;
   employee_id?: string;
+  employeeId?: string;
+  offlineFormNumber?: string;
+  offline_form_number?: string;
   mobile?: string;
+  level?: string | number | null;
 }
 
 export const EpinAssignModal: React.FC<EpinAssignModalProps> = ({
@@ -59,12 +57,38 @@ export const EpinAssignModal: React.FC<EpinAssignModalProps> = ({
           const response = await post(API_ENDPOINTS.GET_AGENTS, {});
           if (response?.data?.status && Array.isArray(response.data.data)) {
             setAgents(
-              response.data.data.map((a: any) => ({
-                id: String(a.id),
-                name: a.name || a.agent_name,
-                employee_id: a.employee_id || a.employeeId,
-                mobile: a.mobile,
-              }))
+              response.data.data.map((a: any) => {
+                const off = String(
+                  a.offlineFormNumber ||
+                  a.offline_form_number ||
+                  a.agentProfile?.offlineFormNumber ||
+                  a.agentProfile?.offline_form_number ||
+                  ""
+                ).trim();
+                const emp = String(
+                  a.employee_id ||
+                  a.employeeId ||
+                  a.agentCode ||
+                  a.agentProfile?.employeeId ||
+                  a.agentProfile?.employee_id ||
+                  ""
+                ).trim();
+                const offlineDisplay =
+                  off && emp && off.toLowerCase() !== emp.toLowerCase()
+                    ? `${off} (${emp})`
+                    : off || emp || "";
+
+                return {
+                  id: String(a.id),
+                  name: a.name || a.agent_name || a.applicantName || "",
+                  employee_id: emp,
+                  employeeId: emp,
+                  offlineFormNumber: offlineDisplay,
+                  offline_form_number: offlineDisplay,
+                  mobile: a.mobile || a.mobileNumber || a.phone || a.agentProfile?.mobile || "",
+                  level: a.level ?? a.agentProfile?.level ?? null,
+                };
+              })
             );
           }
         } catch {
@@ -88,7 +112,7 @@ export const EpinAssignModal: React.FC<EpinAssignModalProps> = ({
       return;
     }
 
-    const selectedAgent = agents.find((a) => a.id === selectedAgentId);
+    const selectedAgent = agents.find((a) => String(a.id) === String(selectedAgentId));
 
     setIsSubmitting(true);
     try {
@@ -148,28 +172,15 @@ export const EpinAssignModal: React.FC<EpinAssignModalProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="agent">Select Field Agent / एजेंट चुनें *</Label>
-              <Select
+              <WorkerSearchSelector
+                id="agent"
                 value={selectedAgentId}
                 onValueChange={setSelectedAgentId}
-                disabled={loadingAgents || agents.length === 0}
-              >
-                <SelectTrigger id="agent">
-                  <SelectValue
-                    placeholder={
-                      loadingAgents ? "Loading agents..." : "Select an agent"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {agents.map((agent) => (
-                    <SelectItem key={agent.id} value={agent.id}>
-                      {agent.name}{" "}
-                      {agent.employee_id ? `(${agent.employee_id})` : ""}{" "}
-                      {agent.mobile ? `- ${agent.mobile}` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                agents={agents}
+                isLoading={loadingAgents}
+                disabled={isSubmitting || loadingAgents}
+                placeholder="एजेंट खोजें या चुनें / Search & Select Agent"
+              />
             </div>
 
             <div className="space-y-2">

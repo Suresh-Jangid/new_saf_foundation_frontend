@@ -4,7 +4,6 @@ import {
   PDFFont,
   Color,
   rgb,
-  PDFArray,
   PDFHexString,
   PDFNumber,
   PDFOperator,
@@ -15,8 +14,8 @@ import {
   endText,
   setFillingColor,
   setFontAndSize,
-  moveText,
 } from 'pdf-lib';
+import * as hb from 'harfbuzzjs';
 
 export interface DrawDevanagariOptions {
   x: number;
@@ -25,6 +24,28 @@ export interface DrawDevanagariOptions {
   color?: Color;
   maxW?: number;
   minSize?: number;
+}
+
+interface CachedHbFont {
+  face: hb.Face;
+  font: hb.Font;
+  upem: number;
+}
+
+// Cache HarfBuzz font representations by fontData Uint8Array to make shaping near-instant
+const hbFontCache = new WeakMap<Uint8Array, CachedHbFont>();
+
+function getHbFont(fontData: Uint8Array): CachedHbFont {
+  let cached = hbFontCache.get(fontData);
+  if (!cached) {
+    const blob = new hb.Blob(fontData);
+    const face = new hb.Face(blob);
+    const font = new hb.Font(face);
+    const upem = face.upem || 1000;
+    cached = { face, font, upem };
+    hbFontCache.set(fontData, cached);
+  }
+  return cached;
 }
 
 /**
@@ -36,9 +57,8 @@ export function containsDevanagari(text: unknown): boolean {
 }
 
 /**
- * Measures the effective visual width of text rendered with the Devanagari font.
- * For Devanagari runs, discounts the phantom advance width of pre-base matra glyphs (uni093F.*)
- * which are pulled back via TJ positioning.
+ * Measures the exact visual advance width of text using HarfBuzz OpenType shaping.
+ * Accurately accounts for ligatures, conjuncts, mark positioning, and kerning.
  */
 export function measureDevanagariWidth(font: PDFFont, text: string, size: number): number {
   if (!text) return 0;
@@ -46,41 +66,38 @@ export function measureDevanagariWidth(font: PDFFont, text: string, size: number
   if (!str) return 0;
 
   const embedder = (font as any)?.embedder;
-  if (!embedder || !embedder.font) {
-    return font.widthOfTextAtSize ? font.widthOfTextAtSize(str, size) : 0;
+  const fontData: Uint8Array | undefined = embedder?.fontData;
+
+  // Fallback if font does not have custom embedder
+  if (!fontData || !embedder?.font) {
+    return font.widthOfTextAtSize ? font.widthOfTextAtSize(str, size) : str.length * size * 0.6;
   }
 
-  // If text does not contain Devanagari, standard font measurement is accurate
-  if (!containsDevanagari(str)) {
-    return font.widthOfTextAtSize ? font.widthOfTextAtSize(str, size) : 0;
-  }
+  try {
+    const { font: hbFont, upem } = getHbFont(fontData);
+    const buffer = new hb.Buffer();
+    buffer.addText(str);
+    buffer.guessSegmentProperties();
+    hb.shape(hbFont, buffer);
 
-  const fk = embedder.font;
-  const runs = str.split(/([\u0900-\u097F]+)/g).filter(Boolean);
-
-  let totalUnits = 0;
-  for (const run of runs) {
-    const isDeva = containsDevanagari(run);
-    const glyphRun = fk.layout(run, embedder.fontFeatures, isDeva ? 'deva' : undefined);
-    for (let i = 0; i < glyphRun.glyphs.length; i++) {
-      const g = glyphRun.glyphs[i];
-      // Pre-base short-i matra advance is canceled out by TJ adjustment
-      if (g.name && g.name.startsWith('uni093F') && i + 1 < glyphRun.glyphs.length) {
-        continue;
-      }
-      totalUnits += g.advanceWidth || 0;
+    const positions = buffer.getGlyphPositions();
+    let totalAdvance = 0;
+    for (let i = 0; i < positions.length; i++) {
+      totalAdvance += positions[i].xAdvance;
     }
-  }
 
-  const scale = size / 1000;
-  const fontScale = typeof embedder.scale === 'number' ? embedder.scale : 1;
-  return totalUnits * scale * fontScale;
+    const scale = size / upem;
+    return totalAdvance * scale;
+  } catch (err) {
+    console.warn('HarfBuzz measurement failed, falling back to standard metrics:', err);
+    return font.widthOfTextAtSize ? font.widthOfTextAtSize(str, size) : str.length * size * 0.6;
+  }
 }
 
 /**
  * Draws text containing Devanagari (Hindi) or mixed Hindi/English/numbers/symbols
- * with correct OpenType shaping, pre-base matra (uni093F.*) kerning correction,
- * and proper font subset registration.
+ * with authentic HarfBuzz OpenType shaping, GSUB ligature formation, GPOS mark positioning,
+ * and precise glyph placement in the PDF content stream.
  */
 export function drawDevanagariText(
   page: PDFPage,
@@ -100,19 +117,18 @@ export function drawDevanagariText(
   } = options || {};
 
   const embedder = (font as any)?.embedder;
-  // If font doesn't have custom embedder, fallback to standard drawText
-  if (!embedder || !embedder.font) {
+  const fontData: Uint8Array | undefined = embedder?.fontData;
+
+  // Fallback to standard drawText if custom embedder is absent
+  if (!fontData || !embedder?.font) {
     page.drawText(str, { x, y, size, font, color });
     return;
   }
 
   const fk = embedder.font;
-  const doc = page.doc;
   const { newFontKey } = (page as any).setOrEmbedFont(font);
 
-  // If embedded without subsetting (subset: false), ensure glyphCache contains
-  // all glyphs so the PDF /W (widths) dictionary contains proper advance widths
-  // for all ligatures and conjuncts.
+  // If embedded without subsetting (subset: false), populate glyphCache for widths dictionary
   if (!embedder.subset && embedder.glyphCache && !(embedder as any)._allGlyphsPopulated) {
     const allGlyphs = [];
     for (let i = 0; i < fk.numGlyphs; i++) {
@@ -122,64 +138,77 @@ export function drawDevanagariText(
     (embedder as any)._allGlyphsPopulated = true;
   }
 
-  // Segment string into Devanagari and non-Devanagari runs
-  const runs = str.split(/([\u0900-\u097F]+)/g).filter(Boolean);
-  const tjArray = PDFArray.withContext(doc.context);
+  try {
+    const { font: hbFont, upem } = getHbFont(fontData);
+    const buffer = new hb.Buffer();
+    buffer.addText(str);
+    buffer.guessSegmentProperties();
+    hb.shape(hbFont, buffer);
 
-  for (const run of runs) {
-    const isDeva = containsDevanagari(run);
-    // Explicitly layout Devanagari runs with 'deva' script for Indic syllable shaper
-    const glyphRun = fk.layout(run, embedder.fontFeatures, isDeva ? 'deva' : undefined);
+    const infos = buffer.getGlyphInfos();
+    const positions = buffer.getGlyphPositions();
 
-    let currentHex = '';
-    for (let i = 0; i < glyphRun.glyphs.length; i++) {
-      const g = glyphRun.glyphs[i];
+    const scale = size / upem;
+    let cursorX = x;
+    let cursorY = y;
+
+    const operators: PDFOperator[] = [
+      pushGraphicsState(),
+      beginText(),
+      setFillingColor(color),
+      setFontAndSize(newFontKey, size),
+    ];
+
+    for (let i = 0; i < infos.length; i++) {
+      const gid = infos[i].codepoint;
+      const pos = positions[i];
       let hexId: string;
 
       if (embedder.subset) {
-        // Register glyph with fontkit subset stream and map ID
+        // Register glyph with fontkit subset stream and get mapped subset ID
+        const g = fk.getGlyph(gid);
         const subsetGlyphId = embedder.subset.includeGlyph(g);
         embedder.glyphs[subsetGlyphId - 1] = g;
         embedder.glyphIdMap.set(g.id, subsetGlyphId);
         hexId = subsetGlyphId.toString(16).padStart(4, '0');
       } else {
-        hexId = g.id.toString(16).padStart(4, '0');
+        hexId = gid.toString(16).padStart(4, '0');
       }
 
-      currentHex += hexId;
+      // Exact HarfBuzz GPOS positioning:
+      // gx = cursor + xOffset, gy = cursor + yOffset
+      const gx = cursorX + (pos.xOffset * scale);
+      const gy = cursorY + (pos.yOffset * scale);
 
-      // Pre-base short-i matra correction:
-      // When uni093F.* is encountered, flush preceding hex and emit a positive
-      // TJ number equal to the matra's advanceWidth. In PDF TJ, a positive number
-      // shifts the text cursor back to the left, pulling the following base
-      // consonant directly under the matra canopy.
-      if (g.name && g.name.startsWith('uni093F') && i + 1 < glyphRun.glyphs.length) {
-        tjArray.push(PDFHexString.of(currentHex));
-        currentHex = '';
-        tjArray.push(PDFNumber.of(g.advanceWidth || 259));
-      }
+      operators.push(
+        PDFOperator.of(PDFOperatorNames.SetTextMatrix, [
+          PDFNumber.of(1),
+          PDFNumber.of(0),
+          PDFNumber.of(0),
+          PDFNumber.of(1),
+          PDFNumber.of(Number(gx.toFixed(3))),
+          PDFNumber.of(Number(gy.toFixed(3))),
+        ]),
+        PDFOperator.of(PDFOperatorNames.ShowText, [PDFHexString.of(hexId)])
+      );
+
+      // Advance cursor
+      cursorX += pos.xAdvance * scale;
+      cursorY += pos.yAdvance * scale;
     }
 
-    if (currentHex) {
-      tjArray.push(PDFHexString.of(currentHex));
+    operators.push(endText(), popGraphicsState());
+
+    if (embedder.subset && embedder.glyphCache) {
+      embedder.glyphCache.invalidate();
     }
-  }
+    (font as any).modified = true;
 
-  if (embedder.subset && embedder.glyphCache) {
-    embedder.glyphCache.invalidate();
+    page.pushOperators(...operators);
+  } catch (err) {
+    console.warn('HarfBuzz rendering failed, falling back to standard drawText:', err);
+    page.drawText(str, { x, y, size, font, color });
   }
-  (font as any).modified = true;
-
-  page.pushOperators(
-    pushGraphicsState(),
-    beginText(),
-    setFillingColor(color),
-    setFontAndSize(newFontKey, size),
-    moveText(x, y),
-    PDFOperator.of(PDFOperatorNames.ShowTextAdjusted, [tjArray]),
-    endText(),
-    popGraphicsState()
-  );
 }
 
 /**

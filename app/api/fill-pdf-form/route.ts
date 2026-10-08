@@ -14,6 +14,7 @@ import {
   formatNumericAmountForPdf,
   buildPdfFilename,
 } from '@/lib/form-values';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -546,19 +547,7 @@ export async function POST(request: NextRequest) {
       const baseY = def.y + valueOffsetY + globalOffsetY;
       const drawX = baseX;
       const drawY = coordinateSystem === 'top-left' ? pageHeight - baseY : baseY;
-      let fontSize = def.size || 9.5;
-
-      // Auto-scale font size if text exceeds max width
-      if (def.maxW && (font as any).widthOfTextAtSize) {
-        try {
-          const textWidth = (font as any).widthOfTextAtSize(textValue, fontSize);
-          if (textWidth > def.maxW) {
-            fontSize = Math.max(6.0, fontSize * (def.maxW / textWidth));
-          }
-        } catch {
-          // Fallback if widthOfTextAtSize fails
-        }
-      }
+      const fontSize = def.size || 9.5;
 
       const textColor = def.color
         ? rgb(def.color.r, def.color.g, def.color.b)
@@ -568,12 +557,13 @@ export async function POST(request: NextRequest) {
         firstPage.drawRectangle({ x: drawX - 1, y: drawY - 1, width: 2, height: 2, color: rgb(1, 0, 0) });
       }
 
-      firstPage.drawText(textValue, {
+      drawDevanagariBounded(firstPage, font, textValue, {
         x: drawX,
         y: drawY,
         size: fontSize,
-        font,
+        maxW: def.maxW,
         color: textColor,
+        minSize: 6.0,
       });
     }
 

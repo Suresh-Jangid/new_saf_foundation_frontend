@@ -13,6 +13,7 @@ import {
   formatNumericAmountForPdf,
   buildPdfFilename,
 } from '@/lib/form-values';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -139,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     const fontPath = path.join(process.cwd(), 'public', 'fonts', 'NotoSansDevanagari-Regular.ttf');
     const font = fs.existsSync(fontPath)
-      ? await pdfDoc.embedFont(fs.readFileSync(fontPath), { subset: false })
+      ? await pdfDoc.embedFont(fs.readFileSync(fontPath), { subset: true })
       : await pdfDoc.embedFont('Helvetica');
 
     const formatDate = (value: string) => {
@@ -158,22 +159,13 @@ export async function POST(request: NextRequest) {
       maxW?: number,
       color = rgb(0, 0, 0)
     ) => {
-      if (!text) return;
-      const str = String(text).trim();
-      if (!str || str === 'undefined' || str === 'null' || str === 'NaN') return;
-      let s = size;
-      if (maxW && font.widthOfTextAtSize) {
-        const w = font.widthOfTextAtSize(str, size);
-        if (w > maxW) {
-          s = Math.max(6.5, size * (maxW / w));
-        }
-      }
-      firstPage.drawText(str, {
+      drawDevanagariBounded(firstPage, font, text, {
         x,
         y,
-        size: s,
-        font,
+        size,
+        maxW,
         color,
+        minSize: 6.5,
       });
     };
 

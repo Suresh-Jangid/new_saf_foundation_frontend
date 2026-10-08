@@ -178,13 +178,13 @@ export async function POST(request: NextRequest) {
     };
 
     // ── 1. Top Header Boxes ──────────────────────────────────
-    // Template has "क्रमांक : NGO/26/" pre-printed from x=46.16 to 125.98.
-    // Strip leading "NGO/26/" if present to avoid duplication.
+    // Template has "क्रमांक :-" pre-printed ending around x=76.3.
+    // Preserve complete offline form number exactly as supplied.
     const rawFormNo = getField(record, 'offlineFormNumber', 'offline_form_number', 'offlineFormNo', 'formNumber', 'form_number', 'applicationNumber', 'application_number');
-    const formNo = rawFormNo.replace(/^NGO\/26\//i, '').trim();
+    const formNo = rawFormNo.trim();
     const appDate = formatDate(getField(record, 'applicationDate', 'application_date', 'createdAt', 'created_at', 'date'));
 
-    drawBounded(formNo, 125, 648.8, 10, 100, rgb(0, 0.15, 0.6));
+    drawBounded(formNo, 80, 648.8, 10, 250, rgb(0, 0.15, 0.6));
     drawBounded(appDate, 445, 648.8, 9.5, 105);
 
     // ── 2. Applicant Section ─────────────────────────────────
@@ -284,7 +284,7 @@ export async function POST(request: NextRequest) {
     drawBounded(seniorWorker, 472, 399.3, 9.5, 75);
 
     // ── 4. Section 2: सदस्यता फार्म रसीद (Receipt Section) ──────
-    drawBounded(formNo, 125, 181.3, 10, 100, rgb(0, 0.15, 0.6));
+    drawBounded(formNo, 80, 181.3, 10, 250, rgb(0, 0.15, 0.6));
     drawBounded(appDate, 472, 181.3, 9.5, 80);
     drawBounded(applicantName, 58, 159.5, 10, 180);
     drawBounded(fatherHusbandName, 330, 159.5, 10, 218);

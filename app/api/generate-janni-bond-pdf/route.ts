@@ -7,6 +7,7 @@ import path from 'path';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { buildPdfFilename } from '@/lib/form-values';
+import { JANNI_PER_DELIVERY_AMOUNT } from '@/lib/config-types';
 
 export const runtime = 'nodejs';
 
@@ -85,46 +86,11 @@ function sanitizeValue(val: any): string {
   return str;
 }
 
-// Resolve authoritative Janni Delivery dynamic amount for clause: "जननी सुरक्षा प्रसव योजना ...... रूपये प्रत्येक डिलीवरी पर लागू"
-function resolveJanniDeliveryAmountText(rec: any, body?: any): string {
-  // Canonical per-delivery installment / contribution fields ONLY.
-  // NEVER fall back to fee, totalAmount, membershipFee, paymentAmount, or installments[0]?.amount,
-  // which represent one-time registration fees or ledger payments (e.g. ₹300, ₹3,100, ₹5,100),
-  // nor to total assistance grants (e.g. ₹11,000).
-  const rawAmt =
-    rec?.janniInstallment ??
-    rec?.janni_installment ??
-    rec?.deliveryAmount ??
-    rec?.delivery_amount ??
-    rec?.installmentAmount ??
-    rec?.installment_amount ??
-    rec?.kistAmount ??
-    rec?.kist_amount ??
-    rec?.janniKist ??
-    rec?.janni_kist ??
-    rec?.janniAmount ??
-    rec?.janni_amount ??
-    body?.janniInstallment ??
-    body?.janni_installment ??
-    body?.deliveryAmount ??
-    body?.delivery_amount ??
-    body?.installmentAmount ??
-    body?.installment_amount ??
-    body?.janniAmount ??
-    body?.janni_amount ??
-    '';
-
-  if (rawAmt === undefined || rawAmt === null || rawAmt === '') {
-    return '';
-  }
-
-  const numStr = String(rawAmt).replace(/[^\d.]/g, '');
-  if (!numStr) return '';
-  const parsedNum = parseFloat(numStr);
-  if (!isNaN(parsedNum) && parsedNum > 0) {
-    return parsedNum % 1 === 0 ? String(parsedNum) : numStr;
-  }
-  return '';
+// Resolve authoritative Janni Delivery policy amount for clause: "जननी सुरक्षा प्रसव योजना ...... रूपये प्रत्येक डिलीवरी पर लागू"
+// Per SAF Foundation business policy, this is a fixed statutory foundation amount of ₹300 per delivery.
+// It does NOT depend on or fall back to any record-specific payment or grant fields.
+function resolveJanniDeliveryAmountText(_rec?: any, _body?: any): string {
+  return `₹ ${JANNI_PER_DELIVERY_AMOUNT.toLocaleString('en-IN')}/-`;
 }
 
 export async function OPTIONS(request: NextRequest) {

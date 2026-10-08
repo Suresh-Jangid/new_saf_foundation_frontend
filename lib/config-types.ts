@@ -230,3 +230,9 @@ export const DEFAULT_DEDUCTIONS: DeductionConfig[] = [
 ];
 
 export const EPIN_STATES: readonly EpinState[] = ["ACTIVE", "ASSIGNED", "USED", "BURNT"] as const;
+
+/**
+ * Fixed Foundation Policy amount for Janni Delivery per childbirth delivery assistance grant.
+ * Conceptually distinct from applicant's initial payment/registration fee (₹300) and scheme total amount (₹3,100).
+ */
+export const JANNI_PER_DELIVERY_AMOUNT = 300;

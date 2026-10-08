@@ -25,7 +25,7 @@ import { EpinInputVerifier } from "@/components/forms/epin-input-verifier";
 import { JanniDeliveryService, CreateJanniDeliveryPayload } from "@/lib/janni-delivery-service";
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
-import { EpinValidationResponse } from "@/lib/config-types";
+import { EpinValidationResponse, JANNI_PER_DELIVERY_AMOUNT } from "@/lib/config-types";
 import { formatDate, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/utils";
 import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
@@ -521,6 +521,18 @@ export default function AddJanniDeliveryPage() {
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, totalAmount: e.target.value }))
                       }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      प्रति प्रसव सहायता राशि / Per Delivery Assistance Amount (₹)
+                    </Label>
+                    <Input
+                      readOnly
+                      disabled
+                      value={`₹${JANNI_PER_DELIVERY_AMOUNT}`}
+                      className="mt-1 text-xs sm:text-sm bg-gray-50 text-gray-700 cursor-not-allowed font-medium"
                     />
                   </div>
 

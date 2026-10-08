@@ -30,6 +30,7 @@ import {
 } from "@/lib/janni-delivery-service";
 import { agentRegistrationAPI } from "@/lib/api";
 import { isAdmin } from "@/lib/permissions";
+import { JANNI_PER_DELIVERY_AMOUNT } from "@/lib/config-types";
 import { uploadMediaFile } from "@/lib/upload-client";
 import {
   formatDate,
@@ -718,6 +719,18 @@ export default function EditJanniDeliveryPage() {
                       onChange={(e) =>
                         setFormData((prev) => ({ ...prev, totalAmount: e.target.value }))
                       }
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
+                      प्रति प्रसव सहायता राशि / Per Delivery Assistance Amount (₹)
+                    </Label>
+                    <Input
+                      readOnly
+                      disabled
+                      value={`₹${JANNI_PER_DELIVERY_AMOUNT}`}
+                      className="mt-1 text-xs sm:text-sm bg-gray-50 text-gray-700 cursor-not-allowed font-medium"
                     />
                   </div>
 

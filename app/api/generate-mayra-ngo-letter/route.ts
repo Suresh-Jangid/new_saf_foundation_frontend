@@ -4,6 +4,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { drawDevanagariText } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -162,61 +163,16 @@ export async function POST(request: NextRequest) {
       color: rgb(0, 0, 0),
     });
 
-    const getRunWidth = (runText: string, activeFont: typeof font, isHindi: boolean) => {
-      if (isHindi) {
-        let spacingCount = 0;
-        for (let i = 0; i < runText.length; i++) {
-          const char = runText[i];
-          if (/[\u0901\u0902\u093C\u0941\u0942\u0943\u0944\u0945\u0946\u0947\u0948\u094C\u094D]/.test(char)) {
-            spacingCount += 0.1;
-          } else {
-            spacingCount += 0.65;
-          }
-        }
-        return spacingCount * TEXT_SIZE;
-      }
-      return activeFont.widthOfTextAtSize(runText, TEXT_SIZE);
-    };
-
     const drawText = (text: string, x: number, y: number) => {
-      if (!text?.trim()) return;
+      if (!text || (typeof text === 'string' && !text.trim())) return;
       const strText = String(text).trim();
       const drawY = pageHeight - y;
-
-      let currentX = x;
-      let currentRun = '';
-      let isDevanagari = false;
-
-      const flushRun = () => {
-        if (!currentRun) return;
-        const activeFont = isDevanagari ? font : helveticaFont;
-        firstPage.drawText(currentRun, {
-          x: currentX,
-          y: drawY,
-          size: TEXT_SIZE,
-          font: activeFont,
-          color: rgb(0, 0, 0),
-        });
-        currentX += getRunWidth(currentRun, activeFont, isDevanagari);
-        currentRun = '';
-      };
-
-      for (let i = 0; i < strText.length; i++) {
-        const char = strText[i];
-        const charIsDevanagari = /[\u0900-\u097F]/.test(char);
-        if (i === 0) {
-          isDevanagari = charIsDevanagari;
-          currentRun = char;
-        } else if (charIsDevanagari === isDevanagari) {
-          currentRun += char;
-        } else {
-          flushRun();
-          isDevanagari = charIsDevanagari;
-          currentRun = char;
-        }
-      }
-
-      flushRun();
+      drawDevanagariText(firstPage, font, strText, {
+        x,
+        y: drawY,
+        size: TEXT_SIZE,
+        color: rgb(0, 0, 0),
+      });
     };
 
     for (const mapping of fieldMappings) {

@@ -4,6 +4,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { drawDevanagariText } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -163,11 +164,10 @@ export async function POST(request: NextRequest) {
       if (lineEndX !== undefined) {
         drawX = lineEndX - font.widthOfTextAtSize(str, TEXT_SIZE) + offsetX;
       }
-      firstPage.drawText(str, {
+      drawDevanagariText(firstPage, font, str, {
         x: drawX,
         y: pageHeight - (y + offsetY) - BASELINE_NUDGE,
         size: TEXT_SIZE,
-        font,
         color: rgb(0, 0, 0),
       });
     };

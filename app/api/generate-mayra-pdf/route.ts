@@ -13,6 +13,7 @@ import {
   formatNumericAmountForPdf,
   buildPdfFilename,
 } from '@/lib/form-values';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -162,29 +163,20 @@ export async function POST(request: NextRequest) {
     };
 
     const drawBounded = (
-      text: string,
+      text: unknown,
       x: number,
       y: number,
-      size: number = 10,
+      size = 9,
       maxW?: number,
       color = rgb(0, 0, 0)
     ) => {
-      if (!text) return;
-      const str = String(text).trim();
-      if (!str) return;
-      let s = size;
-      if (maxW && font.widthOfTextAtSize) {
-        const w = font.widthOfTextAtSize(str, size);
-        if (w > maxW) {
-          s = Math.max(6.5, size * (maxW / w));
-        }
-      }
-      firstPage.drawText(str, {
+      drawDevanagariBounded(firstPage, font, text, {
         x,
         y,
-        size: s,
-        font,
+        size,
+        maxW,
         color,
+        minSize: 6.5,
       });
     };
 

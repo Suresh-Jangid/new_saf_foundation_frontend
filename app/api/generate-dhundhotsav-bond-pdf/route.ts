@@ -7,6 +7,7 @@ import path from 'path';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { buildPdfFilename } from '@/lib/form-values';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -373,23 +374,21 @@ export async function POST(request: NextRequest) {
 
     // Helper to draw bounded text at baseline
     const drawBounded = (
-      text: string,
+      text: unknown,
       x: number,
-      baselineY: number,
-      fontSize: number,
-      maxW: number,
-      color: any
+      y: number,
+      size = 9,
+      maxW?: number,
+      color = rgb(0, 0, 0)
     ) => {
-      if (!text) return;
-      let size = fontSize;
-      if (maxW && (font as any).widthOfTextAtSize) {
-        const isDevanagari = /[^\u0000-\u007F]/.test(text);
-        const textW = (font as any).widthOfTextAtSize(text, size) * (isDevanagari ? 1.25 : 1.0);
-        if (textW > maxW) {
-          size = Math.max(6.0, size * (maxW / textW));
-        }
-      }
-      firstPage.drawText(text, { x, y: baselineY, size, font, color });
+      drawDevanagariBounded(firstPage, font, text, {
+        x,
+        y,
+        size,
+        maxW,
+        color,
+        minSize: 6.5,
+      });
     };
 
     // Helper to draw centered text in dotted line range

@@ -5,6 +5,7 @@ import path from 'path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 

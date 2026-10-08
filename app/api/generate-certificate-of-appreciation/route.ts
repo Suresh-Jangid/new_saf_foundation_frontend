@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -200,11 +201,10 @@ export async function POST(request: NextRequest) {
         firstPage.drawRectangle({ x: drawX - 1, y: drawY - 1, width: 2, height: 2, color: rgb(1, 0, 0) });
       }
       
-      firstPage.drawText(String(value), {
+      drawDevanagariBounded(firstPage, font, String(value), {
         x: drawX,
         y: drawY,
         size: 14,
-        font,
         color: rgb(0, 0, 0),
       });
     }

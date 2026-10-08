@@ -8,6 +8,7 @@ import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { buildPdfFilename } from '@/lib/form-values';
 import { JANNI_PER_DELIVERY_AMOUNT } from '@/lib/config-types';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -358,17 +359,23 @@ export async function POST(request: NextRequest) {
     };
 
     // Helper to draw bounded text at baseline
-    const drawBounded = (text: string, x: number, yTop: number, fontSize: number, maxW: number, color: any) => {
-      if (!text) return;
-      let size = fontSize;
-      if ((font as any).widthOfTextAtSize) {
-        const textW = (font as any).widthOfTextAtSize(text, size);
-        if (textW > maxW) {
-          size = Math.max(6.5, size * (maxW / textW));
-        }
-      }
+    const drawBounded = (
+      text: unknown,
+      x: number,
+      yTop: number,
+      size = 9,
+      maxW?: number,
+      color = rgb(0, 0, 0)
+    ) => {
       const y = pageHeight - yTop;
-      firstPage.drawText(text, { x, y, size, font, color });
+      drawDevanagariBounded(firstPage, font, text, {
+        x,
+        y,
+        size,
+        maxW,
+        color,
+        minSize: 6.5,
+      });
     };
 
     // ── 1. Draw Header Boxes (Top 5 blue boxes) ──

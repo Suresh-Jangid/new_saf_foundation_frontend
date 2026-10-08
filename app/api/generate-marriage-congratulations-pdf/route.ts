@@ -3,6 +3,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -155,25 +156,13 @@ export async function POST(request: NextRequest) {
       maxWidth: number = 200,
       textColor = rgb(0.1, 0.1, 0.1)
     ) => {
-      if (!text || text.trim() === '') return;
-      const cleanText = text.trim();
-      let size = defaultSize;
-
-      if (font.widthOfTextAtSize) {
-        try {
-          const textWidth = font.widthOfTextAtSize(cleanText, defaultSize);
-          if (textWidth > maxWidth) {
-            size = Math.max(6.5, defaultSize * (maxWidth / textWidth));
-          }
-        } catch {}
-      }
-
-      firstPage.drawText(cleanText, {
+      drawDevanagariBounded(firstPage, font, text, {
         x: x + globalOffsetX + valOffsetX,
         y: y + globalOffsetY + valOffsetY,
-        size,
-        font,
+        size: defaultSize,
+        maxW: maxWidth,
         color: textColor,
+        minSize: 6.5,
       });
     };
 

@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { buildPdfFilename } from '@/lib/form-values';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -321,35 +322,20 @@ export async function POST(request: NextRequest) {
 
     // Drawing helper with baseline alignment and proportional bounds fitting
     const drawBounded = (
-      text: string | number | undefined | null,
+      text: unknown,
       x: number,
-      blY: number,
-      size = 10.5,
+      y: number,
+      size = 9,
       maxW?: number,
-      color = charcoalColor
+      color = rgb(0, 0, 0)
     ) => {
-      if (text === undefined || text === null) return;
-      const str = String(text).trim();
-      if (!str) return;
-
-      let fontSize = size;
-      if (maxW && (font as any).widthOfTextAtSize) {
-        try {
-          const textWidth = (font as any).widthOfTextAtSize(str, size);
-          if (textWidth > maxW) {
-            fontSize = Math.max(6.0, size * (maxW / textWidth));
-          }
-        } catch {
-          // If measurement fails, fallback to default size
-        }
-      }
-
-      firstPage.drawText(str, {
+      drawDevanagariBounded(firstPage, font, text, {
         x,
-        y: blY,
-        size: fontSize,
-        font,
+        y,
+        size,
+        maxW,
         color,
+        minSize: 6.5,
       });
     };
 

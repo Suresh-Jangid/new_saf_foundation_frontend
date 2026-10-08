@@ -3,6 +3,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { drawDevanagariText } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -137,11 +138,10 @@ export async function POST(request: NextRequest) {
       const drawY = pageHeight - mapping.y; // Convert to bottom-left coordinate system
       
       console.log(`Drawing ${mapping.field} at (${drawX}, ${drawY}):`, value);
-      firstPage.drawText(String(value), {
+      drawDevanagariText(firstPage, font, String(value), {
         x: drawX,
         y: drawY,
         size: 14,
-        font,
         color: rgb(0, 0, 0),
       });
     }

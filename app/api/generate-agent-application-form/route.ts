@@ -6,6 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { loadImageBytes } from '../../utils/pdfImage';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -421,24 +422,13 @@ export async function POST(request: NextRequest) {
       maxW?: number,
       color = darkColor
     ) => {
-      if (text === undefined || text === null) return;
-      const str = String(text).trim();
-      if (!str) return;
-
-      let size = fontSize;
-      if (maxW && (font as any).widthOfTextAtSize) {
-        const w = (font as any).widthOfTextAtSize(str, size);
-        if (w > maxW) {
-          size = Math.max(6.5, size * (maxW / w));
-        }
-      }
-
-      firstPage.drawText(str, {
+      drawDevanagariBounded(firstPage, font, text, {
         x: x + globalOffsetX + valueOffsetX,
         y: y + globalOffsetY + valueOffsetY,
-        size,
-        font,
+        size: fontSize,
+        maxW,
         color,
+        minSize: 6.5,
       });
     };
 

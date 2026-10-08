@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -575,13 +576,7 @@ export async function POST(request: NextRequest) {
             });
           }
 
-          page.drawText(nameText, {
-            x: nameX,
-            y: nameY,
-            size: 9,
-            font,
-            color: textColor,
-          });
+          drawDevanagariBounded(page, font, nameText, { x: nameX, y: nameY, size: 9, color: textColor, minSize: 6.0 });
 
           // Date
           const dateText =

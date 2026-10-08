@@ -7,6 +7,7 @@ import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { buildPdfFilename } from '@/lib/form-values';
+import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -288,32 +289,20 @@ export async function POST(request: NextRequest) {
 
     // Drawing Helpers
     const drawBounded = (
-      text: string | number | undefined | null,
+      text: unknown,
       x: number,
-      blY: number,
-      size = 10.5,
+      y: number,
+      size = 9,
       maxW?: number,
-      color = rgb(0.1, 0.1, 0.1)
+      color = rgb(0, 0, 0)
     ) => {
-      if (text === undefined || text === null || String(text).trim() === '') return;
-      const str = String(text).trim();
-      let fontSize = size;
-      if (maxW && font.widthOfTextAtSize) {
-        try {
-          const textWidth = font.widthOfTextAtSize(str, fontSize);
-          if (textWidth > maxW) {
-            fontSize = Math.max(6.0, fontSize * (maxW / textWidth));
-          }
-        } catch {
-          // fallback
-        }
-      }
-      firstPage.drawText(str, {
+      drawDevanagariBounded(firstPage, font, text, {
         x,
-        y: blY,
-        size: fontSize,
-        font,
+        y,
+        size,
+        maxW,
         color,
+        minSize: 6.5,
       });
     };
 

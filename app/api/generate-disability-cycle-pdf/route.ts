@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { loadImageBytes, pickPhotoSource } from '../../utils/pdfImage';
+import { drawDevanagariText } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -223,11 +224,10 @@ export async function POST(request: NextRequest) {
       const baseY = mapping.y + valueOffsetY + globalOffsetY;
       const drawX = baseX;
       const drawY = coordinateSystem === 'top-left' ? pageHeight - baseY : baseY;
-      firstPage.drawText(String(value), {
+      drawDevanagariText(firstPage, font, String(value), {
         x: drawX,
         y: drawY,
         size: 12,
-        font,
         color: rgb(0, 0, 0),
       });
     }

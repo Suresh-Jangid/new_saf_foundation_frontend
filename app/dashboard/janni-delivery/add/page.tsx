@@ -545,7 +545,7 @@ export default function AddJanniDeliveryPage() {
                         id="selectedAgentId"
                         value={formData.selectedAgentId}
                         onValueChange={(val) =>
-                          setFormData((prev) => ({ ...prev, selectedAgentId: val }))
+                          setFormData((prev) => ({ ...prev, selectedAgentId: val, epinCode: "" }))
                         }
                         agents={agents}
                         isLoading={loadingAgents}
@@ -1055,6 +1055,7 @@ export default function AddJanniDeliveryPage() {
                     onChange={(val) => setFormData((prev) => ({ ...prev, epinCode: val }))}
                     onVerified={handleEpinVerified}
                     agentId={formData.selectedAgentId || undefined}
+                    schemeCode="JANNI_DELIVERY"
                     required={false}
                   />
                 </div>

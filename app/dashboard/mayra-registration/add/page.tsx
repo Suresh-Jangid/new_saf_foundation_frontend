@@ -884,7 +884,7 @@ export default function AddMayraRegistrationPage() {
                     <WorkerSearchSelector
                       id="selectedAgentId"
                       value={formData.selectedAgentId}
-                      onValueChange={(val) => setFormData(prev => ({ ...prev, selectedAgentId: val }))}
+                      onValueChange={(val) => setFormData(prev => ({ ...prev, selectedAgentId: val, epinNumber: "" }))}
                       agents={agents}
                       isLoading={isLoadingAgents}
                       disabled={isLoadingAgents}
@@ -951,6 +951,7 @@ export default function AddMayraRegistrationPage() {
                       setFormData((prev) => ({ ...prev, epinNumber: pin }))
                     }
                     agentId={formData.selectedAgentId}
+                    schemeCode="MAYRA"
                   />
                 </div>
 

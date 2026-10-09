@@ -73,6 +73,71 @@ function extractErrorMessage(error: any, defaultMsg: string): string {
  */
 export const EpinService = {
   /**
+   * Fetch Active Assigned E-PINs eligible for an Agent in Add Registration forms
+   * Primary: GET /api/v1/epins/eligible?agentId=...
+   * Fallback: GET /api/v1/epins?agentId=...&status=ASSIGNED
+   */
+  async getEligibleEpinsForAgent(agentId: string, schemeCode?: string): Promise<EpinRecord[]> {
+    syncAuthSession();
+    const cleanAgentId = String(agentId || "").trim();
+    if (!cleanAgentId) return [];
+
+    try {
+      const query = new URLSearchParams();
+      query.append("agentId", cleanAgentId);
+      if (schemeCode && schemeCode.trim()) {
+        query.append("schemeCode", schemeCode.trim());
+      }
+
+      // 1. Dedicated endpoint for registration forms
+      let response: any = await api
+        .get(`${getBackendOrigin()}/api/v1/epins/eligible?${query.toString()}`)
+        .catch((err) => {
+          if (err?.response?.status === 404) return null;
+          throw err;
+        });
+
+      // 2. Fallback to getInventory if dedicated endpoint 404s
+      if (!response?.data) {
+        const fallback = await this.getInventory({
+          agentId: cleanAgentId,
+          status: "ASSIGNED",
+          limit: 100,
+        }).catch(() => null);
+
+        if (fallback?.data && Array.isArray(fallback.data)) {
+          return fallback.data.filter((p) => p.status === "ASSIGNED");
+        }
+        return [];
+      }
+
+      if (response?.data && (response.data.success || response.data.status)) {
+        const rawList = Array.isArray(response.data.data) ? response.data.data : [];
+        return rawList.map((item: any) => ({
+          id: String(item.id || item.pinCode || item.pinNumber),
+          pinNumber: String(item.pinCode || item.pinNumber || ""),
+          pinCode: String(item.pinCode || item.pinNumber || ""),
+          schemeTypeId: item.schemeTypeId || item.schemeCode || "",
+          schemeCode: item.schemeCode || item.schemeTypeId || "",
+          slabCode: item.slabCode || null,
+          schemeAmount: Number(item.amount ?? item.schemeAmount ?? 0),
+          amount: Number(item.amount ?? item.schemeAmount ?? 0),
+          status: (item.status?.toUpperCase() as any) || "ASSIGNED",
+          assignedAgentId: cleanAgentId,
+          assignedAgentName: item.assignedAgentName || response.data.agent?.name,
+          assignedDate: item.assignedDate || item.assignedAt,
+          assignedAt: item.assignedAt || item.assignedDate,
+        }));
+      }
+
+      return [];
+    } catch (err) {
+      console.error("Failed to fetch eligible E-PINs for agent:", err);
+      throw err;
+    }
+  },
+
+  /**
    * Fetch E-PIN Inventory with Filters
    * Primary: GET /api/v1/epins
    * Secondary Fallback: POST ?apicall=getEpins

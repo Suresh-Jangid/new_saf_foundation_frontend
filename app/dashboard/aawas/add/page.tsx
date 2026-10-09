@@ -820,6 +820,7 @@ export default function AddAawasPage() {
                   onChange={(val) => setFormData((prev) => ({ ...prev, epinCode: val }))}
                   onVerified={handleEpinVerified}
                   agentId={formData.selectedAgentId || undefined}
+                  schemeCode="AAWAS"
                   required={false}
                 />
               </div>
@@ -871,7 +872,7 @@ export default function AddAawasPage() {
                     <WorkerSearchSelector
                       id="selectedAgentId"
                       value={formData.selectedAgentId}
-                      onValueChange={(val) => setFormData((prev) => ({ ...prev, selectedAgentId: val }))}
+                      onValueChange={(val) => setFormData((prev) => ({ ...prev, selectedAgentId: val, epinCode: "" }))}
                       agents={agents}
                       isLoading={loadingAgents}
                       disabled={loadingAgents}

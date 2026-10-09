@@ -888,6 +888,7 @@ export default function AddShubhLaxmiPage() {
                   onChange={(val) => setFormData({ ...formData, epinCode: val })}
                   onVerified={handleEpinVerified}
                   agentId={formData.selectedAgentId || undefined}
+                  schemeCode="SHUBH_LAXMI"
                 />
               </div>
 
@@ -950,7 +951,10 @@ export default function AddShubhLaxmiPage() {
                   <WorkerSearchSelector
                     id="selectedAgentId"
                     value={formData.selectedAgentId}
-                    onValueChange={(val) => setFormData({ ...formData, selectedAgentId: val })}
+                    onValueChange={(val) => {
+                      setFormData((prev) => ({ ...prev, selectedAgentId: val, epinCode: "" }));
+                      setEpinVerified(null);
+                    }}
                     agents={agents}
                     isLoading={loadingAgents}
                     disabled={loadingAgents}

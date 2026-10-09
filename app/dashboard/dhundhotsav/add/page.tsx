@@ -880,7 +880,10 @@ export default function AddDhundhotsavPage() {
                   <WorkerSearchSelector
                     id="selectedAgentId"
                     value={formData.selectedAgentId}
-                    onValueChange={(val) => setFormData({ ...formData, selectedAgentId: val })}
+                    onValueChange={(val) => {
+                      setFormData((prev) => ({ ...prev, selectedAgentId: val, epinCode: "" }));
+                      setEpinVerified(null);
+                    }}
                     agents={agents}
                     isLoading={loadingAgents}
                     disabled={loadingAgents}
@@ -989,6 +992,7 @@ export default function AddDhundhotsavPage() {
                     }}
                     onVerified={handleEpinVerified}
                     agentId={formData.selectedAgentId || undefined}
+                    schemeCode="DHUNDHOTSAV"
                     required={true}
                   />
                 </div>

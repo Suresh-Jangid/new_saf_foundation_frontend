@@ -1113,7 +1113,15 @@ export default function AddGeneralApplicationPage() {
                 <WorkerSearchSelector
                   id="selectedAgentId"
                   value={formData.selectedAgentId || ""}
-                  onValueChange={(val) => setFormData((prev) => ({ ...prev, selectedAgentId: val }))}
+                  onValueChange={(val) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      selectedAgentId: val,
+                      epinCode: "",
+                      epinNumber: "",
+                    }));
+                    setEpinConflictError(null);
+                  }}
                   agents={agents}
                   isLoading={isLoadingAgents}
                   disabled={isLoadingAgents}

@@ -1292,6 +1292,7 @@ export default function AddLadoBahinPage() {
                       value={formData.selectedAgentId}
                       onValueChange={(val) => {
                         handleInputChange("selectedAgentId", val);
+                        handleInputChange("epinCode", "");
                         // Invalidate previous E-PIN verification when agent changes
                         setEpinVerified(null);
                       }}
@@ -1341,6 +1342,7 @@ export default function AddLadoBahinPage() {
                       onVerified={handleEpinVerified}
                       disabled={isLoading}
                       agentId={formData.selectedAgentId || undefined}
+                      schemeCode="LADO_BAHIN"
                     />
 
                     {epinVerified && epinVerified.valid && (

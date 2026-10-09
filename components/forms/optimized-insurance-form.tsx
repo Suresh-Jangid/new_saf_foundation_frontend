@@ -305,6 +305,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
                     value={(formData as any).epinNumber || ""}
                     onChange={(val) => updateField("epinNumber" as any, val)}
                     agentId={formData.selectedAgentId}
+                    schemeCode="INSURANCE_BIMA"
                   />
                 </div>
 

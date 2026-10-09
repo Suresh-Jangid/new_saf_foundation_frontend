@@ -22,6 +22,11 @@ import {
 import { RoleGuard } from "@/components/role-guard"
 import * as XLSX from "xlsx"
 import { BulkUploadButton } from "@/components/bulk-upload-button"
+import {
+  resolveMayraGroup,
+  getGroupBadgeColor,
+  getGroupLabel,
+} from "@/lib/contribution-group"
 
 // Helper to format dates to YYYY-MM-DD
 function formatExcelDate(val: any): string {
@@ -88,6 +93,7 @@ interface MayraCongratsRecord {
 export default function MayraCongratulationsPage() {
   const [currentGenderFilter, setCurrentGenderFilter] = useState<string>("all")
   const [currentAddressFilter, setCurrentAddressFilter] = useState<string>("all")
+  const [groupFilter, setGroupFilter] = useState<string>("all")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null)
   const router = useRouter()
@@ -287,6 +293,19 @@ export default function MayraCongratulationsPage() {
     { key: "associatedUntil", label: "संस्था से जुड़ी रही", className: "min-w-[120px]" },
     { key: "permanentFee", label: "स्थायी शुल्क", className: "min-w-[100px]" },
     { key: "installmentAmount", label: "किस्त राशि", className: "min-w-[100px]" },
+    {
+      key: "group",
+      label: "ग्रुप / Group",
+      className: "min-w-[120px]",
+      render: (_: any, row: MayraCongratsRecord) => {
+        const group = resolveMayraGroup(row.installmentAmount);
+        return (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${getGroupBadgeColor(group)}`}>
+            {group || "Ambiguous"}
+          </span>
+        );
+      },
+    },
     { key: "totalGrantAmount", label: "कुल अनुदान", className: "min-w-[100px]" },
     { key: "totalMembersServing", label: "कुल सदस्य", className: "min-w-[100px]" },
     { key: "rate200", label: "200x", className: "min-w-[60px]" },
@@ -371,11 +390,43 @@ export default function MayraCongratulationsPage() {
     return res;
   };
 
+  const displayedRecords = records.filter((r) => {
+    if (groupFilter === "all") return true;
+    return resolveMayraGroup(r.installmentAmount) === groupFilter;
+  });
+
   return (
     <RoleGuard requiredModule="mayra_registration" requiredAction="view">
       <>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground mr-1">Contribution Groups:</span>
+          <Button
+            size="sm"
+            variant={groupFilter === "all" ? "default" : "outline"}
+            onClick={() => setGroupFilter("all")}
+          >
+            All Groups ({records.length})
+          </Button>
+          <Button
+            size="sm"
+            variant={groupFilter === "MAYRA-300" ? "default" : "outline"}
+            className={groupFilter === "MAYRA-300" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+            onClick={() => setGroupFilter("MAYRA-300")}
+          >
+            Group MAYRA-300 (₹300) ({records.filter(r => resolveMayraGroup(r.installmentAmount) === "MAYRA-300").length})
+          </Button>
+          <Button
+            size="sm"
+            variant={groupFilter === "MAYRA-1000" ? "default" : "outline"}
+            className={groupFilter === "MAYRA-1000" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}
+            onClick={() => setGroupFilter("MAYRA-1000")}
+          >
+            Group MAYRA-1000 (₹1000) ({records.filter(r => resolveMayraGroup(r.installmentAmount) === "MAYRA-1000").length})
+          </Button>
+        </div>
+
         <DataTable
-          data={records}
+          data={displayedRecords}
           columns={columns}
           title="मायरा बधाई पत्र (Mayra Congratulations)"
           subtitle="मायरा विवाह बधाई रिकॉर्ड संभालें"

@@ -10,6 +10,11 @@ import { Button } from "@/components/ui/button"
 import { FileSpreadsheet } from "lucide-react"
 import * as XLSX from "xlsx"
 import { BulkUploadButton } from "@/components/bulk-upload-button"
+import {
+  resolveGeneralMarriageGroup,
+  getGroupBadgeColor,
+  getGroupLabel,
+} from "@/lib/contribution-group"
 
 // Helper to format dates to YYYY-MM-DD
 function formatExcelDate(val: any): string {
@@ -82,6 +87,7 @@ export default function MarriageCongratulationsPage() {
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null)
   const [currentGenderFilter, setCurrentGenderFilter] = useState<string>("all")
   const [currentAddressFilter, setCurrentAddressFilter] = useState<string>("all")
+  const [groupFilter, setGroupFilter] = useState<string>("all")
   const router = useRouter()
 
   const { 
@@ -447,6 +453,19 @@ export default function MarriageCongratulationsPage() {
     { key: "associatedUntil", label: "संस्था से जुड़ी रही", className: "min-w-[120px]" },
     { key: "permanentFee", label: "स्थायी शुल्क", className: "min-w-[100px]" },
     { key: "installmentAmount", label: "किस्त राशि", className: "min-w-[100px]" },
+    {
+      key: "group",
+      label: "ग्रुप / Group",
+      className: "min-w-[120px]",
+      render: (_: any, row: MarriageCongratulationRecord) => {
+        const group = resolveGeneralMarriageGroup(row.installmentAmount);
+        return (
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${getGroupBadgeColor(group)}`}>
+            {group || "Ambiguous"}
+          </span>
+        );
+      },
+    },
     { key: "totalGrantAmount", label: "कुल अनुदान", className: "min-w-[100px]" },
     { key: "totalMembersServing", label: "कुल सदस्य", className: "min-w-[100px]" },
     { key: "rate100", label: "100x", className: "min-w-[60px]" },
@@ -556,10 +575,42 @@ export default function MarriageCongratulationsPage() {
     )
   }
 
+  const displayedRecords = records.filter((r) => {
+    if (groupFilter === "all") return true;
+    return resolveGeneralMarriageGroup(r.installmentAmount) === groupFilter;
+  });
+
   return (
     <>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="text-sm font-medium text-muted-foreground mr-1">Contribution Groups:</span>
+        <Button
+          size="sm"
+          variant={groupFilter === "all" ? "default" : "outline"}
+          onClick={() => setGroupFilter("all")}
+        >
+          All Groups ({records.length})
+        </Button>
+        <Button
+          size="sm"
+          variant={groupFilter === "GM-300" ? "default" : "outline"}
+          className={groupFilter === "GM-300" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+          onClick={() => setGroupFilter("GM-300")}
+        >
+          Group GM-300 (₹300) ({records.filter(r => resolveGeneralMarriageGroup(r.installmentAmount) === "GM-300").length})
+        </Button>
+        <Button
+          size="sm"
+          variant={groupFilter === "GM-1000" ? "default" : "outline"}
+          className={groupFilter === "GM-1000" ? "bg-indigo-600 hover:bg-indigo-700 text-white" : ""}
+          onClick={() => setGroupFilter("GM-1000")}
+        >
+          Group GM-1000 (₹1000) ({records.filter(r => resolveGeneralMarriageGroup(r.installmentAmount) === "GM-1000").length})
+        </Button>
+      </div>
+
       <DataTable
-        data={records}
+        data={displayedRecords}
         columns={columns}
         title="बालिका विवाह फॉर्म आवेदन पत्र (General Marriage Congratulations Payment)"
         subtitle="विवाह बधाई पत्र और दान प्रबंधित करें"

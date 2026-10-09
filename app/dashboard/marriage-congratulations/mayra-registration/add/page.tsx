@@ -151,7 +151,7 @@ export default function AddMayraCongratsPage() {
 
         const totalEMI = response.data.totalEMI || 0;
         const totalMembers = r100 + r200 + r300;
-        const grantBeforeDeduction = (r100 * 100) + (r200 * 200) + (r300 * 300);
+        const grantBeforeDeduction = (r100 * 300) + (r200 * 300) + (r300 * 300);
         const deductionP = 20;
         const deductionA = Math.round((grantBeforeDeduction * deductionP) / 100);
         const finalAmount = grantBeforeDeduction - deductionA;

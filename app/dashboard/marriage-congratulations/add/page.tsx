@@ -302,7 +302,7 @@ export default function AddMarriageCongratulationPage() {
         // Dynamic rate resolution from active scheme types
         const activeSchemes = ConfigService.getSchemeTypesSync();
         const r1 = activeSchemes[0]?.amount ?? 100;
-        const r2 = activeSchemes[1]?.amount ?? 200;
+        const r2 = activeSchemes[1]?.amount ?? 1000;
         const r3 = activeSchemes[2]?.amount ?? 300;
 
         let calculatedTotal = 0;
@@ -404,7 +404,7 @@ export default function AddMarriageCongratulationPage() {
     // Resolve multipliers dynamically from active scheme types
     const activeSchemes = ConfigService.getSchemeTypesSync();
     const r1 = activeSchemes[0]?.amount ?? 100;
-    const r2 = activeSchemes[1]?.amount ?? 200;
+    const r2 = activeSchemes[1]?.amount ?? 1000;
     const r3 = activeSchemes[2]?.amount ?? 300;
 
     // Calculate total grant amount

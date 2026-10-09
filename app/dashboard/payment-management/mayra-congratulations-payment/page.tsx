@@ -26,6 +26,11 @@ import { toast } from "sonner";
 import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, getCurrentUserInfo } from "@/lib/utils";
 import { buildListFilters } from "@/lib/list-filters";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  resolveMayraGroup,
+  getGroupBadgeColor,
+  getGroupLabel,
+} from "@/lib/contribution-group";
 
 // Interface for mayra congratulations data from API
 interface MayraCongratulationsData {
@@ -71,6 +76,7 @@ export default function MayraCongratulationsPaymentListPage() {
   const [dateToObj, setDateToObj] = useState<Date | undefined>(undefined);
   const [genderFilter, setGenderFilter] = useState<string>("all");
   const [villageFilter, setVillageFilter] = useState<string>("all");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Fetch mayra congratulations from API
@@ -120,7 +126,12 @@ export default function MayraCongratulationsPaymentListPage() {
     await fetchApplications(filters);
   };
 
-  const paginatedApplications = applications.slice(
+  const groupFilteredApplications = applications.filter((app) => {
+    if (groupFilter === "all") return true;
+    return resolveMayraGroup(app.installmentAmount) === groupFilter;
+  });
+
+  const paginatedApplications = groupFilteredApplications.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -160,6 +171,7 @@ export default function MayraCongratulationsPaymentListPage() {
     setDateToObj(undefined);
     setGenderFilter("all");
     setVillageFilter("all");
+    setGroupFilter("all");
     setCurrentPage(1);
     await fetchApplications();
   };
@@ -178,7 +190,7 @@ export default function MayraCongratulationsPaymentListPage() {
   )).sort();
 
   // Check if any filters are active
-  const hasActiveFilters = searchTerm || dateFrom || dateTo || genderFilter !== "all" || villageFilter !== "all";
+  const hasActiveFilters = searchTerm || dateFrom || dateTo || genderFilter !== "all" || villageFilter !== "all" || groupFilter !== "all";
 
   // Handle generating receipt PDF
   const handleGenerateReceipt = async (application: MayraCongratulationsData) => {
@@ -373,6 +385,21 @@ export default function MayraCongratulationsPaymentListPage() {
                     </Select>
                   </div>
 
+                  {/* Contribution Group Filter */}
+                  <div className="space-y-2">
+                    <Label htmlFor="groupFilterMobile">Contribution Group</Label>
+                    <Select value={groupFilter} onValueChange={(val) => { setGroupFilter(val); setCurrentPage(1); }}>
+                      <SelectTrigger id="groupFilterMobile">
+                        <SelectValue placeholder="All Groups" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Groups</SelectItem>
+                        <SelectItem value="MAYRA-300">Group MAYRA-300 (₹300)</SelectItem>
+                        <SelectItem value="MAYRA-1000">Group MAYRA-1000 (₹1000)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <Button onClick={applyFilters} className="w-full">
                     Apply Filters
                   </Button>
@@ -504,6 +531,21 @@ export default function MayraCongratulationsPaymentListPage() {
               </Select>
             </div>
 
+            {/* Contribution Group Filter */}
+            <div className="flex flex-col">
+              <Label htmlFor="groupFilterDesktop" className="pb-2 text-xs">Group</Label>
+              <Select value={groupFilter} onValueChange={(val) => { setGroupFilter(val); setCurrentPage(1); }}>
+                <SelectTrigger id="groupFilterDesktop" className="w-36">
+                  <SelectValue placeholder="All Groups" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Groups</SelectItem>
+                  <SelectItem value="MAYRA-300">Group MAYRA-300 (₹300)</SelectItem>
+                  <SelectItem value="MAYRA-1000">Group MAYRA-1000 (₹1000)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Clear Filters Button */}
             <div className="flex flex-col">
               <Label className="pb-2 text-xs">&nbsp;</Label>
@@ -557,6 +599,14 @@ export default function MayraCongratulationsPaymentListPage() {
                         <h3 className="font-semibold text-sm">{application.applicantName}</h3>
                         <p className="text-xs text-gray-600">Mayra: {application.mayraNumber}</p>
                         <p className="text-xs text-gray-600">Code: {application.codeNumber}</p>
+                        {(() => {
+                          const group = resolveMayraGroup(application.installmentAmount);
+                          return (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${getGroupBadgeColor(group)}`}>
+                              {group ? getGroupLabel(group) : "Ambiguous Group"}
+                            </span>
+                          );
+                        })()}
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         application.payment_status === 1 
@@ -636,6 +686,7 @@ export default function MayraCongratulationsPaymentListPage() {
                         <TableHead className="text-xs">Address</TableHead>
                         <TableHead className="text-xs">Application Date</TableHead>
                         <TableHead className="text-xs">Paid Amount</TableHead>
+                        <TableHead className="text-xs">Group</TableHead>
                         <TableHead className="text-xs">Payment Status</TableHead>
                         <TableHead className="text-xs min-w-[120px]">Actions</TableHead>
                       </TableRow>
@@ -653,6 +704,16 @@ export default function MayraCongratulationsPaymentListPage() {
                           </TableCell>
                           <TableCell className="text-sm">{formatDate(application.date)}</TableCell>
                           <TableCell className="text-sm">₹{application.totalPaidAmount || "0"}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              const group = resolveMayraGroup(application.installmentAmount);
+                              return (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${getGroupBadgeColor(group)}`}>
+                                  {group || "Ambiguous"}
+                                </span>
+                              );
+                            })()}
+                          </TableCell>
                           <TableCell>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                               application.payment_status === 1 
@@ -694,7 +755,7 @@ export default function MayraCongratulationsPaymentListPage() {
               
                 <Pagination
                   currentPage={currentPage}
-                  totalPages={totalPages}
+                  totalPages={Math.max(1, Math.ceil(groupFilteredApplications.length / itemsPerPage))}
                   onPageChange={setCurrentPage}
                 />
             </>

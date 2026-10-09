@@ -18,6 +18,11 @@ import APIService from '@/lib/services'
 import { formatDate, formatDateForAPI, getCurrentUserInfo } from '@/lib/utils'
 import { PaginatedTableSection } from "@/components/paginated-table-section"
 import { PaginatedMembersTable } from "@/components/paginated-members-table"
+import {
+  resolveGeneralMarriageGroup,
+  getGroupBadgeColor,
+  getGroupLabel,
+} from "@/lib/contribution-group"
 
 type Payment = {
   amount: number;
@@ -107,9 +112,7 @@ export default function AddMarriageCongratulationsPaymentPage() {
   const membersDataFetched = useRef(false);
 
   // State for search functionality in each section
-  const [search100, setSearch100] = useState("");
-  const [search200, setSearch200] = useState("");
-  const [search300, setSearch300] = useState("");
+  const [categorySearches, setCategorySearches] = useState<Record<string, string>>({});
 
   // State for payment summary from API
   const [paymentSummary, setPaymentSummary] = useState<any[]>([]);
@@ -283,6 +286,12 @@ export default function AddMarriageCongratulationsPaymentPage() {
       return;
     }
 
+    const recipientGroup = resolveGeneralMarriageGroup(user.installmentAmount);
+    if (!recipientGroup) {
+      toast.error("Ineligible recipient: Record does not have an authoritative ₹300 or ₹1000 installment group.");
+      return;
+    }
+
     try {
       console.log("Creating payment for member:", memberId, "amount:", amount, "category:", category);
       
@@ -431,14 +440,24 @@ export default function AddMarriageCongratulationsPaymentPage() {
     return members.filter(member => member.category === category);
   };
 
-  // Category to amount mapping from this marriage batch rates
-  const categoryAmountMapping = user
-    ? {
-        A: Number(user.rate100) || 0,
-        B: Number(user.rate200) || 0,
-        C: Number(user.rate300) || 0,
-      }
-    : { A: 0, B: 0, C: 0 };
+  // Dynamically resolve category amount mapping based on recipient's authoritative installment
+  const categoryAmountMapping = React.useMemo(() => {
+    const defaultInstallment = user?.installmentAmount ? Number(user.installmentAmount) : 300;
+    const mapping: Record<string, number> = {};
+    const categoriesPresent = new Set<string>();
+    members.forEach((m) => {
+      if (m.category) categoriesPresent.add(m.category);
+    });
+    if (categoriesPresent.size === 0) {
+      categoriesPresent.add("A");
+      categoriesPresent.add("B");
+      categoriesPresent.add("C");
+    }
+    Array.from(categoriesPresent).sort().forEach((cat) => {
+      mapping[cat] = defaultInstallment;
+    });
+    return mapping;
+  }, [members, user?.installmentAmount]);
 
   // Show loading state
   if (loading) {
@@ -478,6 +497,8 @@ export default function AddMarriageCongratulationsPaymentPage() {
     );
   }
 
+  const recipientGroup = resolveGeneralMarriageGroup(user?.installmentAmount);
+
   return (
     <div className="p-4 w-full">
       <div className="flex items-center mb-6 gap-4">
@@ -495,11 +516,28 @@ export default function AddMarriageCongratulationsPaymentPage() {
           </span>
         </h1>
       </div>
+
+      {!recipientGroup && (
+        <div className="p-4 mb-6 bg-amber-50 border border-amber-300 rounded-lg text-amber-900 flex items-start gap-3">
+          <span className="text-xl">⚠️</span>
+          <div>
+            <p className="font-semibold text-sm">Ineligible Recipient (Legacy / Ambiguous Record)</p>
+            <p className="text-xs text-amber-800">
+              This General Marriage record does not have an authoritative ₹300 (GM-300) or ₹1000 (GM-1000) installment.
+              All contributions to this recipient are blocked pending administrative review.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Card className="w-full mb-6">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>
             User Details <span className="text-sm font-normal text-gray-600">/ उपयोगकर्ता विवरण</span>
           </CardTitle>
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getGroupBadgeColor(recipientGroup)}`}>
+            {recipientGroup ? getGroupLabel(recipientGroup) : "Ambiguous Group (Review Required)"}
+          </span>
         </CardHeader>
         <CardContent>
           <Table className="w-full">
@@ -676,11 +714,10 @@ export default function AddMarriageCongratulationsPaymentPage() {
       </Card>
 
       {/* Member Payment List Sections by Category */}
-      {Object.entries(categoryAmountMapping).map(([category, categoryAmount]) => {
-        const amount = Number(categoryAmount);
-        if (amount <= 0) return null;
-        const searchState = category === "A" ? search100 : category === "B" ? search200 : search300;
-        const setSearchState = category === "A" ? setSearch100 : category === "B" ? setSearch200 : setSearch300;
+      {Object.entries(categoryAmountMapping).map(([category, amount]) => {
+        const searchState = categorySearches[category] || "";
+        const setSearchState = (val: string) =>
+          setCategorySearches((prev) => ({ ...prev, [category]: val }));
         const categoryMembers = getMembersByCategory(category);
         const filteredMembers = filterMembersBySearch(categoryMembers.filter(m => m.payment_status === 0), searchState);
         

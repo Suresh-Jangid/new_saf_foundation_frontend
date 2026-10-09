@@ -135,7 +135,7 @@ export default function EditMayraCongratsPage() {
 
     const activeSchemes = ConfigService.getSchemeTypesSync();
     const rate1 = activeSchemes[0]?.amount ?? 100;
-    const rate2 = activeSchemes[1]?.amount ?? 200;
+    const rate2 = activeSchemes[1]?.amount ?? 300;
     const rate3 = activeSchemes[2]?.amount ?? 300;
 
     const totalMembers = r100 + r200 + r300;
@@ -343,7 +343,7 @@ export default function EditMayraCongratsPage() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label>200x (B)</Label>
+                          <Label>300x (B)</Label>
                           <Input
                             type="number"
                             value={formData.rate200}

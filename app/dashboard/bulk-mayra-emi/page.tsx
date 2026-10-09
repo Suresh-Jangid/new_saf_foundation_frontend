@@ -37,6 +37,11 @@ import {
   sendWhatsAppFile,
 } from "@/lib/fireconnect-whatsapp-service";
 import { post } from "@/lib/api";
+import {
+  resolveMayraGroup,
+  getGroupBadgeColor,
+  getGroupLabel,
+} from "@/lib/contribution-group";
 
 interface Application {
   id: number;
@@ -48,6 +53,8 @@ interface Application {
   applicationDate: string;
   applicantName: string;
   gender: string;
+  mayraInstallment?: string | number | null;
+  group?: string | null;
   emiAmount?: number;
   mobile?: string;
 }
@@ -59,6 +66,8 @@ interface Mayra {
   date: string;
   payment_status: number;
   filter_payment_status?: number;
+  group?: string | null;
+  emiAmount?: number;
   id: any;
   village: any;
   tehsil?: any;
@@ -78,6 +87,7 @@ interface MayraRecord {
   mayraUserFatherName: string;
   dateOfMayra: string;
   userId: string;
+  group?: string | null;
   emiAmount: any;
   emiStatus: string;
   selected?: boolean;
@@ -152,6 +162,18 @@ export default function BulkMayraEMIPage() {
         value ? formatDate(value) : "N/A",
     },
     {
+      key: "group",
+      label: "ग्रुप / Group",
+      render: (_: any, record: MayraRecord) => {
+        const grp = record.group || resolveMayraGroup(record.emiAmount);
+        return (
+          <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${getGroupBadgeColor(grp)}`}>
+            {grp || "Ambiguous"}
+          </span>
+        );
+      },
+    },
+    {
       key: "emiStatus",
       label: "ईएमआई स्थिति / EMI Status",
       render: (value: string) => {
@@ -204,6 +226,18 @@ export default function BulkMayraEMIPage() {
         value ? formatDate(value) : "N/A",
     },
     {
+      key: "group",
+      label: "ग्रुप / Group",
+      render: (_: any, record: MayraRecord) => {
+        const grp = record.group || resolveMayraGroup(record.emiAmount);
+        return (
+          <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${getGroupBadgeColor(grp)}`}>
+            {grp || "Ambiguous"}
+          </span>
+        );
+      },
+    },
+    {
       key: "emiStatus",
       label: "ईएमआई स्थिति / EMI Status",
       render: (value: string) => (
@@ -246,6 +280,8 @@ export default function BulkMayraEMIPage() {
       const data = response.data;
 
       if (data.status || data.success) {
+        const applicant = data.mayra_application?.[0];
+        const payerGroup = applicant?.group || resolveMayraGroup(applicant?.mayraInstallment || applicant?.emiAmount);
         const transformedMayras: MayraRecord[] = (
           data.mayras ||
           data.data ||
@@ -257,6 +293,7 @@ export default function BulkMayraEMIPage() {
           mayraUserFatherName: m.fatherName,
           dateOfMayra: m.date,
           userId: userId.trim(),
+          group: m.group || payerGroup,
           emiAmount: m.emiAmount || 0,
           emiStatus:
             m.filter_payment_status === 1 || m.payment_status === 1
@@ -339,6 +376,12 @@ export default function BulkMayraEMIPage() {
   const handleSubmit = async () => {
     if (selectedMayraRecords.length === 0) {
       toast.error("Please select at least one record to submit");
+      return;
+    }
+    const payerApplicant = filteredUserDetails[0];
+    const payerGroup = (payerApplicant as any)?.group || resolveMayraGroup((payerApplicant as any)?.mayraInstallment || payerApplicant?.emiAmount);
+    if (!payerGroup) {
+      toast.error("Bulk payment blocked: Mayra payer does not belong to an authoritative ₹300 or ₹1000 installment group.");
       return;
     }
     if (!paymentMode) {
@@ -598,7 +641,35 @@ export default function BulkMayraEMIPage() {
                         ₹{user.emiAmount?.toLocaleString("hi-IN")}
                       </p>
                     </div>
+
+                    <div>
+                      <Label className="text-muted-foreground text-xs">
+                        ग्रुप / Contribution Group
+                      </Label>
+                      <div>
+                        {(() => {
+                          const grp = (user as any).group || resolveMayraGroup((user as any).mayraInstallment || user.emiAmount);
+                          return (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${getGroupBadgeColor(grp)}`}>
+                              {grp ? getGroupLabel(grp) : "Ambiguous Group (Review Required)"}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
+
+                  {(() => {
+                    const grp = (user as any).group || resolveMayraGroup((user as any).mayraInstallment || user.emiAmount);
+                    if (!grp) {
+                      return (
+                        <div className="p-3 bg-amber-50 border border-amber-300 rounded-md text-amber-900 text-xs">
+                          ⚠️ Ineligible Payer: This Mayra registration does not have an authoritative ₹300 or ₹1000 installment. Bulk contribution submission is blocked.
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               ))}
             </CardContent>

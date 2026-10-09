@@ -16,6 +16,11 @@ import { Search, Filter, Download, User, Users, FileText, Send, CreditCard, Bank
 import { toast } from "sonner"
 import { sendWhatsAppMessage, sendWhatsAppFile } from "@/lib/fireconnect-whatsapp-service"
 import { post } from "@/lib/api";
+import {
+  resolveGeneralMarriageGroup,
+  getGroupBadgeColor,
+  getGroupLabel,
+} from "@/lib/contribution-group";
 
 interface Application {
   id: number
@@ -27,6 +32,8 @@ interface Application {
   applicationDate: string
   applicantName: string
   gender: string
+  installmentAmount?: string | number | null
+  group?: string | null
   emiAmount?: number
   mobile?: string
   phone?: string
@@ -41,6 +48,8 @@ interface Marriage {
   filter_payment_status?: number
   filter_row_id?: any
   gender: string
+  installmentAmount?: string | number | null
+  group?: string | null
   emiAmount?: number
   id:any;
   village:any;
@@ -61,6 +70,7 @@ interface MarriageRecord {
   marriageUserFatherName: string
   dateOfMarriage: string
   userId: string
+  group?: string | null
   emiAmount: any
   emiStatus: string
   selected?: boolean
@@ -134,6 +144,18 @@ export default function BulkMarriageEMIPage() {
     },   
    
     {
+      key: "group",
+      label: "ग्रुप / Group",
+      render: (_: any, record: MarriageRecord) => {
+        const grp = record.group || resolveGeneralMarriageGroup(record.emiAmount);
+        return (
+          <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${getGroupBadgeColor(grp)}`}>
+            {grp || "Ambiguous"}
+          </span>
+        );
+      },
+    },
+    {
       key: "emiStatus",
       label: "ईएमआई स्थिति / EMI Status",
       render: (value: string) => {
@@ -186,6 +208,18 @@ export default function BulkMarriageEMIPage() {
       label: "विवाह की तारीख / Date of Marriage",
       render: (value: string) => formatDate(value),
     },   
+    {
+      key: "group",
+      label: "ग्रुप / Group",
+      render: (_: any, record: MarriageRecord) => {
+        const grp = record.group || resolveGeneralMarriageGroup(record.emiAmount);
+        return (
+          <span className={`px-2 py-0.5 rounded text-xs font-semibold border ${getGroupBadgeColor(grp)}`}>
+            {grp || "Ambiguous"}
+          </span>
+        );
+      },
+    },
     {
       key: "emiStatus",
       label: "ईएमआई स्थिति / EMI Status",
@@ -255,6 +289,7 @@ export default function BulkMarriageEMIPage() {
       const data: ApiResponse = response.data
 
       if (data.success) {
+        const payerGroup = data.applications[0]?.group || resolveGeneralMarriageGroup(data.applications[0]?.installmentAmount || data.applications[0]?.emiAmount);
         // Transform API data to match our existing structure
         const transformedMarriagesAll: MarriageRecord[] = data.marriages.map((marriage, index) => ({
           id: marriage?.id,
@@ -263,6 +298,7 @@ export default function BulkMarriageEMIPage() {
           marriageUserFatherName: marriage.fatherName, // Not provided in API
           dateOfMarriage: marriage.date,
           userId: userId.trim(),
+          group: marriage.group || payerGroup,
           emiAmount: marriage.emiAmount, // Default value as not provided in API
           // Treat filter_payment_status === 1 as previously submitted (completed). Ignore payment_status for status derivation.
           emiStatus: (marriage.filter_payment_status === 1) ? "Completed" : "Pending",
@@ -379,6 +415,12 @@ export default function BulkMarriageEMIPage() {
     if (!filteredUserDetails.length) {
       toast.error("User details not found. Please fetch data first.")
       return
+    }
+
+    const payerGroup = filteredUserDetails[0]?.group || resolveGeneralMarriageGroup(filteredUserDetails[0]?.installmentAmount || filteredUserDetails[0]?.emiAmount);
+    if (!payerGroup) {
+      toast.error("Bulk payment blocked: Payer does not belong to an authoritative ₹300 or ₹1000 installment group.");
+      return;
     }
 
     if (!paymentMode) {
@@ -767,7 +809,35 @@ export default function BulkMarriageEMIPage() {
                       </Label>
                       <p className="text-sm font-medium">₹{user.emiAmount?.toLocaleString('hi-IN') || '0'}</p>
                     </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        ग्रुप / Contribution Group
+                      </Label>
+                      <div>
+                        {(() => {
+                          const grp = user.group || resolveGeneralMarriageGroup(user.installmentAmount || user.emiAmount);
+                          return (
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getGroupBadgeColor(grp)}`}>
+                              {grp ? getGroupLabel(grp) : "Ambiguous Group (Review Required)"}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
+
+                  {(() => {
+                    const grp = user.group || resolveGeneralMarriageGroup(user.installmentAmount || user.emiAmount);
+                    if (!grp) {
+                      return (
+                        <div className="p-3 bg-amber-50 border border-amber-300 rounded-md text-amber-900 text-xs">
+                          ⚠️ Ineligible Payer: This General Marriage application does not have an authoritative ₹300 or ₹1000 installment. Bulk contribution submission is blocked.
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   {/* User's Marriage Records Summary */}
                   {userMarriageRecords.length > 0 && (

@@ -104,8 +104,8 @@ export default function EditMayraCongratulationsPage() {
       20
 
     const activeSchemes = ConfigService.getSchemeTypesSync()
-    const rate1 = activeSchemes[0]?.amount ?? 200
-    const rate2 = activeSchemes[1]?.amount ?? 300
+    const rate1 = activeSchemes[0]?.amount ?? 300
+    const rate2 = activeSchemes[1]?.amount ?? 1000
 
     const total = (r200 * rate1) + (r300 * rate2)
     const dAmount = Math.round((total * dPercent) / 100)
@@ -301,7 +301,7 @@ export default function EditMayraCongratulationsPage() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div><Label>200x दर</Label><Input type="number" placeholder="200x" value={formData.rate200} onChange={e => setFormData(p => ({ ...p, rate200: e.target.value }))} /></div>
+                  <div><Label>300x दर</Label><Input type="number" placeholder="200x" value={formData.rate200} onChange={e => setFormData(p => ({ ...p, rate200: e.target.value }))} /></div>
                   <div><Label>300x दर</Label><Input type="number" placeholder="300x" value={formData.rate300} onChange={e => setFormData(p => ({ ...p, rate300: e.target.value }))} /></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

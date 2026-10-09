@@ -26,6 +26,11 @@ import { toast } from "sonner";
 import { formatDate, formatDateForAPI, parseDateFromDDMMYYYY, getCurrentUserInfo } from "@/lib/utils";
 import { buildListFilters } from "@/lib/list-filters";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import {
+  resolveGeneralMarriageGroup,
+  getGroupBadgeColor,
+  getGroupLabel,
+} from "@/lib/contribution-group";
 
 // Interface for marriage congratulations data from API
 interface MarriageCongratulationsData {
@@ -71,6 +76,7 @@ export default function MarriageCongratulationsPaymentListPage() {
   const [dateToObj, setDateToObj] = useState<Date | undefined>(undefined);
   const [genderFilter, setGenderFilter] = useState<string>("all");
   const [villageFilter, setVillageFilter] = useState<string>("all");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
 
@@ -126,7 +132,12 @@ export default function MarriageCongratulationsPaymentListPage() {
     await fetchApplications(filters);
   };
 
-  const paginatedApplications = applications.slice(
+  const groupFilteredApplications = applications.filter((app) => {
+    if (groupFilter === "all") return true;
+    return resolveGeneralMarriageGroup(app.installmentAmount) === groupFilter;
+  });
+
+  const paginatedApplications = groupFilteredApplications.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -166,6 +177,7 @@ export default function MarriageCongratulationsPaymentListPage() {
     setDateToObj(undefined);
     setGenderFilter("all");
     setVillageFilter("all");
+    setGroupFilter("all");
     setCurrentPage(1);
     await fetchApplications();
   };
@@ -184,7 +196,7 @@ export default function MarriageCongratulationsPaymentListPage() {
   )).sort();
 
   // Check if any filters are active
-  const hasActiveFilters = searchTerm || dateFrom || dateTo || genderFilter !== "all" || villageFilter !== "all";
+  const hasActiveFilters = searchTerm || dateFrom || dateTo || genderFilter !== "all" || villageFilter !== "all" || groupFilter !== "all";
 
   return (
     <div className="p-3 md:p-6 relative">
@@ -341,6 +353,21 @@ export default function MarriageCongratulationsPaymentListPage() {
                     </Select>
                   </div>
 
+                  {/* Contribution Group Filter */}
+                  <div className="space-y-2">
+                    <Label htmlFor="groupFilterMobile">Contribution Group</Label>
+                    <Select value={groupFilter} onValueChange={(val) => { setGroupFilter(val); setCurrentPage(1); }}>
+                      <SelectTrigger id="groupFilterMobile">
+                        <SelectValue placeholder="All Groups" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Groups</SelectItem>
+                        <SelectItem value="GM-300">Group GM-300 (₹300)</SelectItem>
+                        <SelectItem value="GM-1000">Group GM-1000 (₹1000)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <Button onClick={applyFilters} className="w-full">
                     Apply Filters
                   </Button>
@@ -472,6 +499,21 @@ export default function MarriageCongratulationsPaymentListPage() {
               </Select>
             </div>
 
+            {/* Contribution Group Filter */}
+            <div className="flex flex-col">
+              <Label htmlFor="groupFilterDesktop" className="pb-2 text-xs">Group</Label>
+              <Select value={groupFilter} onValueChange={(val) => { setGroupFilter(val); setCurrentPage(1); }}>
+                <SelectTrigger id="groupFilterDesktop" className="w-36">
+                  <SelectValue placeholder="All Groups" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Groups</SelectItem>
+                  <SelectItem value="GM-300">Group GM-300 (₹300)</SelectItem>
+                  <SelectItem value="GM-1000">Group GM-1000 (₹1000)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex flex-col">
               <Label className="pb-2 text-xs">&nbsp;</Label>
               <Button onClick={applyFilters} size="sm" className="whitespace-nowrap">
@@ -532,6 +574,14 @@ export default function MarriageCongratulationsPaymentListPage() {
                         <h3 className="font-semibold text-sm">{application.applicantName}</h3>
                         <p className="text-xs text-gray-600">Marriage: {application.marriageNumber}</p>
                         <p className="text-xs text-gray-600">Code: {application.codeNumber}</p>
+                        {(() => {
+                          const group = resolveGeneralMarriageGroup(application.installmentAmount);
+                          return (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${getGroupBadgeColor(group)}`}>
+                              {group ? getGroupLabel(group) : "Ambiguous Group"}
+                            </span>
+                          );
+                        })()}
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         application.payment_status === 1 
@@ -599,6 +649,7 @@ export default function MarriageCongratulationsPaymentListPage() {
                         <TableHead className="text-xs">Address</TableHead>
                         <TableHead className="text-xs">Application Date</TableHead>
                         <TableHead className="text-xs">Paid Amount</TableHead>
+                        <TableHead className="text-xs">Group</TableHead>
                         <TableHead className="text-xs">Payment Status</TableHead>
                         <TableHead className="text-xs min-w-[120px]">Actions</TableHead>
                       </TableRow>
@@ -616,6 +667,16 @@ export default function MarriageCongratulationsPaymentListPage() {
                           </TableCell>
                           <TableCell className="text-sm">{formatDate(application.date)}</TableCell>
                           <TableCell className="text-sm">₹{application.totalPaidAmount || "0"}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              const group = resolveGeneralMarriageGroup(application.installmentAmount);
+                              return (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border ${getGroupBadgeColor(group)}`}>
+                                  {group || "Ambiguous"}
+                                </span>
+                              );
+                            })()}
+                          </TableCell>
                           <TableCell>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                               application.payment_status === 1 
@@ -645,7 +706,7 @@ export default function MarriageCongratulationsPaymentListPage() {
               
                 <Pagination
                   currentPage={currentPage}
-                  totalPages={totalPages}
+                  totalPages={Math.max(1, Math.ceil(groupFilteredApplications.length / itemsPerPage))}
                   onPageChange={setCurrentPage}
                 />
             </>

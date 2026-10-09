@@ -217,8 +217,8 @@ export default function AddMayraCongratulationsPage() {
 
         // Dynamic rate resolution from active scheme types
         const activeSchemes = ConfigService.getSchemeTypesSync();
-        const r1 = activeSchemes[0]?.amount ?? 200;
-        const r2 = activeSchemes[1]?.amount ?? 300;
+        const r1 = activeSchemes[0]?.amount ?? 300;
+        const r2 = activeSchemes[1]?.amount ?? 1000;
 
         const calculatedTotal = (parseInt(r200) * r1) + (parseInt(r300) * r2);
         const deductionPercent = ConfigService.getDeductionPercentForScheme("mayra") || 20;
@@ -554,7 +554,7 @@ export default function AddMayraCongratulationsPage() {
                 <Label>किस दर x सदस्य = योग (Rate x Members = Total)</Label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <Label>200 x</Label>
+                    <Label>300 x</Label>
                     <Input value={formData.rate200} disabled />
                   </div>
                   <div>

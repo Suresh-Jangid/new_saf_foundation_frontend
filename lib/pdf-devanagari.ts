@@ -272,3 +272,139 @@ export function drawDevanagariBounded(
     color,
   });
 }
+
+export interface DrawDevanagariCenteredOptions {
+  size?: number;
+  color?: Color;
+  minSize?: number;
+  padding?: number;
+  maxW?: number;
+}
+
+/**
+ * Draws horizontally centered text between minX and maxX on a baseline Y coordinate.
+ * Uses HarfBuzz OpenType shaping for all Devanagari, numeric, and mixed text,
+ * measures exact visual advances, and scales font size if text exceeds box width.
+ */
+export function drawDevanagariCenteredAtBaseline(
+  page: PDFPage,
+  font: PDFFont,
+  text: unknown,
+  minX: number,
+  maxX: number,
+  blY: number,
+  optionsOrSize?: DrawDevanagariCenteredOptions | number,
+  optColor?: Color
+): void {
+  if (text === undefined || text === null) return;
+  const str = String(text).trim();
+  if (!str || str === 'undefined' || str === 'null' || str === 'NaN') return;
+
+  let size = 10.5;
+  let color: Color = rgb(0, 0, 0);
+  let minSize = 6.0;
+  let padding = 4;
+  let customMaxW: number | undefined;
+
+  if (typeof optionsOrSize === 'object' && optionsOrSize !== null) {
+    size = optionsOrSize.size ?? 10.5;
+    color = optionsOrSize.color ?? rgb(0, 0, 0);
+    minSize = optionsOrSize.minSize ?? 6.0;
+    padding = optionsOrSize.padding ?? 4;
+    customMaxW = optionsOrSize.maxW;
+  } else if (typeof optionsOrSize === 'number') {
+    size = optionsOrSize;
+    if (optColor) color = optColor;
+  }
+
+  const boxW = customMaxW ?? Math.max(0, maxX - minX - padding);
+  let fontSize = size;
+
+  try {
+    const measuredW = measureDevanagariWidth(font, str, fontSize);
+    if (boxW > 0 && measuredW > boxW) {
+      fontSize = Math.max(minSize, fontSize * (boxW / measuredW));
+    }
+    const finalW = measureDevanagariWidth(font, str, fontSize);
+    const x = minX + Math.max(0, (maxX - minX - finalW) / 2);
+
+    drawDevanagariText(page, font, str, {
+      x,
+      y: blY,
+      size: fontSize,
+      color,
+    });
+  } catch (err) {
+    console.warn('drawDevanagariCenteredAtBaseline fallback:', err);
+    drawDevanagariText(page, font, str, {
+      x: minX + 2,
+      y: blY,
+      size: fontSize,
+      color,
+    });
+  }
+}
+
+/**
+ * Draws text centered horizontally and vertically inside a rectangular box (boxX, boxY, boxW, boxH).
+ * In PDF bottom-left coordinate space, boxY is the bottom edge of the box.
+ * Automatically shapes Devanagari and mixed text via HarfBuzz.
+ */
+export function drawDevanagariCenteredInRect(
+  page: PDFPage,
+  font: PDFFont,
+  text: unknown,
+  boxX: number,
+  boxY: number,
+  boxW: number,
+  boxH: number,
+  optionsOrSize?: DrawDevanagariCenteredOptions | number,
+  optColor?: Color
+): void {
+  if (text === undefined || text === null) return;
+  const str = String(text).trim();
+  if (!str || str === 'undefined' || str === 'null' || str === 'NaN') return;
+
+  let size = 11.0;
+  let color: Color = rgb(0, 0, 0);
+  let minSize = 6.5;
+
+  if (typeof optionsOrSize === 'object' && optionsOrSize !== null) {
+    size = optionsOrSize.size ?? 11.0;
+    color = optionsOrSize.color ?? rgb(0, 0, 0);
+    minSize = optionsOrSize.minSize ?? 6.5;
+  } else if (typeof optionsOrSize === 'number') {
+    size = optionsOrSize;
+    if (optColor) color = optColor;
+  }
+
+  const maxW = Math.max(0, boxW - 4);
+  let fontSize = size;
+
+  try {
+    const measuredW = measureDevanagariWidth(font, str, fontSize);
+    if (maxW > 0 && measuredW > maxW) {
+      fontSize = Math.max(minSize, fontSize * (maxW / measuredW));
+    }
+    const finalW = measureDevanagariWidth(font, str, fontSize);
+    const x = boxX + Math.max(0, (boxW - finalW) / 2);
+    // Optical vertical centering: capHeight is approx 0.72 of font size
+    const capHeight = fontSize * 0.72;
+    const y = boxY + (boxH - capHeight) / 2;
+
+    drawDevanagariText(page, font, str, {
+      x,
+      y,
+      size: fontSize,
+      color,
+    });
+  } catch (err) {
+    console.warn('drawDevanagariCenteredInRect fallback:', err);
+    drawDevanagariText(page, font, str, {
+      x: boxX + 2,
+      y: boxY + boxH * 0.2,
+      size: fontSize,
+      color,
+    });
+  }
+}

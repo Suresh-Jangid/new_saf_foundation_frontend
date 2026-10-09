@@ -9,9 +9,7 @@ import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { buildPdfFilename } from '@/lib/form-values';
 import {
   drawDevanagariBounded,
-  drawDevanagariText,
-  measureDevanagariWidth,
-  containsDevanagari,
+  drawDevanagariCenteredAtBaseline,
 } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
@@ -319,59 +317,11 @@ export async function POST(request: NextRequest) {
       size = 10.5,
       color = rgb(0, 0.15, 0.6)
     ) => {
-      if (text === undefined || text === null || String(text).trim() === '') return;
-      const str = String(text).trim();
-      let fontSize = size;
-      const boxW = maxX - minX;
-
-      if (containsDevanagari(str)) {
-        try {
-          const measuredWidth = measureDevanagariWidth(font, str, fontSize);
-          if (boxW > 0 && measuredWidth > boxW) {
-            fontSize = Math.max(6.0, fontSize * (boxW / measuredWidth));
-          }
-          const finalWidth = measureDevanagariWidth(font, str, fontSize);
-          const x = minX + Math.max(0, (maxX - minX - finalWidth) / 2);
-          drawDevanagariText(firstPage, font, str, {
-            x,
-            y: blY,
-            size: fontSize,
-            color,
-          });
-        } catch {
-          drawDevanagariText(firstPage, font, str, {
-            x: minX + 2,
-            y: blY,
-            size: fontSize,
-            color,
-          });
-        }
-        return;
-      }
-
-      try {
-        let textW = font.widthOfTextAtSize ? font.widthOfTextAtSize(str, fontSize) : 0;
-        if (boxW > 0 && textW > boxW) {
-          fontSize = Math.max(6.0, fontSize * (boxW / textW));
-          textW = font.widthOfTextAtSize ? font.widthOfTextAtSize(str, fontSize) : 0;
-        }
-        const x = minX + Math.max(0, (maxX - minX - textW) / 2);
-        firstPage.drawText(str, {
-          x,
-          y: blY,
-          size: fontSize,
-          font,
-          color,
-        });
-      } catch {
-        firstPage.drawText(str, {
-          x: minX + 2,
-          y: blY,
-          size: fontSize,
-          font,
-          color,
-        });
-      }
+      drawDevanagariCenteredAtBaseline(firstPage, font, text, minX, maxX, blY, {
+        size,
+        color,
+        minSize: 6.0,
+      });
     };
 
     // 4. Dynamic Field Extraction & Sanitization

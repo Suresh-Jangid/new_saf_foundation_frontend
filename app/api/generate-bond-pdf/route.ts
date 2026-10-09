@@ -6,7 +6,7 @@ import 'regenerator-runtime/runtime';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { buildPdfFilename } from '@/lib/form-values';
-import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
+import { drawDevanagariBounded, drawDevanagariCenteredAtBaseline } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
       });
     };
 
-    // Helper for drawing horizontally centered text within a defined box
+    // Helper for drawing horizontally centered text within a defined box using HarfBuzz
     const drawCenteredInBox = (
       text: string | number | undefined | null,
       minX: number,
@@ -239,33 +239,11 @@ export async function POST(request: NextRequest) {
       size = 10.5,
       color = rgb(0, 0.15, 0.6)
     ) => {
-      if (text === undefined || text === null || String(text).trim() === '') return;
-      const str = String(text).trim();
-      let fontSize = size;
-      const boxW = maxX - minX - 4;
-      try {
-        let textW = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(str, fontSize) : 0;
-        if (boxW > 0 && textW > boxW) {
-          fontSize = Math.max(6.0, fontSize * (boxW / textW));
-          textW = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(str, fontSize) : 0;
-        }
-        const x = minX + Math.max(0, (maxX - minX - textW) / 2);
-        firstPage.drawText(str, {
-          x,
-          y: blY,
-          size: fontSize,
-          font,
-          color,
-        });
-      } catch {
-        firstPage.drawText(str, {
-          x: minX + 2,
-          y: blY,
-          size: fontSize,
-          font,
-          color,
-        });
-      }
+      drawDevanagariCenteredAtBaseline(firstPage, font, text, minX, maxX, blY, {
+        size,
+        color,
+        minSize: 6.0,
+      });
     };
 
     // Extract & sanitize dynamic field values

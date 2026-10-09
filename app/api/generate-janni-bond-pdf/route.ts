@@ -8,7 +8,7 @@ import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { buildPdfFilename } from '@/lib/form-values';
 import { JANNI_PER_DELIVERY_AMOUNT } from '@/lib/config-types';
-import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
+import { drawDevanagariBounded, drawDevanagariText, measureDevanagariWidth } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -338,24 +338,19 @@ export async function POST(request: NextRequest) {
     const darkColor = rgb(0.12, 0.12, 0.12);
     const redColor = rgb(0.75, 0.08, 0.08);
 
-    // Helper to draw centered text in box
+    // Helper to draw centered text in box using HarfBuzz
     const drawCenteredInBox = (text: string, boxX: number, boxYTop: number, boxW: number, boxH: number, fontSize: number, color: any) => {
       if (!text) return;
+      const str = String(text).trim();
       let size = fontSize;
-      if ((font as any).widthOfTextAtSize) {
-        let textW = (font as any).widthOfTextAtSize(text, size);
-        if (textW > boxW - 6) {
-          size = Math.max(7.0, size * ((boxW - 6) / textW));
-          textW = (font as any).widthOfTextAtSize(text, size);
-        }
-        const x = boxX + (boxW - textW) / 2;
-        const y = pageHeight - (boxYTop + boxH / 2 + size * 0.35);
-        firstPage.drawText(text, { x, y, size, font, color });
-      } else {
-        const x = boxX + 6;
-        const y = pageHeight - (boxYTop + boxH / 2 + size * 0.35);
-        firstPage.drawText(text, { x, y, size, font, color });
+      const measuredW = measureDevanagariWidth(font, str, size);
+      if (measuredW > boxW - 6) {
+        size = Math.max(7.0, size * ((boxW - 6) / measuredW));
       }
+      const finalW = measureDevanagariWidth(font, str, size);
+      const x = boxX + (boxW - finalW) / 2;
+      const y = pageHeight - (boxYTop + boxH / 2 + size * 0.35);
+      drawDevanagariText(firstPage, font, str, { x, y, size, color });
     };
 
     // Helper to draw bounded text at baseline
@@ -422,7 +417,7 @@ export async function POST(request: NextRequest) {
     // "जननी सुरक्षा प्रसव योजना [ 11000 ] रूपये प्रत्येक डिलीवरी पर लागू"
     // Dotted line runs from X: 209.0 to 278.0 (W: 69.0) at baseline yTop: 332.2
     if (janniAmount) {
-      const amtW = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(janniAmount, 11.5) : 30.0;
+      const amtW = measureDevanagariWidth(font, janniAmount, 11.5);
       const amtX = 209.0 + Math.max(0, (69.0 - amtW) / 2);
       drawBounded(janniAmount, amtX, 332.2, 11.5, 67, navyColor);
     }
@@ -431,7 +426,7 @@ export async function POST(request: NextRequest) {
     // "इस योजना का लाभ [ नौ माह ] के बाद मिलेगा ।"
     // Dotted line from X: 261.0 to 345.0 (W: 84.0) at baseline yTop: 354.3
     if (duration) {
-      const durW = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(duration, 10.5) : 27.0;
+      const durW = measureDevanagariWidth(font, duration, 10.5);
       const durX = 261.0 + Math.max(0, (84.0 - durW) / 2);
       drawBounded(duration, durX, 354.3, 10.5, 82, redColor);
     }

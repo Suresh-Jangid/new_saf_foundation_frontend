@@ -7,7 +7,11 @@ import path from 'path';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { buildPdfFilename } from '@/lib/form-values';
-import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
+import {
+  drawDevanagariBounded,
+  drawDevanagariCenteredInRect,
+  measureDevanagariWidth,
+} from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -172,42 +176,22 @@ export async function POST(request: NextRequest) {
     const navyColor = rgb(0.0, 0.15, 0.58);       // #002694
     const charcoalColor = rgb(0.12, 0.14, 0.18);  // #1f242e
 
-    // Helper to draw text horizontally and vertically centered inside a rectangular box
+    // Helper to draw text horizontally and vertically centered inside a rectangular box using HarfBuzz
     const drawCenteredInBox = (
-      text: string | number | undefined | null,
-      boxX: number,
-      boxY: number, // bottom of box in PDF coords
-      boxW: number,
-      boxH: number,
-      size = 11.0,
-      color = navyColor
-    ) => {
-      if (text === undefined || text === null) return;
-      const str = String(text).trim();
-      if (!str) return;
-
-      let fontSize = size;
-      let textWidth = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(str, fontSize) : str.length * fontSize * 0.6;
-      const maxW = boxW - 4;
-      if (textWidth > maxW && (font as any).widthOfTextAtSize) {
-        fontSize = Math.max(7.0, size * (maxW / textWidth));
-        textWidth = (font as any).widthOfTextAtSize(str, fontSize);
-      }
-
-      const drawX = boxX + (boxW - textWidth) / 2;
-      // Optical vertical centering: capHeight is approx 0.72 of font size
-      const capHeight = fontSize * 0.72;
-      const boxMidY = boxY + boxH / 2;
-      const drawY = boxMidY - capHeight / 2;
-
-      firstPage.drawText(str, {
-        x: drawX,
-        y: drawY,
-        size: fontSize,
-        font,
-        color,
-      });
-    };
+       text: string | number | undefined | null,
+       boxX: number,
+       boxY: number, // bottom of box in PDF coords
+       boxW: number,
+       boxH: number,
+       size = 11.0,
+       color = navyColor
+     ) => {
+       drawDevanagariCenteredInRect(firstPage, font, text, boxX, boxY, boxW, boxH, {
+         size,
+         color,
+         minSize: 7.0,
+       });
+     };
 
     // Drawing helper with baseline alignment and proportional bounds fitting
     const drawBounded = (
@@ -482,7 +466,7 @@ export async function POST(request: NextRequest) {
     // ── Draw Bottom Insurance Amount on Dotted Line ──
     // "परिवार कल्याण बीमा [ 300 ] रुपये प्रत्येक बीमा पर लागू"
     // Dotted line runs from X: 242.0 to 308.0 (W: 66.0) at baseline Y: 493.50
-    const amtWidth = (font as any).widthOfTextAtSize ? (font as any).widthOfTextAtSize(insuranceAmountText, 12.0) : 22.0;
+    const amtWidth = measureDevanagariWidth(font, insuranceAmountText, 12.0);
     const amtX = 242.0 + Math.max(0, (66.0 - amtWidth) / 2);
     drawBounded(insuranceAmountText, amtX, 493.50, 12.0, 65, navyColor);
 

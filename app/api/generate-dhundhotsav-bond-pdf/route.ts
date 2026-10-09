@@ -7,7 +7,7 @@ import path from 'path';
 import { embedPdfImage, pickPhotoSource } from '../../utils/pdfImage';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { buildPdfFilename } from '@/lib/form-values';
-import { drawDevanagariBounded } from '@/lib/pdf-devanagari';
+import { drawDevanagariBounded, drawDevanagariCenteredAtBaseline } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -348,7 +348,7 @@ export async function POST(request: NextRequest) {
     const darkColor = rgb(0.12, 0.12, 0.12);
     const redColor = rgb(0.8, 0.1, 0.1);
 
-    // Helper to draw centered text in header box
+    // Helper to draw centered text in header box using HarfBuzz
     const drawCenteredInBox = (
       text: string,
       boxX: number,
@@ -357,19 +357,12 @@ export async function POST(request: NextRequest) {
       fontSize: number,
       color: any
     ) => {
-      if (!text) return;
-      let size = fontSize;
-      if ((font as any).widthOfTextAtSize) {
-        let textW = (font as any).widthOfTextAtSize(text, size);
-        if (textW > boxW - 8) {
-          size = Math.max(6.5, size * ((boxW - 8) / textW));
-          textW = (font as any).widthOfTextAtSize(text, size);
-        }
-        const x = boxX + (boxW - textW) / 2;
-        firstPage.drawText(text, { x, y: baselineY, size, font, color });
-      } else {
-        firstPage.drawText(text, { x: boxX + 6, y: baselineY, size, font, color });
-      }
+      drawDevanagariCenteredAtBaseline(firstPage, font, text, boxX, boxX + boxW, baselineY, {
+        size: fontSize,
+        color,
+        minSize: 6.5,
+        padding: 8,
+      });
     };
 
     // Helper to draw bounded text at baseline
@@ -391,7 +384,7 @@ export async function POST(request: NextRequest) {
       });
     };
 
-    // Helper to draw centered text in dotted line range
+    // Helper to draw centered text in dotted line range using HarfBuzz
     const drawCenteredInRange = (
       text: string,
       startX: number,
@@ -401,21 +394,12 @@ export async function POST(request: NextRequest) {
       maxW: number,
       color: any
     ) => {
-      if (!text) return;
-      let size = fontSize;
-      const availableW = endX - startX;
-      if (maxW && (font as any).widthOfTextAtSize) {
-        const isDevanagari = /[^\u0000-\u007F]/.test(text);
-        let textW = (font as any).widthOfTextAtSize(text, size) * (isDevanagari ? 1.25 : 1.0);
-        if (textW > maxW) {
-          size = Math.max(6.0, size * (maxW / textW));
-          textW = (font as any).widthOfTextAtSize(text, size) * (isDevanagari ? 1.25 : 1.0);
-        }
-        const x = startX + Math.max(0, (availableW - textW) / 2);
-        firstPage.drawText(text, { x, y: baselineY, size, font, color });
-      } else {
-        firstPage.drawText(text, { x: startX + 4, y: baselineY, size, font, color });
-      }
+      drawDevanagariCenteredAtBaseline(firstPage, font, text, startX, endX, baselineY, {
+        size: fontSize,
+        color,
+        minSize: 6.0,
+        maxW,
+      });
     };
 
     // ── 1. Top Header Boxes (Centered horizontally in blue boxes) ──

@@ -186,6 +186,18 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
     enabled: true,
     isNewSlot: true,
     hasGrantPayment: true,
+    children: [
+      {
+        id: "aawas_congress_payment",
+        name: { en: "Aawas Congress Payment", hi: "आवास गृह प्रवेश बधाई पत्र" },
+        subtitle: { en: "Aawas Congress Payment", hi: "गृह प्रवेश बधाई पत्र" },
+        category: "SCHEME",
+        route: "/dashboard/aawas/congress-payment",
+        iconName: "Gift",
+        permissionKey: "aawas_home",
+        enabled: true,
+      },
+    ],
   },
 
   // --- 6. Lado Bahin Registration Application (Generic Architecture Slot) ---
@@ -200,6 +212,18 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
     enabled: true,
     isNewSlot: true,
     hasGrantPayment: true,
+    children: [
+      {
+        id: "lado_bahin_congress_payment",
+        name: { en: "Lado Bahin Congress Payment", hi: "लाडो बहिन बधाई पत्र" },
+        subtitle: { en: "Lado Bahin Congress Payment", hi: "लाडो बहिन बधाई पत्र" },
+        category: "SCHEME",
+        route: "/dashboard/lado-bahin/congress-payment",
+        iconName: "Gift",
+        permissionKey: "lado_bahin",
+        enabled: true,
+      },
+    ],
   },
 
   // --- 7. Dhundhotsav Registration Application (Generic Architecture Slot) ---
@@ -214,6 +238,18 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
     enabled: true,
     isNewSlot: true,
     hasGrantPayment: true,
+    children: [
+      {
+        id: "dhundhotsav_congress_payment",
+        name: { en: "Dhundhotsav Congress Payment", hi: "ढूंढोत्सव बधाई पत्र" },
+        subtitle: { en: "Dhundhotsav Congress Payment", hi: "ढूंढोत्सव बधाई पत्र" },
+        category: "SCHEME",
+        route: "/dashboard/dhundhotsav/congress-payment",
+        iconName: "Gift",
+        permissionKey: "dhundhotsav",
+        enabled: true,
+      },
+    ],
   },
 
   // --- 8. ShubhLaxmi (Deepawali) Registration Application (Generic Architecture Slot) ---
@@ -228,6 +264,18 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
     enabled: true,
     isNewSlot: true,
     hasGrantPayment: true,
+    children: [
+      {
+        id: "shubh_laxmi_congress_payment",
+        name: { en: "ShubhLaxmi Congress Payment", hi: "शुभलक्ष्मी बधाई पत्र" },
+        subtitle: { en: "ShubhLaxmi Congress Payment", hi: "शुभलक्ष्मी बधाई पत्र" },
+        category: "SCHEME",
+        route: "/dashboard/shubh-laxmi/congress-payment",
+        iconName: "Gift",
+        permissionKey: "shubh_laxmi",
+        enabled: true,
+      },
+    ],
   },
 
   // --- 9. Agent Registration & Permissions ---

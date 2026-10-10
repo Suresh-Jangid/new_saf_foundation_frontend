@@ -46,3 +46,26 @@ export interface FileValidationResult {
   error?: string;
   mimeType?: string;
 }
+
+export interface ImageOptimizationOptions {
+  category?: UploadOptions["category"];
+  contentType?: string;
+  originalFilename?: string;
+  maxDimension?: number;
+  quality?: number;
+  preserveTransparency?: boolean;
+}
+
+export interface ImageOptimizationResult {
+  buffer: Buffer;
+  contentType: string;
+  extension: string;
+  originalSize: number;
+  optimizedSize: number;
+  compressionRatio: number;
+  width?: number;
+  height?: number;
+  format: string;
+  wasOptimized: boolean;
+  hasAlpha?: boolean;
+}

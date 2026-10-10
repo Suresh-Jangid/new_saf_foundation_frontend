@@ -3,6 +3,7 @@ import path from "path";
 import { ImageKitStorageProvider } from "./imagekit-storage";
 import { S3StorageProvider } from "./s3-storage";
 import { FileValidationResult, UploadOptions, UploadResult } from "./types";
+import { imageOptimizer } from "./image-optimizer";
 
 export class StorageService {
   private static instance: StorageService;
@@ -179,22 +180,25 @@ export class StorageService {
       };
     }
 
-    const mimeToExt: Record<string, string> = {
-      "image/jpeg": "jpg",
-      "image/png": "png",
-      "image/webp": "webp",
-      "application/pdf": "pdf",
-    };
+    // Smart optimization for images (JPEG/PNG/WebP), bypasses PDFs
+    const optResult = await imageOptimizer.optimize(rawBuffer, {
+      category: options.category,
+      contentType: validation.mimeType,
+      originalFilename: filename,
+    });
 
-    const ext = mimeToExt[validation.mimeType] || "bin";
-    const fileName = this.generateFileName(options, ext);
+    const finalBuffer = optResult.buffer;
+    const finalMime = optResult.contentType;
+    const finalExt = optResult.extension;
+
+    const fileName = this.generateFileName(options, finalExt);
     const folder = this.getFolder(options);
 
     // Primary: ImageKit Storage
     if (this.imagekitProvider.isConfigured()) {
       try {
         const uploadRes = await this.imagekitProvider.upload(
-          rawBuffer,
+          finalBuffer,
           fileName,
           folder,
           [options.category, options.entityType || "general"]
@@ -205,8 +209,8 @@ export class StorageService {
           key: uploadRes.key,
           url: uploadRes.url,
           fileId: uploadRes.fileId,
-          contentType: validation.mimeType,
-          size: rawBuffer.length,
+          contentType: finalMime,
+          size: finalBuffer.length,
           provider: "imagekit",
         };
       } catch (ikErr: any) {
@@ -215,8 +219,8 @@ export class StorageService {
           success: false,
           key: "",
           url: "",
-          contentType: validation.mimeType,
-          size: rawBuffer.length,
+          contentType: finalMime,
+          size: finalBuffer.length,
           provider: "imagekit",
           error: ikErr.message || "Failed to upload to ImageKit",
         };
@@ -227,13 +231,13 @@ export class StorageService {
     if (this.s3Provider.isConfigured()) {
       try {
         const s3Key = `saf-uploads/${(options.entityType || "general").replace(/[^a-zA-Z0-9_-]/g, "")}/${(options.entityId || "new").replace(/[^a-zA-Z0-9_-]/g, "")}/${fileName}`;
-        const uploadRes = await this.s3Provider.upload(rawBuffer, s3Key, validation.mimeType);
+        const uploadRes = await this.s3Provider.upload(finalBuffer, s3Key, finalMime);
         return {
           success: true,
           key: uploadRes.key,
           url: uploadRes.url,
-          contentType: validation.mimeType,
-          size: rawBuffer.length,
+          contentType: finalMime,
+          size: finalBuffer.length,
           provider: "s3",
         };
       } catch (s3Err: any) {
@@ -242,8 +246,8 @@ export class StorageService {
           success: false,
           key: "",
           url: "",
-          contentType: validation.mimeType,
-          size: rawBuffer.length,
+          contentType: finalMime,
+          size: finalBuffer.length,
           provider: "s3",
           error: s3Err.message || "Failed to upload to S3",
         };

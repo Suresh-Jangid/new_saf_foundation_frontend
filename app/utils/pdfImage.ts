@@ -66,23 +66,36 @@ export async function loadImageBytes(
     try {
       const fs = await import('fs');
       const path = await import('path');
+      let localBytes: Uint8Array | null = null;
       if (fs.existsSync(source) && fs.statSync(source).isFile()) {
-        const bytes = new Uint8Array(fs.readFileSync(source));
-        return { bytes, mime: detectMimeFromBytes(bytes) || undefined };
+        localBytes = new Uint8Array(fs.readFileSync(source));
+      } else {
+        const publicPath = path.join(process.cwd(), 'public', source.replace(/^\/+/, ''));
+        if (fs.existsSync(publicPath) && fs.statSync(publicPath).isFile()) {
+          localBytes = new Uint8Array(fs.readFileSync(publicPath));
+        }
       }
-      const publicPath = path.join(process.cwd(), 'public', source.replace(/^\/+/, ''));
-      if (fs.existsSync(publicPath) && fs.statSync(publicPath).isFile()) {
-        const bytes = new Uint8Array(fs.readFileSync(publicPath));
-        return { bytes, mime: detectMimeFromBytes(bytes) || undefined };
+      if (localBytes) {
+        let localMime = detectMimeFromBytes(localBytes) || undefined;
+        if (localMime === 'image/webp') {
+          try {
+            const sharp = (await import('sharp')).default;
+            localBytes = new Uint8Array(await sharp(Buffer.from(localBytes)).jpeg({ quality: 90 }).toBuffer());
+            localMime = 'image/jpeg';
+          } catch {
+            // keep original
+          }
+        }
+        return { bytes: localBytes, mime: localMime };
       }
     } catch {
       // Fall through to remote URL fetch
     }
 
     let url = toAbsoluteImageUrl(source);
-    // If ImageKit asset, request dynamic JPEG transformation for seamless pdf-lib embedding
+    // If ImageKit asset, request dynamic JPEG transformation preserving original print resolution & q=90
     if (url.includes('ik.imagekit.io') && !url.includes('tr=')) {
-      url += (url.includes('?') ? '&' : '?') + 'tr=f-jpg';
+      url += (url.includes('?') ? '&' : '?') + 'tr=f-jpg,orig-true,q-90';
     }
 
     const response = await fetch(url, {
@@ -94,8 +107,21 @@ export async function loadImageBytes(
       return null;
     }
 
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    const mime = response.headers.get('content-type') || detectMimeFromBytes(bytes) || undefined;
+    let bytes = new Uint8Array(await response.arrayBuffer());
+    let mime = response.headers.get('content-type') || detectMimeFromBytes(bytes) || undefined;
+
+    // If WebP format is received, convert to high-grade JPEG for pdf-lib compatibility
+    if (mime?.includes('webp') || detectMimeFromBytes(bytes) === 'image/webp') {
+      try {
+        const sharp = (await import('sharp')).default;
+        const converted = await sharp(Buffer.from(bytes)).jpeg({ quality: 90 }).toBuffer();
+        bytes = new Uint8Array(converted);
+        mime = 'image/jpeg';
+      } catch (convErr) {
+        console.warn('WebP conversion for PDF embedding skipped:', convErr);
+      }
+    }
+
     return { bytes, mime };
   } catch (error) {
     console.error('Error loading image for PDF:', error);

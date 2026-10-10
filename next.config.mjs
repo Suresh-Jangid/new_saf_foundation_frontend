@@ -33,7 +33,7 @@ const nextConfig = {
       'recharts'
     ],
     // Enable server components
-    serverComponentsExternalPackages: ['pdf-lib', 'pdfkit', 'fontkit', 'imagekit', 'harfbuzzjs'],
+    serverComponentsExternalPackages: ['pdf-lib', 'pdfkit', 'fontkit', 'imagekit', 'harfbuzzjs', 'sharp'],
   },
   
   // Image optimization

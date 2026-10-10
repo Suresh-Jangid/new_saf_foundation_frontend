@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Plus, FileSpreadsheet } from "lucide-react"
 import { DataTable } from "@/components/data-table"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useCRUD } from "@/hooks/use-crud"
 import { API_ENDPOINTS, mayraApplicationAPI, agentRegistrationAPI } from "@/lib/api"
 import { toast } from "sonner"
@@ -25,6 +25,11 @@ import { getPhotoDataUrl } from "@/lib/utils"
 import * as XLSX from "xlsx"
 import { BulkUploadButton } from "@/components/bulk-upload-button"
 import { buildPdfFilename } from "@/lib/form-values"
+import {
+  resolveMayraGroup,
+  getGroupBadgeColor,
+  getGroupLabel,
+} from "@/lib/contribution-group"
 
 interface ResolvedAgentOfflineNumbers {
   workerOfflineFormNumber: string
@@ -411,6 +416,8 @@ interface MayraRegistrationRecord {
   nominee_aadhaar?: string
   installmentAmount?: string | number
   installment_amount?: string | number
+  mayraInstallment?: string | number
+  mayra_installment?: string | number
   kistAmount?: string | number
   schemeAmount?: string | number
   totalAmount?: string | number
@@ -419,7 +426,7 @@ interface MayraRegistrationRecord {
   fee?: string | number
 }
 
-export default function MayraRegistrationPage() {
+function MayraRegistrationContent() {
   const [currentGenderFilter, setCurrentGenderFilter] = useState<string>("all")
   const [currentAddressFilter, setCurrentAddressFilter] = useState<string>("all")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -427,6 +434,7 @@ export default function MayraRegistrationPage() {
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
   const [agentsList, setAgentsList] = useState<any[]>([])
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     let isMounted = true;
@@ -718,14 +726,14 @@ export default function MayraRegistrationPage() {
     }
   }
 
-  const handleExportExcel = () => {
+  const handleExportExcel = (recordsToExport: MayraRegistrationRecord[] = records, groupName?: string) => {
     try {
-      if (records.length === 0) {
+      if (recordsToExport.length === 0) {
         toast.error("No data to export")
         return
       }
 
-      const excelData = records.map((record) => ({
+      const excelData = recordsToExport.map((record) => ({
         "आवेदन तिथि": record.applicationDate,
         "फॉर्म संख्या": record.formNumber,
         "ऑफलाइन फॉर्म नं.": record.offlineFormNumber || record.offline_form_number || "-",
@@ -736,6 +744,8 @@ export default function MayraRegistrationPage() {
         "आयु": record.age,
         "गोत्र": record.gotra,
         "आधार": record.aadharNumber,
+        "किस्त राशि": record.mayraInstallment ?? record.installmentAmount ?? record.kistAmount ?? "-",
+        "ग्रुप": resolveMayraGroup(record.mayraInstallment ?? record.installmentAmount ?? record.kistAmount) || "Unassigned",
         "मोबाइल": record.mobile,
         "पता": record.address,
         "नॉमिनी": record.nomineeName,
@@ -747,8 +757,10 @@ export default function MayraRegistrationPage() {
 
       const worksheet = XLSX.utils.json_to_sheet(excelData)
       const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Mayra Registrations")
-      XLSX.writeFile(workbook, `mayra_registrations_${new Date().toISOString().split("T")[0]}.xlsx`)
+      const sheetName = groupName ? `Mayra (${groupName})` : "Mayra Registrations"
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+      const fileSuffix = groupName ? `_${groupName.toLowerCase()}` : ""
+      XLSX.writeFile(workbook, `mayra_registrations${fileSuffix}_${new Date().toISOString().split("T")[0]}.xlsx`)
       toast.success("Excel file exported successfully")
     } catch (error) {
       console.error("Error exporting to Excel:", error)
@@ -918,6 +930,22 @@ export default function MayraRegistrationPage() {
     { key: "age", label: "आयु" },
     { key: "gotra", label: "गोत्र" },
     { key: "aadharNumber", label: "आधार" },
+    {
+      key: "mayraInstallment",
+      label: "किस्त / ग्रुप",
+      render: (_: any, record: MayraRegistrationRecord) => {
+        const inst = record.mayraInstallment ?? record.installmentAmount ?? record.kistAmount ?? "-";
+        const group = resolveMayraGroup(record.mayraInstallment ?? record.installmentAmount ?? record.kistAmount);
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold text-gray-900">₹{inst}</span>
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${getGroupBadgeColor(group)}`}>
+              {group || "Admin Review"}
+            </span>
+          </div>
+        );
+      },
+    },
     { key: "mobile", label: "मोबाइल" },
     { key: "address", label: "पता" },
     { key: "nomineeName", label: "नॉमिनी का नाम" },
@@ -946,14 +974,145 @@ export default function MayraRegistrationPage() {
     },
   ]
 
+  const [activeGroupView, setActiveGroupView] = useState<"all" | "MAYRA-300" | "MAYRA-1000" | "unsupported">("all");
+
+  useEffect(() => {
+    const groupParam = searchParams?.get("group");
+    if (groupParam === "MAYRA-300") {
+      setActiveGroupView("MAYRA-300");
+    } else if (groupParam === "MAYRA-1000") {
+      setActiveGroupView("MAYRA-1000");
+    } else if (groupParam === "unsupported") {
+      setActiveGroupView("unsupported");
+    } else {
+      setActiveGroupView("all");
+    }
+  }, [searchParams]);
+
+  const handleGroupViewChange = (view: "all" | "MAYRA-300" | "MAYRA-1000" | "unsupported") => {
+    setActiveGroupView(view);
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    if (view === "all") {
+      params.delete("group");
+    } else {
+      params.set("group", view);
+    }
+    const query = params.toString();
+    router.replace(`/dashboard/mayra-registration${query ? `?${query}` : ""}`, { scroll: false });
+  };
+
+  const records300 = useMemo(
+    () => records.filter((r) => resolveMayraGroup(r.mayraInstallment ?? r.installmentAmount ?? r.kistAmount) === "MAYRA-300"),
+    [records]
+  );
+
+  const records1000 = useMemo(
+    () => records.filter((r) => resolveMayraGroup(r.mayraInstallment ?? r.installmentAmount ?? r.kistAmount) === "MAYRA-1000"),
+    [records]
+  );
+
+  const unsupportedRecords = useMemo(
+    () => records.filter((r) => resolveMayraGroup(r.mayraInstallment ?? r.installmentAmount ?? r.kistAmount) === null),
+    [records]
+  );
+
+  const eligibleRecords = useMemo(
+    () => records.filter((r) => resolveMayraGroup(r.mayraInstallment ?? r.installmentAmount ?? r.kistAmount) !== null),
+    [records]
+  );
+
+  const currentTableRecords = useMemo(() => {
+    if (activeGroupView === "MAYRA-300") return records300;
+    if (activeGroupView === "MAYRA-1000") return records1000;
+    if (activeGroupView === "unsupported") return unsupportedRecords;
+    return eligibleRecords;
+  }, [activeGroupView, records300, records1000, unsupportedRecords, eligibleRecords]);
+
+  const tableTitle = useMemo(() => {
+    if (activeGroupView === "MAYRA-300") return "Mayra — ₹300 Installment (MAYRA-300)";
+    if (activeGroupView === "MAYRA-1000") return "Mayra — ₹1,000 Installment (MAYRA-1000)";
+    if (activeGroupView === "unsupported") return "Mayra — Admin Review Required";
+    return "Mayra Registrations";
+  }, [activeGroupView]);
+
+  const tableSubtitle = useMemo(() => {
+    if (activeGroupView === "MAYRA-300") return "मायरा पंजीकरण (₹300 किस्त ग्रुप)";
+    if (activeGroupView === "MAYRA-1000") return "मायरा पंजीकरण (₹1,000 किस्त ग्रुप)";
+    if (activeGroupView === "unsupported") return "असमर्थित किस्त रिकॉर्ड (Legacy / Unverified Installments — Blocked from Contributions)";
+    return "मायरा सामान्य आवेदन पत्र (All Groups: MAYRA-300 & MAYRA-1000)";
+  }, [activeGroupView]);
+
   return (
     <RoleGuard requiredModule="mayra_registration" requiredAction="view">
       <>
+        {/* Group Selector Bar */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-muted/40 p-3 rounded-lg border">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-foreground mr-1">Installment Groups:</span>
+            <Button
+              size="sm"
+              variant={activeGroupView === "all" ? "default" : "outline"}
+              onClick={() => handleGroupViewChange("all")}
+            >
+              All Groups ({eligibleRecords.length})
+            </Button>
+            <Button
+              size="sm"
+              variant={activeGroupView === "MAYRA-300" ? "default" : "outline"}
+              className={activeGroupView === "MAYRA-300" ? "bg-emerald-600 hover:bg-emerald-700 text-white" : ""}
+              onClick={() => handleGroupViewChange("MAYRA-300")}
+            >
+              Group MAYRA-300 (₹300) ({records300.length})
+            </Button>
+            <Button
+              size="sm"
+              variant={activeGroupView === "MAYRA-1000" ? "default" : "outline"}
+              className={activeGroupView === "MAYRA-1000" ? "bg-purple-600 hover:bg-purple-700 text-white" : ""}
+              onClick={() => handleGroupViewChange("MAYRA-1000")}
+            >
+              Group MAYRA-1000 (₹1,000) ({records1000.length})
+            </Button>
+            {unsupportedRecords.length > 0 && (
+              <Button
+                size="sm"
+                variant={activeGroupView === "unsupported" ? "destructive" : "outline"}
+                className={activeGroupView !== "unsupported" ? "text-amber-700 border-amber-300 hover:bg-amber-50" : ""}
+                onClick={() => handleGroupViewChange("unsupported")}
+              >
+                ⚠️ Admin Review Required ({unsupportedRecords.length})
+              </Button>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Strict separation: MAYRA-300 (₹300) & MAYRA-1000 (₹1,000)
+          </div>
+        </div>
+
+        {unsupportedRecords.length > 0 && activeGroupView !== "unsupported" && (
+          <div className="mb-6 p-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shadow-sm">
+            <div>
+              <h4 className="font-semibold text-sm">⚠️ Unsupported Legacy Records Detected</h4>
+              <p className="text-xs text-amber-800">
+                {unsupportedRecords.length} registration(s) have unverified or legacy installment amounts (null or ₹200). These records are excluded from contribution groups until administrator review.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-amber-400 text-amber-900 hover:bg-amber-100 self-start sm:self-auto shrink-0"
+              onClick={() => handleGroupViewChange("unsupported")}
+            >
+              Review Records ({unsupportedRecords.length})
+            </Button>
+          </div>
+        )}
+
+        {/* Single Consolidated Mayra Table */}
         <DataTable
-          data={records}
+          data={currentTableRecords}
           columns={columns}
-          title="मायरा पंजीकरण (Mayra Registration)"
-          subtitle="मायरा फॉर्म पंजीकरण संभालें"
+          title={tableTitle}
+          subtitle={tableSubtitle}
           addNewUrl="/dashboard/mayra-registration/add"
           addNewLabel="Add New Mayra"
           onDelete={handleDelete}
@@ -975,17 +1134,17 @@ export default function MayraRegistrationPage() {
           headerActions={
             <div className="flex gap-2">
               <Button
-                onClick={handleExportExcel}
+                onClick={() => handleExportExcel(currentTableRecords, activeGroupView === "all" ? undefined : activeGroupView)}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
-                disabled={records.length === 0}
+                disabled={currentTableRecords.length === 0}
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 <span className="hidden sm:inline">Export Excel</span>
               </Button>
               <BulkUploadButton
-                moduleName="Mayra Registration"
+                moduleName={`Mayra Registration${activeGroupView === "MAYRA-300" ? " (₹300)" : activeGroupView === "MAYRA-1000" ? " (₹1,000)" : ""}`}
                 requiredHeaders={importHeaders}
                 sampleRows={importSampleRows}
                 onImportRow={handleImportRow}
@@ -994,6 +1153,7 @@ export default function MayraRegistrationPage() {
             </div>
           }
         />
+
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent>
@@ -1009,6 +1169,22 @@ export default function MayraRegistrationPage() {
         </AlertDialog>
       </>
     </RoleGuard>
+  )
+}
+
+export default function MayraRegistrationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-4 md:p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg">Loading Mayra applications...</div>
+          </div>
+        </div>
+      }
+    >
+      <MayraRegistrationContent />
+    </Suspense>
   )
 }
 

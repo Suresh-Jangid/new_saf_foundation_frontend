@@ -33,7 +33,7 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
   // --- 1. General Marriage Application ---
   {
     id: "applicant_registration",
-    name: { en: "General Marriage Application", hi: "सामान्य आवेदन" },
+    name: { en: "General Marriage Application", hi: "सामान्य विवाह आवेदन" },
     subtitle: { en: "General Marriage Application", hi: "सामान्य विवाह आवेदन" },
     category: "SCHEME",
     route: "/dashboard/general-applications",
@@ -42,26 +42,36 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
     enabled: true,
     hasGrantPayment: true,
     hasBulkEmi: true,
-  },
-  {
-    id: "marriage_congratulations",
-    name: { en: "General Marriage Congratulation Payment", hi: "विवाह फॉर्म आवेदन पत्र" },
-    subtitle: { en: "General Marriage Congratulation Payment", hi: "विवाह बधाई पत्र" },
-    category: "SCHEME",
-    route: "/dashboard/marriage-congratulations",
-    iconName: "Gift",
-    permissionKey: "marriage_congratulations",
-    enabled: true,
     children: [
       {
-        id: "marriage_sewing_machine_distribution",
-        name: { en: "Marriage Sewing Machine Distribution", hi: "विवाह सिलाई मशीन वितरण" },
-        subtitle: { en: "Marriage Sewing Machine Distribution", hi: "सिलाई मशीन वितरण" },
+        id: "gm_300",
+        name: { en: "Group GM-300 (₹300)", hi: "Group GM-300 (₹300)" },
+        subtitle: { en: "₹300 Installment Group", hi: "₹300 किस्त ग्रुप" },
         category: "SCHEME",
-        route: "/dashboard/marriage-congratulations/sewing-machine-distribution",
-        iconName: "Scissors",
-        permissionKey: "marriage_sewing_machine_distribution",
-        enabled: false, // DISABLED MODULE (preserved)
+        route: "/dashboard/general-applications?group=GM-300",
+        iconName: "FileText",
+        permissionKey: "applicant_registration",
+        enabled: true,
+      },
+      {
+        id: "gm_1000",
+        name: { en: "Group GM-1000 (₹1,000)", hi: "Group GM-1000 (₹1,000)" },
+        subtitle: { en: "₹1,000 Installment Group", hi: "₹1,000 किस्त ग्रुप" },
+        category: "SCHEME",
+        route: "/dashboard/general-applications?group=GM-1000",
+        iconName: "FileText",
+        permissionKey: "applicant_registration",
+        enabled: true,
+      },
+      {
+        id: "marriage_congratulations",
+        name: { en: "General Marriage Congratulations Payment", hi: "सामान्य विवाह बधाई भुगतान" },
+        subtitle: { en: "General Marriage Congratulation Payment", hi: "विवाह बधाई पत्र" },
+        category: "SCHEME",
+        route: "/dashboard/marriage-congratulations",
+        iconName: "Gift",
+        permissionKey: "marriage_congratulations",
+        enabled: true,
       },
     ],
   },
@@ -79,6 +89,26 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
     hasGrantPayment: true,
     hasBulkEmi: true,
     children: [
+      {
+        id: "mayra_300",
+        name: { en: "Group MAYRA-300 (₹300)", hi: "Group MAYRA-300 (₹300)" },
+        subtitle: { en: "₹300 Installment Group", hi: "₹300 किस्त ग्रुप" },
+        category: "SCHEME",
+        route: "/dashboard/mayra-registration?group=MAYRA-300",
+        iconName: "FileText",
+        permissionKey: "mayra_registration",
+        enabled: true,
+      },
+      {
+        id: "mayra_1000",
+        name: { en: "Group MAYRA-1000 (₹1,000)", hi: "Group MAYRA-1000 (₹1,000)" },
+        subtitle: { en: "₹1,000 Installment Group", hi: "₹1,000 किस्त ग्रुप" },
+        category: "SCHEME",
+        route: "/dashboard/mayra-registration?group=MAYRA-1000",
+        iconName: "FileText",
+        permissionKey: "mayra_registration",
+        enabled: true,
+      },
       {
         id: "mayra_congratulations",
         name: { en: "Mayra Marriage Congratulation Payment", hi: "मायरा बधाई पत्र" },
@@ -313,6 +343,16 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
   },
 
   // --- Disabled Modules (Non-Destructive Feature Flag) ---
+  {
+    id: "marriage_sewing_machine_distribution",
+    name: { en: "Marriage Sewing Machine Distribution", hi: "विवाह सिलाई मशीन वितरण" },
+    subtitle: { en: "Marriage Sewing Machine Distribution", hi: "सिलाई मशीन वितरण" },
+    category: "SCHEME",
+    route: "/dashboard/marriage-congratulations/sewing-machine-distribution",
+    iconName: "Scissors",
+    permissionKey: "marriage_sewing_machine_distribution",
+    enabled: false, // DISABLED MODULE (preserved)
+  },
   {
     id: "disability_cycle_distribution",
     name: { en: "Disability Cycle Distribution", hi: "निशुल्क साइकिल वितरण" },

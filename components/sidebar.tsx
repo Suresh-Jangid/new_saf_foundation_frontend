@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, memo, useCallback } from "react";
+import { useState, useEffect, useMemo, memo, useCallback, Suspense } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,6 +33,7 @@ import {
   Sparkles,
   Settings,
   KeyRound,
+  ChevronDown,
 } from "lucide-react";
 import { getUserRole, hasModulePermission, isAdmin, getAgentData } from "@/lib/permissions";
 import { MODULE_REGISTRY } from "@/config/module-registry";
@@ -65,15 +66,16 @@ const MenuItem = memo(
   ({
     item,
     pathname,
+    searchParams,
     onMenuItemClick,
     agentHasPermission,
   }: {
     item: ModuleRegistryItem;
     pathname: string;
+    searchParams: URLSearchParams | null;
     onMenuItemClick?: () => void;
     agentHasPermission: (permKey: string) => boolean;
   }) => {
-    const isActive = pathname === item.route;
     const IconComponent = ICON_MAP[item.iconName] || FileText;
 
     const filteredChildren = (item.children || []).filter((child) => {
@@ -82,46 +84,102 @@ const MenuItem = memo(
       return agentHasPermission(child.permissionKey);
     });
 
+    const isChildActive = (childRoute: string) => {
+      if (childRoute.includes("?")) {
+        const [childPath, childQuery] = childRoute.split("?");
+        if (pathname !== childPath) return false;
+        const targetParams = new URLSearchParams(childQuery);
+        const targetGroup = targetParams.get("group");
+        const currentGroup = searchParams?.get("group");
+        return Boolean(targetGroup && currentGroup === targetGroup);
+      }
+      return pathname === childRoute;
+    };
+
+    const hasActiveChild = filteredChildren.some((child) => isChildActive(child.route));
+
+    const isParentActive = hasActiveChild
+      ? false
+      : item.route.includes("?")
+      ? isChildActive(item.route)
+      : pathname === item.route && (!searchParams?.get("group") || searchParams.get("group") === "all");
+
+    const isSectionActive =
+      pathname === item.route ||
+      filteredChildren.some((child) => {
+        const childPath = child.route.split("?")[0];
+        return pathname === childPath;
+      });
+
+    const [isExpanded, setIsExpanded] = useState(true);
+
+    useEffect(() => {
+      if (isSectionActive) {
+        setIsExpanded(true);
+      }
+    }, [isSectionActive]);
+
     return (
-      <div key={item.route}>
-        <Link
-          href={item.route}
-          className={cn(
-            "flex flex-col gap-1 rounded-lg px-3 py-2.5 text-sm transition-all duration-150",
-            isActive
-              ? "bg-gradient-to-r from-[#0B4A8F] to-[#0D5EB3] text-white shadow-md shadow-blue-950/30 border-l-4 border-[#F57C00]"
-              : "text-slate-200/80 hover:bg-white/10 hover:text-white"
+      <div key={item.route} className="rounded-lg">
+        <div className="flex items-center">
+          <Link
+            href={item.route}
+            className={cn(
+              "flex-1 flex flex-col gap-1 rounded-lg px-3 py-2.5 text-sm transition-all duration-150",
+              isParentActive
+                ? "bg-gradient-to-r from-[#0B4A8F] to-[#0D5EB3] text-white shadow-md shadow-blue-950/30 border-l-4 border-[#F57C00]"
+                : isSectionActive
+                ? "text-white font-medium hover:bg-white/10"
+                : "text-slate-200/80 hover:bg-white/10 hover:text-white"
+            )}
+            onClick={() => {
+              if (onMenuItemClick) onMenuItemClick();
+              setIsExpanded(true);
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <IconComponent className={cn("h-4 w-4 shrink-0", (isParentActive || isSectionActive) ? "text-[#F57C00]" : "text-slate-300")} />
+              <span className="font-semibold">{item.name.hi}</span>
+            </div>
+            {item.subtitle && (
+              <span className={cn("text-xs ml-7", isParentActive ? "text-slate-200" : "text-slate-400")}>{item.subtitle.en}</span>
+            )}
+          </Link>
+          {filteredChildren.length > 0 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsExpanded((prev) => !prev);
+              }}
+              className="p-2 mr-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+              aria-label={isExpanded ? "Collapse submenu" : "Expand submenu"}
+            >
+              <ChevronDown className={cn("h-4 w-4 transition-transform duration-200", isExpanded ? "rotate-180" : "")} />
+            </button>
           )}
-          onClick={onMenuItemClick}
-        >
-          <div className="flex items-center gap-3">
-            <IconComponent className={cn("h-4 w-4 shrink-0", isActive ? "text-[#F57C00]" : "text-slate-300")} />
-            <span className="font-semibold">{item.name.hi}</span>
-          </div>
-          {item.subtitle && (
-            <span className={cn("text-xs ml-7", isActive ? "text-slate-200" : "text-slate-400")}>{item.subtitle.en}</span>
-          )}
-        </Link>
+        </div>
 
         {/* Render children if present */}
-        {filteredChildren.length > 0 && (
+        {filteredChildren.length > 0 && isExpanded && (
           <div className="ml-6 mt-1 pl-2 border-l border-white/10 space-y-1">
             {filteredChildren.map((child) => {
               const ChildIcon = ICON_MAP[child.iconName] || FileText;
-              const isChildActive = pathname === child.route;
+              const active = isChildActive(child.route);
               return (
                 <Link
                   key={child.route}
                   href={child.route}
                   className={cn(
                     "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-all duration-150",
-                    isChildActive
+                    active
                       ? "bg-[#0B4A8F] text-white font-medium shadow-sm border-l-2 border-[#F57C00]"
                       : "text-slate-300/80 hover:bg-white/10 hover:text-white"
                   )}
                   onClick={onMenuItemClick}
                 >
-                  <ChildIcon className={cn("h-3.5 w-3.5 shrink-0", isChildActive ? "text-[#F57C00]" : "text-slate-400")} />
+                  <ChildIcon className={cn("h-3.5 w-3.5 shrink-0", active ? "text-[#F57C00]" : "text-slate-400")} />
                   <div className="flex flex-col min-w-0">
                     <span className="font-medium truncate">{child.name.hi}</span>
                     {child.subtitle && (
@@ -140,7 +198,7 @@ const MenuItem = memo(
 
 MenuItem.displayName = "MenuItem";
 
-export const Sidebar = memo(
+const SidebarContent = memo(
   ({
     className,
     onMenuItemClick,
@@ -149,6 +207,7 @@ export const Sidebar = memo(
     onMenuItemClick?: () => void;
   }) => {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const [userRole, setUserRole] = useState<string>("admin");
     const [agentInfo, setAgentInfo] = useState<any>(null);
 
@@ -192,8 +251,11 @@ export const Sidebar = memo(
           return false;
         }
 
-        // 4. Check if agent has permission for this module
-        return agentHasPermission(item.permissionKey);
+        // 4. Check if agent has permission for this module (or any of its children)
+        return (
+          agentHasPermission(item.permissionKey) ||
+          (item.children && item.children.some((c) => agentHasPermission(c.permissionKey)))
+        );
       });
     }, [agentHasPermission]);
 
@@ -232,6 +294,7 @@ export const Sidebar = memo(
                   key={item.route}
                   item={item}
                   pathname={pathname}
+                  searchParams={searchParams}
                   onMenuItemClick={onMenuItemClick}
                   agentHasPermission={agentHasPermission}
                 />
@@ -252,6 +315,34 @@ export const Sidebar = memo(
           </Button>
         </div>
       </div>
+    );
+  }
+);
+
+SidebarContent.displayName = "SidebarContent";
+
+export const Sidebar = memo(
+  ({
+    className,
+    onMenuItemClick,
+  }: {
+    className?: string;
+    onMenuItemClick?: () => void;
+  }) => {
+    return (
+      <Suspense
+        fallback={
+          <div
+            className={cn("pb-12 flex flex-col h-screen overflow-y-auto", className)}
+            style={{
+              background: "var(--sidebar-bg, #071E3D)",
+              width: "var(--sidebar-width, 20rem)",
+            }}
+          />
+        }
+      >
+        <SidebarContent className={className} onMenuItemClick={onMenuItemClick} />
+      </Suspense>
     );
   }
 );

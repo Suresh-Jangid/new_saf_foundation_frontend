@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef, useMemo } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Edit, Trash2, Plus, Eye, FileText, FileSpreadsheet } from "lucide-react"
 import Link from "next/link"
 import { DataTable } from "@/components/data-table"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { get } from "@/lib/api"
 import { useCRUD } from "@/hooks/use-crud"
 import { API_ENDPOINTS, generalApplicationsAPI, agentRegistrationAPI } from "@/lib/api"
@@ -29,6 +29,11 @@ import { getCurrentUserInfo, calculateAge, getPhotoDataUrl } from "@/lib/utils"
 import { isMale, isFemale, buildPdfFilename } from "@/lib/form-values"
 import * as XLSX from "xlsx"
 import { isAdmin } from "@/lib/permissions"
+import {
+  resolveGeneralMarriageGroup,
+  getGroupBadgeColor,
+  getGroupLabel,
+} from "@/lib/contribution-group"
 import {
   Dialog,
   DialogContent,
@@ -445,12 +450,13 @@ const processImageData = (passportPhoto?: string): Promise<string | null> =>
   getPhotoDataUrl(passportPhoto);
 
 
-export default function GeneralApplicationsPage() {
+function GeneralApplicationsContent() {
   const [currentGenderFilter, setCurrentGenderFilter] = useState<string>("all")
   const [currentAddressFilter, setCurrentAddressFilter] = useState<string>("all")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [recordToDelete, setRecordToDelete] = useState<string | null>(null)
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
   const [agentsList, setAgentsList] = useState<any[]>([])
 
@@ -619,6 +625,21 @@ export default function GeneralApplicationsPage() {
     { key: "age", label: "आयु" },
     { key: "gender", label: "लिंग" },
     { key: "category", label: "श्रेणी" },
+    {
+      key: "installmentAmount",
+      label: "किस्त / ग्रुप",
+      render: (_: any, record: GeneralApplicationRecord) => {
+        const group = resolveGeneralMarriageGroup(record.installmentAmount);
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold text-gray-900">₹{record.installmentAmount || "-"}</span>
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border ${getGroupBadgeColor(group)}`}>
+              {group || "Admin Review"}
+            </span>
+          </div>
+        );
+      },
+    },
     { key: "mobile", label: "मोबाइल" },
     { key: "address", label: "गाँव" },
     { key: "pinCode", label: "पिन कोड" },
@@ -929,15 +950,15 @@ export default function GeneralApplicationsPage() {
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = (recordsToExport: GeneralApplicationRecord[] = displayRecords, groupName?: string) => {
     try {
-      if (displayRecords.length === 0) {
+      if (recordsToExport.length === 0) {
         toast.error("No data to export");
         return;
       }
 
       // Prepare data for Excel export
-      const excelData = displayRecords.map((record) => ({
+      const excelData = recordsToExport.map((record) => ({
         "सदस्यता संख्या": record.formNumber,
         "ऑफलाइन फॉर्म नं.": record.offlineFormNumber || "-",
         "आवेदन तिथि": record.applicationDate,
@@ -950,6 +971,8 @@ export default function GeneralApplicationsPage() {
         "आयु": record.age,
         "लिंग": record.gender,
         "श्रेणी": record.category,
+        "किस्त राशि": record.installmentAmount || "-",
+        "ग्रुप": resolveGeneralMarriageGroup(record.installmentAmount) || "Unassigned",
         "मोबाइल": record.mobile,
         "गाँव": record.address,
         "पिन कोड": record.pinCode,
@@ -966,7 +989,8 @@ export default function GeneralApplicationsPage() {
       // Create workbook and worksheet
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "General Marriage Applications");
+      const sheetName = groupName ? `GM (${groupName})` : "General Marriage Applications";
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
       // Generate Excel file
       const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
@@ -976,7 +1000,8 @@ export default function GeneralApplicationsPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `general_applications_${new Date().toISOString().split("T")[0]}.xlsx`;
+      const fileSuffix = groupName ? `_${groupName.toLowerCase()}` : "";
+      a.download = `general_applications${fileSuffix}_${new Date().toISOString().split("T")[0]}.xlsx`;
       document.body.appendChild(a);
       a.click();
       
@@ -1114,6 +1139,74 @@ export default function GeneralApplicationsPage() {
   };
 
 
+  const [activeGroupView, setActiveGroupView] = useState<"all" | "GM-300" | "GM-1000" | "unsupported">("all");
+
+  useEffect(() => {
+    const groupParam = searchParams?.get("group");
+    if (groupParam === "GM-300") {
+      setActiveGroupView("GM-300");
+    } else if (groupParam === "GM-1000") {
+      setActiveGroupView("GM-1000");
+    } else if (groupParam === "unsupported") {
+      setActiveGroupView("unsupported");
+    } else {
+      setActiveGroupView("all");
+    }
+  }, [searchParams]);
+
+  const handleGroupViewChange = (view: "all" | "GM-300" | "GM-1000" | "unsupported") => {
+    setActiveGroupView(view);
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    if (view === "all") {
+      params.delete("group");
+    } else {
+      params.set("group", view);
+    }
+    const query = params.toString();
+    router.replace(`/dashboard/general-applications${query ? `?${query}` : ""}`, { scroll: false });
+  };
+
+  const records300 = useMemo(
+    () => displayRecords.filter((r) => resolveGeneralMarriageGroup(r.installmentAmount) === "GM-300"),
+    [displayRecords]
+  );
+
+  const records1000 = useMemo(
+    () => displayRecords.filter((r) => resolveGeneralMarriageGroup(r.installmentAmount) === "GM-1000"),
+    [displayRecords]
+  );
+
+  const unsupportedRecords = useMemo(
+    () => displayRecords.filter((r) => resolveGeneralMarriageGroup(r.installmentAmount) === null),
+    [displayRecords]
+  );
+
+  const eligibleRecords = useMemo(
+    () => displayRecords.filter((r) => resolveGeneralMarriageGroup(r.installmentAmount) !== null),
+    [displayRecords]
+  );
+
+  const currentTableRecords = useMemo(() => {
+    if (activeGroupView === "GM-300") return records300;
+    if (activeGroupView === "GM-1000") return records1000;
+    if (activeGroupView === "unsupported") return unsupportedRecords;
+    return eligibleRecords;
+  }, [activeGroupView, records300, records1000, unsupportedRecords, eligibleRecords]);
+
+  const tableTitle = useMemo(() => {
+    if (activeGroupView === "GM-300") return "General Marriage — ₹300 Installment (GM-300)";
+    if (activeGroupView === "GM-1000") return "General Marriage — ₹1,000 Installment (GM-1000)";
+    if (activeGroupView === "unsupported") return "General Marriage — Admin Review Required";
+    return "General Marriage Applications";
+  }, [activeGroupView]);
+
+  const tableSubtitle = useMemo(() => {
+    if (activeGroupView === "GM-300") return "सामान्य आवेदन फॉर्म (₹300 किस्त ग्रुप)";
+    if (activeGroupView === "GM-1000") return "सामान्य आवेदन फॉर्म (₹1,000 किस्त ग्रुप)";
+    if (activeGroupView === "unsupported") return "असमर्थित किस्त रिकॉर्ड (Legacy / Unverified Installments — Blocked from Contributions)";
+    return "सामान्य विवाह आवेदन पत्र (All Groups: GM-300 & GM-1000)";
+  }, [activeGroupView]);
+
   if (loading) {
     return (
       <div className="p-4 md:p-6">
@@ -1127,13 +1220,76 @@ export default function GeneralApplicationsPage() {
   return (
     <RoleGuard requiredModule="applicant_registration" requiredAction="view">
       <>
+        {/* Group Selector Bar */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-muted/40 p-3 rounded-lg border">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-foreground mr-1">Installment Groups:</span>
+            <Button
+              size="sm"
+              variant={activeGroupView === "all" ? "default" : "outline"}
+              onClick={() => handleGroupViewChange("all")}
+            >
+              All Groups ({eligibleRecords.length})
+            </Button>
+            <Button
+              size="sm"
+              variant={activeGroupView === "GM-300" ? "default" : "outline"}
+              className={activeGroupView === "GM-300" ? "bg-blue-600 hover:bg-blue-700 text-white" : ""}
+              onClick={() => handleGroupViewChange("GM-300")}
+            >
+              Group GM-300 (₹300) ({records300.length})
+            </Button>
+            <Button
+              size="sm"
+              variant={activeGroupView === "GM-1000" ? "default" : "outline"}
+              className={activeGroupView === "GM-1000" ? "bg-indigo-600 hover:bg-indigo-700 text-white" : ""}
+              onClick={() => handleGroupViewChange("GM-1000")}
+            >
+              Group GM-1000 (₹1,000) ({records1000.length})
+            </Button>
+            {unsupportedRecords.length > 0 && (
+              <Button
+                size="sm"
+                variant={activeGroupView === "unsupported" ? "destructive" : "outline"}
+                className={activeGroupView !== "unsupported" ? "text-amber-700 border-amber-300 hover:bg-amber-50" : ""}
+                onClick={() => handleGroupViewChange("unsupported")}
+              >
+                ⚠️ Admin Review Required ({unsupportedRecords.length})
+              </Button>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Strict separation: GM-300 (₹300) & GM-1000 (₹1,000)
+          </div>
+        </div>
+
+        {unsupportedRecords.length > 0 && activeGroupView !== "unsupported" && (
+          <div className="mb-6 p-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 shadow-sm">
+            <div>
+              <h4 className="font-semibold text-sm">⚠️ Unsupported Legacy Records Detected</h4>
+              <p className="text-xs text-amber-800">
+                {unsupportedRecords.length} application(s) have unverified or legacy installment amounts (null or ₹200). These records are excluded from contribution groups until administrator review.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-amber-400 text-amber-900 hover:bg-amber-100 self-start sm:self-auto shrink-0"
+              onClick={() => handleGroupViewChange("unsupported")}
+            >
+              Review Records ({unsupportedRecords.length})
+            </Button>
+          </div>
+        )}
+
+        {/* Single Consolidated Application Table */}
         <DataTable
-          data={displayRecords}
+          data={currentTableRecords}
           columns={columns}
-          title="सामान्य आवेदन (General Marriage Applications)"
-          subtitle="सामान्य आवेदन फॉर्म संभालें"
+          title={tableTitle}
+          subtitle={tableSubtitle}
           addNewUrl="/dashboard/general-applications/add"
-          addNewLabel="Add New General Marriage Application"
+          addNewLabel="Add New Application"
           onDelete={handleDelete}
           editUrlPattern="/dashboard/general-applications/edit/[id]"
           searchFields={searchFields}
@@ -1153,11 +1309,11 @@ export default function GeneralApplicationsPage() {
           headerActions={
             <div className="flex gap-2">
               <Button
-                onClick={handleExportExcel}
+                onClick={() => handleExportExcel(currentTableRecords, activeGroupView === "all" ? undefined : activeGroupView)}
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
-                disabled={displayRecords.length === 0}
+                disabled={currentTableRecords.length === 0}
               >
                 <FileSpreadsheet className="w-4 h-4" />
                 <span className="hidden sm:inline">Export Excel</span>
@@ -1271,5 +1427,21 @@ export default function GeneralApplicationsPage() {
         </Dialog>
       </>
     </RoleGuard>
+  )
+}
+
+export default function GeneralApplicationsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-4 md:p-6">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-lg">Loading applications...</div>
+          </div>
+        </div>
+      }
+    >
+      <GeneralApplicationsContent />
+    </Suspense>
   )
 }

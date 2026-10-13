@@ -18,6 +18,7 @@ import { Loader2, Search, FileBarChart, CreditCard, CheckCircle2, AlertCircle, A
 import { post, get, API_ENDPOINTS } from "@/lib/api"
 import { GENDER } from "@/lib/form-values"
 import { RoleGuard } from "@/components/role-guard"
+import { AgentSearchCombobox } from "@/components/agent-search-combobox"
 
 interface Agent {
   id: string
@@ -25,6 +26,8 @@ interface Agent {
   employee_id: string
   mobile: string
   village: string
+  offlineFormNumber?: string
+  offline_form_number?: string
 }
 
 // Item row returned from bulk commission queries
@@ -379,6 +382,7 @@ const manualReviewColumns = [
 export default function BulkDataReportPage() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [agentsLoading, setAgentsLoading] = useState(false)
+  const [agentsError, setAgentsError] = useState<string | null>(null)
   const [addedById, setAddedById] = useState<string>("")
   const [gender, setGender] = useState<string>("all")
   const [selectedModuleFilter, setSelectedModuleFilter] = useState<string>("marriage")
@@ -393,30 +397,44 @@ export default function BulkDataReportPage() {
   const [activeTab, setActiveTab] = useState<string>("marriage-entry-fee")
   const [activeViewMode, setActiveViewMode] = useState<"summary" | "module" | "manual_review">("module")
 
-  useEffect(() => {
-    const fetchAgents = async () => {
-      try {
-        setAgentsLoading(true)
-        const response = await get(API_ENDPOINTS.GET_AGENTS)
-        if (response.data.status && Array.isArray(response.data.data)) {
-          setAgents(
-            response.data.data.map((agent: Record<string, string>) => ({
-              id: String(agent.id),
-              name: agent.name || "",
-              employee_id: agent.employee_id || "",
-              mobile: agent.mobile || "",
-              village: agent.village || "",
-            })),
-          )
-        }
-      } catch (error) {
-        console.error("Error fetching agents:", error)
-        toast.error("Failed to load agents")
-      } finally {
-        setAgentsLoading(false)
-      }
-    }
+  const fetchAgents = async () => {
+    try {
+      setAgentsLoading(true)
+      setAgentsError(null)
+      const response = await get(API_ENDPOINTS.GET_AGENTS)
+      const rawList = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.data)
+        ? response.data.data
+        : Array.isArray(response.data?.agents)
+        ? response.data.agents
+        : []
 
+      setAgents(
+        rawList.map((agent: Record<string, any>) => ({
+          id: String(agent.id),
+          name: agent.name || "",
+          employee_id: agent.employee_id || agent.employeeId || "",
+          mobile: agent.mobile || agent.mobileNumber || "",
+          village: agent.village || "",
+          offlineFormNumber:
+            agent.offlineFormNumber ||
+            agent.offline_form_number ||
+            agent.agentProfile?.offlineFormNumber ||
+            "",
+        })),
+      )
+    } catch (error: any) {
+      console.error("Error fetching agents:", error)
+      const msg = error.message || "Failed to load agents"
+      setAgentsError(msg)
+      toast.error(msg)
+    } finally {
+      setAgentsLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchAgents()
   }, [])
 
@@ -747,19 +765,17 @@ export default function BulkDataReportPage() {
               {/* Agent */}
               <div className="space-y-2">
                 <Label htmlFor="agent">Agent *</Label>
-                <Select value={addedById} onValueChange={setAddedById} disabled={agentsLoading}>
-                  <SelectTrigger id="agent">
-                    <SelectValue placeholder={agentsLoading ? "Loading agents..." : "Select agent"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {agents.map((agent) => (
-                      <SelectItem key={agent.id} value={agent.id}>
-                        {agent.employee_id} — {agent.name}
-                        {agent.village ? ` (${agent.village})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <AgentSearchCombobox
+                  id="agent"
+                  value={addedById}
+                  onValueChange={setAddedById}
+                  agents={agents}
+                  isLoading={agentsLoading}
+                  error={agentsError}
+                  onRetry={fetchAgents}
+                  placeholder="Select agent..."
+                  searchPlaceholder="नाम, कर्मचारी ID, ऑफलाइन नंबर, मोबाइल से खोजें..."
+                />
               </div>
 
               {/* Module / Scheme Selector */}

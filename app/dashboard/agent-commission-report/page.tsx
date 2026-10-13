@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
-import { Loader2, FileBarChart, Users, AlertCircle } from "lucide-react"
+import { Loader2, FileBarChart, Users } from "lucide-react"
 import { agentRegistrationAPI, createFormData, post, get, API_ENDPOINTS } from "@/lib/api"
 import { formatDate } from "@/lib/utils"
 import { RoleGuard } from "@/components/role-guard"
 import { isAgent, getAgentData } from "@/lib/permissions"
+import { AgentSearchCombobox } from "@/components/agent-search-combobox"
 
 // Dynamically import DisplayTable to reduce initial bundle size
 const DisplayTable = dynamic(
@@ -55,6 +56,8 @@ interface Agent {
   designation: string
   employee_id: string
   profile_image: string
+  offlineFormNumber?: string
+  offline_form_number?: string
 }
 
 interface PaymentDetails {
@@ -306,6 +309,18 @@ function AgentCommissionReportContent() {
         designation: String(a.designation || "Agent"),
         employee_id: String(a.employee_id || a.employeeId || a.agentNumber || "N/A"),
         profile_image: String(a.profile_image || a.profileImage || ""),
+        offlineFormNumber: String(
+          a.offlineFormNumber ||
+          a.offline_form_number ||
+          a.agentProfile?.offlineFormNumber ||
+          ""
+        ),
+        offline_form_number: String(
+          a.offline_form_number ||
+          a.offlineFormNumber ||
+          a.agentProfile?.offlineFormNumber ||
+          ""
+        ),
       }))
 
       if (agentMode) {
@@ -462,58 +477,18 @@ function AgentCommissionReportContent() {
               {/* Agent Selection Dropdown */}
               <div className="space-y-2">
                 <Label htmlFor="agent">Agent *</Label>
-                {loadingAgents ? (
-                  <div className="flex items-center gap-2 p-2 border rounded-md bg-gray-50 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span>Loading agents...</span>
-                  </div>
-                ) : agentsError ? (
-                  <div className="flex items-center justify-between p-2 border border-red-200 rounded-md bg-red-50 text-xs text-red-700">
-                    <div className="flex items-center gap-1">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      <span>{agentsError}</span>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => fetchAgents(isAgentUser)}
-                      className="h-6 px-2 text-xs text-red-700 hover:bg-red-100"
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                ) : agents.length === 0 ? (
-                  <div className="flex items-center justify-between p-2 border border-amber-200 rounded-md bg-amber-50 text-xs text-amber-800">
-                    <span>No active agents found</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => fetchAgents(isAgentUser)}
-                      className="h-6 px-2 text-xs text-amber-800 hover:bg-amber-100"
-                    >
-                      Refresh
-                    </Button>
-                  </div>
-                ) : (
-                  <Select
-                    value={selectedAgentId}
-                    onValueChange={handleAgentSelection}
-                    disabled={isAgentUser}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an agent" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {agents.map((agent) => (
-                        <SelectItem key={agent.id} value={agent.id}>
-                          {agent.name} ({agent.employee_id}) - {agent.mobile}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <AgentSearchCombobox
+                  id="agent"
+                  value={selectedAgentId}
+                  onValueChange={handleAgentSelection}
+                  agents={agents}
+                  isLoading={loadingAgents}
+                  error={agentsError}
+                  onRetry={() => fetchAgents(isAgentUser)}
+                  disabled={isAgentUser}
+                  placeholder="Select an agent"
+                  searchPlaceholder="नाम, कर्मचारी ID, ऑफलाइन नंबर, मोबाइल से खोजें..."
+                />
               </div>
 
               {/* Module Filter */}

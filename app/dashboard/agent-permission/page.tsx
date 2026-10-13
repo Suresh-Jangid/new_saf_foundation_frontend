@@ -4,10 +4,8 @@ import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Loader2, Save, UserCheck, Shield, CheckCheck, XCircle, RotateCcw } from "lucide-react"
+import { Loader2, Save, UserCheck, Shield, CheckCheck, XCircle } from "lucide-react"
 import { get, API_ENDPOINTS, getAgentPermissions, updateAgentPermissions, AgentPermissionUpdateItem } from "@/lib/api"
 import { toast } from "sonner"
 import { RoleGuard } from "@/components/role-guard"
@@ -20,12 +18,16 @@ import {
   VALID_ACTIONS
 } from "@/lib/permissions"
 
+import { AgentSearchCombobox } from "@/components/agent-search-combobox"
+
 interface Agent {
   id: string
   name: string
   employee_id: string
   mobile: string
   village: string
+  offlineFormNumber?: string
+  offline_form_number?: string
 }
 
 interface PermissionMatrix {
@@ -39,6 +41,7 @@ export default function AgentPermissionPage() {
   const [selectedAgent, setSelectedAgent] = useState<string>("")
   const [permissions, setPermissions] = useState<PermissionMatrix>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isPermissionsLoading, setIsPermissionsLoading] = useState(false)
 
@@ -69,23 +72,40 @@ export default function AgentPermissionPage() {
   const fetchAgents = async () => {
     try {
       setIsLoading(true)
+      setFetchError(null)
       const response = await get(API_ENDPOINTS.GET_AGENTS)
-      if (response.data.status && Array.isArray(response.data.data)) {
-        setAgents(
-          response.data.data.map((agent: Record<string, string>) => ({
-            id: String(agent.id),
-            name: agent.name || "",
-            employee_id: agent.employee_id || "",
-            mobile: agent.mobile || "",
-            village: agent.village || "",
-          })),
-        )
-      } else {
-        toast.error("Failed to fetch agents")
-      }
-    } catch (error) {
+      const rawList = Array.isArray(response.data)
+        ? response.data
+        : Array.isArray(response.data?.data)
+        ? response.data.data
+        : Array.isArray(response.data?.agents)
+        ? response.data.agents
+        : []
+
+      setAgents(
+        rawList.map((agent: Record<string, any>) => ({
+          id: String(agent.id),
+          name: agent.name || "",
+          employee_id: agent.employee_id || agent.employeeId || "",
+          mobile: agent.mobile || agent.mobileNumber || "",
+          village: agent.village || "",
+          offlineFormNumber:
+            agent.offlineFormNumber ||
+            agent.offline_form_number ||
+            agent.agentProfile?.offlineFormNumber ||
+            "",
+          offline_form_number:
+            agent.offline_form_number ||
+            agent.offlineFormNumber ||
+            agent.agentProfile?.offlineFormNumber ||
+            "",
+        })),
+      )
+    } catch (error: any) {
       console.error("Error fetching agents:", error)
-      toast.error("Error fetching agents")
+      const msg = error.message || "Error fetching agents"
+      setFetchError(msg)
+      toast.error(msg)
     } finally {
       setIsLoading(false)
     }
@@ -324,35 +344,19 @@ export default function AgentPermissionPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4">
-              <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-                <SelectTrigger className="w-80">
-                  <SelectValue placeholder="Select an agent..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {isLoading ? (
-                    <div className="flex items-center gap-2 p-2 text-sm text-gray-500">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading agents...
-                    </div>
-                  ) : agents.length === 0 ? (
-                    <div className="p-2 text-sm text-gray-500">
-                      No agents found
-                    </div>
-                  ) : (
-                    agents.map((agent) => (
-                      <SelectItem key={agent.id} value={agent.id.toString()}>
-                        <div className="flex flex-col text-left">
-                          <span className="font-medium">{agent.name}</span>
-                          <span className="text-xs text-gray-500">
-                            {agent.employee_id} • {agent.mobile}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-wrap items-center gap-4">
+              <AgentSearchCombobox
+                id="agent-permission-selector"
+                value={selectedAgent}
+                onValueChange={setSelectedAgent}
+                agents={agents}
+                isLoading={isLoading}
+                error={fetchError}
+                onRetry={fetchAgents}
+                placeholder="Select an agent..."
+                searchPlaceholder="नाम, कर्मचारी ID, ऑफलाइन नंबर, मोबाइल से खोजें..."
+                className="w-80"
+              />
               
               {selectedAgent && (
                 <div className="flex items-center gap-4">

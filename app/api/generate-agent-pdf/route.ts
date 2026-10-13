@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
 import { loadImageBytes } from '../../utils/pdfImage';
-import { drawDevanagariText } from '@/lib/pdf-devanagari';
+import { drawDevanagariText, drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
 
@@ -59,8 +59,7 @@ export async function POST(request: NextRequest) {
     const pages = pdfDoc.getPages();
     const firstPage = pages[0];
     
-    // Set page size to 204x323
-    firstPage.setSize(141, 240);
+    // Preserve the original template dimensions without clipping
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
     // Handle image embedding if imageData or profile_image is provided
@@ -86,14 +85,15 @@ export async function POST(request: NextRequest) {
           }
 
           if (image) {
-            // Use the exact original image configuration
-            const imageX = 47; // X position for photo (adjusted for smaller page)
-            const imageY = 50; // Y position for photo (adjusted for smaller page)
-            const imageWidth = 50; // Width of the photo (adjusted for smaller page)
-            const imageHeight = 60; // Height of the photo (adjusted for smaller page)
+            // Precise photo box coordinates on the agent ID card template:
+            // Box dimensions: x=119.5, width=37.0 pt, height=51.5 pt
+            const imageX = 119.5;
+            const imageYFromTop = 113.2;
+            const imageWidth = 37.0;
+            const imageHeight = 51.5;
 
             // Position the image using bottom-left coordinate system
-            const drawY = pageHeight - imageY - imageHeight;
+            const drawY = pageHeight - imageYFromTop - imageHeight;
 
             firstPage.drawImage(image, {
               x: imageX,
@@ -134,35 +134,46 @@ export async function POST(request: NextRequest) {
       font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     }
 
-    // Field mappings for the agent ID card - adjusted for 204x323 dimensions
+    // Resolved field values with fallback property names
+    const resolvedValues: Record<string, string> = {
+      name: record?.name || '',
+      fatherName: record?.fatherName || record?.father_name || '',
+      designation: record?.designation || '',
+      doj: record?.doj ? formatDateToDDMMYYYY(record.doj) : '',
+      mobile: record?.mobile || record?.phone || '',
+      agent_code: record?.agent_code || record?.offlineFormNumber || record?.offline_form_number || '',
+      employee_id: record?.employee_id || record?.employeeId || '',
+      address: record?.address || [record?.village, record?.tehsil, record?.district].filter(Boolean).join(', ') || '',
+      dateOfBirth: record?.dateOfBirth ? formatDateToDDMMYYYY(record.dateOfBirth) : (record?.dob ? formatDateToDDMMYYYY(record.dob) : ''),
+    };
+
+    // Field mappings aligned with the printed labels on the template
     const fieldMappings = [
-      { field: 'employee_id', x: 55 , y: 196, label: 'Employee ID' },
-      { field: 'name', x: 35 , y: 129, label: 'Name' },
-      { field: 'fatherName', x: 55, y: 140, label: 'Father Name' },    
-      { field: 'address', x: 42, y: 151, label: 'Address' },    
-      { field: 'mobile', x: 40, y: 163, label: 'Mobile' },
-      { field: 'doj', x: 30, y: 174, label: 'Date of Joining' },
-      { field: 'designation', x: 54, y: 185, label: 'Designation' },
+      { key: 'name', x: 44, y: 83.0, size: 5, maxW: 72 },
+      { key: 'fatherName', x: 65, y: 98.0, size: 5, maxW: 52 },
+      { key: 'designation', x: 42, y: 115.5, size: 5, maxW: 74 },
+      { key: 'doj', x: 61, y: 130.5, size: 5, maxW: 56 },
+      { key: 'mobile', x: 50, y: 148.0, size: 5, maxW: 67 },
+      { key: 'agent_code', x: 70, y: 163.0, size: 5, maxW: 47 },
+      { key: 'employee_id', x: 71, y: 178.0, size: 5, maxW: 88 },
+      { key: 'address', x: 42, y: 196.8, size: 4.8, maxW: 118 },
+      { key: 'dateOfBirth', x: 60, y: 211.8, size: 5, maxW: 100 },
     ];
 
     // Add data to the PDF
     for (const mapping of fieldMappings) {
-      const value = record[mapping.field];
+      const value = resolvedValues[mapping.key];
       if (!value) continue;
 
-      // Format date fields to dd/mm/yyyy
-      let formattedValue = value;
-      if (mapping.field === 'doj') {
-        formattedValue = formatDateToDDMMYYYY(value);
-      }
-
       const drawX = mapping.x;
-      const drawY = pageHeight - mapping.y; // Convert to top-left coordinate system
+      const drawY = pageHeight - mapping.y; // Convert top-left Y coordinate to PDF bottom-left
 
-      drawDevanagariText(firstPage, font, String(formattedValue), {
+      drawDevanagariBounded(firstPage, font, String(value), {
         x: drawX,
         y: drawY,
-        size: 5,
+        size: mapping.size,
+        maxW: mapping.maxW,
+        minSize: 3.5,
         color: rgb(0, 0, 0),
       });
     }
@@ -175,12 +186,13 @@ export async function POST(request: NextRequest) {
     );
 
     // Create a safe filename without Hindi characters
-    const safeName = (record.name || record.employee_id || 'agent')
+    const asciiFiltered = (record?.name || record?.employee_id || record?.agent_code || '')
       .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
       .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove special characters except spaces, hyphens, underscores
       .trim()
       .replace(/\s+/g, '_'); // Replace spaces with underscores
     
+    const safeName = asciiFiltered || 'agent';
     const filename = `agent_id_card_${safeName}.pdf`;
 
     return new NextResponse(arrayBuffer as ArrayBuffer, {

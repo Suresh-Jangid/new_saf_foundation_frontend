@@ -437,38 +437,6 @@ export default function AgentRegistrationList() {
     }
   };
 
-  const handleGenerateAdikartFormPDF = async (record: AgentRecord) => {
-    try {
-      // Prepare data for adikart form generation
-      const adikartFormData = {
-        ...record,
-        employee_id: record.employee_id || '',
-        doj: record.doj || '',
-        designation: record.designation || ''
-      };
-      
-      // Generate PDF using the service with profile image if available
-      const pdfBlob = await APIService.generateAgentAdikartFormPDF(adikartFormData, record.profile_image);
-      
-      // Create download link
-      const url = window.URL.createObjectURL(pdfBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `agent_adikart_form_${record.employee_id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      
-      // Cleanup
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-
-      toast.success('Agent Adikart Form PDF generated successfully');
-    } catch (error) {
-      console.error('Error generating agent adikart form PDF:', error);
-      toast.error('Failed to generate agent adikart form PDF');
-    }
-  };
-
   if (loading) {
     return (
       <div className="p-4 md:p-6">
@@ -492,7 +460,6 @@ export default function AgentRegistrationList() {
           onDelete={handleDelete}
           onGeneratePDFForm={handleGeneratePDF}
           onGenerateApplicationForm={handleGenerateApplicationFormPDF}
-          onGenerateAdikartForm={handleGenerateAdikartFormPDF}
           editUrlPattern="/dashboard/agent-registration/edit/[id]"
           searchFields={["employee_id", "name", "fatherName", "village", "mobile", "offlineFormNumber", "offline_form_number"]}
           itemsPerPage={10}
@@ -510,8 +477,6 @@ export default function AgentRegistrationList() {
           pdfFormButtonTooltip="Generate Agent ID Card"
           applicationFormButtonLabel="Application Form"
           applicationFormButtonTooltip="Generate Agent Application Form"
-          adikartFormButtonLabel="Adikart Form"
-          adikartFormButtonTooltip="Generate Agent Adikart Form"
         />
 
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

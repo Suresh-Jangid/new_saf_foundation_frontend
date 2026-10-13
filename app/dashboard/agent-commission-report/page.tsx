@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
-import { Loader2, FileBarChart, Users } from "lucide-react"
-import { agentRegistrationAPI, createFormData, post } from "@/lib/api"
+import { Loader2, FileBarChart, Users, AlertCircle } from "lucide-react"
+import { agentRegistrationAPI, createFormData, post, get, API_ENDPOINTS } from "@/lib/api"
 import { formatDate } from "@/lib/utils"
 import { RoleGuard } from "@/components/role-guard"
 import { isAgent, getAgentData } from "@/lib/permissions"
@@ -181,6 +181,7 @@ function AgentCommissionReportContent() {
   const [selectedAgentId, setSelectedAgentId] = useState<string>("")
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
   const [loadingAgents, setLoadingAgents] = useState(false)
+  const [agentsError, setAgentsError] = useState<string | null>(null)
   const [isAgentUser, setIsAgentUser] = useState(false)
 
   // Filtering states
@@ -237,42 +238,105 @@ function AgentCommissionReportContent() {
   // Fetch agents from API
   const fetchAgents = async (agentMode = false) => {
     setLoadingAgents(true)
+    setAgentsError(null)
     try {
-      const response = await agentRegistrationAPI.getAll()
+      let rawAgents: any[] = []
 
-      if (response.status && response.data) {
-        let loadedAgents: Agent[] = response.data
-        if (agentMode) {
-          const currentAgent = getAgentData()
-          const currentAgentId = currentAgent?.id ? String(currentAgent.id) : ""
-          const filtered = response.data.filter((a) => String(a.id) === currentAgentId)
-          if (filtered.length > 0) {
-            loadedAgents = filtered
-            setAgents(filtered)
-            setSelectedAgent(filtered[0])
-            setSelectedAgentId(String(filtered[0].id))
-            fetchPaymentDetails(String(filtered[0].id))
-            return
-          }
+      // Primary endpoint: canonical ?apicall=getAgents (verified working across admin panel)
+      try {
+        const response = await get(API_ENDPOINTS.GET_AGENTS)
+        if (response?.data?.status && Array.isArray(response.data.data)) {
+          rawAgents = response.data.data
+        } else if (Array.isArray(response?.data?.data)) {
+          rawAgents = response.data.data
+        } else if (Array.isArray(response?.data)) {
+          rawAgents = response.data
         }
+      } catch (getErr) {
+        console.warn("Primary get(API_ENDPOINTS.GET_AGENTS) failed, trying agentRegistrationAPI fallback:", getErr)
+      }
 
-        setAgents(loadedAgents)
-
-        // If URL has agentId parameter, auto-select and fetch
-        if (urlAgentId) {
-          const target = loadedAgents.find((a) => String(a.id) === urlAgentId)
-          if (target) {
-            setSelectedAgent(target)
-            setSelectedAgentId(String(target.id))
-            fetchPaymentDetails(String(target.id))
+      // Secondary fallback if primary returned 0 items or failed
+      if (rawAgents.length === 0) {
+        try {
+          const fallbackRes = await agentRegistrationAPI.getAll()
+          const body: any = fallbackRes
+          if (body && Array.isArray(body.data)) {
+            rawAgents = body.data
+          } else if (body && Array.isArray(body.agents)) {
+            rawAgents = body.agents
+          } else if (Array.isArray(body)) {
+            rawAgents = body
           }
+        } catch (fallbackErr) {
+          console.warn("Fallback agentRegistrationAPI.getAll() failed:", fallbackErr)
         }
-      } else {
-        throw new Error(response.message || 'Failed to fetch agents')
+      }
+
+      if (rawAgents.length === 0) {
+        setAgents([])
+        setAgentsError("No active agents returned by API")
+        return
+      }
+
+      const loadedAgents: Agent[] = rawAgents.map((a: any) => ({
+        id: String(a.id || a.userId || ""),
+        date: String(a.date || a.createdAt || ""),
+        agentNumber: String(a.agentNumber || a.employee_id || a.employeeId || ""),
+        name: String(a.name || "N/A"),
+        fatherName: String(a.fatherName || a.father_name || ""),
+        gotra: String(a.gotra || ""),
+        age: Number(a.age || 0),
+        village: String(a.village || ""),
+        address: String(a.address || ""),
+        tehsil: String(a.tehsil || ""),
+        district: String(a.district || ""),
+        mobile: String(a.mobile || ""),
+        aadhaar: String(a.aadhaar || a.aadhar || ""),
+        bankName: String(a.bankName || a.bank_name || ""),
+        accountNumber: String(a.accountNumber || a.account_number || ""),
+        ifsc: String(a.ifsc || ""),
+        nomineeName: String(a.nomineeName || a.nominee_name || ""),
+        nomineeMobile: String(a.nomineeMobile || a.nominee_mobile || ""),
+        nomineeRelation: String(a.nomineeRelation || a.nominee_relation || ""),
+        workArea: String(a.workArea || a.work_area || ""),
+        gender: String(a.gender || ""),
+        password: "",
+        doj: String(a.doj || a.date || ""),
+        designation: String(a.designation || "Agent"),
+        employee_id: String(a.employee_id || a.employeeId || a.agentNumber || "N/A"),
+        profile_image: String(a.profile_image || a.profileImage || ""),
+      }))
+
+      if (agentMode) {
+        const currentAgent = getAgentData()
+        const currentAgentId = currentAgent?.id ? String(currentAgent.id) : ""
+        const filtered = loadedAgents.filter((a) => String(a.id) === currentAgentId)
+        if (filtered.length > 0) {
+          setAgents(filtered)
+          setSelectedAgent(filtered[0])
+          setSelectedAgentId(String(filtered[0].id))
+          fetchPaymentDetails(String(filtered[0].id))
+          return
+        }
+      }
+
+      setAgents(loadedAgents)
+
+      // If URL has agentId parameter, auto-select and fetch
+      if (urlAgentId) {
+        const target = loadedAgents.find((a) => String(a.id) === urlAgentId)
+        if (target) {
+          setSelectedAgent(target)
+          setSelectedAgentId(String(target.id))
+          fetchPaymentDetails(String(target.id))
+        }
       }
     } catch (error: any) {
       console.error('Error fetching agents:', error)
-      toast.error(error.message || "Failed to fetch agents")
+      const errorMsg = error.message || "Failed to fetch agents"
+      setAgentsError(errorMsg)
+      toast.error(errorMsg)
       setAgents([])
     } finally {
       setLoadingAgents(false)
@@ -399,9 +463,38 @@ function AgentCommissionReportContent() {
               <div className="space-y-2">
                 <Label htmlFor="agent">Agent *</Label>
                 {loadingAgents ? (
-                  <div className="flex items-center gap-2 p-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                  <div className="flex items-center gap-2 p-2 border rounded-md bg-gray-50 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     <span>Loading agents...</span>
+                  </div>
+                ) : agentsError ? (
+                  <div className="flex items-center justify-between p-2 border border-red-200 rounded-md bg-red-50 text-xs text-red-700">
+                    <div className="flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span>{agentsError}</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => fetchAgents(isAgentUser)}
+                      className="h-6 px-2 text-xs text-red-700 hover:bg-red-100"
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                ) : agents.length === 0 ? (
+                  <div className="flex items-center justify-between p-2 border border-amber-200 rounded-md bg-amber-50 text-xs text-amber-800">
+                    <span>No active agents found</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => fetchAgents(isAgentUser)}
+                      className="h-6 px-2 text-xs text-amber-800 hover:bg-amber-100"
+                    >
+                      Refresh
+                    </Button>
                   </div>
                 ) : (
                   <Select

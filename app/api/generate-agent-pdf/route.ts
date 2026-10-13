@@ -2,11 +2,56 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
 import path from 'path';
-import { formatDateToDDMMYYYY } from '../../utils/dateFormatter';
+import { formatDateToSlashDDMMYYYY } from '../../utils/dateFormatter';
 import { loadImageBytes } from '../../utils/pdfImage';
 import { drawDevanagariText, drawDevanagariBounded } from '@/lib/pdf-devanagari';
 
 export const runtime = 'nodejs';
+
+function formatAgentIdAddress(record: any, profile: any): string {
+  const rawAddress = (profile?.address || record?.address || '').trim();
+  const rawVillage = (profile?.village || record?.village || '').trim();
+  const rawTehsil = (profile?.tehsil || record?.tehsil || '').trim();
+  const rawDistrict = (profile?.district || record?.district || '').trim();
+
+  const parts: string[] = [];
+  if (rawAddress) {
+    parts.push(rawAddress);
+  }
+
+  if (rawVillage) {
+    const lowerAddr = rawAddress.toLowerCase();
+    const lowerVill = rawVillage.toLowerCase();
+    if (!lowerAddr || (!lowerAddr.includes(lowerVill) && !lowerVill.includes(lowerAddr))) {
+      parts.push(rawVillage);
+    }
+  }
+
+  if (rawTehsil) {
+    const lowerAddr = rawAddress.toLowerCase();
+    const lowerTeh = rawTehsil.toLowerCase();
+    if (!lowerAddr || (!lowerAddr.includes(lowerTeh) && !lowerTeh.includes(lowerAddr))) {
+      parts.push(rawTehsil);
+    }
+  }
+
+  if (rawDistrict) {
+    const lowerDist = rawDistrict.toLowerCase();
+    const alreadyPresent = parts.some((p) => p.toLowerCase().includes(lowerDist));
+    if (!alreadyPresent) {
+      parts.push(rawDistrict);
+    }
+  }
+
+  if (parts.length === 0) {
+    const city = (profile?.city || record?.city || '').trim();
+    const state = (profile?.state || record?.state || '').trim();
+    if (city) parts.push(city);
+    if (state && !city.toLowerCase().includes(state.toLowerCase())) parts.push(state);
+  }
+
+  return parts.filter(Boolean).join(', ');
+}
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
@@ -26,6 +71,8 @@ export async function POST(request: NextRequest) {
 
     console.log('Received record for agent PDF:', record);
     console.log('Image data received for agent:', !!imageData);
+
+    const profile = record?.agentProfile || record?.agent_profile || record?.profile || {};
 
     // Use the agent ID card template
     const templatePath = path.join(process.cwd(), 'public', 'pdf', 'agent', 'agent_id_card.pdf');
@@ -63,7 +110,22 @@ export async function POST(request: NextRequest) {
     const { width: pageWidth, height: pageHeight } = firstPage.getSize();
 
     // Handle image embedding if imageData or profile_image is provided
-    const imageToUse = imageData || record?.profile_image || record?.photo || record?.photoUrl;
+    const imageToUse =
+      imageData ||
+      record?.profile_image ||
+      record?.profileImage ||
+      record?.profile_image_url ||
+      record?.profileImageUrl ||
+      profile?.profileImageUrl ||
+      profile?.profile_image_url ||
+      profile?.profile_image ||
+      profile?.profileImage ||
+      record?.photo ||
+      record?.photoUrl ||
+      profile?.photo ||
+      profile?.photoUrl ||
+      null;
+
     if (imageToUse) {
       try {
         const loaded = await loadImageBytes(imageToUse);
@@ -134,17 +196,91 @@ export async function POST(request: NextRequest) {
       font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     }
 
-    // Resolved field values with fallback property names
+    // Extract raw dates from either root or nested profile
+    const rawDoj =
+      profile?.dateOfJoining ||
+      profile?.date_of_joining ||
+      profile?.doj ||
+      record?.doj ||
+      record?.dateOfJoining ||
+      record?.date_of_joining ||
+      profile?.registrationDate ||
+      profile?.registration_date ||
+      record?.registrationDate ||
+      record?.registration_date ||
+      record?.date ||
+      '';
+
+    const rawDob =
+      profile?.dateOfBirth ||
+      profile?.date_of_birth ||
+      record?.dateOfBirth ||
+      record?.date_of_birth ||
+      profile?.dob ||
+      record?.dob ||
+      '';
+
+    // Resolved field values mapping camelCase, snake_case, aliases, and nested agentProfile properties
     const resolvedValues: Record<string, string> = {
-      name: record?.name || '',
-      fatherName: record?.fatherName || record?.father_name || '',
-      designation: record?.designation || '',
-      doj: record?.doj ? formatDateToDDMMYYYY(record.doj) : '',
-      mobile: record?.mobile || record?.phone || '',
-      agent_code: record?.agent_code || record?.offlineFormNumber || record?.offline_form_number || '',
-      employee_id: record?.employee_id || record?.employeeId || '',
-      address: record?.address || [record?.village, record?.tehsil, record?.district].filter(Boolean).join(', ') || '',
-      dateOfBirth: record?.dateOfBirth ? formatDateToDDMMYYYY(record.dateOfBirth) : (record?.dob ? formatDateToDDMMYYYY(record.dob) : ''),
+      name:
+        record?.name ||
+        record?.fullName ||
+        record?.full_name ||
+        profile?.name ||
+        profile?.fullName ||
+        profile?.full_name ||
+        record?.user?.name ||
+        '',
+      fatherName:
+        profile?.fatherName ||
+        profile?.father_name ||
+        record?.fatherName ||
+        record?.father_name ||
+        profile?.father ||
+        record?.father ||
+        '',
+      designation:
+        profile?.designation ||
+        record?.designation ||
+        (profile?.role && profile.role !== 'agent' ? profile.role : '') ||
+        (record?.role && record.role !== 'agent' ? record.role : '') ||
+        '',
+      doj: formatDateToSlashDDMMYYYY(rawDoj),
+      mobile:
+        record?.mobile ||
+        record?.mobileNumber ||
+        record?.mobile_number ||
+        profile?.mobile ||
+        profile?.mobileNumber ||
+        profile?.mobile_number ||
+        record?.phone ||
+        record?.phoneNumber ||
+        record?.user?.mobile ||
+        '',
+      agent_code:
+        record?.offlineFormNumber ||
+        record?.offline_form_number ||
+        profile?.offlineFormNumber ||
+        profile?.offline_form_number ||
+        record?.agent_code ||
+        record?.agentCode ||
+        profile?.agent_code ||
+        profile?.agentCode ||
+        record?.code ||
+        profile?.code ||
+        '',
+      employee_id:
+        profile?.employeeId ||
+        profile?.employee_id ||
+        record?.employee_id ||
+        record?.employeeId ||
+        profile?.emp_id ||
+        profile?.empId ||
+        record?.emp_id ||
+        record?.empId ||
+        '',
+      address: formatAgentIdAddress(record, profile),
+      dateOfBirth: formatDateToSlashDDMMYYYY(rawDob),
     };
 
     // Field mappings aligned with the printed labels on the template
@@ -186,7 +322,12 @@ export async function POST(request: NextRequest) {
     );
 
     // Create a safe filename without Hindi characters
-    const asciiFiltered = (record?.name || record?.employee_id || record?.agent_code || '')
+    const asciiFiltered = (
+      resolvedValues.name ||
+      resolvedValues.employee_id ||
+      resolvedValues.agent_code ||
+      ''
+    )
       .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
       .replace(/[^a-zA-Z0-9\s-_]/g, '') // Remove special characters except spaces, hyphens, underscores
       .trim()

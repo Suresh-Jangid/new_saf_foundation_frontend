@@ -64,6 +64,8 @@ interface AgentRecord {
   senior?: { name?: string; employee_id?: string };
   offlineFormNumber?: string | null;
   offline_form_number?: string | null;
+  agent_code?: string;
+  phone?: string;
   seniorOfflineFormNumber?: string | null;
   senior_offline_form_number?: string | null;
   parentOfflineFormNumber?: string | null;
@@ -342,24 +344,75 @@ export default function AgentRegistrationList() {
 
   const handleGeneratePDF = async (record: AgentRecord) => {
     try {
-      // Prepare data with DOJ and designation for ID card generation
+      const profile = record.agentProfile || record.agent_profile || {};
+
+      const employeeId =
+        record.employee_id ||
+        (record as any).employeeId ||
+        profile.employeeId ||
+        profile.employee_id ||
+        '';
+
+      const offlineNo =
+        record.offlineFormNumber ||
+        record.offline_form_number ||
+        profile.offlineFormNumber ||
+        profile.offline_form_number ||
+        '';
+
+      const photoToUse =
+        record.profile_image ||
+        (record as any).profileImage ||
+        profile.profileImageUrl ||
+        profile.profile_image_url ||
+        profile.profile_image ||
+        profile.profileImage ||
+        '';
+
+      // Prepare complete data with all profile fields unpacked
       const idCardData = {
         ...record,
-        doj: record.doj || '',
-        designation: record.designation || ''
+        agentProfile: profile,
+        name: record.name || profile.name || '',
+        fatherName: record.fatherName || profile.fatherName || profile.father_name || '',
+        designation: record.designation || profile.designation || profile.role || '',
+        doj:
+          record.doj ||
+          profile.dateOfJoining ||
+          profile.date_of_joining ||
+          profile.doj ||
+          profile.registrationDate ||
+          '',
+        mobile: record.mobile || profile.mobile || record.phone || '',
+        agent_code: offlineNo || record.agent_code || '',
+        offlineFormNumber: offlineNo,
+        employee_id: employeeId,
+        village: record.village || profile.village || '',
+        address: record.address || profile.address || '',
+        tehsil: record.tehsil || profile.tehsil || '',
+        district: record.district || profile.district || '',
+        dateOfBirth:
+          record.dateOfBirth ||
+          profile.dateOfBirth ||
+          profile.date_of_birth ||
+          (record as any).dob ||
+          profile.dob ||
+          '',
+        profile_image: photoToUse,
       };
-      
+
       // Generate PDF using the service with profile image if available
-      const pdfBlob = await APIService.generateAgentPDF(idCardData, record.profile_image);
-      
-      // Create download link
+      const pdfBlob = await APIService.generateAgentPDF(idCardData, photoToUse);
+
+      // Create download link with safe identifier
+      const safeId = employeeId || offlineNo || record.id || 'agent';
       const url = window.URL.createObjectURL(pdfBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `agent_id_card_${record.employee_id}.pdf`;
+      a.download = `agent_id_card_${safeId}.pdf`;
       document.body.appendChild(a);
       a.click();
-      
+
       // Cleanup
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);

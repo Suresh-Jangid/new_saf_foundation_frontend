@@ -105,3 +105,48 @@ export function formatDateDDMMYYYY(dateValue: string | Date | null | undefined):
     return '';
   }
 }
+
+/**
+ * Format date to DD/MM/YYYY format with slashes
+ */
+export function formatDateToSlashDDMMYYYY(dateValue: string | Date | null | undefined): string {
+  if (!dateValue) return '';
+
+  try {
+    let date: Date;
+
+    if (typeof dateValue === 'string') {
+      const trimmed = dateValue.trim();
+      if (!trimmed) return '';
+
+      // Handle already formatted dates (dd/mm/yyyy or dd-mm-yyyy)
+      const ddmmyyyyMatch = trimmed.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+      if (ddmmyyyyMatch) {
+        return `${ddmmyyyyMatch[1]}/${ddmmyyyyMatch[2]}/${ddmmyyyyMatch[3]}`;
+      }
+
+      // Handle ISO date strings (yyyy-mm-dd or yyyy/mm/dd)
+      const yyyymmddMatch = trimmed.match(/^(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+      if (yyyymmddMatch) {
+        return `${yyyymmddMatch[3]}/${yyyymmddMatch[2]}/${yyyymmddMatch[1]}`;
+      }
+
+      date = new Date(trimmed);
+    } else {
+      date = dateValue;
+    }
+
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+
+    return `${day}/${month}/${year}`;
+  } catch (error) {
+    console.error('Error formatting date to DD/MM/YYYY:', error);
+    return '';
+  }
+}

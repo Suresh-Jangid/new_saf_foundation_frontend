@@ -74,7 +74,7 @@ export default function AddJanniDeliveryPage() {
     category: "A" | "B" | "C" | "D" | "E" | "F";
     totalAmount: string;
     paymentAmount: string;
-    paymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER" | "CHEQUE" | "DD";
+    paymentMode: "CASH" | "ONLINE" | "RAZORPAY" | "BANK_TRANSFER";
     selectedAgentId: string;
     epinCode: string;
   }>({
@@ -110,6 +110,18 @@ export default function AddJanniDeliveryPage() {
     selectedAgentId: "",
     epinCode: "",
   });
+
+  // Validation error state
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const clearFieldError = (field: string) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
   // Photo state
   const [passportPhotoBase64, setPassportPhotoBase64] = useState<string | null>(null);
@@ -258,67 +270,84 @@ export default function AddJanniDeliveryPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Client-side validations
+    // Reset previous errors
+    const errors: Record<string, string> = {};
+
     const rawMobile = formData.mobile.replace(/\D/g, "");
     const rawAadhar = formData.aadharNumber.replace(/\D/g, "");
+    const rawPinCode = formData.pinCode.replace(/\D/g, "");
+    const rawNomineeMobile = formData.nomineeMobile.replace(/\D/g, "");
+    const rawNomineeAadhar = formData.nomineeAadhar.replace(/\D/g, "");
+    const cleanEpin = formData.epinCode.trim().toUpperCase();
+
+    // Client-side validations
+    if (!formData.applicantName.trim() || formData.applicantName.trim().length < 2) {
+      errors.applicantName = "कृपया माता/आवेदक का नाम दर्ज करें (कम से कम 2 अक्षर) / Enter applicant (mother) name";
+    }
+
+    if (!formData.fatherName.trim() || formData.fatherName.trim().length < 2) {
+      errors.fatherName = "कृपया पिता का नाम दर्ज करें (कम से कम 2 अक्षर) / Enter father's name";
+    }
+
+    if (!formData.dateOfBirth.trim()) {
+      errors.dateOfBirth = "कृपया जन्म तिथि चुनें / Select date of birth";
+    } else {
+      const ymdDob = convertToYYYYMMDD(formData.dateOfBirth);
+      if (!ymdDob || isNaN(new Date(ymdDob).getTime())) {
+        errors.dateOfBirth = "कृपया वैध जन्म तिथि दर्ज करें / Enter a valid date of birth";
+      }
+    }
+
+    if (!formData.gotra.trim() || formData.gotra.trim().length < 2) {
+      errors.gotra = "कृपया गोत्र दर्ज करें (कम से कम 2 अक्षर) / Enter gotra";
+    }
 
     if (rawAadhar.length !== 12) {
-      toast.error("कृपया 12 अंकों का आधार नंबर दर्ज करें / Enter a valid 12-digit Aadhaar number");
-      return;
+      errors.aadharNumber = "कृपया 12 अंकों का वैध आधार नंबर दर्ज करें / Enter a valid 12-digit Aadhaar number";
     }
 
-    if (!validatePhoneNumber(rawMobile)) {
-      toast.error("कृपया 10 अंकों का मोबाइल नंबर दर्ज करें / Enter a valid 10-digit mobile number");
-      return;
+    if (rawMobile.length !== 10 || !validatePhoneNumber(rawMobile)) {
+      errors.mobile = "कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें / Enter a valid 10-digit mobile number";
     }
 
-    if (!formData.applicantName.trim()) {
-      toast.error("कृपया माता/आवेदक का नाम दर्ज करें / Enter applicant (mother) name");
-      return;
+    if (!formData.address.trim() || formData.address.trim().length < 3) {
+      errors.address = "कृपया पूरा पता दर्ज करें (कम से कम 3 अक्षर) / Enter complete address";
     }
 
-    if (!formData.fatherName.trim()) {
-      toast.error("कृपया पिता का नाम दर्ज करें / Enter father's name");
-      return;
+    if (!formData.tehsil.trim() || formData.tehsil.trim().length < 2) {
+      errors.tehsil = "कृपया तहसील दर्ज करें / Enter tehsil";
     }
 
-    if (!formData.gotra.trim()) {
-      toast.error("कृपया गोत्र दर्ज करें / Enter gotra");
-      return;
+    if (!formData.district.trim() || formData.district.trim().length < 2) {
+      errors.district = "कृपया ज़िला दर्ज करें / Enter district";
     }
 
-    if (!formData.dateOfBirth) {
-      toast.error("कृपया जन्म तिथि चुनें / Select date of birth");
-      return;
+    if (rawPinCode.length < 5 || rawPinCode.length > 10) {
+      errors.pinCode = "कृपया वैध पिन कोड दर्ज करें (कम से कम 5 अंक) / Enter valid PIN code (min 5 digits)";
     }
 
-    if (!formData.address.trim()) {
-      toast.error("कृपया पता दर्ज करें / Enter full address");
-      return;
+    // Nominee validations (optional, but if provided must follow format)
+    if (rawNomineeMobile && rawNomineeMobile.length !== 10) {
+      errors.nomineeMobile = "कृपया नॉमिनी का 10 अंकों का मोबाइल नंबर दर्ज करें / Enter a valid 10-digit Nominee mobile number";
     }
 
-    if (!formData.tehsil.trim()) {
-      toast.error("कृपया तहसील दर्ज करें / Enter tehsil");
-      return;
-    }
-
-    if (!formData.district.trim()) {
-      toast.error("कृपया ज़िला दर्ज करें / Enter district");
-      return;
-    }
-
-    if (!formData.pinCode.trim() || formData.pinCode.trim().length < 5) {
-      toast.error("कृपया वैध पिन कोड दर्ज करें / Enter valid PIN code");
-      return;
-    }
-
-    // Nominee Aadhaar validation (optional but must be 12 digits if entered)
-    const rawNomineeAadhar = formData.nomineeAadhar.replace(/\D/g, "");
     if (rawNomineeAadhar && rawNomineeAadhar.length !== 12) {
-      toast.error("कृपया नॉमिनी का 12 अंकों का आधार नंबर दर्ज करें / Enter a valid 12-digit Nominee Aadhaar number");
+      errors.nomineeAadhar = "कृपया नॉमिनी का 12 अंकों का आधार नंबर दर्ज करें / Enter a valid 12-digit Nominee Aadhaar number";
+    }
+
+    // Mandatory E-PIN check for Janni Delivery
+    if (!cleanEpin) {
+      errors.epinCode = "ई-पिन आवश्यक है / E-PIN is required for Janni Delivery Registration";
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      const firstErrorMessage = Object.values(errors)[0];
+      toast.error(firstErrorMessage);
       return;
     }
 
+    setFieldErrors({});
     setIsLoading(true);
 
     let finalPassportUrl = passportPhotoBase64 || null;
@@ -352,6 +381,9 @@ export default function AddJanniDeliveryPage() {
     }
 
     // Prepare payload
+    const isValidUuid = (id?: string) =>
+      Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id.trim()));
+
     const payload: CreateJanniDeliveryPayload = {
       applicationDate: convertToYYYYMMDD(formData.applicationDate),
       applicantName: formData.applicantName.trim(),
@@ -364,17 +396,17 @@ export default function AddJanniDeliveryPage() {
       gotra: formData.gotra.trim(),
       mobile: rawMobile,
       address: formData.address.trim(),
-      pinCode: formData.pinCode.trim(),
+      pinCode: rawPinCode,
       tehsil: formData.tehsil.trim(),
       district: formData.district.trim(),
       state: formData.state.trim() || "Rajasthan",
       childName: formData.childName.trim() || null,
-      childGender: formData.childGender || null,
+      childGender: (formData.childGender as any) || null,
       deliveryDate: formData.deliveryDate ? convertToYYYYMMDD(formData.deliveryDate) : null,
       hospitalName: formData.hospitalName.trim() || null,
       nomineeName: formData.nomineeName.trim() || null,
       nomineeRelation: formData.nomineeRelation.trim() || null,
-      nomineeMobile: formData.nomineeMobile.replace(/\D/g, "") || null,
+      nomineeMobile: rawNomineeMobile || null,
       nomineeAadhar: rawNomineeAadhar || null,
       passportPhotoUrl: finalPassportUrl,
       nomineePhotoUrl: finalNomineeUrl,
@@ -384,10 +416,11 @@ export default function AddJanniDeliveryPage() {
       totalAmount: Number(formData.totalAmount) || 0,
       paymentAmount: Number(formData.paymentAmount) || 0,
       paymentMode: formData.paymentMode,
-      selectedAgentId: formData.selectedAgentId || undefined,
-      epinCode: formData.epinCode.trim() || null,
-      pinNumber: formData.epinCode.trim() || null,
+      selectedAgentId: isValidUuid(formData.selectedAgentId) ? formData.selectedAgentId.trim() : undefined,
+      epinCode: cleanEpin,
+      pinNumber: cleanEpin,
     };
+
     try {
       await JanniDeliveryService.createRegistration(payload);
       toast.success(
@@ -396,14 +429,46 @@ export default function AddJanniDeliveryPage() {
       router.push("/dashboard/janni-delivery");
     } catch (err: any) {
       console.error("Submission error:", err);
+      const resData = err.response?.data;
       if (err.response?.status === 409 || err.status === 409) {
-        toast.error(
-          err.response?.data?.message ||
-            "यह E-PIN पहले ही किसी अन्य registration के साथ assign हो चुका है। कृपया दूसरा E-PIN चुनें।"
-        );
+        const conflictMsg =
+          resData?.message ||
+          "यह E-PIN या आधार नंबर पहले ही पंजीकृत है / Record or E-PIN conflict (409)";
+        if (/epin|pin|voucher/i.test(conflictMsg)) {
+          setFieldErrors((prev) => ({ ...prev, epinCode: conflictMsg }));
+        } else if (/aadhar|aadhaar/i.test(conflictMsg)) {
+          setFieldErrors((prev) => ({ ...prev, aadharNumber: conflictMsg }));
+        } else if (/offline/i.test(conflictMsg)) {
+          setFieldErrors((prev) => ({ ...prev, offlineFormNumber: conflictMsg }));
+        }
+        toast.error(conflictMsg);
+      } else if (
+        err.response?.status === 400 &&
+        Array.isArray(resData?.errors) &&
+        resData.errors.length > 0
+      ) {
+        const newFieldErrors: Record<string, string> = {};
+        const messages: string[] = [];
+
+        for (const errorItem of resData.errors) {
+          const rawField = String(errorItem.field || "");
+          const cleanField = rawField.replace(/^(body|query|params)\./, "");
+          const errorMsg = errorItem.message || "अमान्य मान / Invalid value";
+          messages.push(errorMsg);
+
+          if (cleanField) {
+            newFieldErrors[cleanField] = errorMsg;
+            if (cleanField === "pinNumber") {
+              newFieldErrors["epinCode"] = errorMsg;
+            }
+          }
+        }
+
+        setFieldErrors((prev) => ({ ...prev, ...newFieldErrors }));
+        toast.error(messages.join(" | ") || "मान्यकरण त्रुटि / Validation Error");
       } else {
         const msg =
-          err.response?.data?.message ||
+          resData?.message ||
           err.message ||
           "पंजीकरण दर्ज करने में त्रुटि / Failed to create registration";
         toast.error(msg);
@@ -544,9 +609,10 @@ export default function AddJanniDeliveryPage() {
                       <WorkerSearchSelector
                         id="selectedAgentId"
                         value={formData.selectedAgentId}
-                        onValueChange={(val) =>
-                          setFormData((prev) => ({ ...prev, selectedAgentId: val, epinCode: "" }))
-                        }
+                        onValueChange={(val) => {
+                          setFormData((prev) => ({ ...prev, selectedAgentId: val, epinCode: "" }));
+                          clearFieldError("selectedAgentId");
+                        }}
                         agents={agents}
                         isLoading={loadingAgents}
                         disabled={loadingAgents}
@@ -557,6 +623,9 @@ export default function AddJanniDeliveryPage() {
                         }}
                         placeholder="कार्यकर्ता चुनें / Select Worker"
                       />
+                      {fieldErrors.selectedAgentId && (
+                        <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.selectedAgentId}</p>
+                      )}
                     </div>
                   )}
 
@@ -571,12 +640,18 @@ export default function AddJanniDeliveryPage() {
                       id="offlineFormNumber"
                       name="offlineFormNumber"
                       placeholder="ऑफलाइन फॉर्म नं."
-                      className="mt-1 text-xs sm:text-sm"
+                      className={`mt-1 text-xs sm:text-sm ${
+                        fieldErrors.offlineFormNumber ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.offlineFormNumber}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, offlineFormNumber: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        setFormData((prev) => ({ ...prev, offlineFormNumber: e.target.value }));
+                        clearFieldError("offlineFormNumber");
+                      }}
                     />
+                    {fieldErrors.offlineFormNumber && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.offlineFormNumber}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -595,12 +670,18 @@ export default function AddJanniDeliveryPage() {
                     <Input
                       required
                       placeholder="माता का नाम दर्ज करें"
-                      className="mt-1 text-xs sm:text-sm"
+                      className={`mt-1 text-xs sm:text-sm ${
+                        fieldErrors.applicantName ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.applicantName}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, applicantName: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        setFormData((prev) => ({ ...prev, applicantName: e.target.value }));
+                        clearFieldError("applicantName");
+                      }}
                     />
+                    {fieldErrors.applicantName && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.applicantName}</p>
+                    )}
                   </div>
 
                   <div>
@@ -610,12 +691,18 @@ export default function AddJanniDeliveryPage() {
                     <Input
                       required
                       placeholder="पिता का नाम दर्ज करें"
-                      className="mt-1 text-xs sm:text-sm"
+                      className={`mt-1 text-xs sm:text-sm ${
+                        fieldErrors.fatherName ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.fatherName}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, fatherName: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        setFormData((prev) => ({ ...prev, fatherName: e.target.value }));
+                        clearFieldError("fatherName");
+                      }}
                     />
+                    {fieldErrors.fatherName && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.fatherName}</p>
+                    )}
                   </div>
 
                   <div>
@@ -656,9 +743,14 @@ export default function AddJanniDeliveryPage() {
                       <Input
                         required
                         placeholder="dd-mm-yyyy"
-                        className="text-xs sm:text-sm"
+                        className={`text-xs sm:text-sm ${
+                          fieldErrors.dateOfBirth ? "border-red-500 focus-visible:ring-red-500" : ""
+                        }`}
                         value={formData.dateOfBirth}
-                        onChange={handleDobTextChange}
+                        onChange={(e) => {
+                          handleDobTextChange(e);
+                          clearFieldError("dateOfBirth");
+                        }}
                       />
                       <Popover open={dobOpen} onOpenChange={setDobOpen}>
                         <PopoverTrigger asChild>
@@ -683,6 +775,7 @@ export default function AddJanniDeliveryPage() {
                                   dateOfBirth: formatted,
                                   age,
                                 }));
+                                clearFieldError("dateOfBirth");
                               }
                               setDobOpen(false);
                             }}
@@ -690,6 +783,9 @@ export default function AddJanniDeliveryPage() {
                         </PopoverContent>
                       </Popover>
                     </div>
+                    {fieldErrors.dateOfBirth && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.dateOfBirth}</p>
+                    )}
                   </div>
 
                   <div>
@@ -711,12 +807,18 @@ export default function AddJanniDeliveryPage() {
                     <Input
                       required
                       placeholder="गोत्र दर्ज करें"
-                      className="mt-1 text-xs sm:text-sm"
+                      className={`mt-1 text-xs sm:text-sm ${
+                        fieldErrors.gotra ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.gotra}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, gotra: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        setFormData((prev) => ({ ...prev, gotra: e.target.value }));
+                        clearFieldError("gotra");
+                      }}
                     />
+                    {fieldErrors.gotra && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.gotra}</p>
+                    )}
                   </div>
 
                   <div>
@@ -728,15 +830,21 @@ export default function AddJanniDeliveryPage() {
                       inputMode="numeric"
                       maxLength={12}
                       placeholder="12 digit Aadhaar No."
-                      className="mt-1 text-xs sm:text-sm"
+                      className={`mt-1 text-xs sm:text-sm ${
+                        fieldErrors.aadharNumber ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.aadharNumber}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setFormData((prev) => ({
                           ...prev,
                           aadharNumber: e.target.value.replace(/\D/g, "").slice(0, 12),
-                        }))
-                      }
+                        }));
+                        clearFieldError("aadharNumber");
+                      }}
                     />
+                    {fieldErrors.aadharNumber && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.aadharNumber}</p>
+                    )}
                   </div>
                 </div>
 
@@ -750,15 +858,21 @@ export default function AddJanniDeliveryPage() {
                       inputMode="numeric"
                       maxLength={10}
                       placeholder="10 digit Mobile No."
-                      className="mt-1 text-xs sm:text-sm"
+                      className={`mt-1 text-xs sm:text-sm ${
+                        fieldErrors.mobile ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.mobile}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setFormData((prev) => ({
                           ...prev,
                           mobile: e.target.value.replace(/\D/g, "").slice(0, 10),
-                        }))
-                      }
+                        }));
+                        clearFieldError("mobile");
+                      }}
                     />
+                    {fieldErrors.mobile && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.mobile}</p>
+                    )}
                   </div>
 
                   <div>
@@ -895,12 +1009,18 @@ export default function AddJanniDeliveryPage() {
                       required
                       rows={2}
                       placeholder="मकान नंबर, गली/मोहल्ला, गांव आदि दर्ज करें"
-                      className="mt-1 text-xs sm:text-sm bg-white"
+                      className={`mt-1 text-xs sm:text-sm bg-white ${
+                        fieldErrors.address ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.address}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, address: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        setFormData((prev) => ({ ...prev, address: e.target.value }));
+                        clearFieldError("address");
+                      }}
                     />
+                    {fieldErrors.address && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.address}</p>
+                    )}
                   </div>
 
                   <div>
@@ -912,15 +1032,21 @@ export default function AddJanniDeliveryPage() {
                       inputMode="numeric"
                       maxLength={6}
                       placeholder="6 digit PIN Code"
-                      className="mt-1 text-xs sm:text-sm"
+                      className={`mt-1 text-xs sm:text-sm ${
+                        fieldErrors.pinCode ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.pinCode}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setFormData((prev) => ({
                           ...prev,
                           pinCode: e.target.value.replace(/\D/g, "").slice(0, 6),
-                        }))
-                      }
+                        }));
+                        clearFieldError("pinCode");
+                      }}
                     />
+                    {fieldErrors.pinCode && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.pinCode}</p>
+                    )}
                   </div>
 
                   <div>
@@ -930,12 +1056,18 @@ export default function AddJanniDeliveryPage() {
                     <Input
                       required
                       placeholder="तहसील दर्ज करें"
-                      className="mt-1 text-xs sm:text-sm"
+                      className={`mt-1 text-xs sm:text-sm ${
+                        fieldErrors.tehsil ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.tehsil}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, tehsil: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        setFormData((prev) => ({ ...prev, tehsil: e.target.value }));
+                        clearFieldError("tehsil");
+                      }}
                     />
+                    {fieldErrors.tehsil && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.tehsil}</p>
+                    )}
                   </div>
 
                   <div>
@@ -945,12 +1077,18 @@ export default function AddJanniDeliveryPage() {
                     <Input
                       required
                       placeholder="ज़िला दर्ज करें"
-                      className="mt-1 text-xs sm:text-sm"
+                      className={`mt-1 text-xs sm:text-sm ${
+                        fieldErrors.district ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.district}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, district: e.target.value }))
-                      }
+                      onChange={(e) => {
+                        setFormData((prev) => ({ ...prev, district: e.target.value }));
+                        clearFieldError("district");
+                      }}
                     />
+                    {fieldErrors.district && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.district}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1012,15 +1150,21 @@ export default function AddJanniDeliveryPage() {
                       inputMode="numeric"
                       maxLength={10}
                       placeholder="10 digit Mobile No."
-                      className="mt-1 text-xs sm:text-sm"
+                      className={`mt-1 text-xs sm:text-sm ${
+                        fieldErrors.nomineeMobile ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.nomineeMobile}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setFormData((prev) => ({
                           ...prev,
                           nomineeMobile: e.target.value.replace(/\D/g, "").slice(0, 10),
-                        }))
-                      }
+                        }));
+                        clearFieldError("nomineeMobile");
+                      }}
                     />
+                    {fieldErrors.nomineeMobile && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.nomineeMobile}</p>
+                    )}
                   </div>
 
                   <div>
@@ -1031,13 +1175,19 @@ export default function AddJanniDeliveryPage() {
                       inputMode="numeric"
                       maxLength={14}
                       placeholder="12 digit Aadhaar No."
-                      className="mt-1 text-xs sm:text-sm"
+                      className={`mt-1 text-xs sm:text-sm ${
+                        fieldErrors.nomineeAadhar ? "border-red-500 focus-visible:ring-red-500" : ""
+                      }`}
                       value={formData.nomineeAadhar}
                       onChange={(e) => {
                         const digits = e.target.value.replace(/\D/g, "").slice(0, 12);
                         setFormData((prev) => ({ ...prev, nomineeAadhar: digits }));
+                        clearFieldError("nomineeAadhar");
                       }}
                     />
+                    {fieldErrors.nomineeAadhar && (
+                      <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.nomineeAadhar}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1049,15 +1199,23 @@ export default function AddJanniDeliveryPage() {
                 </h2>
 
                 {/* E-PIN Voucher Verification */}
-                <div className="p-4 bg-muted/20 border rounded-lg">
+                <div className={`p-4 bg-muted/20 border rounded-lg ${fieldErrors.epinCode ? "border-red-500" : ""}`}>
                   <EpinInputVerifier
                     value={formData.epinCode}
-                    onChange={(val) => setFormData((prev) => ({ ...prev, epinCode: val }))}
+                    onChange={(val) => {
+                      setFormData((prev) => ({ ...prev, epinCode: val }));
+                      clearFieldError("epinCode");
+                    }}
                     onVerified={handleEpinVerified}
                     agentId={formData.selectedAgentId || undefined}
                     schemeCode="JANNI_DELIVERY"
-                    required={false}
+                    required={true}
+                    externalError={fieldErrors.epinCode}
+                    onClearExternalError={() => clearFieldError("epinCode")}
                   />
+                  {fieldErrors.epinCode && (
+                    <p className="text-xs text-red-500 mt-1 font-medium">{fieldErrors.epinCode}</p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1092,8 +1250,6 @@ export default function AddJanniDeliveryPage() {
                       className="w-full h-10 border border-gray-200 rounded-md px-3 bg-white mt-1 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[#0B4A8F]"
                     >
                       <option value="CASH">Cash / नकद</option>
-                      <option value="CHEQUE">Cheque / चेक</option>
-                      <option value="DD">D.D. / डी.डी.</option>
                       <option value="ONLINE">Online / ऑनलाइन</option>
                       <option value="RAZORPAY">Razorpay</option>
                       <option value="BANK_TRANSFER">Bank Transfer / बैंक ट्रांसफर</option>

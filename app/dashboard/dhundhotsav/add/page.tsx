@@ -28,6 +28,9 @@ import { formatDate } from "@/lib/utils";
 import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftBanner } from "@/components/drafts/draft-banner";
+import { DraftActions } from "@/components/drafts/draft-actions";
 
 export default function AddDhundhotsavPage() {
   const router = useRouter();
@@ -122,6 +125,23 @@ export default function AddDhundhotsavPage() {
       );
     }
   };
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "dhundhotsav",
+    moduleTitle: "ढूंढोत्सव योजना पंजीकरण (Dhundhotsav)",
+    formData,
+    getApplicantName: () => formData.applicantName || formData.childName || "",
+    onRestore: (loadedData) => {
+      setFormData((prev) => ({ ...prev, ...loadedData }));
+    },
+  });
 
   // Load agents if Admin
   useEffect(() => {
@@ -423,6 +443,7 @@ export default function AddDhundhotsavPage() {
         toast.success(
           `ढूंढोत्सव पंजीकरण सफलतापूर्वक संपन्न हुआ! फॉर्म नं: ${res.data?.formNumber || "DH-XXXX"}`
         );
+        clearDraftOnSubmit();
         router.push("/dashboard/dhundhotsav");
       } else {
         const errorMsg = res.message || "पंजीकरण में त्रुटि / Failed to create registration";
@@ -496,6 +517,12 @@ export default function AddDhundhotsavPage() {
 
           {/* Form Content */}
           <div className="px-6 py-8">
+            <DraftBanner
+              draft={draft}
+              onRestore={restoreDraft}
+              onDiscard={discardDraft}
+              className="mb-6"
+            />
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Application Details Section */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 p-4 bg-muted/30 rounded-lg border">
@@ -1006,31 +1033,14 @@ export default function AddDhundhotsavPage() {
               </div>
 
               {/* Action Buttons matching General Marriage Add Form */}
-              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push("/dashboard/dhundhotsav")}
-                  disabled={isLoading}
-                  className="w-full sm:w-auto"
-                >
-                  रद्द करें / Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full sm:w-auto"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      सहेज रहे हैं...
-                    </>
-                  ) : (
-                    "आवेदन बनाएं / Create Application"
-                  )}
-                </Button>
-              </div>
+              <DraftActions
+                onSaveDraft={saveDraft}
+                isSavingDraft={isDraftSaving}
+                isSubmitting={isLoading}
+                onCancel={() => router.push("/dashboard/dhundhotsav")}
+                cancelHref="/dashboard/dhundhotsav"
+                submitLabel="आवेदन बनाएं / Create Application"
+              />
             </form>
           </div>
         </div>

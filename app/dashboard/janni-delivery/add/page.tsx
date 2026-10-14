@@ -30,6 +30,9 @@ import { formatDate, parseDateFromDDMMYYYY, validatePhoneNumber } from "@/lib/ut
 import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftActions } from "@/components/drafts/draft-actions";
+import { DraftBanner } from "@/components/drafts/draft-banner";
 
 export default function AddJanniDeliveryPage() {
   const router = useRouter();
@@ -131,6 +134,23 @@ export default function AddJanniDeliveryPage() {
   // Nominee Photo state
   const [nomineePhotoBase64, setNomineePhotoBase64] = useState<string | null>(null);
   const [nomineePhotoPreview, setNomineePhotoPreview] = useState<string | null>(null);
+
+  // Draft Management Hook
+  const {
+    isDraftSaving,
+    existingDraft,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "janni-delivery",
+    moduleTitle: "जननी प्रसूति पंजीकरण (Janni Delivery)",
+    formData,
+    onRestore: (restoredData) => setFormData((prev) => ({ ...prev, ...restoredData })),
+    getApplicantName: (f) => f?.applicantName || formData.applicantName,
+    getMobile: (f) => f?.mobile || formData.mobile,
+  });
 
   // E-PIN Validation State
   const [, setEpinVerified] = useState<EpinValidationResponse | null>(null);
@@ -424,6 +444,7 @@ export default function AddJanniDeliveryPage() {
 
     try {
       await JanniDeliveryService.createRegistration(payload);
+      clearDraftOnSubmit();
       toast.success(
         "जननी प्रसूति पंजीकरण सफलतापूर्वक दर्ज किया गया! / Janni Delivery Registration Created Successfully!"
       );
@@ -507,6 +528,11 @@ export default function AddJanniDeliveryPage() {
           </div>
 
           <div className="px-6 py-8">
+            <DraftBanner
+              draft={existingDraft}
+              onResume={restoreDraft}
+              onDiscard={discardDraft}
+            />
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Section 1: Application Metadata & Categorization */}
               <div className="space-y-4">
@@ -1257,34 +1283,15 @@ export default function AddJanniDeliveryPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                  disabled={isLoading}
-                  className="w-full sm:w-auto"
-                >
-                  रद्द करें / Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full sm:w-auto bg-[#0B4A8F] hover:bg-[#072E5C] text-white font-medium flex items-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4" />
-                      सहेजें / Save Registration
-                    </>
-                  )}
-                </Button>
-              </div>
+              <DraftActions
+                onSaveDraft={() => saveDraft(formData)}
+                isDraftSaving={isDraftSaving}
+                isSubmitting={isLoading}
+                submitLabel="सहेजें / Save Registration"
+                submittingLabel="सहेजा जा रहा है... / Saving..."
+                draftLabel="ड्राफ्ट सहेजें / Save as Draft"
+                onCancel={() => router.back()}
+              />
             </form>
           </div>
         </div>

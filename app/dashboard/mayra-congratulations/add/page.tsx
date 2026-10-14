@@ -35,6 +35,9 @@ import { RoleGuard } from "@/components/role-guard";
 import { Pagination } from "@/components/ui/pagination";
 import { useSchemeTypes } from "@/hooks/use-app-config";
 import ConfigService from "@/lib/config-service";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftBanner } from "@/components/drafts/draft-banner";
+import { DraftActions } from "@/components/drafts/draft-actions";
 
 // Helper function to check gender
 const isMale = (gender: string): boolean => {
@@ -116,6 +119,29 @@ export default function AddMayraCongratulationsPage() {
     totalPaidAmount: "0",
     memberContribution: "0",
     gender: "",
+  });
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "mayra_congratulations",
+    moduleTitle: "मायरा बधाई पत्र (Mayra Congratulations)",
+    formData: { ...formData, selectedApplicationId },
+    getApplicantName: () => formData.applicantName || "",
+    onRestore: (loadedData) => {
+      const { selectedApplicationId: restoredAppId, ...rest } = loadedData;
+      setFormData((prev) => ({ ...prev, ...rest }));
+      if (restoredAppId) setSelectedApplicationId(restoredAppId);
+      if (loadedData.date) {
+        setApplicationDateObj(new Date(loadedData.date));
+        setApplicationDateValue(formatDate(new Date(loadedData.date)));
+      }
+    },
   });
 
   // Filter applications
@@ -323,6 +349,7 @@ export default function AddMayraCongratulationsPage() {
       const { status, error, message } = response.data ?? {};
 
       if (status === true && error !== true) {
+        clearDraftOnSubmit();
         toast.success("Mayra congratulation record added successfully");
         router.push("/dashboard/mayra-congratulations");
       } else {
@@ -476,6 +503,14 @@ export default function AddMayraCongratulationsPage() {
           </CardContent>
         </Card>
 
+        {/* Draft Alert Banner */}
+        <DraftBanner
+          draft={draft}
+          onRestore={restoreDraft}
+          onDiscard={discardDraft}
+          className="mb-6"
+        />
+
         {/* Main Form Card - Matching Marriage Design */}
         <Card>
           <CardHeader>
@@ -593,14 +628,14 @@ export default function AddMayraCongratulationsPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-2 pt-6">
-                <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting || !selectedApplicationId}>
-                  {isSubmitting ? "Saving..." : "Submit"}
-                </Button>
-              </div>
+              <DraftActions
+                onSaveDraft={saveDraft}
+                isSavingDraft={isDraftSaving}
+                isSubmitting={isSubmitting}
+                onCancel={() => router.back()}
+                cancelHref="/dashboard/mayra-congratulations"
+                submitLabel="Submit"
+              />
             </form>
           </CardContent>
         </Card>

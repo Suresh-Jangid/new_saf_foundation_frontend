@@ -21,6 +21,9 @@ import { API_ENDPOINTS } from "@/lib/api"
 import { toast } from "sonner"
 import { formatDate, formatDateForAPI, getCurrentUserInfo } from "@/lib/utils"
 import { RoleGuard } from "@/components/role-guard"
+import { useRegistrationDraft } from "@/hooks/use-registration-draft"
+import { DraftBanner } from "@/components/drafts/draft-banner"
+import { DraftActions } from "@/components/drafts/draft-actions"
 
 export default function AddLoanApplicationPage() {
   const router = useRouter()
@@ -43,6 +46,34 @@ export default function AddLoanApplicationPage() {
 
   const { createApi } = useCRUD("loanApplicationRecords", [], {
     create: API_ENDPOINTS.CREATE_LOAN_APPLICATION,
+  });
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "loan_application",
+    moduleTitle: "ऋण आवेदन (Loan Application)",
+    formData,
+    getApplicantName: () => formData.applicantName || "",
+    onRestore: (loadedData) => {
+      setFormData((prev) => ({
+        ...prev,
+        ...loadedData,
+        aadhaar: null,
+        incomeCertificate: null,
+        moolNiwas: null,
+        photo: null,
+      }));
+      if (loadedData.date) {
+        setDateObj(new Date(loadedData.date));
+        setDateValue(loadedData.date);
+      }
+    },
   });
 
   const [dateObj, setDateObj] = useState<Date | undefined>(today)
@@ -174,6 +205,7 @@ export default function AddLoanApplicationPage() {
           date: formData.date, // Keep original date format for display
         });
 
+        clearDraftOnSubmit();
         router.push("/dashboard/loan-application");
         // Don't redirect immediately, show PDF generation option
       }
@@ -200,6 +232,13 @@ export default function AddLoanApplicationPage() {
           </div>
         </div>
         
+        {/* Draft Alert Banner */}
+        <DraftBanner
+          draft={draft}
+          onRestore={restoreDraft}
+          onDiscard={discardDraft}
+          className="mb-6"
+        />
                
         <Card className="w-full">
           <CardHeader>
@@ -427,14 +466,14 @@ export default function AddLoanApplicationPage() {
                   )}
                 </div>
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
-                  रद्द करें
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "जोड़ रहा है..." : "आवेदन बनाएं"}
-                </Button>
-              </div>
+              <DraftActions
+                onSaveDraft={saveDraft}
+                isSavingDraft={isDraftSaving}
+                isSubmitting={isSubmitting}
+                onCancel={() => router.back()}
+                cancelHref="/dashboard/loan-application"
+                submitLabel="आवेदन बनाएं / Create Application"
+              />
             </form>
           </CardContent>
         </Card>

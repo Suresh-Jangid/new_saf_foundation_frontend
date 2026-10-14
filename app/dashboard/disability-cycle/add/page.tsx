@@ -22,6 +22,9 @@ import React from "react";
 import { X } from "lucide-react";
 import { MediaUploadControl } from "@/components/media-upload";
 import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftBanner } from "@/components/drafts/draft-banner";
+import { DraftActions } from "@/components/drafts/draft-actions";
 
 
 export default function AddDisabilityCyclePage() {
@@ -95,6 +98,23 @@ export default function AddDisabilityCyclePage() {
     setFormData((prev) => ({ ...prev, age: calculatedAge }));
   }, [formData.dateOfBirth]);
 
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "disability_cycle",
+    moduleTitle: "निःशक्त साइकिल आवेदन (Disability Cycle)",
+    formData,
+    getApplicantName: () => formData.applicantName || "",
+    onRestore: (loadedData) => {
+      setFormData((prev) => ({ ...prev, ...loadedData, photo: null }));
+    },
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -139,6 +159,7 @@ export default function AddDisabilityCyclePage() {
       const result = await createApi(apiFormData);
 
       if (result) {
+        clearDraftOnSubmit();
         router.push("/dashboard/disability-cycle");
       }
     } catch (error) {
@@ -163,6 +184,14 @@ export default function AddDisabilityCyclePage() {
           <p className="text-sm text-gray-600">Add New Disability Cycle Application</p>
         </div>
       </div>
+
+      {/* Draft Alert Banner */}
+      <DraftBanner
+        draft={draft}
+        onRestore={restoreDraft}
+        onDiscard={discardDraft}
+        className="mb-6"
+      />
 
       <Card>
         <CardHeader>
@@ -351,14 +380,14 @@ export default function AddDisabilityCyclePage() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-end gap-2 sm:space-x-2">
-              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting} className="w-full sm:w-auto">
-                रद्द करें / Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
-                {isSubmitting ? "बन रहा है..." : "आवेदन बनाएं (Create Application)"}
-              </Button>
-            </div>
+            <DraftActions
+              onSaveDraft={saveDraft}
+              isSavingDraft={isDraftSaving}
+              isSubmitting={isSubmitting}
+              onCancel={() => router.back()}
+              cancelHref="/dashboard/disability-cycle"
+              submitLabel="आवेदन बनाएं (Create Application)"
+            />
           </form>
         </CardContent>
       </Card>

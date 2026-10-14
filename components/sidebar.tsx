@@ -33,6 +33,7 @@ import {
   Sparkles,
   Settings,
   KeyRound,
+  FileEdit,
   ChevronDown,
 } from "lucide-react";
 import { getUserRole, hasModulePermission, isAdmin, getAgentData } from "@/lib/permissions";
@@ -44,6 +45,7 @@ import { ModuleRegistryItem } from "@/lib/config-types";
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
   FileText,
+  FileEdit,
   Gift,
   Wallet,
   Scissors,

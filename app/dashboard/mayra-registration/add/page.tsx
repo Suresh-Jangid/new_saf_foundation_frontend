@@ -27,6 +27,9 @@ import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
 import { EpinService } from "@/lib/epin-service"
 import { WorkerSearchSelector } from "@/components/worker-search-selector"
 import { PincodeAddressFields } from "@/components/forms/pincode-address-fields"
+import { useRegistrationDraft } from "@/hooks/use-registration-draft"
+import { DraftActions } from "@/components/drafts/draft-actions"
+import { DraftBanner } from "@/components/drafts/draft-banner"
 
 import {
   AlertDialog,
@@ -83,6 +86,23 @@ export default function AddMayraRegistrationPage() {
     gender: "",
     epinNumber: "",
   })
+
+  // Draft Management Hook
+  const {
+    isDraftSaving,
+    existingDraft,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "mayra-registration",
+    moduleTitle: "मायरा फॉर्म आवेदन (Mayra Registration)",
+    formData,
+    onRestore: (restoredData) => setFormData((prev) => ({ ...prev, ...restoredData })),
+    getApplicantName: (f) => f?.applicantName || formData.applicantName,
+    getMobile: (f) => f?.mobile || formData.mobile,
+  });
 
   const { age: calculatedAge, category: calculatedCategory, fee: calculatedFee } = useAgeCategory(formData.dateOfBirth);
 
@@ -414,6 +434,7 @@ export default function AddMayraRegistrationPage() {
       const response = await post(API_ENDPOINTS.CREATE_MAYRA_APPLICATION, apiFormData)
 
       if (response.data.status) {
+        clearDraftOnSubmit();
         toast.success("Mayra Registration added successfully")
 
         // Atomically consume E-PIN if applied
@@ -515,6 +536,11 @@ export default function AddMayraRegistrationPage() {
           </div>
 
           <div className="px-6 py-8">
+            <DraftBanner
+              draft={existingDraft}
+              onResume={restoreDraft}
+              onDiscard={discardDraft}
+            />
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Section 1: Applicant Details */}
               <div className="space-y-4">
@@ -1079,14 +1105,15 @@ export default function AddMayraRegistrationPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
-                <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading} className="w-full sm:w-auto">
-                  रद्द करें / Cancel
-                </Button>
-                <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-                  {isLoading ? "Saving..." : "सहेजें / Save Registration"}
-                </Button>
-              </div>
+              <DraftActions
+                onSaveDraft={() => saveDraft(formData)}
+                isDraftSaving={isDraftSaving}
+                isSubmitting={isLoading}
+                submitLabel="सहेजें / Save Registration"
+                submittingLabel="सहेजा जा रहा है... / Saving..."
+                draftLabel="ड्राफ्ट सहेजें / Save as Draft"
+                onCancel={() => router.back()}
+              />
             </form>
           </div>
         </div>

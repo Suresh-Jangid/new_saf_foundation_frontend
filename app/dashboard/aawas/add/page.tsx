@@ -30,12 +30,15 @@ import { RoleGuard } from "@/components/role-guard";
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier";
 import { AawasService, CreateAawasPayload } from "@/lib/aawas-service";
 import { agentRegistrationAPI } from "@/lib/api";
+import { uploadMediaFile } from "@/lib/upload-client";
 import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
 import { validatePhoneNumber } from "@/lib/utils";
-import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftActions } from "@/components/drafts/draft-actions";
+import { DraftBanner } from "@/components/drafts/draft-banner";
 
 export default function AddAawasPage() {
   const router = useRouter();
@@ -118,6 +121,23 @@ export default function AddAawasPage() {
       );
     }
   };
+
+  // Draft Management Hook
+  const {
+    isDraftSaving,
+    existingDraft,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "aawas",
+    moduleTitle: "गृह प्रवेश आवास योजना (Aawas Yojana)",
+    formData,
+    onRestore: (restoredData) => setFormData((prev) => ({ ...prev, ...restoredData })),
+    getApplicantName: (f) => f?.applicantName || formData.applicantName,
+    getMobile: (f) => f?.mobile || formData.mobile,
+  });
 
   // Load agents if Admin
   useEffect(() => {
@@ -335,6 +355,7 @@ export default function AddAawasPage() {
       const res = await AawasService.createRegistration(payload);
 
       if (res && res.success) {
+        clearDraftOnSubmit();
         toast.success(
           `गृह प्रवेश आवास योजना आवेदन सफलतापूर्वक दर्ज किया गया! फॉर्म नंबर: ${res.data?.formNumber || "AW-OK"}`
         );
@@ -407,6 +428,12 @@ export default function AddAawasPage() {
             </div>
           </div>
         </div>
+
+        <DraftBanner
+          draft={existingDraft}
+          onResume={restoreDraft}
+          onDiscard={discardDraft}
+        />
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 1. Applicant Personal Information */}
@@ -839,33 +866,15 @@ export default function AddAawasPage() {
           </Card>
 
           {/* Form Actions with Double Submission Protection */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/dashboard/aawas")}
-              disabled={isLoading}
-            >
-              रद्द करें / Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-[#0B4A8F] hover:bg-[#0D5EB3] text-white px-6 font-semibold"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  आवेदन जमा हो रहा है... / Submitting...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  आवास आवेदन जमा करें / Submit Application
-                </>
-              )}
-            </Button>
-          </div>
+          <DraftActions
+            onSaveDraft={() => saveDraft(formData)}
+            isDraftSaving={isDraftSaving}
+            isSubmitting={isLoading}
+            submitLabel="आवास आवेदन जमा करें / Submit Application"
+            submittingLabel="आवेदन जमा हो रहा है... / Submitting..."
+            draftLabel="ड्राफ्ट सहेजें / Save as Draft"
+            onCancel={() => router.push("/dashboard/aawas")}
+          />
         </form>
       </div>
     </RoleGuard>

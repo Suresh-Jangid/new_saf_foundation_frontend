@@ -45,6 +45,9 @@ import { formatDate, formatDateForAPI, validatePhoneNumber, parseDateFromDDMMYYY
 import { GENDER_OPTIONS, isMale, isFemale } from "@/lib/form-values";
 import { useSchemeTypes, useDeductions } from "@/hooks/use-app-config";
 import ConfigService from "@/lib/config-service";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftBanner } from "@/components/drafts/draft-banner";
+import { DraftActions } from "@/components/drafts/draft-actions";
 
 // Interface for application data from the API
 interface ApplicationData {
@@ -179,6 +182,33 @@ export default function AddMarriageCongratulationPage() {
 
   const { createApi } = useCRUD("marriageCongratulationsRecords", [], {
     create: API_ENDPOINTS.CREATE_MARRIAGE_CONGRATS,
+  });
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "marriage_congratulations",
+    moduleTitle: "विवाह बधाई आवेदन (Marriage Congratulations)",
+    formData: { ...formData, selectedApplicationId, applicationDate },
+    getApplicantName: () => formData.applicantName || "",
+    onRestore: (loadedData) => {
+      const { selectedApplicationId: restoredAppId, applicationDate: restoredAppDate, ...rest } = loadedData;
+      setFormData((prev) => ({ ...prev, ...rest }));
+      if (restoredAppId) setSelectedApplicationId(restoredAppId);
+      if (restoredAppDate) {
+        setApplicationDate(restoredAppDate);
+        setApplicationDateValue(restoredAppDate);
+      }
+      if (loadedData.date) {
+        setMarriageDateObj(new Date(loadedData.date));
+        setMarriageDateValue(loadedData.date);
+      }
+    },
   });
 
   // Get unique values for autocomplete
@@ -605,6 +635,7 @@ export default function AddMarriageCongratulationPage() {
       console.log("API result:", result);
 
       if (result) {
+        clearDraftOnSubmit();
         router.push("/dashboard/marriage-congratulations");
       }
     } catch (error: any) {
@@ -865,6 +896,14 @@ export default function AddMarriageCongratulationPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Draft Alert Banner */}
+      <DraftBanner
+        draft={draft}
+        onRestore={restoreDraft}
+        onDiscard={discardDraft}
+        className="mb-6"
+      />
 
       {/* Main Form Card */}
       <Card>
@@ -1395,31 +1434,14 @@ export default function AddMarriageCongratulationPage() {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-                disabled={isSubmitting}
-              >
-                {formatBilingual("common.cancel")}
-              </Button>
-
-              <Button
-                type="submit"
-                disabled={isSubmitting || !formData.date || !selectedApplicationId}
-                title={!formData.date ? "Please select a date first" : !selectedApplicationId ? "Please select an application first" : ""}
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    {formatBilingual("common.loading")}
-                  </>
-                ) : (
-                  formatBilingual("common.submit")
-                )}
-              </Button>
-            </div>
+            <DraftActions
+              onSaveDraft={saveDraft}
+              isSavingDraft={isDraftSaving}
+              isSubmitting={isSubmitting}
+              onCancel={() => router.back()}
+              cancelHref="/dashboard/marriage-congratulations"
+              submitLabel={formatBilingual("common.submit")}
+            />
           </form>
         </CardContent>
       </Card>

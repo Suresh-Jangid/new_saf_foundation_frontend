@@ -21,6 +21,9 @@ import { API_ENDPOINTS } from "@/lib/api"
 import { toast } from "sonner"
 import { formatDate, isValidDate, parseDateFromDDMMYYYY, validatePhoneNumber, getCurrentUserInfo } from "@/lib/utils"
 import { PincodeAddressFields } from "@/components/forms/pincode-address-fields"
+import { useRegistrationDraft } from "@/hooks/use-registration-draft"
+import { DraftBanner } from "@/components/drafts/draft-banner"
+import { DraftActions } from "@/components/drafts/draft-actions"
 
 export default function AddSewingMachinePage() {
   const router = useRouter()
@@ -81,6 +84,31 @@ export default function AddSewingMachinePage() {
 
   const { createApi } = useCRUD("sewingMachineRecords", [], {
     create: API_ENDPOINTS.CREATE_SEWING_CAMP,
+  });
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "sewing_machine",
+    moduleTitle: "सिलाई मशीन कैंप आवेदन (Sewing Machine)",
+    formData,
+    getApplicantName: () => formData.applicantName || "",
+    onRestore: (loadedData) => {
+      setFormData((prev) => ({ ...prev, ...loadedData, passportPhoto: null }));
+      if (loadedData.applicationDate) {
+        setApplicationDateObj(new Date(loadedData.applicationDate));
+        setApplicationDateValue(loadedData.applicationDate);
+      }
+      if (loadedData.dateOfBirth) {
+        setDateOfBirthObj(new Date(loadedData.dateOfBirth));
+        setDateOfBirthValue(loadedData.dateOfBirth);
+      }
+    },
   });
 
   const [applicationDateObj, setApplicationDateObj] = useState<Date | undefined>(
@@ -198,6 +226,7 @@ export default function AddSewingMachinePage() {
       const success = await createApi(apiFormData);
       
       if (success) {
+        clearDraftOnSubmit();
         router.push("/dashboard/sewing-machine");
       }
     } catch (error: any) {
@@ -217,9 +246,17 @@ export default function AddSewingMachinePage() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">नया सिलाई मशीन कैंप आवेदन जोड़ें</h1>
-          <p className="text-sm text-gray-600">Add New Sewing Machine Camp Application</p>
         </div>
       </div>
+
+      {/* Draft Alert Banner */}
+      <DraftBanner
+        draft={draft}
+        onRestore={restoreDraft}
+        onDiscard={discardDraft}
+        className="mb-6"
+      />
+
       <Card className="w-full">
         <CardHeader>
           <CardTitle>सिलाई मशीन कैंप आवेदन विवरण / Sewing Machine Camp Application Details</CardTitle>
@@ -546,14 +583,14 @@ export default function AddSewingMachinePage() {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
-                रद्द करें
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "जोड़ रहा है..." : "आवेदन जोड़ें"}
-              </Button>
-            </div>
+            <DraftActions
+              onSaveDraft={saveDraft}
+              isSavingDraft={isDraftSaving}
+              isSubmitting={isLoading}
+              onCancel={() => router.back()}
+              cancelHref="/dashboard/sewing-machine"
+              submitLabel="आवेदन जोड़ें / Submit Application"
+            />
           </form>
         </CardContent>
       </Card>

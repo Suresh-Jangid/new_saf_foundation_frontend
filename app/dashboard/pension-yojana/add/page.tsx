@@ -13,6 +13,9 @@ import { toast } from "sonner";
 import { formatDate, calculateAge, isValidDate, formatDateForAPI, getCurrentUserInfo, parseDateFromDDMMYYYY } from "@/lib/utils";
 import { X } from "lucide-react";
 import { MediaUploadControl } from "@/components/media-upload";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftBanner } from "@/components/drafts/draft-banner";
+import { DraftActions } from "@/components/drafts/draft-actions";
 
 const PensionYojanaAddForm = () => {
   const router = useRouter();
@@ -37,6 +40,23 @@ const PensionYojanaAddForm = () => {
 
   const { createApi } = useCRUD("pensionYojanaRecords", [], {
     create: API_ENDPOINTS.CREATE_PENSION_YOJANA,
+  });
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "pension_yojana",
+    moduleTitle: "पेंशन योजना आवेदन (Pension Yojana)",
+    formData: form,
+    getApplicantName: () => form.name || "",
+    onRestore: (loadedData) => {
+      setForm((prev) => ({ ...prev, ...loadedData, photo: null }));
+    },
   });
 
   // Calculate age when date of birth changes
@@ -106,6 +126,7 @@ const PensionYojanaAddForm = () => {
       const success = await createApi(apiFormData);
       
       if (success) {
+        clearDraftOnSubmit();
         router.push("/dashboard/pension-yojana");
       }
     } catch (error: any) {
@@ -128,6 +149,14 @@ const PensionYojanaAddForm = () => {
           <p className="text-sm text-gray-600">Add New Pension Yojana Application Payment</p>
         </div>
       </div>
+
+      {/* Draft Alert Banner */}
+      <DraftBanner
+        draft={draft}
+        onRestore={restoreDraft}
+        onDiscard={discardDraft}
+        className="mb-6"
+      />
 
       <Card>
         <CardHeader>
@@ -339,15 +368,14 @@ const PensionYojanaAddForm = () => {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
-                रद्द करें
-              </Button>
-            
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "जोड़ रहा है..." : "आवेदन जोड़ें"}
-              </Button>
-            </div>
+            <DraftActions
+              onSaveDraft={saveDraft}
+              isSavingDraft={isDraftSaving}
+              isSubmitting={isLoading}
+              onCancel={() => router.back()}
+              cancelHref="/dashboard/pension-yojana"
+              submitLabel="आवेदन जोड़ें / Submit Application"
+            />
           </form>
         </CardContent>
       </Card>

@@ -25,6 +25,9 @@ import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
 import { EpinService } from "@/lib/epin-service"
 import { prepareMediaPayload } from "@/lib/upload-client"
 import { WorkerOption } from "@/components/worker-search-selector"
+import { useRegistrationDraft } from "@/hooks/use-registration-draft"
+import { DraftActions } from "@/components/drafts/draft-actions"
+import { DraftBanner } from "@/components/drafts/draft-banner"
 
 import { post, API_ENDPOINTS } from "@/lib/api"
 
@@ -56,6 +59,23 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
 
   const { formData, updateField, updateMultipleFields, isFormValid } = useFormData()
   const { age, category, fee } = useAgeCategory(formData.dateOfBirth)
+
+  // Draft Management Hook
+  const {
+    isDraftSaving,
+    existingDraft,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "insurance",
+    moduleTitle: "सुरक्षा बीमा (Insurance Bima)",
+    formData,
+    onRestore: (restoredData) => updateMultipleFields(restoredData),
+    getApplicantName: (f) => f?.applicantName || formData.applicantName,
+    getMobile: (f) => f?.mobile || formData.mobile,
+  });
 
   // Agents state
   const [agents, setAgents] = useState<WorkerOption[]>([])
@@ -169,6 +189,7 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
           }
         }
 
+        clearDraftOnSubmit();
         router.push("/dashboard/general-applications-insurance")
       } else {
         const errorMsg = response.message || formatBilingual("messages.failedToSave");
@@ -254,6 +275,12 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
             <p className="text-sm text-gray-600">{description}</p>
           </div>
         </div>
+
+        <DraftBanner
+          draft={existingDraft}
+          onResume={restoreDraft}
+          onDiscard={discardDraft}
+        />
 
         <Card>
           <CardHeader>
@@ -386,22 +413,15 @@ export const OptimizedInsuranceForm = memo<OptimizedInsuranceFormProps>(({
                 )}
               </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
-                  {formatBilingual("common.cancel")}
-                </Button>
-
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      {formatBilingual("common.loading")}
-                    </>
-                  ) : (
-                    formatBilingual("common.submit")
-                  )}
-                </Button>
-              </div>
+              <DraftActions
+                onSaveDraft={() => saveDraft(formData)}
+                isDraftSaving={isDraftSaving}
+                isSubmitting={isSubmitting}
+                submitDisabled={isRazorpayPaymentMode(formData.paymentMode) && paymentStatus !== 'paid'}
+                submitLabel={formatBilingual("common.submit")}
+                draftLabel="ड्राफ्ट सहेजें / Save as Draft"
+                onCancel={() => router.back()}
+              />
             </form>
           </CardContent>
         </Card>

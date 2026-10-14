@@ -30,6 +30,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftBanner } from "@/components/drafts/draft-banner";
+import { DraftActions } from "@/components/drafts/draft-actions";
 
 
 
@@ -105,6 +108,23 @@ export default function AddAgentPage() {
   const [isUserAdmin, setIsUserAdmin] = useState<boolean>(true);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "agent_registration",
+    moduleTitle: "कार्यकर्ता / एजेंट पंजीकरण (Agent Registration)",
+    formData: form,
+    getApplicantName: () => form.name || "",
+    onRestore: (loadedData) => {
+      setForm((prev) => ({ ...prev, ...loadedData, profile_image: null, password: "" }));
+    },
+  });
 
   // Fetch eligible seniors from backend on mount & initialize creator bindings
   React.useEffect(() => {
@@ -310,6 +330,7 @@ export default function AddAgentPage() {
       const result = await agentRegistrationAPI.create(submissionData);
       
       if (result?.status || result?.success || result) {
+        clearDraftOnSubmit();
         toast.success("एजेंट सफलतापूर्वक पंजीकृत हुआ / Agent registered successfully");
         router.push("/dashboard/agent-registration");
       }
@@ -337,6 +358,14 @@ export default function AddAgentPage() {
             <p className="text-sm text-gray-600">Agent Registration</p>
           </div>
         </div>
+
+        {/* Draft Alert Banner */}
+        <DraftBanner
+          draft={draft}
+          onRestore={restoreDraft}
+          onDiscard={discardDraft}
+          className="mb-6"
+        />
 
         <Card>
           <CardHeader>
@@ -786,14 +815,15 @@ export default function AddAgentPage() {
                 <Label htmlFor="workArea">कार्य क्षेत्र (Area of Work)</Label>
                 <Input id="workArea" name="workArea" value={form.workArea} onChange={handleChange} />
               </div>
-              <div className="flex justify-end space-x-2 mt-4">
-                <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
-                  रद्द करें / Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "सबमिट हो रहा है..." : "सबमिट करें (Submit)"}
-                </Button>
-              </div>
+              <DraftActions
+                onSaveDraft={saveDraft}
+                isSavingDraft={isDraftSaving}
+                isSubmitting={isSubmitting}
+                onCancel={() => router.back()}
+                cancelHref="/dashboard/agent-registration"
+                submitLabel="सबमिट करें (Submit)"
+                className="mt-4"
+              />
             </form>
           </CardContent>
         </Card>

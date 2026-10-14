@@ -30,6 +30,18 @@ export const MODULE_REGISTRY: ModuleRegistryItem[] = [
     enabled: true,
   },
 
+  // --- Draft Applications Management ---
+  {
+    id: "draft_management",
+    name: { en: "Draft Registrations", hi: "ड्राफ्ट पंजीकरण" },
+    subtitle: { en: "Saved Incomplete Applications", hi: "सहेजे गए अधूरे आवेदन" },
+    category: "ADMINISTRATION",
+    route: "/dashboard/drafts",
+    iconName: "FileEdit",
+    permissionKey: "applicant_registration",
+    enabled: true,
+  },
+
   // --- 1. General Marriage Application ---
   {
     id: "applicant_registration",

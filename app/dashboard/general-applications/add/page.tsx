@@ -40,7 +40,9 @@ import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
 import { EpinService } from "@/lib/epin-service"
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector"
 import { PincodeAddressFields } from "@/components/forms/pincode-address-fields"
-
+import { useRegistrationDraft } from "@/hooks/use-registration-draft"
+import { DraftActions } from "@/components/drafts/draft-actions"
+import { DraftBanner } from "@/components/drafts/draft-banner"
 
 export default function AddGeneralApplicationPage() {
   const router = useRouter()
@@ -149,6 +151,26 @@ export default function AddGeneralApplicationPage() {
       setNomineePhotoPreview(null);
     }
   }, [formData.nomineePhoto]);
+
+  // Draft Management Hook
+  const {
+    isDraftSaving,
+    existingDraft,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "general-applications",
+    moduleTitle: "सामान्य विवाह (General Marriage)",
+    formData,
+    onRestore: (restoredData) => {
+      setFormData((prev) => ({ ...prev, ...restoredData }));
+      if (restoredData.applicationDate) setApplicationDateValue(restoredData.applicationDate);
+    },
+    getApplicantName: (f) => f?.applicantName || formData.applicantName,
+    getMobile: (f) => f?.mobile || formData.mobile,
+  });
 
   // Helper function to convert dd-mm-yyyy to yyyymmdd format
   const convertToYYYYMMDD = (dateString: string): string => {
@@ -410,6 +432,7 @@ export default function AddGeneralApplicationPage() {
       const response = await post("?apicall=createApplication", apiFormData)
 
       if (response.data.status) {
+        clearDraftOnSubmit();
         toast.success("Application added successfully")
 
         const applicationNumber: any = response.data.applicationNumber || response.data.id || response.data.formNumber || response.data.form_number;
@@ -620,6 +643,11 @@ export default function AddGeneralApplicationPage() {
 
           {/* Form Content */}
           <div className="px-6 py-8">
+            <DraftBanner
+              draft={existingDraft}
+              onResume={restoreDraft}
+              onDiscard={discardDraft}
+            />
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Application and Birth Date Section */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1332,18 +1360,16 @@ export default function AddGeneralApplicationPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
-                <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading} className="w-full sm:w-auto">
-                  रद्द करें / Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading || (isRazorpayPaymentMode(formData.paymentMode) && paymentStatus !== 'paid')}
-                  className="w-full sm:w-auto"
-                >
-                  {isLoading ? "Adding..." : "आवेदन बनाएं / Create Application"}
-                </Button>
-              </div>
+              <DraftActions
+                onSaveDraft={() => saveDraft(formData)}
+                isDraftSaving={isDraftSaving}
+                isSubmitting={isLoading}
+                submitDisabled={isRazorpayPaymentMode(formData.paymentMode) && paymentStatus !== 'paid'}
+                submitLabel="आवेदन बनाएं / Create Application"
+                submittingLabel="आवेदन बनाया जा रहा है... / Creating Application..."
+                draftLabel="ड्राफ्ट सहेजें / Save as Draft"
+                onCancel={() => router.back()}
+              />
             </form>
           </div>
         </div>

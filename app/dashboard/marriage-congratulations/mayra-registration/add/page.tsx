@@ -41,6 +41,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftBanner } from "@/components/drafts/draft-banner";
+import { DraftActions } from "@/components/drafts/draft-actions";
 
 const normalizeGender = (gender?: string): "Male" | "Female" => {
   const g = (gender || "").toLowerCase().trim();
@@ -107,6 +110,28 @@ export default function AddMayraCongratsPage() {
 
   const [dateObj, setDateObj] = useState<Date | undefined>(new Date());
   const [dateOpen, setDateOpen] = useState(false);
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "mayra_congratulations_record",
+    moduleTitle: "मायरा बधाई पत्र (Mayra Congratulations)",
+    formData: { ...formData, selectedAppId },
+    getApplicantName: () => formData.applicantName || "",
+    onRestore: (loadedData) => {
+      const { selectedAppId: restoredAppId, ...rest } = loadedData;
+      setFormData((prev) => ({ ...prev, ...rest }));
+      if (restoredAppId) setSelectedAppId(restoredAppId);
+      if (loadedData.date) {
+        setDateObj(new Date(loadedData.date));
+      }
+    },
+  });
 
   const fetchApplications = useCallback(async () => {
     try {
@@ -250,6 +275,7 @@ export default function AddMayraCongratsPage() {
       };
       const response = await post(API_ENDPOINTS.CREATE_MAYRA_CONGRATS, apiData);
       if (response.data.status) {
+        clearDraftOnSubmit();
         toast.success("Mayra Congratulations record added successfully");
         router.push("/dashboard/marriage-congratulations/mayra-registration");
       } else {
@@ -273,6 +299,14 @@ export default function AddMayraCongratsPage() {
             <p className="text-gray-500">नया बधाई रिकॉर्ड जोड़ें</p>
           </div>
         </div>
+
+        {/* Draft Alert Banner */}
+        <DraftBanner
+          draft={draft}
+          onRestore={restoreDraft}
+          onDiscard={discardDraft}
+          className="mb-6"
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Sidebar: Selection */}
@@ -528,12 +562,14 @@ export default function AddMayraCongratsPage() {
               </CardContent>
             </Card>
 
-            <div className="flex gap-4">
-              <Button type="submit" className="flex-1 bg-orange-600 hover:bg-orange-700 h-12 text-lg" disabled={isSubmitting || !selectedAppId}>
-                {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : "सहेजें (Save Record)"}
-              </Button>
-              <Button type="button" variant="outline" className="flex-1 h-12" onClick={() => router.back()}>Cancel</Button>
-            </div>
+            <DraftActions
+              onSaveDraft={saveDraft}
+              isSavingDraft={isDraftSaving}
+              isSubmitting={isSubmitting}
+              onCancel={() => router.back()}
+              cancelHref="/dashboard/marriage-congratulations/mayra-registration"
+              submitLabel="सहेजें (Save Record)"
+            />
           </form>
         </div>
       </div>

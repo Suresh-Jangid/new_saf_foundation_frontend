@@ -39,6 +39,9 @@ import { EpinValidationResponse } from "@/lib/config-types";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 import { uploadMediaFile } from "@/lib/upload-client";
 import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftBanner } from "@/components/drafts/draft-banner";
+import { DraftActions } from "@/components/drafts/draft-actions";
 
 export default function AddShubhLaxmiPage() {
   const router = useRouter();
@@ -123,6 +126,23 @@ export default function AddShubhLaxmiPage() {
       );
     }
   };
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "shubh_laxmi",
+    moduleTitle: "शुभलक्ष्मी योजना पंजीकरण (ShubhLaxmi)",
+    formData,
+    getApplicantName: () => formData.applicantName || "",
+    onRestore: (loadedData) => {
+      setFormData((prev) => ({ ...prev, ...loadedData }));
+    },
+  });
 
   // Load agents if Admin
   useEffect(() => {
@@ -331,6 +351,7 @@ export default function AddShubhLaxmiPage() {
         toast.success(
           `शुभलक्ष्मी पंजीकरण सफलतापूर्वक संपन्न हुआ! फॉर्म नं: ${res.data?.formNumber || "SL-XXXX"}`
         );
+        clearDraftOnSubmit();
         router.push("/dashboard/shubh-laxmi");
       } else {
         const errorMsg = res.message || "पंजीकरण में त्रुटि / Failed to create registration";
@@ -433,6 +454,12 @@ export default function AddShubhLaxmiPage() {
         </Card>
 
         {/* Main Form */}
+        <DraftBanner
+          draft={draft}
+          onRestore={restoreDraft}
+          onDiscard={discardDraft}
+          className="mb-6"
+        />
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Section 1: Applicant Information */}
           <Card className="border-border/60 shadow-sm">
@@ -908,30 +935,14 @@ export default function AddShubhLaxmiPage() {
           </Card>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border/60">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push("/dashboard/shubh-laxmi")}
-              disabled={isLoading}
-            >
-              रद्द करें / Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white min-w-[160px]"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  सहेज रहे हैं...
-                </>
-              ) : (
-                "पंजीकरण जमा करें / Submit"
-              )}
-            </Button>
-          </div>
+          <DraftActions
+            onSaveDraft={saveDraft}
+            isSavingDraft={isDraftSaving}
+            isSubmitting={isLoading}
+            onCancel={() => router.push("/dashboard/shubh-laxmi")}
+            cancelHref="/dashboard/shubh-laxmi"
+            submitLabel="पंजीकरण जमा करें / Submit"
+          />
         </form>
       </div>
     </RoleGuard>

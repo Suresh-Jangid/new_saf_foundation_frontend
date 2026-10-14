@@ -19,6 +19,9 @@ import { useCRUD } from "@/hooks/use-crud";
 import { API_ENDPOINTS } from "@/lib/api";
 import { toast } from "sonner";
 import { formatDate, isValidDate, parseDateFromDDMMYYYY, formatDateForAPI, getCurrentUserInfo } from "@/lib/utils";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftBanner } from "@/components/drafts/draft-banner";
+import { DraftActions } from "@/components/drafts/draft-actions";
 
 // Phone number validation function
 const validatePhoneNumber = (phone: string): boolean => {
@@ -52,6 +55,27 @@ export default function AddDonationPage() {
     phone: "",
     donatedAmount: "",
   })
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "financial_help",
+    moduleTitle: "आर्थिक सहायता दान (Financial Help)",
+    formData,
+    getApplicantName: () => formData.name || "",
+    onRestore: (loadedData) => {
+      setFormData((prev) => ({ ...prev, ...loadedData }));
+      if (loadedData.date) {
+        setDateObj(new Date(loadedData.date));
+        setDateValue(loadedData.date);
+      }
+    },
+  });
 
   const [dateObj, setDateObj] = useState<Date | undefined>(undefined)
   const [dateOpen, setDateOpen] = useState(false)
@@ -152,6 +176,7 @@ export default function AddDonationPage() {
       const result = await createApi(apiData);
       
       if (result) {
+        clearDraftOnSubmit();
         router.push("/dashboard/financal-help");
       }
     } catch (error) {
@@ -177,6 +202,14 @@ export default function AddDonationPage() {
           <p className="text-sm text-gray-600">Add New Donation</p>
         </div>
       </div>
+
+      {/* Draft Alert Banner */}
+      <DraftBanner
+        draft={draft}
+        onRestore={restoreDraft}
+        onDiscard={discardDraft}
+        className="mb-6"
+      />
 
       <Card>
         <CardHeader>
@@ -372,15 +405,14 @@ export default function AddDonationPage() {
               />
             </div>
 
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isSubmitting}>
-                रद्द करें / Cancel
-              </Button>
-            
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "जमा हो रहा है..." : "जमा करें / Submit"}
-              </Button>
-            </div>
+            <DraftActions
+              onSaveDraft={saveDraft}
+              isSavingDraft={isDraftSaving}
+              isSubmitting={isSubmitting}
+              onCancel={() => router.back()}
+              cancelHref="/dashboard/financal-help"
+              submitLabel="जमा करें / Submit"
+            />
           </form>
         </CardContent>
       </Card>

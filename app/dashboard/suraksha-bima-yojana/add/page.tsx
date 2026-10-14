@@ -35,6 +35,9 @@ import { toast } from "sonner"
 import { formatDate, isValidDate, parseDateFromDDMMYYYY, cn, formatDateForAPI, getCurrentUserInfo, calculateDuration } from "@/lib/utils"
 import { GENDER_OPTIONS } from "@/lib/form-values"
 import { Pagination } from "@/components/ui/pagination"
+import { useRegistrationDraft } from "@/hooks/use-registration-draft"
+import { DraftBanner } from "@/components/drafts/draft-banner"
+import { DraftActions } from "@/components/drafts/draft-actions"
 
 interface InsuranceApplication {
   id: string
@@ -115,6 +118,29 @@ export default function AddSurakshaBimaYojanaPage() {
 
   const { createApi } = useCRUD("surakshaBimaYojanaRecords", [], {
     create: API_ENDPOINTS.CREATE_SURAKSHA_BIMA,
+  });
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "suraksha_bima_yojana",
+    moduleTitle: "सुरक्षा बीमा योजना आवेदन (Suraksha Bima)",
+    formData: { ...formData, applicationDate },
+    getApplicantName: () => formData.applicantName || "",
+    onRestore: (loadedData) => {
+      const { applicationDate: restoredAppDate, ...rest } = loadedData;
+      setFormData((prev) => ({ ...prev, ...rest }));
+      if (restoredAppDate) {
+        setApplicationDate(restoredAppDate);
+        setApplicationDateObj(new Date(restoredAppDate));
+        setApplicationDateValue(restoredAppDate);
+      }
+    },
   });
 
   // Filter insurance applications based on search term
@@ -482,6 +508,7 @@ export default function AddSurakshaBimaYojanaPage() {
       const success = await createApi(apiFormData);
       
       if (success) {
+        clearDraftOnSubmit();
         router.push("/dashboard/suraksha-bima-yojana");
       }
     } catch (error: any) {
@@ -512,6 +539,12 @@ export default function AddSurakshaBimaYojanaPage() {
 
         {/* Form Content */}
         <div className="px-6 py-8">
+          <DraftBanner
+            draft={draft}
+            onRestore={restoreDraft}
+            onDiscard={discardDraft}
+            className="mb-6"
+          />
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Insurance Bima Application Selection Section */}
             <div className="space-y-4">
@@ -1075,19 +1108,14 @@ export default function AddSurakshaBimaYojanaPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
-              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading} className="w-full sm:w-auto">
-                रद्द करें / Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isLoading || !applicationDate || !selectedInsuranceApplication}
-                className="w-full sm:w-auto"
-                title={!applicationDate ? "Please select a date first" : !selectedInsuranceApplication ? "Please select an insurance application first" : ""}
-              >
-                {isLoading ? "Adding..." : "आवेदन जोड़ें / Create Application"}
-              </Button>
-            </div>
+            <DraftActions
+              onSaveDraft={saveDraft}
+              isSavingDraft={isDraftSaving}
+              isSubmitting={isLoading}
+              onCancel={() => router.back()}
+              cancelHref="/dashboard/suraksha-bima-yojana"
+              submitLabel="आवेदन जोड़ें / Create Application"
+            />
           </form>
         </div>
       </div>

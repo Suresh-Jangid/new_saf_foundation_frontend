@@ -41,6 +41,9 @@ import { cn, formatDate, formatDateForAPI, parseDateFromDDMMYYYY, validatePhoneN
 import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
+import { useRegistrationDraft } from "@/hooks/use-registration-draft";
+import { DraftBanner } from "@/components/drafts/draft-banner";
+import { DraftActions } from "@/components/drafts/draft-actions";
 
 export default function AddLadoBahinPage() {
   const router = useRouter();
@@ -158,6 +161,32 @@ export default function AddLadoBahinPage() {
       );
     }
   };
+
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "lado_bahin",
+    moduleTitle: "लाडो बहिन पंजीयन (Lado Bahin)",
+    formData,
+    getApplicantName: () => formData.applicantName || "",
+    onRestore: (loadedData) => {
+      setFormData((prev) => ({ ...prev, ...loadedData }));
+      if (loadedData.applicationDate) {
+        setAppDateObj(parseDateFromDDMMYYYY(loadedData.applicationDate) || new Date());
+      }
+      if (loadedData.dateOfBirth) {
+        setDobObj(parseDateFromDDMMYYYY(loadedData.dateOfBirth) || undefined);
+      }
+      if (loadedData.muklawaDate) {
+        setMuklawaDateObj(parseDateFromDDMMYYYY(loadedData.muklawaDate) || undefined);
+      }
+    },
+  });
 
   // Load agents on component mount (matching General Marriage & Mayra reference pattern)
   useEffect(() => {
@@ -471,6 +500,7 @@ export default function AddLadoBahinPage() {
           }
         }
 
+        clearDraftOnSubmit();
         router.push("/dashboard/lado-bahin");
       } else {
         throw new Error(res?.message || "Failed to create registration");
@@ -512,6 +542,12 @@ export default function AddLadoBahinPage() {
 
           {/* Form Content */}
           <div className="px-6 py-8">
+            <DraftBanner
+              draft={draft}
+              onRestore={restoreDraft}
+              onDiscard={discardDraft}
+              className="mb-6"
+            />
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* 1. Scheme & Application Details Card */}
               <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-xs space-y-4">
@@ -1357,34 +1393,14 @@ export default function AddLadoBahinPage() {
               </div>
 
               {/* Form Actions Footer */}
-              <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-6 border-t border-border/60">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.push("/dashboard/lado-bahin")}
-                  className="w-full sm:w-auto h-11 px-6 border-border/80"
-                  disabled={isLoading}
-                >
-                  रद्द करें / Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full sm:w-auto h-11 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      सुरक्षित किया जा रहा है... / Saving...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4 mr-2" />
-                      पंजीकरण सुरक्षित करें / Save Registration
-                    </>
-                  )}
-                </Button>
-              </div>
+              <DraftActions
+                onSaveDraft={saveDraft}
+                isSavingDraft={isDraftSaving}
+                isSubmitting={isLoading}
+                onCancel={() => router.push("/dashboard/lado-bahin")}
+                cancelHref="/dashboard/lado-bahin"
+                submitLabel="पंजीकरण सुरक्षित करें / Save Registration"
+              />
             </form>
           </div>
         </div>

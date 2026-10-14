@@ -21,6 +21,9 @@ import { toast } from "sonner"
 import { formatDate, formatDateForAPI, getCurrentUserInfo } from "@/lib/utils"
 import { calculateAge, formatDateForInput, parseDateFromDDMMYYYY, isValidDate } from "@/lib/utils"
 import { PincodeAddressFields } from "@/components/forms/pincode-address-fields"
+import { useRegistrationDraft } from "@/hooks/use-registration-draft"
+import { DraftBanner } from "@/components/drafts/draft-banner"
+import { DraftActions } from "@/components/drafts/draft-actions"
 
 export default function AddMarriageSewingMachineDistribution() {
   const router = useRouter()
@@ -174,6 +177,31 @@ export default function AddMarriageSewingMachineDistribution() {
     formData.dateOfBirth || ""
   )
 
+  const {
+    draft,
+    isDraftSaving,
+    saveDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraftOnSubmit,
+  } = useRegistrationDraft({
+    moduleKey: "marriage_sewing_distribution",
+    moduleTitle: "विवाह सिलाई मशीन वितरण (Marriage Sewing Distribution)",
+    formData,
+    getApplicantName: () => formData.applicantName || "",
+    onRestore: (loadedData) => {
+      setFormData((prev) => ({ ...prev, ...loadedData }));
+      if (loadedData.applicationDate) {
+        setApplicationDateObj(parseDateFromDDMMYYYY(loadedData.applicationDate) || undefined);
+        setApplicationDateValue(loadedData.applicationDate);
+      }
+      if (loadedData.dateOfBirth) {
+        setDateOfBirthObj(parseDateFromDDMMYYYY(loadedData.dateOfBirth) || undefined);
+        setDateOfBirthValue(loadedData.dateOfBirth);
+      }
+    },
+  });
+
 
   function isValidDate(date: Date | undefined) {
     if (!date) return false
@@ -216,6 +244,7 @@ export default function AddMarriageSewingMachineDistribution() {
       const response = await post("?apicall=addMarriageSewing", apiFormData)
       
       if (response.data.status) {
+        clearDraftOnSubmit();
         toast.success("Sewing machine application added successfully")
         router.push("/dashboard/marriage-congratulations/sewing-machine-distribution")
       } else {
@@ -245,6 +274,14 @@ export default function AddMarriageSewingMachineDistribution() {
           <p className="text-sm text-gray-600"></p>
         </div>
       </div>
+
+      {/* Draft Alert Banner */}
+      <DraftBanner
+        draft={draft}
+        onRestore={restoreDraft}
+        onDiscard={discardDraft}
+        className="mb-6"
+      />
 
       <Card>
         <CardHeader>
@@ -549,15 +586,14 @@ export default function AddMarriageSewingMachineDistribution() {
             />
 
 
-            <div className="flex justify-end space-x-2">
-              <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>
-                रद्द करें / Cancel
-              </Button>
-              <Button type="submit" disabled={isLoading || isLookupLoading || !formData.marriageNumber}>
-                {isLoading ? "जोड़ रहा है..." : "आवेदन बनाएं / Submit Application"}
-              </Button>
-              
-            </div>
+            <DraftActions
+              onSaveDraft={saveDraft}
+              isSavingDraft={isDraftSaving}
+              isSubmitting={isLoading}
+              onCancel={() => router.back()}
+              cancelHref="/dashboard/marriage-congratulations/sewing-machine-distribution"
+              submitLabel="आवेदन बनाएं / Submit Application"
+            />
           </form>
         </CardContent>
       </Card>

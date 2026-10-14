@@ -26,6 +26,7 @@ import { useAgeCategory } from "@/hooks/use-age-category"
 import { prepareMediaPayload } from "@/lib/upload-client"
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector"
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields"
 
 import {
   AlertDialog,
@@ -319,8 +320,8 @@ export default function EditGeneralInsuranceApplicationPage() {
           const installmentAmount = (lastInstallment?.amount != null && String(lastInstallment.amount).trim() !== "")
             ? String(lastInstallment.amount)
             : (firstInstallment?.amount != null && String(firstInstallment.amount).trim() !== "")
-            ? String(firstInstallment.amount)
-            : "";
+              ? String(firstInstallment.amount)
+              : "";
 
           let initialPaymentAmount = "";
           if (rawPayAmount !== undefined && rawPayAmount !== null && String(rawPayAmount).trim() !== "") {
@@ -592,12 +593,12 @@ export default function EditGeneralInsuranceApplicationPage() {
       <div className="flex ">
         <div className="mb-4">
           <Button type="button" variant="link" onClick={() => router.back()}>
-            ← वापस जाएं / <br/>Go Back
+            ← वापस जाएं / <br />Go Back
           </Button>
         </div>
         <div className="mb-6">
-    <h1 className="text-2xl font-bold text-gray-900">बीमा हेतु सामान्य संपादित करें</h1>
-        <p className="text-sm text-gray-600">Edit Insurance Bima Application</p>
+          <h1 className="text-2xl font-bold text-gray-900">बीमा हेतु सामान्य संपादित करें</h1>
+          <p className="text-sm text-gray-600">Edit Insurance Bima Application</p>
         </div>
       </div>
 
@@ -679,16 +680,16 @@ export default function EditGeneralInsuranceApplicationPage() {
                   <Popover open={applicationDateOpen} onOpenChange={setApplicationDateOpen}>
                     <PopoverTrigger asChild>
 
-                    <Button
-                          id="applicationDate-picker"
-                          variant="ghost"
-                          className="absolute top-1/2 right-2 w-8 h-8 p-0 -translate-y-1/2"
-                          tabIndex={-1}
-                          type="button"
-                        >
-                          <CalendarDays className="w-4 h-4" />
-                          <span className="sr-only">Select date</span>
-                        </Button>
+                      <Button
+                        id="applicationDate-picker"
+                        variant="ghost"
+                        className="absolute top-1/2 right-2 w-8 h-8 p-0 -translate-y-1/2"
+                        tabIndex={-1}
+                        type="button"
+                      >
+                        <CalendarDays className="w-4 h-4" />
+                        <span className="sr-only">Select date</span>
+                      </Button>
                     </PopoverTrigger>
                     <PopoverContent
                       className="w-auto overflow-hidden p-0"
@@ -702,7 +703,7 @@ export default function EditGeneralInsuranceApplicationPage() {
                         captionLayout="dropdown"
                         month={applicationDateObj}
                         onMonthChange={setApplicationDateObj}
-                        onSelect={(date:any) => {
+                        onSelect={(date: any) => {
                           setApplicationDateObj(date)
                           setApplicationDateValue(formatDate(date))
                           setFormData((prev) => ({
@@ -750,15 +751,15 @@ export default function EditGeneralInsuranceApplicationPage() {
                     <PopoverTrigger asChild>
 
                       <Button
-                          id="dateOfBirth-picker"
-                          variant="ghost"
-                          className="absolute top-1/2 right-2 w-8 h-8 p-0 -translate-y-1/2"
-                          tabIndex={-1}
-                          type="button"
-                        >
-                          <CalendarDays className="w-4 h-4" />
-                          <span className="sr-only">Select date</span>
-                        </Button>
+                        id="dateOfBirth-picker"
+                        variant="ghost"
+                        className="absolute top-1/2 right-2 w-8 h-8 p-0 -translate-y-1/2"
+                        tabIndex={-1}
+                        type="button"
+                      >
+                        <CalendarDays className="w-4 h-4" />
+                        <span className="sr-only">Select date</span>
+                      </Button>
                     </PopoverTrigger>
                     <PopoverContent
                       className="w-auto overflow-hidden p-0"
@@ -772,7 +773,7 @@ export default function EditGeneralInsuranceApplicationPage() {
                         captionLayout="dropdown"
                         month={dateOfBirthObj}
                         onMonthChange={setDateOfBirthObj}
-                        onSelect={(date:any) => {
+                        onSelect={(date: any) => {
                           setDateOfBirthObj(date)
                           setDateOfBirthValue(formatDate(date))
                           setFormData((prev) => ({
@@ -809,62 +810,62 @@ export default function EditGeneralInsuranceApplicationPage() {
                   id="gender"
                   className="w-full border rounded px-3 py-2 mt-1"
                   value={formData.gender}
-              onChange={(e) => {
-                const selectedGender = e.target.value
-                setFormData((prev) => ({
-                  ...prev,
-                  gender: selectedGender,
-                  // Reset fatherName for females
-                  fatherName: selectedGender === "Female" ? "" : prev.fatherName,
-                }))
-              }}
-              required
-            >
-              <option value="">लिंग चुनें / Select Gender</option>
-              {GENDER_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {formData.gender === "Female" ? (
-            <div>
-              <Label htmlFor="wifeName">पति का नाम / Wife of</Label>
-              <Input
-                id="wifeName"
-                value={formData.wifeName}
-                onChange={(e) => setFormData((prev) => ({ ...prev, wifeName: e.target.value }))}
-                placeholder="पति का नाम दर्ज करें"
-                required
-              />
-            </div>
-          ) : formData.gender === "Male" ? (
-            <>
-              <div>
-                <Label htmlFor="fatherName">पिता का नाम / Son of</Label>
-                <Input
-                  id="fatherName"
-                  value={formData.fatherName}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, fatherName: e.target.value }))}
-                  placeholder="पिता का नाम दर्ज करें"
+                  onChange={(e) => {
+                    const selectedGender = e.target.value
+                    setFormData((prev) => ({
+                      ...prev,
+                      gender: selectedGender,
+                      // Reset fatherName for females
+                      fatherName: selectedGender === "Female" ? "" : prev.fatherName,
+                    }))
+                  }}
                   required
-                />
+                >
+                  <option value="">लिंग चुनें / Select Gender</option>
+                  {GENDER_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div>
-                <Label htmlFor="wifeName">पत्नी का नाम / Wife Name</Label>
-                <Input
-                  id="wifeName"
-                  value={formData.wifeName || ""}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, wifeName: e.target.value }))}
-                  placeholder="पत्नी का नाम दर्ज करें"
-                />
-              </div>
-            </>
-          ) : (
-            <div />
-          )}
+
+              {formData.gender === "Female" ? (
+                <div>
+                  <Label htmlFor="wifeName">पति का नाम / Wife of</Label>
+                  <Input
+                    id="wifeName"
+                    value={formData.wifeName}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, wifeName: e.target.value }))}
+                    placeholder="पति का नाम दर्ज करें"
+                    required
+                  />
+                </div>
+              ) : formData.gender === "Male" ? (
+                <>
+                  <div>
+                    <Label htmlFor="fatherName">पिता का नाम / Son of</Label>
+                    <Input
+                      id="fatherName"
+                      value={formData.fatherName}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, fatherName: e.target.value }))}
+                      placeholder="पिता का नाम दर्ज करें"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="wifeName">पत्नी का नाम / Wife Name</Label>
+                    <Input
+                      id="wifeName"
+                      value={formData.wifeName || ""}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, wifeName: e.target.value }))}
+                      placeholder="पत्नी का नाम दर्ज करें"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div />
+              )}
 
               {/* Category and Fee display */}
               <div className="mt-1">
@@ -920,7 +921,7 @@ export default function EditGeneralInsuranceApplicationPage() {
                   id="aadharNumber"
                   value={formData.aadharNumber}
                   type="number"
-                  onChange={(e) =>{
+                  onChange={(e) => {
                     const digits = e.target.value.replace(/\D/g, '').slice(0, 12)
                     setFormData((prev) => ({ ...prev, aadharNumber: e.target.value }))
                   }}
@@ -948,8 +949,7 @@ export default function EditGeneralInsuranceApplicationPage() {
                   type="number"
                   inputMode="numeric"
                   value={formData.mobile}
-                  onChange={(e) =>
-                  {
+                  onChange={(e) => {
                     const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
                     setFormData((prev) => ({ ...prev, mobile: digits }))
                   }}
@@ -958,62 +958,25 @@ export default function EditGeneralInsuranceApplicationPage() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="address">Village / गाँव</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
-                  placeholder="गांव का नाम दर्ज करे"
-                  required
-                />
-              </div>
             </div>
 
-            <div className="grid grid-cols-1  md:grid-cols-2 xl:grid-cols-4 gap-4">
-              <div>
-                <Label htmlFor="pinCode">पिन कोड / Pin Code</Label>
-                <Input
-                  id="pinCode"
-                  type="number"
-                  inputMode="numeric"
-                  value={formData.pinCode}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, pinCode: e.target.value }))}
-                  placeholder="पिन कोड दर्ज करें"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="tehsil">तहसील / Tehsil</Label>
-                <Input
-                  id="tehsil"
-                  value={formData.tehsil}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, tehsil: e.target.value }))}
-                  placeholder="तहसील दर्ज करें"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="district">जिला / District</Label>
-                <Input
-                  id="district"
-                  value={formData.district}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, district: e.target.value }))}
-                  placeholder="जिला दर्ज करें"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="state">राज्य / State</Label>
-                <Input
-                  id="state"
-                  value={formData.state}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value }))}
-                  placeholder="राज्य दर्ज करें"
-                  required
-                />
-              </div>
-            </div>
+            {/* Reusable Address Section */}
+            <PincodeAddressFields
+              values={{
+                pinCode: formData.pinCode,
+                state: formData.state,
+                district: formData.district,
+                tehsil: formData.tehsil,
+                address: formData.address,
+              }}
+              onChange={(field, val) => setFormData((prev) => ({ ...prev, [field]: val }))}
+              isEditMode={true}
+              initialPinCode={formData.pinCode}
+              addressLabel="Village / गाँव"
+              addressPlaceholder="गांव का नाम दर्ज करे"
+              required
+            />
+
 
             <div className="grid grid-cols-1  md:grid-cols-2  gap-4">
               <div>

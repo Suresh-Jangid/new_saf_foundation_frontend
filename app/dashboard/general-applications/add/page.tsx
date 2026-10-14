@@ -39,6 +39,7 @@ import { useAgeCategory } from "@/hooks/use-age-category"
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
 import { EpinService } from "@/lib/epin-service"
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector"
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields"
 
 
 export default function AddGeneralApplicationPage() {
@@ -943,61 +944,21 @@ export default function AddGeneralApplicationPage() {
                 )}
               </div>
 
-              <div>
-                <Label htmlFor="address">Village / गाँव</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
-                  placeholder="गांव का नाम दर्ज करे"
-                  required
-                />
-              </div>
+              {/* Reusable Address Section */}
+              <PincodeAddressFields
+                values={{
+                  pinCode: formData.pinCode,
+                  state: formData.state,
+                  district: formData.district,
+                  tehsil: formData.tehsil,
+                  address: formData.address,
+                }}
+                onChange={(field, val) => setFormData((prev) => ({ ...prev, [field]: val }))}
+                addressLabel="Village / गाँव"
+                addressPlaceholder="गांव का नाम दर्ज करे"
+                required
+              />
 
-              {/* Address Section */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="pinCode">पिन कोड / Pin Code</Label>
-                  <Input
-                    id="pinCode"
-                    type="number"
-                    value={formData.pinCode}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, pinCode: e.target.value }))}
-                    placeholder="पिन कोड दर्ज करें"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="tehsil">तहसील / Tehsil</Label>
-                  <Input
-                    id="tehsil"
-                    value={formData.tehsil}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, tehsil: e.target.value }))}
-                    placeholder="तहसील दर्ज करें"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="district">जिला / District</Label>
-                  <Input
-                    id="district"
-                    value={formData.district}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, district: e.target.value }))}
-                    placeholder="जिला दर्ज करें"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="state">राज्य / State</Label>
-                  <Input
-                    id="state"
-                    value={formData.state}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value }))}
-                    placeholder="राज्य दर्ज करें"
-                    required
-                  />
-                </div>
-              </div>
 
               {/* Nominee Information Section */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

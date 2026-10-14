@@ -13,6 +13,7 @@ import { useCRUD } from "@/hooks/use-crud"
 import { API_ENDPOINTS } from "@/lib/api"
 import { toast } from "sonner"
 import { formatDate, formatDateForAPI, calculateAge } from "@/lib/utils"
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields"
 
 interface SewingMachineRecord {
   id: string
@@ -459,65 +460,25 @@ export default function EditMarriageSewingMachineDistribution() {
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="address">Village / गाँव</Label>
-                <Input
-                  id="address"
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  placeholder="गांव का नाम दर्ज करे"
-                  required
-                />
-              </div>
             </div>
 
-            <div className="grid md:grid-cols-2 grid-cols-1 xl:grid-cols-4 gap-4">
-              <div>
-                <Label htmlFor="pinCode">पिन कोड / Pin Code</Label>
-                <Input
-                  id="pinCode"
-                  name="pinCode"
-                  value={formData.pinCode}
-                  onChange={handleChange}
-                  placeholder="पिन कोड / Pin Code"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="tehsil">तहसील / Tehsil</Label>
-                <Input
-                  id="tehsil"
-                  name="tehsil"
-                  value={formData.tehsil}
-                  onChange={handleChange}
-                  placeholder="तहसील / Tehsil"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="district">जिला / District</Label>
-                <Input
-                  id="district"
-                  name="district"
-                  value={formData.district}
-                  onChange={handleChange}
-                  placeholder="जिला / District"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="state">राज्य / State</Label>
-                <Input
-                  id="state"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  placeholder="राज्य / State"
-                  required
-                />
-              </div>
-            </div>
+            {/* Reusable Address Section */}
+            <PincodeAddressFields
+              values={{
+                pinCode: formData.pinCode,
+                state: formData.state,
+                district: formData.district,
+                tehsil: formData.tehsil,
+                address: formData.address,
+              }}
+              onChange={(field, val) => setFormData((prev) => ({ ...prev, [field]: val }))}
+              isEditMode={true}
+              initialPinCode={formData.pinCode}
+              addressLabel="Village / गाँव"
+              addressPlaceholder="गांव का नाम दर्ज करे"
+              required
+            />
+
 
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>

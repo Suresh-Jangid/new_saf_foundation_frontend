@@ -27,6 +27,7 @@ import { EpinValidationResponse } from "@/lib/config-types";
 import { formatDate } from "@/lib/utils";
 import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
 
 export default function AddDhundhotsavPage() {
   const router = useRouter();
@@ -749,73 +750,19 @@ export default function AddDhundhotsavPage() {
                 </div>
               </div>
 
-              {/* Full Address Section */}
-              <div>
-                <Label htmlFor="address">पूरा पता / Full Residential Address <span className="text-destructive">*</span></Label>
-                <Textarea
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="मकान संख्या, गली/मोहल्ला, ग्राम..."
-                  rows={3}
-                  required
-                  className="mt-1"
-                />
-              </div>
+              <PincodeAddressFields
+                pinCode={formData.pinCode}
+                state={formData.state}
+                district={formData.district}
+                tehsil={formData.tehsil}
+                address={formData.address}
+                addressLabel="पूरा पता / Full Residential Address"
+                addressPlaceholder="मकान संख्या, गली/मोहल्ला, ग्राम..."
+                addressAsTextarea={true}
+                onFieldChange={(field, val) => setFormData((prev) => ({ ...prev, [field]: val }))}
+                required={true}
+              />
 
-              {/* Address Details Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="pinCode">पिन कोड / PIN Code <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="pinCode"
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={formData.pinCode}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
-                      setFormData({ ...formData, pinCode: digits });
-                    }}
-                    placeholder="पिन कोड दर्ज करें"
-                    required
-                    className="font-mono mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="tehsil">तहसील / Tehsil <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="tehsil"
-                    value={formData.tehsil}
-                    onChange={(e) => setFormData({ ...formData, tehsil: e.target.value })}
-                    placeholder="तहसील दर्ज करें"
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="district">जिला / District <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="district"
-                    value={formData.district}
-                    onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                    placeholder="जिला दर्ज करें"
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="state">राज्य / State <span className="text-destructive">*</span></Label>
-                  <Input
-                    id="state"
-                    value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    placeholder="राज्य दर्ज करें"
-                    required
-                    className="mt-1"
-                  />
-                </div>
-              </div>
 
               {/* Nominee Information Section */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -38,6 +38,7 @@ import { isAdmin } from "@/lib/permissions";
 import { EpinValidationResponse } from "@/lib/config-types";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
 import { uploadMediaFile } from "@/lib/upload-client";
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
 
 export default function AddShubhLaxmiPage() {
   const router = useRouter();
@@ -649,84 +650,20 @@ export default function AddShubhLaxmiPage() {
                 <span>2. निवास एवं पता विवरण / Address Details</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="address" className="text-xs font-semibold">
-                  स्थाई पता / Full Residential Address <span className="text-destructive">*</span>
-                </Label>
-                <Textarea
-                  id="address"
-                  placeholder="मकान संख्या, गली/मोहल्ला, ग्राम..."
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  required
-                  rows={2}
-                  className="text-sm"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Tehsil */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="tehsil" className="text-xs font-semibold">
-                    तहसील / Tehsil <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="tehsil"
-                    placeholder="उदा. सांगानेर"
-                    value={formData.tehsil}
-                    onChange={(e) => setFormData({ ...formData, tehsil: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* District */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="district" className="text-xs font-semibold">
-                    जिला / District <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="district"
-                    placeholder="उदा. जयपुर"
-                    value={formData.district}
-                    onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-
-                {/* PIN Code */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="pinCode" className="text-xs font-semibold">
-                    पिन कोड / PIN Code <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="pinCode"
-                    maxLength={6}
-                    placeholder="6 अंकों का पिन कोड"
-                    value={formData.pinCode}
-                    onChange={(e) => setFormData({ ...formData, pinCode: e.target.value })}
-                    required
-                    className="text-sm font-mono"
-                  />
-                </div>
-
-                {/* State */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="state" className="text-xs font-semibold">
-                    राज्य / State <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="state"
-                    value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    required
-                    className="text-sm"
-                  />
-                </div>
-              </div>
+            <CardContent className="p-6">
+              <PincodeAddressFields
+                values={{
+                  pinCode: formData.pinCode,
+                  state: formData.state,
+                  district: formData.district,
+                  tehsil: formData.tehsil,
+                  address: formData.address,
+                }}
+                onChange={(field, val) => setFormData((prev) => ({ ...prev, [field]: val }))}
+                required
+              />
             </CardContent>
+
           </Card>
 
           {/* Section 3: Nominee Details */}

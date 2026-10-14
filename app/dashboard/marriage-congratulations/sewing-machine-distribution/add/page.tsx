@@ -20,6 +20,7 @@ import APIService from "@/lib/services"
 import { toast } from "sonner"
 import { formatDate, formatDateForAPI, getCurrentUserInfo } from "@/lib/utils"
 import { calculateAge, formatDateForInput, parseDateFromDDMMYYYY, isValidDate } from "@/lib/utils"
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields"
 
 export default function AddMarriageSewingMachineDistribution() {
   const router = useRouter()
@@ -529,66 +530,24 @@ export default function AddMarriageSewingMachineDistribution() {
                   disabled={isFormDisabled}
                 />
               </div>
-
-              <div>
-                <Label htmlFor="address">Village / गाँव</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
-                  placeholder="गांव का नाम दर्ज करे"
-                  required
-                  disabled={isFormDisabled}
-                />
-              </div>
             </div>
 
-            <div className="grid md:grid-cols-2  grid-cols-1 xl:grid-cols-4 gap-4">
-              <div>
-                <Label htmlFor="pinCode">पिन कोड / Pin Code</Label>
-                <Input
-                  id="pinCode"
-                  value={formData.pinCode}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, pinCode: e.target.value }))}
-                  placeholder="पिन कोड / Pin Code"
-                  required
-                  disabled={isFormDisabled}
-                />
-              </div>
-              <div>
-                <Label htmlFor="tehsil">तहसील / Tehsil</Label>
-                <Input
-                  id="tehsil"
-                  value={formData.tehsil}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, tehsil: e.target.value }))}
-                  placeholder="तहसील / Tehsil"
-                  required
-                  disabled={isFormDisabled}
-                />
-              </div>
-              <div>
-                <Label htmlFor="district">जिला / District</Label>
-                <Input
-                  id="district"
-                  value={formData.district}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, district: e.target.value }))}
-                  placeholder="जिला / District"
-                  required
-                  disabled={isFormDisabled}
-                />
-              </div>
-              <div>
-                <Label htmlFor="state">राज्य / State</Label>
-                <Input
-                  id="state"
-                  value={formData.state}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value }))}
-                  placeholder="राज्य / State"
-                  required
-                  disabled={isFormDisabled}
-                />
-              </div>
-            </div>
+            {/* Reusable Address Section */}
+            <PincodeAddressFields
+              values={{
+                pinCode: formData.pinCode,
+                state: formData.state,
+                district: formData.district,
+                tehsil: formData.tehsil,
+                address: formData.address,
+              }}
+              onChange={(field, val) => setFormData((prev) => ({ ...prev, [field]: val }))}
+              addressLabel="Village / गाँव"
+              addressPlaceholder="गांव का नाम दर्ज करे"
+              disabled={isFormDisabled}
+              required
+            />
+
 
             <div className="flex justify-end space-x-2">
               <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>

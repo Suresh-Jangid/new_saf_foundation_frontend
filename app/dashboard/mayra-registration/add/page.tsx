@@ -26,6 +26,7 @@ import { useAgeCategory } from "@/hooks/use-age-category"
 import { EpinInputVerifier } from "@/components/forms/epin-input-verifier"
 import { EpinService } from "@/lib/epin-service"
 import { WorkerSearchSelector } from "@/components/worker-search-selector"
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields"
 
 import {
   AlertDialog,
@@ -799,15 +800,7 @@ export default function AddMayraRegistrationPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="sm:col-span-2 lg:col-span-4">
-                    <Label>नॉमिनी का पता (Nominee Address)</Label>
-                    <Input
-                      placeholder="Nominee Address"
-                      value={formData.nomineeAddress}
-                      onChange={e => setFormData(prev => ({ ...prev, nomineeAddress: e.target.value }))}
-                    />
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="nomineeMobile">नॉमिनी मोबाइल नं.</Label>
                     <Input
@@ -835,35 +828,30 @@ export default function AddMayraRegistrationPage() {
                       }
                     />
                   </div>
-                  <div>
-                    <Label>तहसील / Tehsil</Label>
-                    <Input
-                      required
-                      placeholder="Tehsil"
-                      value={formData.nomineeTehsil}
-                      onChange={e => setFormData(prev => ({ ...prev, nomineeTehsil: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label>जिला / District</Label>
-                    <Input
-                      required
-                      placeholder="District"
-                      value={formData.nomineeDistrict}
-                      onChange={e => setFormData(prev => ({ ...prev, nomineeDistrict: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label>पिनकोड / Pincode</Label>
-                    <Input
-                      required
-                      maxLength={6}
-                      placeholder="Pincode"
-                      value={formData.nomineePincode}
-                      onChange={e => setFormData(prev => ({ ...prev, nomineePincode: e.target.value.replace(/\D/g, '') }))}
-                    />
-                  </div>
                 </div>
+
+                {/* Nominee PIN-code Address Section */}
+                <PincodeAddressFields
+                  fieldNames={{
+                    pinCode: "nomineePincode",
+                    state: "nomineeState",
+                    district: "nomineeDistrict",
+                    tehsil: "nomineeTehsil",
+                    address: "nomineeAddress",
+                  }}
+                  values={{
+                    nomineePincode: formData.nomineePincode,
+                    nomineeState: formData.nomineeState,
+                    nomineeDistrict: formData.nomineeDistrict,
+                    nomineeTehsil: formData.nomineeTehsil,
+                    nomineeAddress: formData.nomineeAddress,
+                  }}
+                  onChange={(field, val) => setFormData(prev => ({ ...prev, [field]: val }))}
+                  addressLabel="नॉमिनी का पता (Nominee Address)"
+                  addressPlaceholder="मकान संख्या, गली/मोहल्ला, ग्राम..."
+                  required
+                />
+
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>

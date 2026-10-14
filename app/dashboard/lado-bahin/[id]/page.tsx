@@ -44,6 +44,7 @@ import {
 } from "@/lib/utils";
 import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
 import { agentRegistrationAPI, post } from "@/lib/api";
 
 export default function EditLadoBahinPage() {
@@ -1016,84 +1017,21 @@ export default function EditLadoBahinPage() {
                   </h2>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="address" className="text-xs sm:text-sm font-semibold text-foreground">
-                      पूर्ण पता (Full Address) <span className="text-rose-500">*</span>
-                    </Label>
-                    <Textarea
-                      id="address"
-                      value={formData.address}
-                      onChange={(e) => handleInputChange("address", e.target.value)}
-                      required
-                      className="min-h-[70px] resize-none"
-                    />
-                  </div>
+                <PincodeAddressFields
+                  pinCode={formData.pinCode}
+                  state={formData.state}
+                  district={formData.district}
+                  tehsil={formData.tehsil}
+                  address={formData.address}
+                  addressLabel="पूर्ण पता (Full Address)"
+                  addressPlaceholder="मकान नं., गली/मोहल्ला, गाँव/वार्ड विवरण"
+                  addressAsTextarea={true}
+                  onFieldChange={(field, val) => handleInputChange(field as any, val)}
+                  required={true}
+                  isEditMode={true}
+                  initialPinCode={record?.pinCode || formData.pinCode}
+                />
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                    {/* State */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="state" className="text-xs sm:text-sm font-semibold text-foreground">
-                        राज्य (State) <span className="text-rose-500">*</span>
-                      </Label>
-                      <Input
-                        id="state"
-                        value={formData.state}
-                        onChange={(e) => handleInputChange("state", e.target.value)}
-                        required
-                        className="h-10"
-                      />
-                    </div>
-
-                    {/* District */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="district" className="text-xs sm:text-sm font-semibold text-foreground">
-                        जिला (District) <span className="text-rose-500">*</span>
-                      </Label>
-                      <Input
-                        id="district"
-                        value={formData.district}
-                        onChange={(e) => handleInputChange("district", e.target.value)}
-                        required
-                        className="h-10"
-                      />
-                    </div>
-
-                    {/* Tehsil */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="tehsil" className="text-xs sm:text-sm font-semibold text-foreground">
-                        तहसील (Tehsil) <span className="text-rose-500">*</span>
-                      </Label>
-                      <Input
-                        id="tehsil"
-                        value={formData.tehsil}
-                        onChange={(e) => handleInputChange("tehsil", e.target.value)}
-                        required
-                        className="h-10"
-                      />
-                    </div>
-
-                    {/* Pin Code */}
-                    <div className="space-y-1.5">
-                      <Label htmlFor="pinCode" className="text-xs sm:text-sm font-semibold text-foreground">
-                        पिन कोड (Pin Code) <span className="text-rose-500">*</span>
-                      </Label>
-                      <Input
-                        id="pinCode"
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={6}
-                        value={formData.pinCode}
-                        onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
-                          handleInputChange("pinCode", digits);
-                        }}
-                        required
-                        className="h-10"
-                      />
-                    </div>
-                  </div>
-                </div>
               </div>
 
               {/* 4. Nominee Details Card */}

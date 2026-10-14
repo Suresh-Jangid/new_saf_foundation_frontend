@@ -35,6 +35,7 @@ import { EpinValidationResponse } from "@/lib/config-types";
 import { validatePhoneNumber } from "@/lib/utils";
 import { uploadMediaFile } from "@/lib/upload-client";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
 
 export default function AddAawasPage() {
   const router = useRouter();
@@ -590,72 +591,21 @@ export default function AddAawasPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="sm:col-span-2 md:col-span-3 space-y-1.5">
-                  <Label htmlFor="address">स्थाई पता (Permanent Address) *</Label>
-                  <Textarea
-                    id="address"
-                    name="address"
-                    required
-                    rows={2}
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    placeholder="मकान नंबर, गली/मोहल्ला, गाँव/शहर..."
-                  />
-                </div>
+              <PincodeAddressFields
+                pinCode={formData.pinCode}
+                state={formData.state}
+                district={formData.district}
+                tehsil={formData.tehsil}
+                address={formData.address}
+                addressLabel="स्थाई पता (Permanent Address)"
+                addressPlaceholder="मकान नंबर, गली/मोहल्ला, गाँव/शहर..."
+                addressAsTextarea={true}
+                onFieldChange={(field, val) => setFormData((prev) => ({ ...prev, [field]: val }))}
+                required={true}
+              />
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="district">जिला (District) *</Label>
-                  <Input
-                    id="district"
-                    name="district"
-                    required
-                    value={formData.district}
-                    onChange={handleInputChange}
-                    placeholder="उदा. जोधपुर / जयपुर"
-                  />
-                </div>
+              <div className="space-y-1.5 sm:col-span-2 pt-2">
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="tehsil">तहसील (Tehsil) *</Label>
-                  <Input
-                    id="tehsil"
-                    name="tehsil"
-                    required
-                    value={formData.tehsil}
-                    onChange={handleInputChange}
-                    placeholder="उदा. लूणी / ओसियां"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="pinCode">पिन कोड (PIN Code) *</Label>
-                  <Input
-                    id="pinCode"
-                    name="pinCode"
-                    required
-                    maxLength={6}
-                    value={formData.pinCode}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/\D/g, "");
-                      setFormData((prev) => ({ ...prev, pinCode: val }));
-                    }}
-                    placeholder="6 अंकों का पिन कोड"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="state">राज्य (State)</Label>
-                  <Input
-                    id="state"
-                    name="state"
-                    value={formData.state}
-                    onChange={handleInputChange}
-                    placeholder="राजस्थान"
-                  />
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
                   <Label htmlFor="houseType">मकान का प्रकार / वर्तमान स्थिति (House Type)</Label>
                   <select
                     id="houseType"
@@ -670,7 +620,6 @@ export default function AddAawasPage() {
                     <option value="भूमि उपलब्ध - नवनिर्माण (Plot Available - New Construction)">भूमि उपलब्ध - नवनिर्माण (Plot Available - New Construction)</option>
                   </select>
                 </div>
-              </div>
             </CardContent>
           </Card>
 

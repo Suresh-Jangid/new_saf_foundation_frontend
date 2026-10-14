@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { formatBilingual } from "@/lib/translations"
 import { FormData } from "@/hooks/use-form-data"
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector"
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields"
 
 interface FormSectionProps {
   formData: FormData
@@ -190,7 +191,7 @@ export const ContactInfoSection = memo<FormSectionProps>(({
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
         <InputField
           id="mobile"
           label="मोबाइल नंबर / Mobile Number"
@@ -202,57 +203,23 @@ export const ContactInfoSection = memo<FormSectionProps>(({
           maxLength={10}
           required
         />
-
-        <InputField
-          id="address"
-          label="Village / गाँव"
-          placeholder="गांव का नाम दर्ज करे"
-          value={formData.address}
-          onChange={(value) => updateField("address", value)}
-          required
-        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <InputField
-          id="pinCode"
-          label="पिन कोड / Pin Code"
-          placeholder="पिन कोड दर्ज करें"
-          value={formData.pinCode}
-          onChange={(value) => updateField("pinCode", value)}
-          type="number"
-          inputMode="numeric"
-          required
-        />
-
-        <InputField
-          id="tehsil"
-          label="तहसील / Tehsil"
-          placeholder="तहसील दर्ज करें"
-          value={formData.tehsil}
-          onChange={(value) => updateField("tehsil", value)}
-          required
-        />
-
-        <InputField
-          id="district"
-          label="जिला / District"
-          placeholder="जिला दर्ज करें"
-          value={formData.district}
-          onChange={(value) => updateField("district", value)}
-          required
-        />
-
-        <InputField
-          id="state"
-          label="राज्य / State"
-          placeholder="राज्य दर्ज करें"
-          value={formData.state}
-          onChange={(value) => updateField("state", value)}
-          required
-        />
-      </div>
+      <PincodeAddressFields
+        values={{
+          pinCode: formData.pinCode,
+          state: formData.state,
+          district: formData.district,
+          tehsil: formData.tehsil,
+          address: formData.address,
+        }}
+        onChange={(field, val) => updateField(field as any, val)}
+        addressLabel="Village / गाँव"
+        addressPlaceholder="गांव का नाम दर्ज करे"
+        required
+      />
     </div>
+
   )
 })
 

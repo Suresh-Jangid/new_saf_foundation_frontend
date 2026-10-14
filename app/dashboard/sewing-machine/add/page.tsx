@@ -20,6 +20,7 @@ import { useCRUD } from "@/hooks/use-crud"
 import { API_ENDPOINTS } from "@/lib/api"
 import { toast } from "sonner"
 import { formatDate, isValidDate, parseDateFromDDMMYYYY, validatePhoneNumber, getCurrentUserInfo } from "@/lib/utils"
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields"
 
 export default function AddSewingMachinePage() {
   const router = useRouter()
@@ -464,7 +465,7 @@ export default function AddSewingMachinePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <Label htmlFor="age">आयु (Age)</Label>
                 <Input
@@ -491,63 +492,23 @@ export default function AddSewingMachinePage() {
                   <p className="text-sm text-red-500 mt-1">{phoneError}</p>
                 )}
               </div>
-              <div>
-                <Label htmlFor="pinCode">पिन कोड (Pin Code)</Label>
-                <Input
-                  id="pinCode"
-                  type="number"
-                  name="pinCode"
-                  value={formData.pinCode}
-                  onChange={handleChange}
-                  placeholder="पिन कोड"
-                />
-              </div>
             </div>
 
-            <div>
-              <Label htmlFor="address">Village / गाँव *</Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="गांव का नाम दर्ज करे"
-                required
-              />
-            </div>
+            {/* Reusable Address Section */}
+            <PincodeAddressFields
+              values={{
+                pinCode: formData.pinCode,
+                state: formData.state,
+                district: formData.district,
+                tehsil: formData.tehsil,
+                address: formData.address,
+              }}
+              onChange={(field, val) => setFormData(prev => ({ ...prev, [field]: val }))}
+              addressLabel="Village / गाँव"
+              addressPlaceholder="गांव का नाम दर्ज करे"
+              required
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <Label htmlFor="tehsil">तहसील (Tehsil)</Label>
-                <Input
-                  id="tehsil"
-                  name="tehsil"
-                  value={formData.tehsil}
-                  onChange={handleChange}
-                  placeholder="तहसील"
-                />
-              </div>
-              <div>
-                <Label htmlFor="district">जिला (District)</Label>
-                <Input
-                  id="district"
-                  name="district"
-                  value={formData.district}
-                  onChange={handleChange}
-                  placeholder="जिला"
-                />
-              </div>
-              <div>
-                <Label htmlFor="state">राज्य (State)</Label>
-                <Input
-                  id="state"
-                  name="state"
-                  value={formData.state}
-                  onChange={handleChange}
-                  placeholder="राज्य"
-                />
-              </div>
-            </div>
 
             {/* Photo Upload Section */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

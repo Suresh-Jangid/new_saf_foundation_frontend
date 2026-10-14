@@ -16,6 +16,7 @@ import { formatDate, parseDateFromDDMMYYYY, calculateAge as calculateAgeUtil, ge
 import React from "react";
 import { X } from "lucide-react";
 import { MediaUploadControl } from "@/components/media-upload";
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
 
 interface DisabilityCycleRecord {
   id: string;
@@ -382,60 +383,22 @@ export default function EditDisabilityCyclePage() {
             </div>
 
            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="address">Village / गाँव</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
-                placeholder="गांव का नाम दर्ज करे"
-              />
-            </div>
+            {/* Reusable Address Section */}
+            <PincodeAddressFields
+              values={{
+                pinCode: formData.pinCode,
+                state: formData.state,
+                district: formData.district,
+                tehsil: formData.tehsil,
+                address: formData.address,
+              }}
+              onChange={(field, val) => setFormData((prev) => ({ ...prev, [field]: val }))}
+              isEditMode={true}
+              initialPinCode={formData.pinCode}
+              addressLabel="Village / गाँव"
+              addressPlaceholder="गांव का नाम दर्ज करे"
+            />
 
-
-            <div>
-                <Label htmlFor="pinCode">पिन कोड (Pin Code)</Label>
-                <Input
-                  id="pinCode"
-                  value={formData.pinCode}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, pinCode: e.target.value }))}
-                  placeholder="Enter pin code"
-                />
-              </div>
-
-              </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            
-              <div>
-                <Label htmlFor="tehsil">तहसील (Tehsil)</Label>
-                <Input
-                  id="tehsil"
-                  value={formData.tehsil}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, tehsil: e.target.value }))}
-                  placeholder="Enter tehsil"
-                />
-              </div>
-              <div>
-                <Label htmlFor="district">जिला (District)</Label>
-                <Input
-                  id="district"
-                  value={formData.district}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, district: e.target.value }))}
-                  placeholder="Enter district"
-                />
-              </div>
-              <div>
-                <Label htmlFor="state">राज्य (State)</Label>
-                <Input
-                  id="state"
-                  value={formData.state}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, state: e.target.value }))}
-                  placeholder="Enter state"
-                />
-              </div>
-            </div>
 
             {/* Photo Upload Section */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

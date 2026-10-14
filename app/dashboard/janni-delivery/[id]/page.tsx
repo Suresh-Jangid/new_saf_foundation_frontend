@@ -39,6 +39,7 @@ import {
   getProxiedPhotoSrc,
 } from "@/lib/utils";
 import { WorkerSearchSelector, WorkerOption } from "@/components/worker-search-selector";
+import { PincodeAddressFields } from "@/components/forms/pincode-address-fields";
 
 export default function EditJanniDeliveryPage() {
   const params = useParams();
@@ -1084,87 +1085,21 @@ export default function EditJanniDeliveryPage() {
                   स्थायी पता (Residential Address Details)
                 </h2>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="sm:col-span-2 lg:col-span-4">
-                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
-                      पूरा पता (Full Address) <span className="text-red-500">*</span>
-                    </Label>
-                    <Textarea
-                      required
-                      rows={2}
-                      placeholder="मकान नंबर, गली/मोहल्ला, गांव आदि दर्ज करें"
-                      className="mt-1 text-xs sm:text-sm bg-white"
-                      value={formData.address}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, address: e.target.value }))
-                      }
-                    />
-                  </div>
+                <PincodeAddressFields
+                  pinCode={formData.pinCode}
+                  state={formData.state}
+                  district={formData.district}
+                  tehsil={formData.tehsil}
+                  address={formData.address}
+                  addressLabel="पूरा पता (Full Address)"
+                  addressPlaceholder="मकान नंबर, गली/मोहल्ला, गांव आदि दर्ज करें"
+                  addressAsTextarea={true}
+                  onFieldChange={(field, val) => setFormData((prev) => ({ ...prev, [field]: val }))}
+                  required={true}
+                  isEditMode={true}
+                  initialPinCode={record?.pinCode || formData.pinCode}
+                />
 
-                  <div>
-                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
-                      पिन कोड / PIN Code <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      required
-                      inputMode="numeric"
-                      maxLength={6}
-                      placeholder="6 digit PIN Code"
-                      className="mt-1 text-xs sm:text-sm"
-                      value={formData.pinCode}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          pinCode: e.target.value.replace(/\D/g, "").slice(0, 6),
-                        }))
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
-                      तहसील / Tehsil <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      required
-                      placeholder="तहसील दर्ज करें"
-                      className="mt-1 text-xs sm:text-sm"
-                      value={formData.tehsil}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, tehsil: e.target.value }))
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
-                      ज़िला / District <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      required
-                      placeholder="ज़िला दर्ज करें"
-                      className="mt-1 text-xs sm:text-sm"
-                      value={formData.district}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, district: e.target.value }))
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-xs sm:text-sm font-medium text-gray-700">
-                      राज्य / State
-                    </Label>
-                    <Input
-                      placeholder="राज्य दर्ज करें"
-                      className="mt-1 text-xs sm:text-sm"
-                      value={formData.state}
-                      onChange={(e) =>
-                        setFormData((prev) => ({ ...prev, state: e.target.value }))
-                      }
-                    />
-                  </div>
-                </div>
               </div>
 
               {/* Section 5: Nominee Details */}
